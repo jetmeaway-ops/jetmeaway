@@ -489,6 +489,17 @@ const PROVIDERS = [
   },
 ];
 
+type FlightResult = {
+  airline: string;
+  airlineCode: string;
+  price: number;
+  currency: string;
+  stops: string;
+  duration: string | null;
+  departure: string | null;
+  link: string;
+};
+
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function FlightsPage() {
   const [origin, setOrigin] = useState('');
@@ -500,17 +511,43 @@ export default function FlightsPage() {
   const [infants, setInfants] = useState(0);
   const [tripType, setTripType] = useState<'one-way' | 'return'>('return');
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState(false);
+  const [flights, setFlights] = useState<FlightResult[] | null>(null);
+  const [apiError, setApiError] = useState('');
 
   const today = new Date().toISOString().split('T')[0];
 
-  function handleSearch() {
+  async function handleSearch() {
     if (!origin) { alert('Please select a departure airport'); return; }
     if (!dest) { alert('Please select a destination airport'); return; }
     if (!depDate) { alert('Please select a departure date'); return; }
-    setResults(false);
+    setFlights(null);
+    setApiError('');
     setLoading(true);
-    setTimeout(() => { setLoading(false); setResults(true); }, 1500);
+
+    try {
+      const params = new URLSearchParams({
+        origin,
+        destination: dest,
+        departure: depDate,
+        adults: String(adults),
+        children: String(children),
+        infants: String(infants),
+      });
+      if (retDate && tripType === 'return') params.set('return', retDate);
+
+      const res = await fetch(`/api/flights?${params}`);
+      const data = await res.json();
+
+      if (data.error) {
+        setApiError(data.error);
+      } else {
+        setFlights(data.flights || []);
+      }
+    } catch {
+      setApiError('Could not load flight prices. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -586,50 +623,111 @@ export default function FlightsPage() {
         <section className="max-w-[860px] mx-auto px-5 py-10 text-center">
           <div className="inline-flex items-center gap-3 bg-white border border-[#F1F3F7] rounded-2xl px-6 py-4 shadow-sm">
             <div className="w-5 h-5 border-2 border-[#0066FF] border-t-transparent rounded-full animate-spin" />
-            <span className="text-[.85rem] font-bold text-[#5C6378]">Checking prices on <strong className="text-[#1A1D2B]">{PROVIDERS.length} providers</strong>…</span>
+            <span className="text-[.85rem] font-bold text-[#5C6378]">Searching live prices for <strong className="text-[#1A1D2B]">{origin} → {dest}</strong>…</span>
           </div>
         </section>
       )}
 
-      {/* Results */}
-      {results && (
+      {/* API error */}
+      {apiError && (
+        <section className="max-w-[860px] mx-auto px-5 py-6">
+          <div className="bg-red-50 border border-red-100 rounded-2xl p-5 text-center">
+            <p className="text-[.85rem] font-bold text-red-600 mb-1">{apiError}</p>
+            {apiError.includes('TRAVELPAYOUTS_TOKEN') && (
+              <p className="text-[.75rem] text-red-400 font-semibold">
+                Add your token to .env.local: <code className="bg-red-100 px-1.5 py-0.5 rounded">TRAVELPAYOUTS_TOKEN=your_token_here</code>
+                <br />Get it at travelpayouts.com → Dashboard → API
+              </p>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Live Results */}
+      {flights !== null && (
         <section className="max-w-[1000px] mx-auto px-5 pb-8">
           <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
             <div>
               <h2 className="font-[Poppins] font-black text-[1.3rem] text-[#1A1D2B]">
                 {origin} → {dest}
-                <span className="text-[#8E95A9] font-semibold text-[1rem]"> · {depDate}{retDate ? ` – ${retDate}` : ''}</span>
+                <span className="text-[#8E95A9] font-semibold text-[1rem]"> · {depDate}{retDate && tripType === 'return' ? ` – ${retDate}` : ''}</span>
               </h2>
               <p className="text-[.75rem] text-[#8E95A9] font-semibold mt-0.5">
                 {adults} adult{adults !== 1 ? 's' : ''}
                 {children > 0 ? `, ${children} child${children !== 1 ? 'ren' : ''}` : ''}
                 {infants > 0 ? `, ${infants} infant${infants !== 1 ? 's' : ''}` : ''}
-                {' · Click any provider for live prices'}
+                {' · Live prices via Travelpayouts'}
               </p>
             </div>
-            <span className="text-[.7rem] font-bold text-[#0066FF] bg-blue-50 px-3 py-1.5 rounded-full">{PROVIDERS.length} providers found</span>
+            {flights.length > 0 && (
+              <span className="text-[.7rem] font-bold text-[#0066FF] bg-blue-50 px-3 py-1.5 rounded-full">{flights.length} result{flights.length !== 1 ? 's' : ''} found</span>
+            )}
           </div>
-          <div className="flex flex-col gap-3">
-            {PROVIDERS.map(p => (
-              <div key={p.name} className="bg-white border border-[#F1F3F7] rounded-2xl p-5 flex flex-col md:flex-row md:items-center gap-4 hover:border-blue-200 hover:shadow-md transition-all">
-                <div className="text-3xl flex-shrink-0">{p.logo}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <span className="font-[Poppins] font-extrabold text-[1rem] text-[#1A1D2B]">{p.name}</span>
-                    <span className="text-[.6rem] font-black uppercase tracking-[1.5px] px-2.5 py-0.5 rounded-full bg-blue-50 text-[#0066FF]">{p.badge}</span>
+
+          {flights.length === 0 ? (
+            <div className="text-center py-10 bg-white border border-[#F1F3F7] rounded-2xl">
+              <p className="text-[.95rem] font-bold text-[#1A1D2B] mb-2">No flights found</p>
+              <p className="text-[.8rem] text-[#8E95A9] font-semibold">Try a different date or check the route is correct.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {flights.map((f, i) => (
+                <div key={i} className="bg-white border border-[#F1F3F7] rounded-2xl p-5 flex flex-col md:flex-row md:items-center gap-4 hover:border-blue-200 hover:shadow-md transition-all">
+                  {/* Airline */}
+                  <div className="flex items-center gap-3 min-w-[160px]">
+                    <div className="w-10 h-10 rounded-xl bg-[#F8FAFC] border border-[#E8ECF4] flex items-center justify-center">
+                      <img
+                        src={`https://pics.avs.io/40/40/${f.airlineCode}.png`}
+                        alt={f.airline}
+                        className="w-8 h-8 object-contain"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    </div>
+                    <div>
+                      <div className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B]">{f.airline}</div>
+                      {f.departure && (
+                        <div className="text-[.7rem] text-[#8E95A9] font-medium">
+                          {new Date(f.departure).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-[.78rem] text-[#5C6378] font-semibold">{p.highlight}</p>
+
+                  {/* Route info */}
+                  <div className="flex-1 flex items-center gap-4 flex-wrap">
+                    <div className="flex items-center gap-2 text-[.8rem] font-semibold text-[#5C6378]">
+                      <span className="font-black text-[#1A1D2B]">{origin}</span>
+                      <span>→</span>
+                      <span className="font-black text-[#1A1D2B]">{dest}</span>
+                    </div>
+                    <span className={`text-[.65rem] font-black uppercase tracking-[1.5px] px-2.5 py-0.5 rounded-full ${f.stops === 'Direct' ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-500'}`}>
+                      {f.stops}
+                    </span>
+                    {f.duration && (
+                      <span className="text-[.72rem] text-[#8E95A9] font-semibold">{f.duration}</span>
+                    )}
+                  </div>
+
+                  {/* Price + book */}
+                  <div className="flex items-center gap-4 flex-shrink-0">
+                    <div className="text-right">
+                      <div className="font-[Poppins] font-black text-[1.4rem] text-[#1A1D2B]">
+                        {f.currency}{f.price.toLocaleString()}
+                      </div>
+                      <div className="text-[.65rem] text-[#8E95A9] font-semibold">per person</div>
+                    </div>
+                    <a href={f.link} target="_blank" rel="noopener"
+                      className="inline-flex items-center gap-1.5 bg-[#0066FF] hover:bg-[#0052CC] text-white font-[Poppins] font-bold text-[.78rem] px-5 py-3 rounded-xl transition-all shadow-[0_4px_12px_rgba(0,102,255,0.25)] whitespace-nowrap">
+                      Book →
+                    </a>
+                  </div>
                 </div>
-                <div className="flex-shrink-0">
-                  <a href={p.getUrl(origin, dest, depDate, retDate)} target="_blank" rel="noopener"
-                    className="inline-flex items-center gap-2 bg-[#0066FF] hover:bg-[#0052CC] text-white font-[Poppins] font-bold text-[.78rem] px-5 py-2.5 rounded-xl transition-all whitespace-nowrap">
-                    Check Price →
-                  </a>
-                </div>
-              </div>
-            ))}
-          </div>
-          <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-4">Prices are live on each provider's site. Jetmeaway does not add any booking fees.</p>
+              ))}
+            </div>
+          )}
+          <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-4">
+            Prices sourced from Travelpayouts. Clicking Book earns Jetmeaway a commission at no extra cost to you.
+          </p>
         </section>
       )}
 
