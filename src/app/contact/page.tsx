@@ -1,0 +1,98 @@
+'use client';
+export const runtime = 'edge';
+
+import { useState } from 'react';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+
+export default function Contact() {
+  const [sent, setSent] = useState(false);
+
+  function sendForm() {
+    const name = (document.getElementById('cf-name') as HTMLInputElement)?.value?.trim();
+    const email = (document.getElementById('cf-email') as HTMLInputElement)?.value?.trim();
+    const msg = (document.getElementById('cf-msg') as HTMLTextAreaElement)?.value?.trim();
+    const subject = (document.getElementById('cf-subject') as HTMLSelectElement)?.value;
+    if (!name || !email || !msg) { alert('Please fill in all required fields.'); return; }
+    const body = `Name: ${name}\nEmail: ${email}\nSubject: ${subject}\n\nMessage:\n${msg}`;
+    window.location.href = `mailto:waqar@jetmeaway.co.uk?subject=${encodeURIComponent('[Jetmeaway] ' + subject)}&body=${encodeURIComponent(body)}`;
+    setSent(true);
+  }
+
+  return (
+    <>
+      <Header />
+      <section className="pt-36 pb-10 px-5 text-center">
+        <h1 className="font-[Poppins] text-[2.4rem] font-black tracking-tight mb-2.5">📩 <span className="text-[#0066FF]">Contact</span> Us</h1>
+        <p className="text-[.95rem] text-[#8E95A9] max-w-[500px] mx-auto">Got a question, feedback, or need help? We&apos;d love to hear from you.</p>
+      </section>
+
+      <div className="max-w-[720px] mx-auto px-5 pb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Info */}
+          <div className="bg-white border border-[#F1F3F7] rounded-3xl p-7 space-y-5">
+            <InfoItem icon="fa-envelope" title="Email Us" desc={<>
+              <a href="mailto:waqar@jetmeaway.co.uk" className="text-[#0066FF] font-bold">waqar@jetmeaway.co.uk</a>
+              <br/><span className="text-[.78rem] text-[#8E95A9]">We aim to respond within 24 hours.</span>
+            </>} />
+            <InfoItem icon="fa-clock" title="Response Time" desc={<><span className="text-[.78rem] text-[#8E95A9]">Mon–Fri: Within 24 hours<br/>Weekends: Within 48 hours</span></>} />
+            <InfoItem icon="fa-shield-halved" title="Booking Queries" desc={<span className="text-[.78rem] text-[#8E95A9]">Jetmeaway is a comparison site. For booking issues, contact the travel provider directly.</span>} />
+          </div>
+
+          {/* Form */}
+          <div className="bg-white border border-[#F1F3F7] rounded-3xl p-7">
+            {!sent ? (
+              <>
+                <h3 className="font-[Poppins] font-bold text-[1rem] text-[#0066FF] mb-4">Send a Message</h3>
+                <div className="space-y-3">
+                  <div><label className="block text-[.58rem] font-bold uppercase tracking-[1.5px] text-[#8E95A9] mb-1">Your Name</label><input id="cf-name" type="text" placeholder="John Smith" className="w-full p-3 bg-[#F8FAFC] border border-[#E4E8F0] rounded-lg text-[.88rem] text-[#1A1D2B] outline-none focus:border-[#0066FF]" /></div>
+                  <div><label className="block text-[.58rem] font-bold uppercase tracking-[1.5px] text-[#8E95A9] mb-1">Email</label><input id="cf-email" type="email" placeholder="your@email.com" className="w-full p-3 bg-[#F8FAFC] border border-[#E4E8F0] rounded-lg text-[.88rem] text-[#1A1D2B] outline-none focus:border-[#0066FF]" /></div>
+                  <div><label className="block text-[.58rem] font-bold uppercase tracking-[1.5px] text-[#8E95A9] mb-1">Subject</label><select id="cf-subject" className="w-full p-3 bg-[#F8FAFC] border border-[#E4E8F0] rounded-lg text-[.88rem] text-[#1A1D2B] outline-none"><option>General Enquiry</option><option>Feedback</option><option>Report a Problem</option><option>Partnership</option></select></div>
+                  <div><label className="block text-[.58rem] font-bold uppercase tracking-[1.5px] text-[#8E95A9] mb-1">Message</label><textarea id="cf-msg" placeholder="How can we help?" className="w-full p-3 bg-[#F8FAFC] border border-[#E4E8F0] rounded-lg text-[.88rem] text-[#1A1D2B] outline-none focus:border-[#0066FF] min-h-[120px] resize-y" /></div>
+                  <button onClick={sendForm} className="w-full py-3.5 bg-[#0066FF] hover:bg-[#0052CC] text-white font-[Poppins] font-bold text-[.92rem] rounded-xl transition-all">Send Message</button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-6">
+                <div className="text-[2.5rem] mb-2">✅</div>
+                <h3 className="font-[Poppins] font-bold text-[1rem] text-[#0066FF] mb-1.5">Message Sent!</h3>
+                <p className="text-[.82rem] text-[#8E95A9]">Thank you. We&apos;ll get back to you soon.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* FAQ */}
+        <div className="bg-white border border-[#F1F3F7] rounded-3xl p-7 mt-4">
+          <h2 className="font-[Poppins] font-bold text-[1rem] text-[#0066FF] mb-4">❓ FAQ</h2>
+          <div className="space-y-3.5">
+            <FAQ q="Is Jetmeaway free?" a="Yes, 100% free. We earn commission from partners when you book, but this never affects your price." />
+            <FAQ q="Can I book through Jetmeaway?" a="We're a comparison site. When you find a deal, we redirect you to the provider to complete the booking." />
+            <FAQ q="I have a booking issue." a="Since bookings are made with the provider, contact them directly for cancellations, changes, or refunds." />
+          </div>
+        </div>
+      </div>
+      <Footer />
+    </>
+  );
+}
+
+function InfoItem({ icon, title, desc }: { icon: string; title: string; desc: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-3.5">
+      <div className="w-10 h-10 bg-[#0066FF]/[.06] border border-[#0066FF]/10 rounded-xl flex items-center justify-center text-[#0066FF] flex-shrink-0">
+        <i className={`fa-solid ${icon}`}></i>
+      </div>
+      <div><h3 className="font-bold text-[.88rem] text-[#1A1D2B] mb-0.5">{title}</h3><div>{desc}</div></div>
+    </div>
+  );
+}
+
+function FAQ({ q, a }: { q: string; a: string }) {
+  return (
+    <div className="pb-3.5 border-b border-[#F1F3F7] last:border-0 last:pb-0">
+      <div className="font-bold text-[.88rem] text-[#1A1D2B] mb-1">{q}</div>
+      <div className="text-[.8rem] text-[#8E95A9] leading-relaxed">{a}</div>
+    </div>
+  );
+}

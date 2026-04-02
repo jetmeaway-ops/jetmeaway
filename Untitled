@@ -1,0 +1,1 @@
+npx vercel env pull .env.local
