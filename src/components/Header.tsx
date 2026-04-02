@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -30,10 +29,8 @@ export default function Header() {
         </div>
       </header>
 
-      {/* Mobile overlay */}
       {mobileOpen && <div className="fixed inset-0 bg-[#0F1119]/30 z-[150]" onClick={() => setMobileOpen(false)} />}
-      
-      {/* Mobile menu */}
+
       <div className={`fixed top-0 ${mobileOpen ? 'right-0' : '-right-full'} w-[280px] h-full bg-white z-[200] pt-[70px] px-5 transition-all duration-300 border-l border-slate-200 flex flex-col gap-0.5`}>
         <Link href="/" onClick={() => setMobileOpen(false)} className="block px-4 py-3.5 text-slate-800 font-bold rounded-lg transition-all hover:text-blue-600 hover:bg-blue-50">Home</Link>
         <Link href="/about" onClick={() => setMobileOpen(false)} className="block px-4 py-3.5 text-slate-800 font-bold rounded-lg transition-all hover:text-blue-600 hover:bg-blue-50">About</Link>
