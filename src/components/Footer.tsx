@@ -7,15 +7,16 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr_1fr_1.2fr] gap-9 mb-10">
           <div>
             <img src="/jetmeaway-logo.png" alt="Jetmeaway" className="h-7 brightness-0 invert mb-2.5" />
-            <p className="text-[.75rem] text-white/25 leading-relaxed font-semibold">Your AI-powered travel scout. Compare flights, hotels, packages &amp; more from 20+ trusted providers.</p>
+            <p className="text-[.75rem] text-white/25 leading-relaxed font-semibold">Your AI-powered travel scout. Compare flights, hotels, packages &amp; more from 21 trusted providers.</p>
           </div>
           <div>
-            <h4 className="font-[Poppins] text-[.62rem] font-extrabold uppercase tracking-[2.5px] text-white mb-4">Explore</h4>
-            <Link href="/" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">Hotels</Link>
-            <Link href="/" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">Flights</Link>
-            <Link href="/" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">Packages</Link>
-            <Link href="/" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">Car Hire</Link>
-            <Link href="/" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">eSIM Plans</Link>
+            <h4 className="font-[Poppins] text-[.62rem] font-extrabold uppercase tracking-[2.5px] text-white mb-4">Compare</h4>
+            <Link href="/flights" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">✈ Flights</Link>
+            <Link href="/hotels" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">🏨 Hotels</Link>
+            <Link href="/packages" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">📦 Packages</Link>
+            <Link href="/cars" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">🚗 Car Hire</Link>
+            <Link href="/insurance" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">🛡 Insurance</Link>
+            <Link href="/esim" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">📱 eSIM Plans</Link>
           </div>
           <div>
             <h4 className="font-[Poppins] text-[.62rem] font-extrabold uppercase tracking-[2.5px] text-white mb-4">Company</h4>
@@ -41,7 +42,7 @@ export default function Footer() {
         <div className="flex justify-between items-center flex-wrap gap-3">
           <p className="text-[.6rem] text-white/10">© 2026 Jetmeaway (jetmeaway.co.uk). All rights reserved.</p>
           <div className="flex gap-4 opacity-[.12] hover:opacity-30 transition-opacity">
-            {['Expedia','Booking.com','GetYourGuide','Airalo','Klook','Trip.com'].map(p => (
+            {['Expedia','Booking.com','Airalo','Klook','Trip.com','Aviasales'].map(p => (
               <span key={p} className="font-[Poppins] font-extrabold text-[.65rem] text-white uppercase tracking-wider">{p}</span>
             ))}
           </div>
