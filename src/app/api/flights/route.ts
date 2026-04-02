@@ -89,8 +89,6 @@ export async function GET(req: NextRequest) {
     const url = `https://api.travelpayouts.com/aviasales/v3/prices_for_dates?${params}`;
     const res = await fetch(url, {
       headers: { 'Accept': 'application/json' },
-      // 8 second timeout
-      signal: AbortSignal.timeout(8000),
     });
 
     if (!res.ok) {
@@ -101,7 +99,8 @@ export async function GET(req: NextRequest) {
 
     const json = await res.json();
 
-    if (!json.success || !json.data?.length) {
+    // API returns { data: [...] } — no success field
+    if (!json.data?.length) {
       return NextResponse.json({ flights: [], message: 'No flights found for this route and date' });
     }
 
