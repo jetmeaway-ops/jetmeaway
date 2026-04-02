@@ -437,38 +437,19 @@ function PassengerPicker({ adults, children, infants, onChange }: {
   );
 }
 
-// ─── Providers ───────────────────────────────────────────────────────────────
+// ─── Providers (affiliated partners only — tracked via Travelpayouts marker=714449) ──
 const PROVIDERS = [
   {
-    name: 'Skyscanner',
-    logo: '🔍',
-    badge: 'Most Popular',
-    highlight: 'Compares 100s of airlines & OTAs instantly',
-    getUrl: (o: string, d: string, dep: string, ret: string) => {
-      const dateFmt = dep.replace(/-/g, '');
-      if (ret) return `https://www.skyscanner.net/transport/flights/${o.toLowerCase()}/${d.toLowerCase()}/${dateFmt}/${ret.replace(/-/g, '')}/`;
-      return `https://www.skyscanner.net/transport/flights/${o.toLowerCase()}/${d.toLowerCase()}/${dateFmt}/`;
+    name: 'Aviasales',
+    logo: '✈',
+    badge: 'Best Value',
+    highlight: 'Lowest fares across 750+ airlines worldwide',
+    getUrl: (o: string, d: string, dep: string) => {
+      // Aviasales date format: DDMM
+      const parts = dep.split('-'); // YYYY-MM-DD
+      const ddmm = parts[2] + parts[1];
+      return `https://tp.media/r?campaign_id=121&marker=714449&trs=512633&p=4114&u=https%3A%2F%2Fwww.aviasales.com%2Fsearch%2F${o}${ddmm}${d}1`;
     },
-  },
-  {
-    name: 'Kayak',
-    logo: '🛶',
-    badge: 'Price Predictor',
-    highlight: 'Price forecast + flexible date calendar',
-    getUrl: (o: string, d: string, dep: string, ret: string) =>
-      ret
-        ? `https://www.kayak.co.uk/flights/${o}-${d}/${dep}/${ret}`
-        : `https://www.kayak.co.uk/flights/${o}-${d}/${dep}`,
-  },
-  {
-    name: 'Momondo',
-    logo: '🌈',
-    badge: 'Hidden Deals',
-    highlight: 'Finds fares other sites often miss',
-    getUrl: (o: string, d: string, dep: string, ret: string) =>
-      ret
-        ? `https://www.momondo.co.uk/flight-search/${o}-${d}/${dep}/${ret}`
-        : `https://www.momondo.co.uk/flight-search/${o}-${d}/${dep}`,
   },
   {
     name: 'Kiwi.com',
@@ -477,34 +458,34 @@ const PROVIDERS = [
     highlight: 'Unique combo routes + missed-flight guarantee',
     getUrl: (o: string, d: string, dep: string, ret: string) =>
       ret
-        ? `https://www.kiwi.com/en/search/results/${o}/${d}/${dep}/${ret}`
-        : `https://www.kiwi.com/en/search/results/${o}/${d}/${dep}`,
+        ? `https://tp.media/r?campaign_id=105&marker=714449&trs=512633&p=3956&u=https%3A%2F%2Fwww.kiwi.com%2Fen%2Fsearch%2Fresults%2F${o}%2F${d}%2F${dep}%2F${ret}`
+        : `https://tp.media/r?campaign_id=105&marker=714449&trs=512633&p=3956&u=https%3A%2F%2Fwww.kiwi.com%2Fen%2Fsearch%2Fresults%2F${o}%2F${d}%2F${dep}`,
   },
   {
     name: 'Expedia',
     logo: '🌍',
     badge: 'Bundle & Save',
-    highlight: 'Add a hotel and save up to 30%',
-    getUrl: (o: string, d: string, dep: string) =>
-      `https://www.expedia.co.uk/Flights-Search?trip=oneway&leg1=from:${o},to:${d},departure:${dep}TANYT`,
+    highlight: 'Add a hotel to your flight and save up to 30%',
+    getUrl: (o: string, d: string, dep: string, ret: string) => {
+      const base = `https%3A%2F%2Fwww.expedia.co.uk%2FFlights-Search%3Ftrip%3D${ret ? 'roundtrip' : 'oneway'}%26leg1%3Dfrom%253A${o}%252Cto%253A${d}%252Cdeparture%253A${dep}TANYT`;
+      return `https://tp.media/r?campaign_id=8&marker=714449&trs=512633&p=590&u=${base}`;
+    },
   },
   {
     name: 'Trip.com',
     logo: '🗺',
-    badge: 'Asia Deals',
-    highlight: 'Lowest fares on Asia & Middle East routes',
+    badge: 'Asia & Middle East',
+    highlight: 'Best fares on routes to Asia & Middle East',
     getUrl: (o: string, d: string) =>
-      `https://uk.trip.com/flights/${o.toLowerCase()}-to-${d.toLowerCase()}/tickets/`,
+      `https://tp.media/r?campaign_id=336&marker=714449&trs=512633&p=6589&u=https%3A%2F%2Fuk.trip.com%2Fflights%2F${o.toLowerCase()}-to-${d.toLowerCase()}%2Ftickets`,
   },
   {
-    name: 'Google Flights',
-    logo: '🔷',
-    badge: 'Price Calendar',
-    highlight: 'Best date-flexibility view across all airlines',
-    getUrl: (o: string, d: string, dep: string, ret: string) =>
-      ret
-        ? `https://www.google.com/travel/flights?q=flights+from+${o}+to+${d}+on+${dep}+returning+${ret}`
-        : `https://www.google.com/travel/flights?q=flights+from+${o}+to+${d}+on+${dep}`,
+    name: 'Booking.com',
+    logo: '🏷',
+    badge: 'Trusted Worldwide',
+    highlight: 'Flights from the world\'s most trusted travel brand',
+    getUrl: (o: string, d: string, dep: string) =>
+      `https://www.booking.com/flights/search.html?from_iata=${o}&to_iata=${d}&depart_date=${dep}&adults=1`,
   },
 ];
 
@@ -543,7 +524,7 @@ export default function FlightsPage() {
           <h1 className="font-[Poppins] text-[2.4rem] md:text-[3.6rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
             Find the <em className="italic bg-gradient-to-br from-[#0066FF] to-[#4F46E5] bg-clip-text text-transparent">Cheapest</em> Flights
           </h1>
-          <p className="text-[1rem] text-[#8E95A9] font-semibold max-w-[520px] mx-auto">Compare 7 providers — results shown right here, no tab-hopping.</p>
+          <p className="text-[1rem] text-[#8E95A9] font-semibold max-w-[520px] mx-auto">Compare 5 affiliated providers — results shown right here, no tab-hopping.</p>
         </div>
 
         {/* Search card */}

@@ -4,12 +4,13 @@ import { useState } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
+// Affiliated partners only — Booking.com (CJ Affiliate), Expedia (Partnerize/Travelpayouts), Trip.com (Travelpayouts)
 const PROVIDERS = [
   {
     name: 'Booking.com',
     logo: '🏨',
     badge: '#1 Worldwide',
-    highlight: '28M+ properties · Free cancellation options',
+    highlight: '28M+ properties globally · Free cancellation options',
     fromPrice: 'From £45/night',
     getUrl: (city: string, cin: string, cout: string, guests: string) =>
       `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(city)}&checkin=${cin}&checkout=${cout}&group_adults=${guests}&no_rooms=1`,
@@ -18,46 +19,19 @@ const PROVIDERS = [
     name: 'Expedia',
     logo: '🌍',
     badge: 'Bundle & Save',
-    highlight: 'Save up to 30% when you add a flight',
+    highlight: 'Save up to 30% when you bundle with a flight',
     fromPrice: 'From £52/night',
     getUrl: (city: string, cin: string, cout: string, guests: string) =>
-      `https://www.expedia.co.uk/Hotel-Search?destination=${encodeURIComponent(city)}&startDate=${cin}&endDate=${cout}&adults=${guests}`,
-  },
-  {
-    name: 'Hotels.com',
-    logo: '🔑',
-    badge: 'Loyalty Rewards',
-    highlight: 'Collect 10 nights, get 1 free',
-    fromPrice: 'From £48/night',
-    getUrl: (city: string, cin: string, cout: string) =>
-      `https://www.hotels.com/search/result?q-destination=${encodeURIComponent(city)}&q-check-in=${cin}&q-check-out=${cout}`,
+      `https://tp.media/r?campaign_id=8&marker=714449&trs=512633&p=590&u=https%3A%2F%2Fwww.expedia.co.uk%2FHotel-Search%3Fdestination%3D${encodeURIComponent(city)}%26startDate%3D${cin}%26endDate%3D${cout}%26adults%3D${guests}`,
   },
   {
     name: 'Trip.com',
     logo: '🗺',
-    badge: 'Asia Deals',
-    highlight: 'Exclusive flash sales · Great for Asia routes',
+    badge: 'Asia & Middle East',
+    highlight: 'Exclusive flash sales · Best rates for Asia & Middle East',
     fromPrice: 'From £38/night',
     getUrl: (city: string, cin: string, cout: string) =>
-      `https://uk.trip.com/hotels/list?cityName=${encodeURIComponent(city)}&checkin=${cin}&checkout=${cout}`,
-  },
-  {
-    name: 'Agoda',
-    logo: '🌸',
-    badge: 'Asia Specialist',
-    highlight: 'Best coverage across Southeast Asia & Middle East',
-    fromPrice: 'From £35/night',
-    getUrl: (city: string, cin: string, cout: string, guests: string) =>
-      `https://www.agoda.com/search?city=${encodeURIComponent(city)}&checkIn=${cin}&checkOut=${cout}&adults=${guests}`,
-  },
-  {
-    name: 'Hostelworld',
-    logo: '🎒',
-    badge: 'Budget Stays',
-    highlight: 'Best hostels, guesthouses & budget hotels',
-    fromPrice: 'From £12/night',
-    getUrl: (city: string, cin: string, cout: string) =>
-      `https://www.hostelworld.com/search?search_keywords=${encodeURIComponent(city)}&date_from=${cin}&date_to=${cout}`,
+      `https://tp.media/r?campaign_id=336&marker=714449&trs=512633&p=6589&u=https%3A%2F%2Fuk.trip.com%2Fhotels%2Flist%3FcityName%3D${encodeURIComponent(city)}%26checkin%3D${cin}%26checkout%3D${cout}`,
   },
 ];
 
@@ -93,7 +67,7 @@ export default function HotelsPage() {
           <h1 className="font-[Poppins] text-[2.4rem] md:text-[3.6rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
             Best Hotel <em className="italic bg-gradient-to-br from-orange-400 to-rose-500 bg-clip-text text-transparent">Rates</em>
           </h1>
-          <p className="text-[1rem] text-[#8E95A9] font-semibold max-w-[500px] mx-auto">We search 6 platforms and show you every deal — no tab-hopping.</p>
+          <p className="text-[1rem] text-[#8E95A9] font-semibold max-w-[500px] mx-auto">Compare 3 affiliated platforms — Booking.com, Expedia & Trip.com.</p>
         </div>
 
         {/* Search */}
