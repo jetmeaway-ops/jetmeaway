@@ -104,6 +104,14 @@ export default function FlightSearch() {
     ? `/hotels?city=${encodeURIComponent(dest.city)}${depDate ? `&checkin=${depDate}` : ''}${retDate ? `&checkout=${retDate}` : ''}&adults=${adults}&children=${children}`
     : '/hotels';
 
+  const carsUrl = dest
+    ? `/cars?location=${encodeURIComponent(dest.city)}${depDate ? `&pickup=${depDate}` : ''}${retDate ? `&dropoff=${retDate}` : ''}`
+    : '/cars';
+
+  const packagesUrl = dest
+    ? `/packages?dest=${encodeURIComponent(dest.city)}${depDate ? `&departure=${depDate}` : ''}${retDate ? `&return=${retDate}` : ''}&guests=${adults}`
+    : '/packages';
+
   return (
     <div className="max-w-2xl mx-auto w-full">
       <div className={`transition-all duration-200 ${animating ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'}`}>
@@ -334,6 +342,28 @@ export default function FlightSearch() {
                   </a>
                 ))}
               </div>
+            </div>
+
+            {/* Car Hire + Packages row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <a href={carsUrl}
+                className="bg-white border border-[#E8ECF4] rounded-2xl p-5 hover:border-emerald-200 hover:shadow-md transition-all group">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xl">🚗</span>
+                  <div className="font-[Poppins] font-black text-[.95rem] text-[#1A1D2B]">Car Hire</div>
+                </div>
+                <p className="text-[.75rem] text-[#8E95A9] font-semibold mb-3">Compare 6 providers in {dest.city}</p>
+                <span className="text-emerald-600 font-[Poppins] font-bold text-[.78rem] group-hover:translate-x-0.5 transition-transform inline-block">Compare prices →</span>
+              </a>
+              <a href={packagesUrl}
+                className="bg-white border border-[#E8ECF4] rounded-2xl p-5 hover:border-purple-200 hover:shadow-md transition-all group">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xl">📦</span>
+                  <div className="font-[Poppins] font-black text-[.95rem] text-[#1A1D2B]">Packages</div>
+                </div>
+                <p className="text-[.75rem] text-[#8E95A9] font-semibold mb-3">Flight + hotel bundles to {dest.city}</p>
+                <span className="text-purple-600 font-[Poppins] font-bold text-[.78rem] group-hover:translate-x-0.5 transition-transform inline-block">See deals →</span>
+              </a>
             </div>
           </div>
         )}

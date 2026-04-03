@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
@@ -62,6 +62,16 @@ export default function CarsPage() {
   const [pickupTime, setPickupTime] = useState('10:00');
   const [dropoffTime, setDropoffTime] = useState('10:00');
   const [driverAge, setDriverAge] = useState('30-65');
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const loc = p.get('location');
+    const pickup = p.get('pickup');
+    const dropoff = p.get('dropoff');
+    if (loc) setLocation(loc);
+    if (pickup) setPickupDate(pickup);
+    if (dropoff) setDropoffDate(dropoff);
+  }, []);
 
   const today = new Date().toISOString().split('T')[0];
 

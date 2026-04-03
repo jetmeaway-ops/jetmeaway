@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
@@ -77,6 +77,18 @@ export default function PackagesPage() {
   const [retDate, setRetDate] = useState('');
   const [guests, setGuests] = useState('2');
   const [duration, setDuration] = useState('7');
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const d = p.get('dest');
+    const dep = p.get('departure');
+    const ret = p.get('return');
+    const g = p.get('guests');
+    if (d) setDest(d);
+    if (dep) setDepDate(dep);
+    if (ret) setRetDate(ret);
+    if (g) setGuests(g);
+  }, []);
 
   const today = new Date().toISOString().split('T')[0];
 

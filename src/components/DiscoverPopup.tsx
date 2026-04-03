@@ -203,6 +203,12 @@ export default function DiscoverPopup() {
   const hotelsUrl = dest
     ? `/hotels?city=${encodeURIComponent(dest.city)}${depDate ? `&checkin=${depDate}` : ''}${retDate ? `&checkout=${retDate}` : ''}&adults=${adults}&children=${children}`
     : '/hotels';
+  const carsUrl = dest
+    ? `/cars?location=${encodeURIComponent(dest.city)}${depDate ? `&pickup=${depDate}` : ''}${retDate ? `&dropoff=${retDate}` : ''}`
+    : '/cars';
+  const packagesUrl = dest
+    ? `/packages?dest=${encodeURIComponent(dest.city)}${depDate ? `&departure=${depDate}` : ''}${retDate ? `&return=${retDate}` : ''}&guests=${adults}`
+    : '/packages';
 
   const stepIndex = ['welcome', 'destination', 'dates', 'passengers', 'results'].indexOf(step);
 
@@ -614,7 +620,7 @@ export default function DiscoverPopup() {
               <div className="font-[Poppins] font-bold text-[.9rem]">Explore {dest.city} your way</div>
               <div className="text-[.7rem] text-white/60">Car hire from £15/day — compare top providers</div>
             </div>
-            <a href="/cars" onClick={close} className="bg-gradient-to-r from-orange-500 to-rose-500 text-white font-bold text-[.72rem] px-3.5 py-1.5 rounded-lg whitespace-nowrap flex-shrink-0">
+            <a href={carsUrl} onClick={close} className="bg-gradient-to-r from-orange-500 to-rose-500 text-white font-bold text-[.72rem] px-3.5 py-1.5 rounded-lg whitespace-nowrap flex-shrink-0">
               View →
             </a>
           </div>
