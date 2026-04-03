@@ -467,10 +467,10 @@ const PROVIDERS = [
     name: 'Expedia',
     logo: '🌍',
     highlight: 'Add a hotel to your flight and save up to 30%',
-    getUrl: (o: string, d: string, dep: string, ret: string, adults: number, children: number) => {
+    getUrl: (o: string, d: string, dep: string, ret: string, adults: number) => {
       const trip = ret ? 'roundtrip' : 'oneway';
-      let u = `https://www.expedia.co.uk/Flights-Search?trip=${trip}&leg1=from:${o},to:${d},departure:${dep}TANYT&passengers=adults:${adults}`;
-      if (ret) u += `,children:${children}&leg2=from:${d},to:${o},departure:${ret}TANYT`;
+      let u = `https://www.expedia.co.uk/Flights-Search?trip=${trip}&leg1=from:${o},to:${d},departure:${dep}TANYT&passengers=adults:${adults}&affcid=clbU3QK`;
+      if (ret) u += `&leg2=from:${d},to:${o},departure:${ret}TANYT`;
       return u;
     },
   },
