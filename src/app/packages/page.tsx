@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
@@ -59,15 +59,13 @@ const PROVIDERS = [
   {
     name: 'Expedia',
     logo: '🌍',
-    desc: 'Flight + hotel bundles saving up to 30% vs booking separately.',
     badge: 'Best Bundles',
     getUrl: (dest: string, dep: string, ret: string, guests: string) =>
-      `https://www.expedia.co.uk/Vacations/search?destination=${encodeURIComponent(dest)}&startDate=${dep}&endDate=${ret}&adults=${guests}`,
+      `https://www.expedia.co.uk/Vacations/search?destination=${encodeURIComponent(dest)}&startDate=${dep}&endDate=${ret}&adults=${guests}&affcid=clbU3QK`,
   },
   {
     name: 'On the Beach',
     logo: '🏖',
-    desc: 'Best UK-departure beach holiday packages from £199pp.',
     badge: 'UK Favourite',
     getUrl: (dest: string, dep: string) =>
       `https://www.onthebeach.co.uk/holidays/search?destination=${encodeURIComponent(dest)}&depDate=${dep}`,
@@ -75,7 +73,6 @@ const PROVIDERS = [
   {
     name: 'Jet2Holidays',
     logo: '✈',
-    desc: 'Award-winning UK package holidays with ATOL protection.',
     badge: 'ATOL Protected',
     getUrl: (dest: string, dep: string) =>
       `https://www.jet2holidays.com/search?destination=${encodeURIComponent(dest)}&departing=${dep}`,
@@ -83,7 +80,6 @@ const PROVIDERS = [
   {
     name: 'TUI',
     logo: '🌴',
-    desc: 'All-inclusive resorts & villa holidays worldwide.',
     badge: 'All-Inclusive',
     getUrl: (dest: string) =>
       `https://www.tui.co.uk/destinations/${encodeURIComponent(dest.toLowerCase().replace(/ /g, '-'))}/holidays.html`,
@@ -91,43 +87,87 @@ const PROVIDERS = [
   {
     name: 'Trip.com',
     logo: '🗺',
-    desc: 'City breaks & Asia packages with exclusive flash deals.',
     badge: 'City Breaks',
     getUrl: (dest: string) =>
-      `https://uk.trip.com/holidays/${encodeURIComponent(dest)}`,
+      `https://uk.trip.com/holidays/${encodeURIComponent(dest)}?Allianceid=8023009&SID=303363796`,
   },
   {
-    name: 'WeGoTrip',
-    logo: '🎫',
-    desc: 'Guided tours & experience packages from local experts.',
-    badge: 'Guided Tours',
-    getUrl: (dest: string) =>
-      `https://wegotrip.com/en/catalog?q=${encodeURIComponent(dest)}`,
-  },
-  {
-    name: 'GetYourGuide',
-    logo: '🎟',
-    desc: 'Experiences, tours & activities at your destination.',
-    badge: 'Activities',
-    getUrl: (dest: string) =>
-      `https://www.getyourguide.com/${encodeURIComponent(dest.toLowerCase().replace(/ /g, '-'))}-l`,
-  },
-  {
-    name: 'Klook',
-    logo: '🎪',
-    desc: 'Theme parks, day trips & tours across Asia & beyond.',
-    badge: 'Asia & Beyond',
-    getUrl: (dest: string) =>
-      `https://www.klook.com/en-GB/search?query=${encodeURIComponent(dest)}`,
+    name: 'Booking.com',
+    logo: '🏨',
+    badge: 'Flight+Hotel',
+    getUrl: (dest: string, dep: string, ret: string, guests: string) =>
+      `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(dest)}&checkin=${dep}&checkout=${ret}&group_adults=${guests}&no_rooms=1`,
   },
 ];
 
-export default function PackagesPage() {
+// Curated packages per destination
+type CuratedPackage = { name: string; type: string; priceFrom: number; duration: string; includes: string[]; highlights: string[]; photoId: number };
+const CURATED_PACKAGES: Record<string, CuratedPackage[]> = {
+  Dubai: [
+    { name: 'Dubai Beach & City Break', type: 'Flight + Hotel', priceFrom: 499, duration: '7 nights', includes: ['Return flights', '4★ hotel', 'Airport transfers'], highlights: ['JBR Beach', 'Dubai Mall', 'Burj Khalifa views'], photoId: 96491 },
+    { name: 'Dubai Luxury All-Inclusive', type: 'All-Inclusive', priceFrom: 1299, duration: '7 nights', includes: ['Return flights', '5★ resort', 'All meals & drinks', 'Spa access'], highlights: ['Palm Jumeirah', 'Private beach', 'Fine dining'], photoId: 7598 },
+    { name: 'Dubai Desert Safari Package', type: 'Flight + Hotel + Tour', priceFrom: 599, duration: '5 nights', includes: ['Return flights', '4★ hotel', 'Desert safari tour', 'Dhow cruise dinner'], highlights: ['Dune bashing', 'Camel riding', 'BBQ dinner under stars'], photoId: 289855 },
+    { name: 'Dubai Shopping Getaway', type: 'City Break', priceFrom: 399, duration: '4 nights', includes: ['Return flights', '3★ hotel', 'Metro pass'], highlights: ['Dubai Mall', 'Gold Souk', 'Mall of the Emirates'], photoId: 1073498 },
+    { name: 'Abu Dhabi & Dubai Combo', type: 'Multi-City', priceFrom: 799, duration: '10 nights', includes: ['Return flights', '4★ hotels', 'Inter-city transfer'], highlights: ['Louvre Abu Dhabi', 'Sheikh Zayed Mosque', 'Both cities'], photoId: 7742 },
+  ],
+  Maldives: [
+    { name: 'Maldives Overwater Villa', type: 'All-Inclusive', priceFrom: 1899, duration: '7 nights', includes: ['Return flights', '5★ water villa', 'All meals & drinks', 'Snorkelling gear'], highlights: ['Overwater bungalow', 'House reef', 'Sunset views'], photoId: 37162 },
+    { name: 'Maldives Budget Paradise', type: 'Flight + Hotel', priceFrom: 899, duration: '7 nights', includes: ['Return flights', '4★ island resort', 'Half board'], highlights: ['White sand beach', 'Diving available', 'Island hopping'], photoId: 73178 },
+    { name: 'Maldives Honeymoon Escape', type: 'Luxury Package', priceFrom: 2499, duration: '10 nights', includes: ['Return flights', 'Private villa', 'Full board', 'Couples spa', 'Sunset cruise'], highlights: ['Private pool', 'Candlelit dinner', 'Dolphin cruise'], photoId: 75494 },
+  ],
+  Tenerife: [
+    { name: 'Tenerife Beach All-Inclusive', type: 'All-Inclusive', priceFrom: 449, duration: '7 nights', includes: ['Return flights', '4★ resort', 'All meals & drinks', 'Pool'], highlights: ['Playa de las Américas', 'Year-round sun', 'Water park nearby'], photoId: 0 },
+    { name: 'Tenerife Family Fun', type: 'Family Package', priceFrom: 1299, duration: '7 nights', includes: ['Return flights (2+2)', '4★ family room', 'Half board', 'Siam Park tickets'], highlights: ['Siam Park', 'Loro Parque', 'Kids club'], photoId: 0 },
+    { name: 'Tenerife Hiking & Nature', type: 'Activity Holiday', priceFrom: 399, duration: '5 nights', includes: ['Return flights', '3★ hotel', 'Teide guided hike'], highlights: ['Mount Teide', 'Anaga forest', 'Stargazing'], photoId: 0 },
+  ],
+  Barcelona: [
+    { name: 'Barcelona City Break', type: 'Flight + Hotel', priceFrom: 299, duration: '4 nights', includes: ['Return flights', '3★ central hotel', 'Metro pass'], highlights: ['La Sagrada Familia', 'Gothic Quarter', 'La Rambla'], photoId: 62539 },
+    { name: 'Barcelona Beach & Culture', type: 'Flight + Hotel', priceFrom: 449, duration: '7 nights', includes: ['Return flights', '4★ beachfront hotel', 'Sagrada Familia tickets'], highlights: ['Barceloneta Beach', 'Park Güell', 'Tapas tours'], photoId: 15296 },
+    { name: 'Costa Brava All-Inclusive', type: 'All-Inclusive', priceFrom: 549, duration: '7 nights', includes: ['Return flights', '4★ resort', 'All meals & drinks'], highlights: ['Pool & beach', 'Day trip to Barcelona', 'Water sports'], photoId: 24574 },
+  ],
+  'New York': [
+    { name: 'NYC City Explorer', type: 'City Break', priceFrom: 599, duration: '5 nights', includes: ['Return flights', '3★ Manhattan hotel', 'CityPASS (6 attractions)'], highlights: ['Times Square', 'Statue of Liberty', 'Central Park'], photoId: 4627 },
+    { name: 'New York Shopping & Shows', type: 'Flight + Hotel', priceFrom: 799, duration: '5 nights', includes: ['Return flights', '4★ Midtown hotel', 'Broadway show ticket'], highlights: ['5th Avenue shopping', 'Broadway', 'Top of the Rock'], photoId: 258766 },
+    { name: 'NYC Luxury Experience', type: 'Luxury Package', priceFrom: 1499, duration: '7 nights', includes: ['Return flights', '5★ hotel', 'Helicopter tour', 'Private transfers'], highlights: ['Helicopter over Manhattan', 'Fine dining', 'VIP experience'], photoId: 60476 },
+  ],
+  Bangkok: [
+    { name: 'Bangkok City & Temples', type: 'City Break', priceFrom: 449, duration: '7 nights', includes: ['Return flights', '4★ hotel', 'Temple tour', 'River cruise'], highlights: ['Grand Palace', 'Wat Arun', 'Chatuchak Market'], photoId: 3012 },
+    { name: 'Thailand Beach & City Combo', type: 'Multi-City', priceFrom: 699, duration: '10 nights', includes: ['Return flights', '4★ hotels', 'Internal flight to Phuket'], highlights: ['Bangkok temples', 'Phuket beaches', 'Thai cooking class'], photoId: 292419 },
+    { name: 'Bangkok Budget Backpacker', type: 'Budget Package', priceFrom: 349, duration: '7 nights', includes: ['Return flights', 'Hostel/budget hotel', 'Airport pickup'], highlights: ['Khao San Road', 'Street food', 'Night markets'], photoId: 322785 },
+  ],
+  Rome: [
+    { name: 'Rome & Vatican City Break', type: 'City Break', priceFrom: 299, duration: '4 nights', includes: ['Return flights', '3★ central hotel', 'Vatican skip-the-line'], highlights: ['Colosseum', 'Vatican Museums', 'Trevi Fountain'], photoId: 8878 },
+    { name: 'Italian Highlights Multi-City', type: 'Multi-City', priceFrom: 799, duration: '10 nights', includes: ['Return flights', '3★ hotels', 'Train passes (Rome-Florence-Venice)'], highlights: ['Rome', 'Florence', 'Venice', 'All by train'], photoId: 16654 },
+    { name: 'Amalfi Coast & Rome', type: 'Flight + Hotel', priceFrom: 599, duration: '7 nights', includes: ['Return flights', '4★ hotels', 'Amalfi day trip'], highlights: ['Positano', 'Amalfi Coast', 'Roman ruins'], photoId: 137994 },
+  ],
+  Paris: [
+    { name: 'Paris Romantic Getaway', type: 'City Break', priceFrom: 299, duration: '3 nights', includes: ['Return Eurostar/flights', '4★ hotel', 'Seine river cruise'], highlights: ['Eiffel Tower', 'Louvre Museum', 'Montmartre'], photoId: 24866 },
+    { name: 'Disneyland Paris Family', type: 'Family Package', priceFrom: 499, duration: '3 nights', includes: ['Return transport', 'Disney hotel', '2-day park tickets'], highlights: ['Both Disney parks', 'Character dining', 'Disney Village'], photoId: 42985 },
+    { name: 'Paris Food & Wine Tour', type: 'Experience Package', priceFrom: 599, duration: '5 nights', includes: ['Return flights', '4★ hotel', 'Food walking tour', 'Wine tasting'], highlights: ['Le Marais food tour', 'Champagne day trip', 'Cooking class'], photoId: 37048 },
+  ],
+};
+
+function getPackagesForCity(city: string): CuratedPackage[] {
+  const lc = city.toLowerCase().trim();
+  for (const [key, pkgs] of Object.entries(CURATED_PACKAGES)) {
+    if (key.toLowerCase() === lc) return pkgs;
+  }
+  return [
+    { name: `${city} City Break`, type: 'Flight + Hotel', priceFrom: 399, duration: '5 nights', includes: ['Return flights', '3★ hotel', 'Airport transfers'], highlights: ['City centre location', 'Guided walking tour', 'Local experience'], photoId: 0 },
+    { name: `${city} All-Inclusive`, type: 'All-Inclusive', priceFrom: 699, duration: '7 nights', includes: ['Return flights', '4★ resort', 'All meals & drinks'], highlights: ['Pool & beach access', 'Entertainment', 'Full board'], photoId: 0 },
+    { name: `${city} Budget Explorer`, type: 'Budget Package', priceFrom: 249, duration: '4 nights', includes: ['Return flights', 'Budget hotel'], highlights: ['Self-guided', 'Flexible schedule', 'Great value'], photoId: 0 },
+    { name: `${city} Luxury Escape`, type: 'Luxury Package', priceFrom: 1199, duration: '7 nights', includes: ['Return flights', '5★ hotel', 'Private transfers', 'Spa treatment'], highlights: ['Premium experience', 'Fine dining', 'VIP service'], photoId: 0 },
+  ];
+}
+
+function PackagesContent() {
   const [dest, setDest] = useState('');
   const [depDate, setDepDate] = useState('');
   const [retDate, setRetDate] = useState('');
   const [guests, setGuests] = useState('2');
   const [duration, setDuration] = useState('7');
+  const [searched, setSearched] = useState(false);
+  const [packages, setPackages] = useState<CuratedPackage[]>([]);
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
@@ -143,24 +183,24 @@ export default function PackagesPage() {
 
   const today = new Date().toISOString().split('T')[0];
 
-  function openAll() {
+  function handleSearch() {
     if (!dest || !depDate) { alert('Please enter a destination and departure date'); return; }
-    PROVIDERS.forEach((p, i) => {
-      setTimeout(() => window.open(p.getUrl(dest, depDate, retDate, guests), '_blank', 'noopener'), i * 200);
-    });
+    setPackages(getPackagesForCity(dest));
+    setSearched(true);
+    setTimeout(() => document.getElementById('package-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
   }
 
   return (
     <>
       <Header />
 
-      <section className="pt-36 pb-16 px-5 bg-[radial-gradient(ellipse_at_top,#F0E8FF_0%,#fff_55%,#F8FAFC_100%)] relative">
-        <div className="max-w-[860px] mx-auto text-center mb-10">
+      <section className="pt-36 pb-10 px-5 bg-[radial-gradient(ellipse_at_top,#F0E8FF_0%,#fff_55%,#F8FAFC_100%)] relative">
+        <div className="max-w-[860px] mx-auto text-center mb-8">
           <span className="inline-block bg-purple-50 text-purple-600 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4">📦 Holiday Packages</span>
-          <h1 className="font-[Poppins] text-[2.6rem] md:text-[3.8rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
+          <h1 className="font-[Poppins] text-[2.4rem] md:text-[3.6rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
             Complete <em className="italic bg-gradient-to-br from-purple-500 to-indigo-600 bg-clip-text text-transparent">Holiday</em> Packages
           </h1>
-          <p className="text-[1rem] text-[#8E95A9] font-semibold max-w-[520px] mx-auto">Flight + hotel bundles, all-inclusives, city breaks & guided tours — all in one place.</p>
+          <p className="text-[1rem] text-[#8E95A9] font-semibold max-w-[520px] mx-auto">Flight + hotel bundles, all-inclusives & city breaks — compare prices across 6 platforms.</p>
         </div>
 
         <div className="max-w-[860px] mx-auto bg-white border border-[#E8ECF4] rounded-3xl p-6 shadow-[0_8px_40px_rgba(0,0,0,0.07)]">
@@ -194,35 +234,115 @@ export default function PackagesPage() {
               </select>
             </div>
           </div>
-          <button onClick={openAll}
+          <button onClick={handleSearch}
             className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-[Poppins] font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(124,58,237,0.3)]">
-            Compare {PROVIDERS.length} Holiday Platforms →
+            Search Packages →
           </button>
           <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">ATOL-protected options included. Book direct with providers.</p>
         </div>
       </section>
 
-      <section className="max-w-[1100px] mx-auto px-5 pb-16">
-        <p className="text-[.65rem] font-extrabold uppercase tracking-[3px] text-[#8E95A9] mb-1.5">All Providers</p>
-        <h2 className="font-[Poppins] text-[1.4rem] font-black text-[#1A1D2B] mb-6">8 Holiday & Experience Platforms</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {PROVIDERS.map(p => (
-            <a key={p.name} href={dest ? p.getUrl(dest, depDate, retDate, guests) : '#'}
-              onClick={e => { if (!dest || !depDate) { e.preventDefault(); alert('Fill in the search form above first'); } }}
-              target="_blank" rel="noopener"
-              className="block p-5 bg-white border border-[#F1F3F7] rounded-2xl hover:border-purple-200 hover:shadow-md transition-all group">
-              <div className="text-2xl mb-3">{p.logo}</div>
-              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                <span className="font-[Poppins] font-extrabold text-[.88rem] text-[#1A1D2B]">{p.name}</span>
-                <span className="text-[.58rem] font-black uppercase tracking-[1.5px] px-2 py-0.5 rounded-full bg-purple-50 text-purple-600">{p.badge}</span>
-              </div>
-              <p className="text-[.75rem] text-[#5C6378] font-semibold leading-relaxed mb-3">{p.desc}</p>
-              <span className="text-[.72rem] font-black text-purple-600 group-hover:underline">Explore →</span>
-            </a>
-          ))}
-        </div>
-      </section>
+      {/* Package Results */}
+      {searched && packages.length > 0 && (
+        <section id="package-results" className="max-w-[1100px] mx-auto px-5 py-10">
+          <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
+            <div>
+              <h2 className="font-[Poppins] font-black text-[1.3rem] text-[#1A1D2B]">
+                Packages to {dest}
+              </h2>
+              <p className="text-[.72rem] text-[#8E95A9] font-semibold mt-0.5">
+                {packages.length} packages · {guests} guest{guests !== '1' ? 's' : ''} · from {depDate}
+              </p>
+            </div>
+            <span className="text-[.7rem] font-bold text-purple-600 bg-purple-50 px-3 py-1.5 rounded-full">{packages.length} results</span>
+          </div>
 
+          <div className="space-y-4 mb-6">
+            {packages.map((pkg, i) => {
+              const hasPhoto = pkg.photoId > 0;
+              return (
+                <div key={pkg.name} className="bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden hover:shadow-lg transition-all">
+                  <div className="flex flex-col md:flex-row">
+                    {/* Photo */}
+                    <div className="relative w-full md:w-72 h-48 md:h-auto flex-shrink-0 bg-[#F1F3F7] overflow-hidden">
+                      {hasPhoto ? (
+                        <img src={`https://photo.hotellook.com/image_v2/crop/h${pkg.photoId}/640/480.auto`}
+                          alt={pkg.name} className="w-full h-full object-cover"
+                          onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-5xl text-[#C0C8D8]">📦</div>
+                      )}
+                      {i === 0 && (
+                        <span className="absolute top-3 left-3 text-[.6rem] font-black uppercase tracking-[1.5px] bg-purple-600 text-white px-2.5 py-1 rounded-full shadow-md">Best Value</span>
+                      )}
+                      <span className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-[.6rem] font-black uppercase tracking-[1px] text-purple-600 px-2 py-0.5 rounded-full">
+                        {pkg.type}
+                      </span>
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 p-5 flex flex-col">
+                      <div className="flex-1">
+                        <h3 className="font-[Poppins] font-bold text-[1.05rem] text-[#1A1D2B] mb-0.5">{pkg.name}</h3>
+                        <p className="text-[.72rem] text-[#8E95A9] font-semibold mb-2">{pkg.duration} · {pkg.type}</p>
+
+                        {/* What's included */}
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                          {pkg.includes.map(inc => (
+                            <span key={inc} className="flex items-center gap-1 text-[.62rem] font-bold text-green-700 bg-green-50 px-2 py-1 rounded-full">
+                              <span className="text-green-500">✓</span> {inc}
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Highlights */}
+                        <div className="flex flex-wrap gap-1.5 mb-3">
+                          {pkg.highlights.map(hl => (
+                            <span key={hl} className="text-[.62rem] font-bold text-[#5C6378] bg-[#F1F3F7] px-2.5 py-1 rounded-full">{hl}</span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Price + providers */}
+                      <div className="border-t border-[#F1F3F7] pt-3 mt-1">
+                        <div className="flex items-end justify-between mb-3">
+                          <div>
+                            <span className="text-[.62rem] text-[#8E95A9] font-semibold">from</span>
+                            <div className="font-[Poppins] font-black text-[1.4rem] text-[#1A1D2B] leading-none">£{pkg.priceFrom.toLocaleString()}<span className="text-[.7rem] font-semibold text-[#8E95A9]">pp</span></div>
+                            <span className="text-[.6rem] text-[#8E95A9] font-medium">per person · prices vary by provider & date</span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          {PROVIDERS.slice(0, 4).map(p => (
+                            <a key={p.name} href={p.getUrl(dest, depDate, retDate, guests)} target="_blank" rel="noopener"
+                              className="flex items-center gap-1.5 bg-[#F8FAFC] hover:bg-purple-50 border border-[#E8ECF4] hover:border-purple-200 rounded-lg px-3 py-2 transition-all group">
+                              <span className="text-sm">{p.logo}</span>
+                              <span className="text-[.7rem] font-bold text-[#1A1D2B] group-hover:text-purple-600">{p.name}</span>
+                              <span className="text-[.65rem] text-purple-500 font-bold">→</span>
+                            </a>
+                          ))}
+                          <a href={PROVIDERS[4].getUrl(dest, depDate, retDate, guests)} target="_blank" rel="noopener"
+                            className="flex items-center gap-1.5 bg-[#F8FAFC] hover:bg-purple-50 border border-[#E8ECF4] hover:border-purple-200 rounded-lg px-3 py-2 transition-all group">
+                            <span className="text-[.7rem] font-bold text-[#8E95A9] group-hover:text-purple-600">+2 more</span>
+                            <span className="text-[.65rem] text-purple-500 font-bold">→</span>
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold">
+            Prices are estimated starting prices per person. Click any provider for live availability and final pricing.
+          </p>
+        </section>
+      )}
+
+      {/* Tips */}
       <section className="max-w-[860px] mx-auto px-5 pb-16">
         <div className="bg-[#F8FAFC] border border-[#F1F3F7] rounded-3xl p-8">
           <h3 className="font-[Poppins] font-black text-[1.05rem] text-[#1A1D2B] mb-4">Tips for Finding the Best Package Holiday</h3>
@@ -247,5 +367,13 @@ export default function PackagesPage() {
 
       <Footer />
     </>
+  );
+}
+
+export default function PackagesPage() {
+  return (
+    <Suspense>
+      <PackagesContent />
+    </Suspense>
   );
 }
