@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
@@ -331,18 +331,31 @@ function searchAirports(q: string): Airport[] {
 }
 
 // ─── Airport autocomplete ────────────────────────────────────────────────────
-function AirportPicker({ placeholder, onSelect }: { placeholder: string; onSelect: (code: string) => void }) {
+function AirportPicker({ placeholder, onSelect, initialCode }: { placeholder: string; onSelect: (code: string) => void; initialCode?: string }) {
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
   const [chosen, setChosen] = useState<Airport | null>(null);
   const results = searchAirports(q);
   const ref = useRef<HTMLDivElement>(null);
+  const onSelectRef = useRef(onSelect);
+  onSelectRef.current = onSelect;
 
   useEffect(() => {
     const fn = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
     document.addEventListener('mousedown', fn);
     return () => document.removeEventListener('mousedown', fn);
   }, []);
+
+  // When initialCode changes (e.g. from URL params loaded in useEffect), fill in the picker
+  useEffect(() => {
+    if (!initialCode) return;
+    const airport = AIRPORTS.find(a => a.code === initialCode.toUpperCase());
+    if (airport) {
+      setQ(`${airport.city} (${airport.code})`);
+      setChosen(airport);
+      onSelectRef.current(airport.code);
+    }
+  }, [initialCode]);
 
   return (
     <div ref={ref} className="relative">
@@ -556,7 +569,7 @@ type FlightResult = {
 };
 
 // ─── Page ────────────────────────────────────────────────────────────────────
-export default function FlightsPage() {
+function FlightsContent() {
   const [origin, setOrigin] = useState('');
   const [dest, setDest] = useState('');
   const [depDate, setDepDate] = useState('');
@@ -569,6 +582,26 @@ export default function FlightsPage() {
   const [loading, setLoading] = useState(false);
   const [flights, setFlights] = useState<FlightResult[] | null>(null);
   const [apiError, setApiError] = useState('');
+  const [initDest, setInitDest] = useState('');
+  const [initOrigin, setInitOrigin] = useState('');
+
+  // Read URL params on client only — useEffect never runs on the server
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const d = p.get('dest') || '';
+    const o = p.get('origin') || '';
+    const dep = p.get('departure') || '';
+    const ret = p.get('return') || '';
+    const a = p.get('adults');
+    const c = p.get('children');
+    if (d) setInitDest(d);
+    if (o) setInitOrigin(o);
+    if (dep) setDepDate(dep);
+    if (ret) { setRetDate(ret); setTripType('return'); }
+    else if (dep) setTripType('one-way');
+    if (a) setAdults(Math.max(1, parseInt(a)));
+    if (c) { const n = Math.max(0, parseInt(c)); setChildren(n); setChildrenAges(Array(n).fill(5)); }
+  }, []);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -637,16 +670,16 @@ export default function FlightsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <div>
               <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">From</label>
-              <AirportPicker placeholder="City or airport code — e.g. London, LHR" onSelect={setOrigin} />
+              <AirportPicker placeholder="City or airport code — e.g. London, LHR" onSelect={setOrigin} initialCode={initOrigin} />
             </div>
             <div>
               <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">To</label>
-              <AirportPicker placeholder="City or airport code — e.g. Dubai, DXB" onSelect={setDest} />
+              <AirportPicker placeholder="City or airport code — e.g. Dubai, DXB" onSelect={setDest} initialCode={initDest} />
             </div>
           </div>
 
           {/* Dates + passengers row */}
-          <div className={`grid gap-3 mb-4 ${tripType === 'return' ? 'grid-cols-2 md:grid-cols-3' : 'grid-cols-2'}`}>
+          <div className={`grid gap-3 mb-4 ${tripType === 'return' ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2'}`}>
             <div>
               <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Departure</label>
               <input type="date" min={today} value={depDate} onChange={e => setDepDate(e.target.value)}
@@ -688,13 +721,11 @@ export default function FlightsPage() {
       {apiError && (
         <section className="max-w-[860px] mx-auto px-5 py-6">
           <div className="bg-red-50 border border-red-100 rounded-2xl p-5 text-center">
-            <p className="text-[.85rem] font-bold text-red-600 mb-1">{apiError}</p>
-            {apiError.includes('TRAVELPAYOUTS_TOKEN') && (
-              <p className="text-[.75rem] text-red-400 font-semibold">
-                Add your token to .env.local: <code className="bg-red-100 px-1.5 py-0.5 rounded">TRAVELPAYOUTS_TOKEN=your_token_here</code>
-                <br />Get it at travelpayouts.com → Dashboard → API
-              </p>
-            )}
+            <p className="text-[.85rem] font-bold text-red-600 mb-3">Could not load live prices. Please check your details and try again.</p>
+            <button onClick={handleSearch}
+              className="bg-[#0066FF] hover:bg-[#0052CC] text-white font-[Poppins] font-bold text-[.82rem] px-6 py-2.5 rounded-xl transition-all">
+              Try Again
+            </button>
           </div>
         </section>
       )}
@@ -862,5 +893,13 @@ export default function FlightsPage() {
 
       <Footer />
     </>
+  );
+}
+
+export default function FlightsPage() {
+  return (
+    <Suspense>
+      <FlightsContent />
+    </Suspense>
   );
 }

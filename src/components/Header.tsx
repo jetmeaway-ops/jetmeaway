@@ -29,7 +29,7 @@ export default function Header() {
           {/* Desktop category nav */}
           <nav className="hidden lg:flex items-center gap-0.5">
             {NAV.map(item => {
-              const active = pathname === item.href;
+              const active = pathname === item.href || pathname.startsWith(item.href + '/');
               return (
                 <Link key={item.href} href={item.href}
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[.72rem] font-extrabold uppercase tracking-[1.2px] transition-all ${active ? 'bg-[#0066FF] text-white shadow-[0_4px_12px_rgba(0,102,255,0.3)]' : 'text-slate-400 hover:text-[#0066FF] hover:bg-blue-50'}`}>
@@ -46,7 +46,7 @@ export default function Header() {
               Contact
             </Link>
             {/* Hamburger */}
-            <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden flex flex-col gap-[5px] p-2">
+            <button onClick={() => setMobileOpen(!mobileOpen)} aria-label="Toggle menu" className="lg:hidden flex flex-col gap-[5px] p-2.5">
               <span className={`w-5 h-0.5 bg-[#0F1119] rounded-sm transition-all ${mobileOpen ? 'rotate-45 translate-y-[7px]' : ''}`}></span>
               <span className={`w-5 h-0.5 bg-[#0F1119] rounded-sm transition-all ${mobileOpen ? 'opacity-0' : ''}`}></span>
               <span className={`w-5 h-0.5 bg-[#0F1119] rounded-sm transition-all ${mobileOpen ? '-rotate-45 -translate-y-[7px]' : ''}`}></span>
@@ -63,7 +63,7 @@ export default function Header() {
         <p className="text-[.6rem] font-extrabold uppercase tracking-[2.5px] text-[#8E95A9] mb-3 px-2">Compare</p>
         <div className="flex flex-col gap-0.5 mb-5">
           {NAV.map(item => {
-            const active = pathname === item.href;
+            const active = pathname === item.href || pathname.startsWith(item.href + '/');
             return (
               <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold text-[.9rem] transition-all ${active ? 'bg-[#0066FF] text-white' : 'text-[#1A1D2B] hover:bg-blue-50 hover:text-[#0066FF]'}`}>

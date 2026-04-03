@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
@@ -35,7 +34,6 @@ const PROVIDERS = [
 ];
 
 function HotelsContent() {
-  const searchParams = useSearchParams();
   const [city, setCity] = useState('');
   const [checkin, setCheckin] = useState('');
   const [checkout, setCheckout] = useState('');
@@ -44,10 +42,20 @@ function HotelsContent() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(false);
 
+  // Read URL params on client only — useEffect never runs on the server
   useEffect(() => {
-    const c = searchParams.get('city');
-    if (c) { setCity(c); }
-  }, [searchParams]);
+    const p = new URLSearchParams(window.location.search);
+    const c = p.get('city');
+    const cin = p.get('checkin');
+    const cout = p.get('checkout');
+    const a = p.get('adults');
+    const ch = p.get('children');
+    if (c) setCity(c);
+    if (cin) setCheckin(cin);
+    if (cout) setCheckout(cout);
+    if (a) setAdults(Math.max(1, parseInt(a)));
+    if (ch) setChildren(Math.max(0, parseInt(ch)));
+  }, []);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -86,7 +94,7 @@ function HotelsContent() {
               className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-orange-400 focus:bg-white transition-all placeholder:text-[#B0B8CC]" />
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-3">
             <div>
               <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Check-in</label>
               <input type="date" min={today} value={checkin} onChange={e => setCheckin(e.target.value)}
@@ -101,10 +109,10 @@ function HotelsContent() {
               <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Adults</label>
               <div className="flex items-center border border-[#E8ECF4] bg-[#F8FAFC] rounded-xl px-3 py-2.5 gap-2">
                 <button type="button" onClick={() => setAdults(Math.max(1, adults - 1))}
-                  className="w-6 h-6 rounded-full bg-white border border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold hover:border-orange-400 hover:text-orange-500 transition-all text-sm">−</button>
+                  className="w-8 h-8 rounded-full bg-white border border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold hover:border-orange-400 hover:text-orange-500 transition-all text-sm">−</button>
                 <span className="flex-1 text-center font-[Poppins] font-black text-[.9rem] text-[#1A1D2B]">{adults}</span>
                 <button type="button" onClick={() => setAdults(Math.min(10, adults + 1))}
-                  className="w-6 h-6 rounded-full bg-white border border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold hover:border-orange-400 hover:text-orange-500 transition-all text-sm">+</button>
+                  className="w-8 h-8 rounded-full bg-white border border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold hover:border-orange-400 hover:text-orange-500 transition-all text-sm">+</button>
               </div>
             </div>
             <div>
@@ -114,7 +122,7 @@ function HotelsContent() {
                   className="w-6 h-6 rounded-full bg-white border border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold hover:border-orange-400 hover:text-orange-500 transition-all text-sm disabled:opacity-30" disabled={children === 0}>−</button>
                 <span className="flex-1 text-center font-[Poppins] font-black text-[.9rem] text-[#1A1D2B]">{children}</span>
                 <button type="button" onClick={() => setChildren(Math.min(6, children + 1))}
-                  className="w-6 h-6 rounded-full bg-white border border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold hover:border-orange-400 hover:text-orange-500 transition-all text-sm">+</button>
+                  className="w-8 h-8 rounded-full bg-white border border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold hover:border-orange-400 hover:text-orange-500 transition-all text-sm">+</button>
               </div>
             </div>
           </div>
