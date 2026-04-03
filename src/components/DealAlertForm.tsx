@@ -5,17 +5,33 @@ export default function DealAlertForm() {
   const [email, setEmail] = useState('');
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  function handleJoin() {
+  async function handleJoin() {
     const trimmed = email.trim();
     if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
       setError('Please enter a valid email address.');
       return;
     }
     setError('');
-    // Open mailto so the submission reaches the site owner
-    window.location.href = `mailto:waqar@jetmeaway.co.uk?subject=Deal Alert Signup&body=New signup: ${encodeURIComponent(trimmed)}`;
-    setDone(true);
+    setSaving(true);
+    try {
+      const res = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: trimmed }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDone(true);
+      } else {
+        setError(data.error || 'Something went wrong. Please try again.');
+      }
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (done) {
@@ -35,8 +51,9 @@ export default function DealAlertForm() {
         />
         <button
           onClick={handleJoin}
-          className="bg-[#0066FF] hover:bg-[#0052CC] text-white border-none py-3 px-4 font-[Poppins] text-[.7rem] font-bold cursor-pointer transition-colors">
-          Join
+          disabled={saving}
+          className="bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-60 text-white border-none py-3 px-4 font-[Poppins] text-[.7rem] font-bold cursor-pointer transition-colors">
+          {saving ? '...' : 'Join'}
         </button>
       </div>
       {error && <p className="text-[.65rem] text-red-400 mt-1">{error}</p>}
