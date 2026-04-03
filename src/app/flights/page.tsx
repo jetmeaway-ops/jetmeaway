@@ -442,60 +442,66 @@ const PROVIDERS = [
   {
     name: 'Aviasales',
     logo: '✈',
-    badge: 'Best Value',
     highlight: 'Lowest fares across 750+ airlines worldwide',
-    getUrl: (o: string, d: string, dep: string) => {
-      // Aviasales date format: DDMM
-      const parts = dep.split('-'); // YYYY-MM-DD
+    getUrl: (o: string, d: string, dep: string, ret: string, adults: number, children: number) => {
+      const parts = dep.split('-');
       const ddmm = parts[2] + parts[1];
-      return `https://tp.media/r?campaign_id=121&marker=714449&trs=512633&p=4114&u=https%3A%2F%2Fwww.aviasales.com%2Fsearch%2F${o}${ddmm}${d}1`;
+      let path = `${o}${ddmm}${d}`;
+      if (ret) { const rp = ret.split('-'); path += rp[2] + rp[1]; }
+      path += String(adults);
+      if (children > 0) path += String(children);
+      return `https://tp.media/r?campaign_id=121&marker=714449&trs=512633&p=4114&u=${encodeURIComponent(`https://www.aviasales.com/search/${path}`)}`;
     },
   },
   {
     name: 'Kiwi.com',
     logo: '🥝',
-    badge: 'Flexible Routes',
     highlight: 'Unique combo routes + missed-flight guarantee',
-    getUrl: (o: string, d: string, dep: string, ret: string) =>
-      ret
-        ? `https://tp.media/r?campaign_id=105&marker=714449&trs=512633&p=3956&u=https%3A%2F%2Fwww.kiwi.com%2Fen%2Fsearch%2Fresults%2F${o}%2F${d}%2F${dep}%2F${ret}`
-        : `https://tp.media/r?campaign_id=105&marker=714449&trs=512633&p=3956&u=https%3A%2F%2Fwww.kiwi.com%2Fen%2Fsearch%2Fresults%2F${o}%2F${d}%2F${dep}`,
+    getUrl: (o: string, d: string, dep: string, ret: string, adults: number, children: number) => {
+      const pax = `adults=${adults}${children > 0 ? `&children=${children}` : ''}`;
+      const base = ret
+        ? `https://www.kiwi.com/en/search/results/${o}/${d}/${dep}/${ret}?${pax}`
+        : `https://www.kiwi.com/en/search/results/${o}/${d}/${dep}/no-return?${pax}`;
+      return `https://tp.media/r?campaign_id=105&marker=714449&trs=512633&p=3956&u=${encodeURIComponent(base)}`;
+    },
   },
   {
     name: 'Expedia',
     logo: '🌍',
-    badge: 'Bundle & Save',
     highlight: 'Add a hotel to your flight and save up to 30%',
-    getUrl: (o: string, d: string, dep: string, ret: string) => {
-      const base = `https%3A%2F%2Fwww.expedia.co.uk%2FFlights-Search%3Ftrip%3D${ret ? 'roundtrip' : 'oneway'}%26leg1%3Dfrom%253A${o}%252Cto%253A${d}%252Cdeparture%253A${dep}TANYT`;
-      return `https://tp.media/r?campaign_id=8&marker=714449&trs=512633&p=590&u=${base}`;
+    getUrl: (o: string, d: string, dep: string, ret: string, adults: number) => {
+      const trip = ret ? 'roundtrip' : 'oneway';
+      let u = `https://www.expedia.co.uk/Flights-Search?trip=${trip}&leg1=from%3A${o}%2Cto%3A${d}%2Cdeparture%3A${dep}TANYT&passengers=adults%3A${adults}`;
+      if (ret) u += `&leg2=from%3A${d}%2Cto%3A${o}%2Cdeparture%3A${ret}TANYT`;
+      return `https://tp.media/r?campaign_id=8&marker=714449&trs=512633&p=590&u=${encodeURIComponent(u)}`;
     },
   },
   {
     name: 'Trip.com',
     logo: '🗺',
-    badge: 'Asia & Middle East',
     highlight: 'Best fares on routes to Asia & Middle East',
-    getUrl: (o: string, d: string) =>
-      `https://tp.media/r?campaign_id=336&marker=714449&trs=512633&p=6589&u=https%3A%2F%2Fuk.trip.com%2Fflights%2F${o.toLowerCase()}-to-${d.toLowerCase()}%2Ftickets`,
+    getUrl: (o: string, d: string, dep: string, ret: string, adults: number) => {
+      const base = `https://uk.trip.com/flights/${o.toLowerCase()}-to-${d.toLowerCase()}/tickets/?departdate=${dep}${ret ? `&returndate=${ret}` : ''}&adult=${adults}`;
+      return `https://tp.media/r?campaign_id=336&marker=714449&trs=512633&p=6589&u=${encodeURIComponent(base)}`;
+    },
   },
   {
     name: 'Booking.com',
     logo: '🏷',
-    badge: 'Trusted Worldwide',
-    highlight: 'Flights from the world\'s most trusted travel brand',
-    getUrl: (o: string, d: string, dep: string) =>
-      `https://www.booking.com/flights/search.html?from_iata=${o}&to_iata=${d}&depart_date=${dep}&adults=1`,
+    highlight: 'Flights via the world\'s most trusted travel brand',
+    getUrl: (o: string, d: string, dep: string, ret: string, adults: number, children: number) =>
+      `https://www.booking.com/flights/search.html?from_iata=${o}&to_iata=${d}&depart_date=${dep}${ret ? `&return_date=${ret}` : ''}&adults=${adults}${children > 0 ? `&children=${children}` : ''}`,
   },
 ];
 
 type FlightResult = {
   airline: string;
   airlineCode: string;
+  gate: string | null;
   price: number;
   currency: string;
   stops: string;
-  duration: string | null;
+  duration: string;
   departure: string | null;
   link: string;
 };
@@ -687,11 +693,10 @@ export default function FlightsPage() {
                       </div>
                       <div>
                         <div className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B]">{f.airline}</div>
-                        {f.departure && (
-                          <div className="text-[.7rem] text-[#8E95A9] font-medium">
-                            {new Date(f.departure).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-                          </div>
-                        )}
+                        <div className="text-[.68rem] text-[#8E95A9] font-medium">
+                          {f.departure ? new Date(f.departure).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : ''}
+                          {f.gate ? ` · via ${f.gate}` : ''}
+                        </div>
                       </div>
                     </div>
 
@@ -733,7 +738,7 @@ export default function FlightsPage() {
           <p className="text-[.68rem] font-black uppercase tracking-[2px] text-[#8E95A9] mb-3">Also Compare On</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             {PROVIDERS.filter(p => p.name !== 'Aviasales').map((p) => {
-              const url = p.getUrl(origin, dest, depDate, tripType === 'return' ? retDate : '');
+              const url = p.getUrl(origin, dest, depDate, tripType === 'return' ? retDate : '', adults, children);
               return (
                 <div key={p.name} className="bg-white border border-[#F1F3F7] rounded-2xl p-5 flex items-center justify-between gap-4 hover:border-blue-200 hover:shadow-md transition-all">
                   <div className="flex items-center gap-3">

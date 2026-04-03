@@ -4,7 +4,6 @@ export const runtime = 'edge';
 
 const MARKER = '714449';
 
-// Airline names lookup
 const AIRLINES: Record<string, string> = {
   AA: 'American Airlines', AB: 'Air Berlin', AC: 'Air Canada',
   AF: 'Air France', AI: 'Air India', AY: 'Finnair',
@@ -12,8 +11,8 @@ const AIRLINES: Record<string, string> = {
   BR: 'EVA Air', CA: 'Air China', CI: 'China Airlines',
   CX: 'Cathay Pacific', CZ: 'China Southern', DL: 'Delta',
   EK: 'Emirates', EW: 'Eurowings', EY: 'Etihad',
-  FZ: 'flydubai', G9: 'Air Arabia', IB: 'Iberia',
-  J2: 'Azerbaijan Airlines', JL: 'Japan Airlines',
+  FR: 'Ryanair', FZ: 'flydubai', G9: 'Air Arabia',
+  IB: 'Iberia', J2: 'Azerbaijan Airlines', JL: 'Japan Airlines',
   KE: 'Korean Air', KL: 'KLM', LH: 'Lufthansa',
   LO: 'LOT Polish', LX: 'Swiss', MH: 'Malaysia Airlines',
   MS: 'EgyptAir', MU: 'China Eastern', NH: 'ANA',
@@ -26,8 +25,16 @@ const AIRLINES: Record<string, string> = {
   TN: 'Air Tahiti Nui', TP: 'TAP Air Portugal',
   U2: 'easyJet', UA: 'United Airlines', UX: 'Air Europa',
   V7: 'Volotea', VN: 'Vietnam Airlines', VS: 'Virgin Atlantic',
-  VY: 'Vueling', W6: 'Wizz Air', WN: 'Southwest',
-  WS: 'WestJet', XY: 'flynas', ZI: 'Aigle Azur',
+  VY: 'Vueling', W6: 'Wizz Air', W9: 'Wizz Air UK',
+  WN: 'Southwest', WS: 'WestJet',
+  XC: 'Corendon Airlines', XQ: 'SunExpress', XY: 'flynas',
+  ZI: 'Aigle Azur', ZT: 'Titan Airways',
+  '5O': 'ASL Airlines', '6B': 'TUI fly Nordic',
+  '7R': 'RusLine', '9W': 'Jet Airways',
+  HV: 'Transavia', TO: 'Transavia France',
+  DY: 'Norwegian', D8: 'Norwegian',
+  TB: 'TUI fly Belgium', BY: 'TUI Airways',
+  MT: 'Thomas Cook Airlines', TCX: 'Thomas Cook',
 };
 
 function airlineName(code: string): string {
@@ -35,16 +42,29 @@ function airlineName(code: string): string {
 }
 
 function formatDuration(minutes: number): string {
+  if (!minutes || minutes <= 0) return '';
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
-function bookingLink(origin: string, dest: string, depDate: string): string {
-  // Aviasales date format: DDMM
-  const parts = depDate.split('-');
+function bookingLink(
+  origin: string, dest: string, depDate: string,
+  retDate: string | null, adults: number, children: number
+): string {
+  // Aviasales search URL: {origin}{DDMM}{dest}{retDDMM?}{adults}
+  const parts = depDate.split('-'); // YYYY-MM-DD
   const ddmm = parts[2] + parts[1];
-  return `https://tp.media/r?campaign_id=121&marker=${MARKER}&trs=512633&p=4114&u=https%3A%2F%2Fwww.aviasales.com%2Fsearch%2F${origin}${ddmm}${dest}1`;
+  let path = `${origin}${ddmm}${dest}`;
+  if (retDate) {
+    const rp = retDate.split('-');
+    path += rp[2] + rp[1];
+  }
+  path += String(adults);
+  // Encode children as suffix (Aviasales uses child count digits after adults)
+  if (children > 0) path += String(children);
+  const encoded = encodeURIComponent(`https://www.aviasales.com/search/${path}`);
+  return `https://tp.media/r?campaign_id=121&marker=${MARKER}&trs=512633&p=4114&u=${encoded}`;
 }
 
 export async function GET(req: NextRequest) {
@@ -53,55 +73,54 @@ export async function GET(req: NextRequest) {
   const origin = searchParams.get('origin')?.toUpperCase();
   const destination = searchParams.get('destination')?.toUpperCase();
   const depDate = searchParams.get('departure');
-  const retDate = searchParams.get('return');
+  const retDate = searchParams.get('return') || null;
+  const adults = parseInt(searchParams.get('adults') || '1', 10);
+  const children = parseInt(searchParams.get('children') || '0', 10);
 
   if (!origin || !destination || !depDate) {
-    return NextResponse.json({ error: 'Missing required parameters: origin, destination, departure' }, { status: 400 });
+    return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
   }
 
   if (!token) {
-    return NextResponse.json(
-      { error: 'TRAVELPAYOUTS_TOKEN not set. Add it to your .env.local file.' },
-      { status: 503 }
-    );
+    return NextResponse.json({ error: 'TRAVELPAYOUTS_TOKEN not set' }, { status: 503 });
   }
 
   try {
     const oneWayPart = !retDate ? '&one_way=true' : `&return_at=${retDate}`;
     const url = `https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${depDate}&currency=gbp&sorting=price&limit=10&market=gb${oneWayPart}&token=${token}`;
 
-    const res = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
-    });
+    const res = await fetch(url, { headers: { Accept: 'application/json' } });
 
     if (!res.ok) {
-      const text = await res.text();
-      console.error('Travelpayouts API error:', res.status, text);
       return NextResponse.json({ error: 'Flight data API error', status: res.status }, { status: 502 });
     }
 
     const json = await res.json();
 
-    // API returns { data: [...] } — no success field
     if (!json.data?.length) {
       return NextResponse.json({ flights: [], message: 'No flights found for this route and date' });
     }
 
-    // Shape the results
-    const flights = json.data.map((f: any) => ({
-      airline: airlineName(f.airline),
-      airlineCode: f.airline,
-      price: f.price,
-      currency: '£',
-      stops: f.transfers === 0 ? 'Direct' : f.transfers === 1 ? '1 stop' : `${f.transfers} stops`,
-      duration: f.duration ? formatDuration(f.duration) : null,
-      departure: f.departure_at || null,
-      link: bookingLink(origin, destination, depDate),
-    }));
+    const link = bookingLink(origin, destination, depDate, retDate, adults, children);
+
+    const flights = json.data.map((f: any) => {
+      // Use duration_to (outbound leg) — fall back to duration if not present
+      const durationMins = f.duration_to || f.duration || 0;
+      return {
+        airline: airlineName(f.airline),
+        airlineCode: f.airline,
+        gate: f.gate || null,
+        price: f.price,
+        currency: '£',
+        stops: f.transfers === 0 ? 'Direct' : f.transfers === 1 ? '1 stop' : `${f.transfers} stops`,
+        duration: formatDuration(durationMins),
+        departure: f.departure_at || null,
+        link,
+      };
+    });
 
     return NextResponse.json({ flights, origin, destination, depDate, retDate });
   } catch (err: any) {
-    console.error('Flights route error:', err);
     return NextResponse.json({ error: 'Failed to fetch flight prices', detail: err.message }, { status: 500 });
   }
 }
