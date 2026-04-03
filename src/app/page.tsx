@@ -3,10 +3,12 @@ export const runtime = 'edge';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import FlightSearch from './search';
+import DiscoverPopup from '@/components/DiscoverPopup';
 
 export default function Home() {
   return (
     <>
+      <DiscoverPopup />
       <Header />
 
       {/* HERO */}
