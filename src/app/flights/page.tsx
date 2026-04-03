@@ -458,39 +458,44 @@ const PROVIDERS = [
     logo: '🥝',
     highlight: 'Unique combo routes + missed-flight guarantee',
     getUrl: (o: string, d: string, dep: string, ret: string, adults: number, children: number) => {
+      const path = ret ? `${o}/${d}/${dep}/${ret}` : `${o}/${d}/${dep}/no-return`;
       const pax = `adults=${adults}${children > 0 ? `&children=${children}` : ''}`;
-      const base = ret
-        ? `https://www.kiwi.com/en/search/results/${o}/${d}/${dep}/${ret}?${pax}`
-        : `https://www.kiwi.com/en/search/results/${o}/${d}/${dep}/no-return?${pax}`;
-      return `https://tp.media/r?campaign_id=105&marker=714449&trs=512633&p=3956&u=${encodeURIComponent(base)}`;
+      return `https://www.kiwi.com/en/search/results/${path}?${pax}`;
     },
   },
   {
     name: 'Expedia',
     logo: '🌍',
     highlight: 'Add a hotel to your flight and save up to 30%',
-    getUrl: (o: string, d: string, dep: string, ret: string, adults: number) => {
+    getUrl: (o: string, d: string, dep: string, ret: string, adults: number, children: number) => {
       const trip = ret ? 'roundtrip' : 'oneway';
-      let u = `https://www.expedia.co.uk/Flights-Search?trip=${trip}&leg1=from%3A${o}%2Cto%3A${d}%2Cdeparture%3A${dep}TANYT&passengers=adults%3A${adults}`;
-      if (ret) u += `&leg2=from%3A${d}%2Cto%3A${o}%2Cdeparture%3A${ret}TANYT`;
-      return `https://tp.media/r?campaign_id=8&marker=714449&trs=512633&p=590&u=${encodeURIComponent(u)}`;
+      let u = `https://www.expedia.co.uk/Flights-Search?trip=${trip}&leg1=from:${o},to:${d},departure:${dep}TANYT&passengers=adults:${adults}`;
+      if (ret) u += `,children:${children}&leg2=from:${d},to:${o},departure:${ret}TANYT`;
+      return u;
     },
   },
   {
     name: 'Trip.com',
     logo: '🗺',
     highlight: 'Best fares on routes to Asia & Middle East',
-    getUrl: (o: string, d: string, dep: string, ret: string, adults: number) => {
-      const base = `https://uk.trip.com/flights/${o.toLowerCase()}-to-${d.toLowerCase()}/tickets/?departdate=${dep}${ret ? `&returndate=${ret}` : ''}&adult=${adults}`;
-      return `https://tp.media/r?campaign_id=336&marker=714449&trs=512633&p=6589&u=${encodeURIComponent(base)}`;
+    getUrl: (o: string, d: string, dep: string, ret: string, adults: number, children: number) => {
+      let u = `https://uk.trip.com/flights/${o.toLowerCase()}-to-${d.toLowerCase()}/tickets/?departdate=${dep}&adult=${adults}`;
+      if (ret) u += `&returndate=${ret}`;
+      if (children > 0) u += `&child=${children}`;
+      return u;
     },
   },
   {
     name: 'Booking.com',
     logo: '🏷',
     highlight: 'Flights via the world\'s most trusted travel brand',
-    getUrl: (o: string, d: string, dep: string, ret: string, adults: number, children: number) =>
-      `https://www.booking.com/flights/search.html?from_iata=${o}&to_iata=${d}&depart_date=${dep}${ret ? `&return_date=${ret}` : ''}&adults=${adults}${children > 0 ? `&children=${children}` : ''}`,
+    getUrl: (o: string, d: string, dep: string, ret: string, adults: number, children: number) => {
+      const type = ret ? 'ROUNDTRIP' : 'ONEWAY';
+      let u = `https://flights.booking.com/flights/${o}-${d}/?type=${type}&adults=${adults}&cabinClass=ECONOMY&from=${o}&to=${d}&fromDate=${dep}`;
+      if (ret) u += `&toDate=${ret}`;
+      if (children > 0) u += `&children=${children}`;
+      return u;
+    },
   },
 ];
 
