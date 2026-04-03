@@ -566,6 +566,7 @@ type FlightResult = {
   duration: string;
   departure: string | null;
   link: string;
+  live?: boolean;
 };
 
 // ─── Page ────────────────────────────────────────────────────────────────────
@@ -580,6 +581,7 @@ function FlightsContent() {
   const [childrenAges, setChildrenAges] = useState<number[]>([]);
   const [tripType, setTripType] = useState<'one-way' | 'return'>('return');
   const [loading, setLoading] = useState(false);
+  const [polling, setPolling] = useState(false);
   const [flights, setFlights] = useState<FlightResult[] | null>(null);
   const [apiError, setApiError] = useState('');
   const [initDest, setInitDest] = useState('');
@@ -612,6 +614,7 @@ function FlightsContent() {
     setFlights(null);
     setApiError('');
     setLoading(true);
+    setPolling(false);
 
     try {
       const params = new URLSearchParams({
@@ -629,12 +632,61 @@ function FlightsContent() {
 
       if (data.error) {
         setApiError(data.error);
-      } else {
-        setFlights(data.flights || []);
+        setLoading(false);
+        return;
+      }
+
+      // Show cached results immediately
+      setFlights(data.flights || []);
+      setLoading(false);
+
+      // If we got a live search ID, poll for real-time results
+      if (data.searchId) {
+        setPolling(true);
+        let attempts = 0;
+        const maxAttempts = 10;
+
+        const pollInterval = setInterval(async () => {
+          attempts++;
+          try {
+            const pollParams = new URLSearchParams({
+              origin,
+              destination: dest,
+              departure: depDate,
+              poll: data.searchId,
+            });
+            if (retDate && tripType === 'return') pollParams.set('return', retDate);
+
+            const pollRes = await fetch(`/api/flights?${pollParams}`);
+            const pollData = await pollRes.json();
+
+            if (pollData.flights && pollData.flights.length > 0) {
+              // Merge live results with existing, preferring live prices
+              setFlights(prev => {
+                const existing = prev || [];
+                const liveFlights: FlightResult[] = pollData.flights;
+                // Combine: live first, then cached that don't overlap
+                const liveKeys = new Set(liveFlights.map((f: FlightResult) => `${f.airlineCode}-${f.stops}`));
+                const merged = [...liveFlights, ...existing.filter(f => !liveKeys.has(`${f.airlineCode}-${f.stops}`))];
+                merged.sort((a, b) => a.price - b.price);
+                return merged.slice(0, 20);
+              });
+            }
+
+            if (pollData.done || attempts >= maxAttempts) {
+              clearInterval(pollInterval);
+              setPolling(false);
+            }
+          } catch {
+            if (attempts >= maxAttempts) {
+              clearInterval(pollInterval);
+              setPolling(false);
+            }
+          }
+        }, 3000);
       }
     } catch {
       setApiError('Could not load flight prices. Please try again.');
-    } finally {
       setLoading(false);
     }
   }
@@ -745,9 +797,17 @@ function FlightsContent() {
                 {infants > 0 ? `, ${infants} infant${infants !== 1 ? 's' : ''}` : ''}
               </p>
             </div>
-            {flights.length > 0 && (
-              <span className="text-[.7rem] font-bold text-[#0066FF] bg-blue-50 px-3 py-1.5 rounded-full">{flights.length} live price{flights.length !== 1 ? 's' : ''} found</span>
-            )}
+            <div className="flex items-center gap-2">
+              {polling && (
+                <span className="text-[.7rem] font-bold text-amber-600 bg-amber-50 px-3 py-1.5 rounded-full animate-pulse">Searching live prices...</span>
+              )}
+              {flights.length > 0 && (
+                <span className="text-[.7rem] font-bold text-[#0066FF] bg-blue-50 px-3 py-1.5 rounded-full">
+                  {flights.length} price{flights.length !== 1 ? 's' : ''} found
+                  {flights.some(f => f.live) ? ' (live)' : ''}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Results table */}
@@ -788,6 +848,7 @@ function FlightsContent() {
                         <div className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B] flex items-center gap-2">
                           {f.airline}
                           {isCheapest && <span className="text-[.58rem] font-black uppercase tracking-[1.5px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">Cheapest</span>}
+                          {f.live && <span className="text-[.58rem] font-black uppercase tracking-[1.5px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">Live</span>}
                         </div>
                         {f.gate && <div className="text-[.65rem] text-[#8E95A9]">via {f.gate}</div>}
                       </div>
@@ -863,7 +924,7 @@ function FlightsContent() {
           </div>
 
           <p className="text-center text-[.65rem] text-[#8E95A9] font-semibold">
-            Prices from Travelpayouts data cache · Clicking any link earns JetMeAway a commission at no extra cost to you.
+            Prices from Travelpayouts · Live prices update in real-time · Clicking any link earns JetMeAway a commission at no extra cost to you.
           </p>
         </section>
       )}
