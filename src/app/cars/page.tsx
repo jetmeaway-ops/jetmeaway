@@ -63,7 +63,7 @@ const PROVIDERS = [
     desc: 'Lowest-price guarantee across 30,000+ locations.',
     badge: 'Cheapest Rates',
     getUrl: (loc: string, pickup: string, dropoff: string) =>
-      `https://tp.media/r?campaign_id=203&marker=714449&trs=512633&p=4567&u=https%3A%2F%2Fwww.economybookings.com%2Fsearch%3Fpickup_location%3D${encodeURIComponent(loc)}%26pickup_date%3D${pickup}%26dropoff_date%3D${dropoff}`,
+      `https://www.economybookings.com/search?pickup_location=${encodeURIComponent(loc)}&pickup_date=${pickup}&dropoff_date=${dropoff}`,
   },
   {
     name: 'Rentalcars.com',
@@ -71,7 +71,7 @@ const PROVIDERS = [
     desc: 'Trusted by 5M+ travellers. Compare 900+ suppliers.',
     badge: 'Most Trusted',
     getUrl: (loc: string, pickup: string, dropoff: string) =>
-      `https://tp.media/r?campaign_id=203&marker=714449&trs=512633&p=3380&u=https%3A%2F%2Fwww.rentalcars.com%2Fsearch%3FpickUpLocation%3D${encodeURIComponent(loc)}%26pickUpDate%3D${pickup}%26dropOffDate%3D${dropoff}`,
+      `https://www.rentalcars.com/search?pickUpLocation=${encodeURIComponent(loc)}&pickUpDate=${pickup}&dropOffDate=${dropoff}`,
   },
   {
     name: 'Discover Cars',
@@ -79,7 +79,7 @@ const PROVIDERS = [
     desc: 'No hidden fees — what you see is what you pay.',
     badge: 'No Hidden Fees',
     getUrl: (loc: string, pickup: string, dropoff: string) =>
-      `https://tp.media/r?campaign_id=203&marker=714449&trs=512633&p=5983&u=https%3A%2F%2Fwww.discovercars.com%2Fcars%2F${encodeURIComponent(loc)}%3Ffrom%3D${pickup}%26to%3D${dropoff}`,
+      `https://www.discovercars.com/cars/${encodeURIComponent(loc)}?from=${pickup}&to=${dropoff}`,
   },
   {
     name: 'Localrent',
@@ -87,7 +87,7 @@ const PROVIDERS = [
     desc: 'Local suppliers = much cheaper rates, same quality.',
     badge: 'Local Deals',
     getUrl: (loc: string, pickup: string, dropoff: string) =>
-      `https://tp.media/r?campaign_id=203&marker=714449&trs=512633&p=6105&u=https%3A%2F%2Flocalrent.com%2Fcars%2F${encodeURIComponent(loc)}%3FstartDate%3D${pickup}%26endDate%3D${dropoff}`,
+      `https://localrent.com/cars/${encodeURIComponent(loc)}?startDate=${pickup}&endDate=${dropoff}`,
   },
   {
     name: 'Qeeq',
@@ -95,7 +95,7 @@ const PROVIDERS = [
     desc: 'Flash prices & instant confirmation at 50,000+ locations.',
     badge: 'Instant Booking',
     getUrl: (loc: string, pickup: string, dropoff: string) =>
-      `https://tp.media/r?campaign_id=203&marker=714449&trs=512633&p=6205&u=https%3A%2F%2Fwww.qeeq.com%2Fsearch%3FpickupLocation%3D${encodeURIComponent(loc)}%26startDate%3D${pickup}%26endDate%3D${dropoff}`,
+      `https://www.qeeq.com/search?pickupLocation=${encodeURIComponent(loc)}&startDate=${pickup}&endDate=${dropoff}`,
   },
   {
     name: 'GetRentaCar',
@@ -103,7 +103,7 @@ const PROVIDERS = [
     desc: 'Best for exotic destinations & 24/7 support.',
     badge: 'Worldwide',
     getUrl: (loc: string, pickup: string, dropoff: string) =>
-      `https://tp.media/r?campaign_id=203&marker=714449&trs=512633&p=5437&u=https%3A%2F%2Fgetrentacar.com%2Fsearch%3Flocation%3D${encodeURIComponent(loc)}%26pickup%3D${pickup}%26dropoff%3D${dropoff}`,
+      `https://getrentacar.com/search?location=${encodeURIComponent(loc)}&pickup=${pickup}&dropoff=${dropoff}`,
   },
 ];
 

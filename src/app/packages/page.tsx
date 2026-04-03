@@ -62,7 +62,7 @@ const PROVIDERS = [
     desc: 'Flight + hotel bundles saving up to 30% vs booking separately.',
     badge: 'Best Bundles',
     getUrl: (dest: string, dep: string, ret: string, guests: string) =>
-      `https://tp.media/r?campaign_id=8&marker=714449&trs=512633&p=590&u=https%3A%2F%2Fwww.expedia.co.uk%2FVacations%2Fsearch%3Fdestination%3D${encodeURIComponent(dest)}%26startDate%3D${dep}%26endDate%3D${ret}%26adults%3D${guests}`,
+      `https://www.expedia.co.uk/Vacations/search?destination=${encodeURIComponent(dest)}&startDate=${dep}&endDate=${ret}&adults=${guests}`,
   },
   {
     name: 'On the Beach',
@@ -85,7 +85,7 @@ const PROVIDERS = [
     logo: '🌴',
     desc: 'All-inclusive resorts & villa holidays worldwide.',
     badge: 'All-Inclusive',
-    getUrl: (dest: string, dep: string) =>
+    getUrl: (dest: string) =>
       `https://www.tui.co.uk/destinations/${encodeURIComponent(dest.toLowerCase().replace(/ /g, '-'))}/holidays.html`,
   },
   {
@@ -93,8 +93,8 @@ const PROVIDERS = [
     logo: '🗺',
     desc: 'City breaks & Asia packages with exclusive flash deals.',
     badge: 'City Breaks',
-    getUrl: (dest: string, dep: string) =>
-      `https://tp.media/r?campaign_id=336&marker=714449&trs=512633&p=6589&u=https%3A%2F%2Fuk.trip.com%2Fholidays%2F${encodeURIComponent(dest)}`,
+    getUrl: (dest: string) =>
+      `https://uk.trip.com/holidays/${encodeURIComponent(dest)}`,
   },
   {
     name: 'WeGoTrip',
@@ -102,7 +102,7 @@ const PROVIDERS = [
     desc: 'Guided tours & experience packages from local experts.',
     badge: 'Guided Tours',
     getUrl: (dest: string) =>
-      `https://tp.media/r?campaign_id=416&marker=714449&trs=512633&p=7428&u=https%3A%2F%2Fwegotrip.com%2Fen%2Fcatalog%3Fq%3D${encodeURIComponent(dest)}`,
+      `https://wegotrip.com/en/catalog?q=${encodeURIComponent(dest)}`,
   },
   {
     name: 'GetYourGuide',
@@ -110,7 +110,7 @@ const PROVIDERS = [
     desc: 'Experiences, tours & activities at your destination.',
     badge: 'Activities',
     getUrl: (dest: string) =>
-      `https://tp.media/r?campaign_id=296&marker=714449&trs=512633&p=5761&u=https%3A%2F%2Fwww.getyourguide.com%2F${encodeURIComponent(dest.toLowerCase().replace(/ /g, '-'))}-l`,
+      `https://www.getyourguide.com/${encodeURIComponent(dest.toLowerCase().replace(/ /g, '-'))}-l`,
   },
   {
     name: 'Klook',
@@ -118,7 +118,7 @@ const PROVIDERS = [
     desc: 'Theme parks, day trips & tours across Asia & beyond.',
     badge: 'Asia & Beyond',
     getUrl: (dest: string) =>
-      `https://tp.media/r?campaign_id=296&marker=714449&trs=512633&p=4688&u=https%3A%2F%2Fwww.klook.com%2Fen-GB%2Fsearch%3Fquery%3D${encodeURIComponent(dest)}`,
+      `https://www.klook.com/en-GB/search?query=${encodeURIComponent(dest)}`,
   },
 ];
 
