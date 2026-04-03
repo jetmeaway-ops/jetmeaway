@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import DealAlertForm from './DealAlertForm';
 
 export default function Footer() {
   return (
@@ -27,11 +28,7 @@ export default function Footer() {
           </div>
           <div>
             <h4 className="font-[Poppins] text-[.62rem] font-extrabold uppercase tracking-[2.5px] text-white mb-4">Deal Alerts</h4>
-            <div className="flex rounded-md overflow-hidden">
-              <input type="email" placeholder="Your email" className="flex-1 bg-white/[.06] border-none py-3 px-3.5 font-[Nunito] text-[.78rem] text-white outline-none placeholder:text-white/15" />
-              <button className="bg-[#0066FF] text-white border-none py-3 px-4.5 font-[Poppins] text-[.7rem] font-bold cursor-pointer">Join</button>
-            </div>
-            <p className="text-[.68rem] mt-2 text-white/15">Get deal alerts and flash sales to your inbox.</p>
+            <DealAlertForm />
           </div>
         </div>
         <div className="h-px bg-white/[.06] mb-7"></div>
