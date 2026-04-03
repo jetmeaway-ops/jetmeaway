@@ -188,12 +188,118 @@ function getHotelsForCity(city: string): CuratedHotel[] {
   ];
 }
 
+// ─── Guest Picker ───────────────────────────────────────────────────────────
+function GuestPicker({ adults, children, childrenAges, onChange }: {
+  adults: number; children: number; childrenAges: number[];
+  onChange: (a: number, c: number, ages: number[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const fn = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', fn);
+    return () => document.removeEventListener('mousedown', fn);
+  }, []);
+
+  function setAdults(n: number) { onChange(n, children, childrenAges); }
+  function setChildren(n: number) {
+    const ages = [...childrenAges];
+    while (ages.length < n) ages.push(5);
+    onChange(adults, n, ages.slice(0, n));
+  }
+  function setChildAge(idx: number, age: number) {
+    const ages = [...childrenAges];
+    ages[idx] = age;
+    onChange(adults, children, ages);
+  }
+
+  const label = [
+    `${adults} Adult${adults !== 1 ? 's' : ''}`,
+    children > 0 ? `${children} Child${children !== 1 ? 'ren' : ''}` : null,
+  ].filter(Boolean).join(', ');
+
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" onClick={() => setOpen(v => !v)}
+        className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-left text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-orange-400 hover:bg-white transition-all flex items-center justify-between">
+        <span>{label}</span>
+        <span className="text-[#B0B8CC] text-xs">{open ? '▴' : '▾'}</span>
+      </button>
+
+      {open && (
+        <div className="absolute z-50 w-80 mt-1.5 right-0 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl p-4">
+          {/* Adults */}
+          <div className="flex items-center justify-between py-3 border-b border-[#F1F3F7]">
+            <div>
+              <div className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B]">Adults</div>
+              <div className="text-[.7rem] text-[#8E95A9] font-medium">Age 16+</div>
+            </div>
+            <div className="flex items-center gap-3">
+              <button type="button" onClick={() => setAdults(adults - 1)} disabled={adults <= 1}
+                className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-orange-400 hover:text-orange-500 transition-all disabled:opacity-30">−</button>
+              <span className="font-[Poppins] font-black text-[.95rem] text-[#1A1D2B] w-5 text-center">{adults}</span>
+              <button type="button" onClick={() => setAdults(adults + 1)} disabled={adults >= 10}
+                className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-orange-400 hover:text-orange-500 transition-all disabled:opacity-30">+</button>
+            </div>
+          </div>
+
+          {/* Children */}
+          <div className="flex items-center justify-between py-3 border-b border-[#F1F3F7]">
+            <div>
+              <div className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B]">Children</div>
+              <div className="text-[.7rem] text-[#8E95A9] font-medium">Age 0–15</div>
+            </div>
+            <div className="flex items-center gap-3">
+              <button type="button" onClick={() => setChildren(children - 1)} disabled={children <= 0}
+                className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-orange-400 hover:text-orange-500 transition-all disabled:opacity-30">−</button>
+              <span className="font-[Poppins] font-black text-[.95rem] text-[#1A1D2B] w-5 text-center">{children}</span>
+              <button type="button" onClick={() => setChildren(children + 1)} disabled={children >= 6}
+                className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-orange-400 hover:text-orange-500 transition-all disabled:opacity-30">+</button>
+            </div>
+          </div>
+
+          {/* Children age selectors */}
+          {children > 0 && (
+            <div className="py-3 border-b border-[#F1F3F7]">
+              <p className="text-[.68rem] font-bold text-[#8E95A9] uppercase tracking-[1.5px] mb-2">Child ages (at time of stay)</p>
+              <div className="grid grid-cols-3 gap-2">
+                {Array.from({ length: children }).map((_, i) => (
+                  <div key={i} className="text-center">
+                    <div className="text-[.6rem] text-[#8E95A9] mb-1">Child {i + 1}</div>
+                    <select
+                      value={childrenAges[i] ?? 5}
+                      onChange={e => setChildAge(i, Number(e.target.value))}
+                      className="w-full text-center text-[.8rem] font-bold text-[#1A1D2B] bg-[#F8FAFC] border border-[#E8ECF4] rounded-lg py-1.5 outline-none focus:border-orange-400">
+                      {Array.from({ length: 16 }, (_, a) => a).map(age => (
+                        <option key={age} value={age}>{age < 1 ? 'Under 1' : age}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <button type="button" onClick={() => setOpen(false)}
+            className="w-full mt-3 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-[Poppins] font-bold text-[.8rem] py-2.5 rounded-xl transition-colors">
+            Done
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function HotelsContent() {
   const [city, setCity] = useState('');
   const [checkin, setCheckin] = useState('');
   const [checkout, setCheckout] = useState('');
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
+  const [childrenAges, setChildrenAges] = useState<number[]>([]);
   const [searched, setSearched] = useState(false);
   const [hotels, setHotels] = useState<CuratedHotel[]>([]);
 
@@ -245,7 +351,7 @@ function HotelsContent() {
             <CityPicker value={city} onChange={setCity} placeholder="City or hotel name — e.g. Dubai, Paris, Bali" />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
             <div>
               <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Check-in</label>
               <input type="date" min={today} value={checkin} onChange={e => setCheckin(e.target.value)}
@@ -257,24 +363,9 @@ function HotelsContent() {
                 className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-orange-400 focus:bg-white transition-all" />
             </div>
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Adults</label>
-              <div className="flex items-center border border-[#E8ECF4] bg-[#F8FAFC] rounded-xl px-3 py-2.5 gap-2">
-                <button type="button" onClick={() => setAdults(Math.max(1, adults - 1))}
-                  className="w-8 h-8 rounded-full bg-white border border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold hover:border-orange-400 hover:text-orange-500 transition-all text-sm">−</button>
-                <span className="flex-1 text-center font-[Poppins] font-black text-[.9rem] text-[#1A1D2B]">{adults}</span>
-                <button type="button" onClick={() => setAdults(Math.min(10, adults + 1))}
-                  className="w-8 h-8 rounded-full bg-white border border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold hover:border-orange-400 hover:text-orange-500 transition-all text-sm">+</button>
-              </div>
-            </div>
-            <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Children</label>
-              <div className="flex items-center border border-[#E8ECF4] bg-[#F8FAFC] rounded-xl px-3 py-2.5 gap-2">
-                <button type="button" onClick={() => setChildren(Math.max(0, children - 1))}
-                  className="w-6 h-6 rounded-full bg-white border border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold hover:border-orange-400 hover:text-orange-500 transition-all text-sm disabled:opacity-30" disabled={children === 0}>−</button>
-                <span className="flex-1 text-center font-[Poppins] font-black text-[.9rem] text-[#1A1D2B]">{children}</span>
-                <button type="button" onClick={() => setChildren(Math.min(6, children + 1))}
-                  className="w-8 h-8 rounded-full bg-white border border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold hover:border-orange-400 hover:text-orange-500 transition-all text-sm">+</button>
-              </div>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Guests</label>
+              <GuestPicker adults={adults} children={children} childrenAges={childrenAges}
+                onChange={(a, c, ages) => { setAdults(a); setChildren(c); setChildrenAges(ages); }} />
             </div>
           </div>
 
