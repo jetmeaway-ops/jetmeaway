@@ -67,15 +67,13 @@ const PROVIDERS = [
     name: 'Airalo',
     logo: '📡',
     badge: 'Most Popular',
-    getUrl: (country: string) =>
-      `https://tp.media/r?campaign_id=541&marker=714449&p=8310&trs=512633&u=${encodeURIComponent(`https://www.airalo.com/${country.toLowerCase().replace(/ /g, '-')}`)}`,
+    getUrl: () => `https://airalo.tpk.lu/MzK1zzie`,
   },
   {
     name: 'Yesim',
     logo: '✅',
     badge: 'Unlimited Plans',
-    getUrl: (country: string) =>
-      `https://tp.media/r?campaign_id=455&marker=714449&trs=512633&p=8205&u=${encodeURIComponent(`https://yesim.app/esim-${country.toLowerCase().replace(/ /g, '-')}/`)}`,
+    getUrl: () => `https://yesim.tpk.lu/jSzl98ZQ`,
   },
   {
     name: 'Holafly',
