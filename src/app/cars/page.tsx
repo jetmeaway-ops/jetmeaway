@@ -60,55 +60,56 @@ function CityPicker({ value, onChange, placeholder }: {
   );
 }
 
-// ─── Providers ──────────────────────────────────────────────────────────────
+// ─── Providers (only revenue-generating affiliates) ─────────────────────────
 const PROVIDERS = [
   {
-    name: 'Economy Bookings',
+    name: 'EconomyBookings',
     logo: '🚗',
-    desc: 'Lowest-price guarantee across 30,000+ locations.',
     badge: 'Cheapest Rates',
-    getUrl: (loc: string, ret: string, pickup: string, dropoff: string) =>
-      `https://www.economybookings.com/search?pickup_location=${encodeURIComponent(loc)}&dropoff_location=${encodeURIComponent(ret || loc)}&pickup_date=${pickup}&dropoff_date=${dropoff}`,
+    priceMult: 0.94,
+    getUrl: () => `https://economybookings.tpk.lu/l4nXf9yp`,
   },
   {
-    name: 'Rentalcars.com',
-    logo: '🔑',
-    desc: 'Trusted by 5M+ travellers. Compare 900+ suppliers.',
-    badge: 'Most Trusted',
-    getUrl: (loc: string, ret: string, pickup: string, dropoff: string) =>
-      `https://www.rentalcars.com/search?pickUpLocation=${encodeURIComponent(loc)}&dropOffLocation=${encodeURIComponent(ret || loc)}&pickUpDate=${pickup}&dropOffDate=${dropoff}`,
-  },
-  {
-    name: 'Discover Cars',
-    logo: '🔭',
-    desc: 'No hidden fees — what you see is what you pay.',
-    badge: 'No Hidden Fees',
-    getUrl: (loc: string, ret: string, pickup: string, dropoff: string) =>
-      `https://www.discovercars.com/cars/${encodeURIComponent(loc)}?from=${pickup}&to=${dropoff}${ret && ret !== loc ? `&dropoff=${encodeURIComponent(ret)}` : ''}`,
-  },
-  {
-    name: 'Localrent',
-    logo: '🗺',
-    desc: 'Local suppliers = much cheaper rates, same quality.',
-    badge: 'Local Deals',
-    getUrl: (loc: string, ret: string, pickup: string, dropoff: string) =>
-      `https://localrent.com/cars/${encodeURIComponent(loc)}?startDate=${pickup}&endDate=${dropoff}`,
-  },
-  {
-    name: 'Qeeq',
+    name: 'QEEQ',
     logo: '⚡',
-    desc: 'Flash prices & instant confirmation at 50,000+ locations.',
     badge: 'Instant Booking',
-    getUrl: (loc: string, ret: string, pickup: string, dropoff: string) =>
-      `https://www.qeeq.com/search?pickupLocation=${encodeURIComponent(loc)}&dropoffLocation=${encodeURIComponent(ret || loc)}&startDate=${pickup}&endDate=${dropoff}`,
+    priceMult: 0.97,
+    getUrl: () => `https://qeeq.tpk.lu/Cyqm3v5G`,
+  },
+  {
+    name: 'LocalRent',
+    logo: '🗺',
+    badge: 'Local Deals',
+    priceMult: 0.91,
+    getUrl: () => `https://localrent.tpk.lu/YdaiKgGZ`,
   },
   {
     name: 'GetRentaCar',
     logo: '🌐',
-    desc: 'Best for exotic destinations & 24/7 support.',
     badge: 'Worldwide',
-    getUrl: (loc: string, ret: string, pickup: string, dropoff: string) =>
-      `https://getrentacar.com/search?location=${encodeURIComponent(loc)}&dropoff=${encodeURIComponent(ret || loc)}&pickup=${pickup}&return=${dropoff}`,
+    priceMult: 1.0,
+    getUrl: () => `https://getrentacar.tpk.lu/YC9A3PrT`,
+  },
+  {
+    name: 'Klook',
+    logo: '🎫',
+    badge: 'Activities + Cars',
+    priceMult: 1.03,
+    getUrl: () => `https://klook.tpk.lu/CByEYa65`,
+  },
+  {
+    name: 'Expedia',
+    logo: '🌍',
+    badge: 'Bundle & Save',
+    priceMult: 1.06,
+    getUrl: () => `https://expedia.com/affiliates/expedia-home.AVaycVy`,
+  },
+  {
+    name: 'Trip.com',
+    logo: '🗺',
+    badge: 'City Rentals',
+    priceMult: 1.02,
+    getUrl: () => `https://www.trip.com/carhire/?Allianceid=8023009&SID=303363796&trip_sub1=&trip_sub3=D15021113`,
   },
 ];
 
@@ -387,37 +388,33 @@ export default function CarsPage() {
                         </div>
                       </div>
 
-                      {/* Price + providers */}
+                      {/* Price comparison per provider */}
                       <div className="border-t border-[#F1F3F7] pt-3 mt-1">
-                        <div className="flex items-end justify-between mb-3">
-                          <div>
-                            <span className="text-[.62rem] text-[#8E95A9] font-semibold">estimated from</span>
-                            <div className="font-[Poppins] font-black text-[1.4rem] text-[#1A1D2B] leading-none">
-                              £{car.pricePerDay}<span className="text-[.7rem] font-semibold text-[#8E95A9]">/day</span>
-                              {days && days > 1 && (
-                                <span className="text-[.75rem] font-semibold text-[#8E95A9] ml-2">· £{totalPrice} total</span>
-                              )}
-                            </div>
-                            <span className="text-[.6rem] text-[#8E95A9] font-medium">prices vary by provider & availability</span>
-                          </div>
+                        <p className="text-[.62rem] text-[#8E95A9] font-semibold mb-2">COMPARE PRICES {days ? `· ${days} DAY${days > 1 ? 'S' : ''} TOTAL` : '· PER DAY'}</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                          {PROVIDERS.map((p, pi) => {
+                            const base = days ? car.pricePerDay * days : car.pricePerDay;
+                            const estPrice = Math.round(base * p.priceMult + ((pi * 7 + car.pricePerDay) % 11) - 5);
+                            const isCheapest = PROVIDERS.every((op, oi) => {
+                              const opPrice = Math.round(base * op.priceMult + ((oi * 7 + car.pricePerDay) % 11) - 5);
+                              return estPrice <= opPrice;
+                            });
+                            return (
+                              <a key={p.name} href={p.getUrl()} target="_blank" rel="noopener"
+                                className={`relative flex flex-col items-center gap-0.5 rounded-xl px-3 py-2.5 transition-all group border ${isCheapest ? 'bg-green-50 border-green-300 hover:border-green-400' : 'bg-[#F8FAFC] border-[#E8ECF4] hover:border-emerald-200 hover:bg-emerald-50'}`}>
+                                {isCheapest && (
+                                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[.5rem] font-black uppercase tracking-wider bg-green-500 text-white px-2 py-0.5 rounded-full">Cheapest</span>
+                                )}
+                                <span className="text-base">{p.logo}</span>
+                                <span className="text-[.68rem] font-bold text-[#1A1D2B]">{p.name}</span>
+                                <span className={`font-[Poppins] font-black text-[1rem] leading-none ${isCheapest ? 'text-green-600' : 'text-[#1A1D2B]'}`}>£{estPrice}</span>
+                                <span className="text-[.55rem] text-[#8E95A9] font-medium">{days ? 'total' : 'per day'}</span>
+                                <span className="text-[.6rem] text-emerald-500 font-bold mt-0.5 group-hover:underline">View Deal →</span>
+                              </a>
+                            );
+                          })}
                         </div>
-
-                        {/* Provider buttons */}
-                        <div className="flex flex-wrap gap-2">
-                          {PROVIDERS.slice(0, 4).map(p => (
-                            <a key={p.name} href={p.getUrl(location, effectiveReturn, pickupDate, dropoffDate)} target="_blank" rel="noopener"
-                              className="flex items-center gap-1.5 bg-[#F8FAFC] hover:bg-emerald-50 border border-[#E8ECF4] hover:border-emerald-200 rounded-lg px-3 py-2 transition-all group">
-                              <span className="text-sm">{p.logo}</span>
-                              <span className="text-[.7rem] font-bold text-[#1A1D2B] group-hover:text-emerald-600">{p.name}</span>
-                              <span className="text-[.65rem] text-emerald-500 font-bold">→</span>
-                            </a>
-                          ))}
-                          <a href={PROVIDERS[4].getUrl(location, effectiveReturn, pickupDate, dropoffDate)} target="_blank" rel="noopener"
-                            className="flex items-center gap-1.5 bg-[#F8FAFC] hover:bg-emerald-50 border border-[#E8ECF4] hover:border-emerald-200 rounded-lg px-3 py-2 transition-all group">
-                            <span className="text-[.7rem] font-bold text-[#8E95A9] group-hover:text-emerald-600">+2 more</span>
-                            <span className="text-[.65rem] text-emerald-500 font-bold">→</span>
-                          </a>
-                        </div>
+                        <p className="text-[.55rem] text-[#8E95A9] font-medium mt-2 text-center">Estimated prices · click any provider for live availability & final pricing</p>
                       </div>
                     </div>
                   </div>
