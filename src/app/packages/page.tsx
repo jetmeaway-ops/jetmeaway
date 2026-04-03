@@ -94,7 +94,7 @@ const PROVIDERS = [
     badge: 'City Breaks',
     priceMult: 0.94,
     getUrl: (dest: string, dep: string, ret: string, adults: number, children: number) =>
-      `https://uk.trip.com/hotels/list?cityName=${encodeURIComponent(dest)}&checkin=${dep}&checkout=${ret}&adult=${adults}&child=${children}&Allianceid=8023009&SID=303363796`,
+      `https://www.trip.com/packages/?Allianceid=8023009&SID=303363796&trip_sub1=&trip_sub3=D15021113`,
   },
   {
     name: 'Booking.com',

@@ -536,7 +536,7 @@ const PROVIDERS = [
     logo: '🗺',
     highlight: 'Best fares on routes to Asia & Middle East',
     getUrl: (o: string, d: string, dep: string, ret: string, adults: number, children: number) => {
-      let u = `https://uk.trip.com/flights/${o.toLowerCase()}-to-${d.toLowerCase()}/tickets/?departdate=${dep}&adult=${adults}&Allianceid=8023009&SID=303363796&trip_sub3=D14969586`;
+      let u = `https://www.trip.com/flights/${o.toLowerCase()}-to-${d.toLowerCase()}/tickets/?departdate=${dep}&adult=${adults}&Allianceid=8023009&SID=303363796&trip_sub1=&trip_sub3=D15021113`;
       if (ret) u += `&returndate=${ret}`;
       if (children > 0) u += `&child=${children}`;
       return u;

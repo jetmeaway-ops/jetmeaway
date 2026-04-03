@@ -80,7 +80,7 @@ const PROVIDERS = [
     color: 'bg-sky-500',
     priceMult: 0.95,
     getUrl: (city: string, cin: string, cout: string, adults: number, children: number) =>
-      `https://uk.trip.com/hotels/list?cityName=${encodeURIComponent(city)}&checkin=${cin}&checkout=${cout}&adult=${adults}&child=${children}&Allianceid=8023009&SID=303363796&trip_sub3=D14969586`,
+      `https://www.trip.com/hotels/list?cityName=${encodeURIComponent(city)}&checkin=${cin}&checkout=${cout}&adult=${adults}&child=${children}&Allianceid=8023009&SID=303363796&trip_sub1=&trip_sub3=D15021113`,
   },
   {
     name: 'Hotels.com',
