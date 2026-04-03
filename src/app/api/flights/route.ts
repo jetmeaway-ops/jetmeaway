@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'edge';
 
-// Travelpayouts Flight Data API — free for affiliates
-// Token: get yours at travelpayouts.com → Dashboard → API → Your token
-const TP_TOKEN = process.env.TRAVELPAYOUTS_TOKEN;
 const MARKER = '714449';
 
 // Airline names lookup
@@ -51,20 +48,18 @@ function bookingLink(origin: string, dest: string, depDate: string): string {
 }
 
 export async function GET(req: NextRequest) {
+  const token = process.env.TRAVELPAYOUTS_TOKEN;
   const { searchParams } = new URL(req.url);
   const origin = searchParams.get('origin')?.toUpperCase();
   const destination = searchParams.get('destination')?.toUpperCase();
   const depDate = searchParams.get('departure');
   const retDate = searchParams.get('return');
-  const adults = searchParams.get('adults') || '1';
-  const children = searchParams.get('children') || '0';
-  const infants = searchParams.get('infants') || '0';
 
   if (!origin || !destination || !depDate) {
     return NextResponse.json({ error: 'Missing required parameters: origin, destination, departure' }, { status: 400 });
   }
 
-  if (!TP_TOKEN) {
+  if (!token) {
     return NextResponse.json(
       { error: 'TRAVELPAYOUTS_TOKEN not set. Add it to your .env.local file.' },
       { status: 503 }
@@ -72,21 +67,9 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const params = new URLSearchParams({
-      origin,
-      destination,
-      departure_at: depDate,
-      currency: 'gbp',
-      sorting: 'price',
-      limit: '10',
-      market: 'gb',
-      token: TP_TOKEN,
-    });
+    const oneWayPart = !retDate ? '&one_way=true' : `&return_at=${retDate}`;
+    const url = `https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${depDate}&currency=gbp&sorting=price&limit=10&market=gb${oneWayPart}&token=${token}`;
 
-    if (retDate) params.set('return_at', retDate);
-    if (!retDate) params.set('one_way', 'true');
-
-    const url = `https://api.travelpayouts.com/aviasales/v3/prices_for_dates?${params}`;
     const res = await fetch(url, {
       headers: { 'Accept': 'application/json' },
     });
