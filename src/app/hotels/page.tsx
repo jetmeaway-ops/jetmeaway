@@ -84,6 +84,17 @@ const PROVIDERS = [
   },
 ];
 
+type Hotel = {
+  id: number;
+  name: string;
+  stars: number;
+  price: number;
+  currency: string;
+  photo: string | null;
+  location: string;
+  bookingUrl: string;
+};
+
 function HotelsContent() {
   const [city, setCity] = useState('');
   const [checkin, setCheckin] = useState('');
@@ -91,9 +102,9 @@ function HotelsContent() {
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState(false);
+  const [hotels, setHotels] = useState<Hotel[] | null>(null);
+  const [apiError, setApiError] = useState('');
 
-  // Read URL params on client only — useEffect never runs on the server
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     const c = p.get('city');
@@ -110,11 +121,26 @@ function HotelsContent() {
 
   const today = new Date().toISOString().split('T')[0];
 
-  function handleSearch() {
+  async function handleSearch() {
     if (!city || !checkin || !checkout) { alert('Please enter destination and both dates'); return; }
-    setResults(false);
+    setHotels(null);
+    setApiError('');
     setLoading(true);
-    setTimeout(() => { setLoading(false); setResults(true); }, 1200);
+    try {
+      const params = new URLSearchParams({ city, checkin, checkout, adults: String(adults), children: String(children) });
+      const res = await fetch(`/api/hotels?${params}`);
+      const data = await res.json();
+      if (data.hotels?.length) {
+        setHotels(data.hotels);
+      } else {
+        setHotels([]);
+        setApiError(data.message || 'No hotels found for these dates');
+      }
+    } catch {
+      setApiError('Failed to fetch hotel prices. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   const nights = checkin && checkout
@@ -187,62 +213,106 @@ function HotelsContent() {
         <section className="max-w-[860px] mx-auto px-5 py-10 text-center">
           <div className="inline-flex items-center gap-3 bg-white border border-[#F1F3F7] rounded-2xl px-6 py-4 shadow-sm">
             <div className="w-5 h-5 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
-            <span className="text-[.85rem] font-bold text-[#5C6378]">Comparing 3 providers for <strong className="text-[#1A1D2B]">{city}</strong>…</span>
+            <span className="text-[.85rem] font-bold text-[#5C6378]">Searching hotels in <strong className="text-[#1A1D2B]">{city}</strong>…</span>
           </div>
         </section>
       )}
 
-      {/* Results */}
-      {results && (
-        <section className="max-w-[900px] mx-auto px-5 pb-6">
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+      {/* API Error */}
+      {apiError && !loading && (
+        <section className="max-w-[860px] mx-auto px-5 py-6">
+          <div className="bg-orange-50 border border-orange-100 rounded-2xl p-5 text-center">
+            <p className="text-[.85rem] text-[#5C6378] font-semibold mb-3">{apiError}</p>
+            <p className="text-[.75rem] text-[#8E95A9]">Try searching on our partner sites directly:</p>
+            <div className="flex flex-wrap justify-center gap-3 mt-3">
+              {PROVIDERS.map(p => (
+                <a key={p.name} href={p.getUrl(city, checkin, checkout, adults, children)} target="_blank" rel="noopener"
+                  className="text-[.78rem] font-bold text-orange-600 hover:text-orange-700 underline">{p.name} →</a>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Hotel Results - Live Data */}
+      {hotels && hotels.length > 0 && !loading && (
+        <section className="max-w-[1000px] mx-auto px-5 pb-6">
+          <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
             <div>
               <h2 className="font-[Poppins] font-black text-[1.3rem] text-[#1A1D2B]">
                 Hotels in {city}
                 {nights ? <span className="text-[#8E95A9] font-semibold text-[1rem]"> · {nights} night{nights !== 1 ? 's' : ''}</span> : null}
               </h2>
               <p className="text-[.72rem] text-[#8E95A9] font-semibold mt-0.5">
-                {adults} adult{adults !== 1 ? 's' : ''}{children > 0 ? ` · ${children} child${children !== 1 ? 'ren' : ''}` : ''} · Click a provider to see live prices
+                {hotels.length} hotels found · {adults} adult{adults !== 1 ? 's' : ''}{children > 0 ? ` · ${children} child${children !== 1 ? 'ren' : ''}` : ''} · Prices are cached estimates
               </p>
             </div>
-            <span className="text-[.7rem] font-bold text-orange-500 bg-orange-50 px-3 py-1.5 rounded-full">{PROVIDERS.length} providers</span>
+            <span className="text-[.7rem] font-bold text-orange-500 bg-orange-50 px-3 py-1.5 rounded-full">Live prices</span>
           </div>
 
-          <div className="bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden mb-4">
-            {/* Table header */}
-            <div className="hidden md:grid grid-cols-[auto_1fr_auto] gap-4 px-5 py-3 bg-[#F8FAFC] border-b border-[#F1F3F7]">
-              <div className="text-[.62rem] font-black uppercase tracking-[2px] text-[#8E95A9]">Provider</div>
-              <div className="text-[.62rem] font-black uppercase tracking-[2px] text-[#8E95A9]">Why book here</div>
-              <div className="text-[.62rem] font-black uppercase tracking-[2px] text-[#8E95A9] text-right">Action</div>
-            </div>
+          {/* Hotel cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            {hotels.map((h, i) => (
+              <div key={h.id || i} className="bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden hover:shadow-lg transition-all group">
+                {/* Hotel photo */}
+                <div className="relative h-44 bg-[#F1F3F7] overflow-hidden">
+                  {h.photo ? (
+                    <img src={h.photo} alt={h.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-4xl text-[#C0C8D8]">🏨</div>
+                  )}
+                  {i === 0 && (
+                    <span className="absolute top-3 left-3 text-[.6rem] font-black uppercase tracking-[1.5px] bg-orange-500 text-white px-2.5 py-1 rounded-full shadow-md">Best Price</span>
+                  )}
+                  {h.stars > 0 && (
+                    <span className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-[.7rem] font-bold text-amber-500 px-2 py-0.5 rounded-full">
+                      {'★'.repeat(h.stars)}
+                    </span>
+                  )}
+                </div>
 
-            {PROVIDERS.map((p, i) => (
-              <div key={p.name}
-                className={`flex flex-col md:grid md:grid-cols-[auto_1fr_auto] md:items-center gap-3 md:gap-4 px-5 py-5 border-b border-[#F1F3F7] last:border-0 hover:bg-orange-50/30 transition-colors ${i === 0 ? 'bg-orange-50/20' : ''}`}>
-                {/* Provider */}
-                <div className="flex items-center gap-3 min-w-[160px]">
-                  <div className="text-2xl">{p.logo}</div>
-                  <div>
-                    <div className="font-[Poppins] font-bold text-[.9rem] text-[#1A1D2B] flex items-center gap-2">
-                      {p.name}
-                      {i === 0 && <span className="text-[.58rem] font-black uppercase tracking-[1.5px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full">Most Popular</span>}
+                {/* Hotel info */}
+                <div className="p-4">
+                  <h3 className="font-[Poppins] font-bold text-[.9rem] text-[#1A1D2B] mb-1 line-clamp-2 leading-tight">{h.name}</h3>
+                  <p className="text-[.7rem] text-[#8E95A9] font-semibold mb-3">{h.location}</p>
+
+                  <div className="flex items-end justify-between">
+                    <div>
+                      <span className="text-[.65rem] text-[#8E95A9] font-semibold">from</span>
+                      <div className="font-[Poppins] font-black text-[1.3rem] text-[#1A1D2B] leading-none">{h.currency}{h.price}</div>
+                      <span className="text-[.6rem] text-[#8E95A9] font-medium">total stay</span>
                     </div>
-                    <div className="text-[.65rem] text-[#8E95A9] font-semibold">{p.badge}</div>
+                    <a href={h.bookingUrl} target="_blank" rel="noopener"
+                      className="bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-[Poppins] font-bold text-[.75rem] px-4 py-2.5 rounded-xl transition-all shadow-sm">
+                      Book →
+                    </a>
                   </div>
                 </div>
-                {/* Highlight */}
-                <p className="text-[.78rem] text-[#5C6378] font-semibold">{p.highlight}</p>
-                {/* CTA */}
-                <a href={p.getUrl(city, checkin, checkout, adults, children)} target="_blank" rel="noopener"
-                  className="inline-flex items-center justify-center gap-2 bg-[#0066FF] hover:bg-[#0052CC] text-white font-[Poppins] font-bold text-[.78rem] px-5 py-3 rounded-xl transition-all whitespace-nowrap shadow-[0_4px_12px_rgba(0,102,255,0.2)]">
-                  Check Prices →
-                </a>
               </div>
             ))}
           </div>
 
-          <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold">
-            Clicking any provider earns JetMeAway a commission at no extra cost to you.
+          {/* Also compare on providers */}
+          <div className="bg-[#F8FAFC] border border-[#F1F3F7] rounded-2xl p-5">
+            <p className="text-[.72rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-3">Also compare on</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {PROVIDERS.map(p => (
+                <a key={p.name} href={p.getUrl(city, checkin, checkout, adults, children)} target="_blank" rel="noopener"
+                  className="flex items-center gap-3 bg-white border border-[#E8ECF4] rounded-xl px-4 py-3 hover:border-orange-200 hover:shadow-sm transition-all">
+                  <span className="text-xl">{p.logo}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-[Poppins] font-bold text-[.82rem] text-[#1A1D2B]">{p.name}</div>
+                    <div className="text-[.65rem] text-[#8E95A9] font-semibold truncate">{p.badge}</div>
+                  </div>
+                  <span className="text-orange-500 font-bold text-[.75rem]">→</span>
+                </a>
+              ))}
+            </div>
+          </div>
+
+          <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-4">
+            Prices are cached estimates from our data partners. Final prices shown on booking.
           </p>
         </section>
       )}
