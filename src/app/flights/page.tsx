@@ -374,19 +374,56 @@ function AirportPicker({ placeholder, onSelect }: { placeholder: string; onSelec
   );
 }
 
+// ─── Passenger counter row ───────────────────────────────────────────────────
+function PaxRow({ label: lbl, sub, val, min, max, onDec, onInc }: {
+  label: string; sub: string; val: number; min: number; max: number;
+  onDec: () => void; onInc: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between py-3 border-b border-[#F1F3F7] last:border-0">
+      <div>
+        <div className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B]">{lbl}</div>
+        <div className="text-[.7rem] text-[#8E95A9] font-medium">{sub}</div>
+      </div>
+      <div className="flex items-center gap-3">
+        <button type="button" onClick={onDec} disabled={val <= min}
+          className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-[#0066FF] hover:text-[#0066FF] transition-all disabled:opacity-30">−</button>
+        <span className="font-[Poppins] font-black text-[.95rem] text-[#1A1D2B] w-5 text-center">{val}</span>
+        <button type="button" onClick={onInc} disabled={val >= max}
+          className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-[#0066FF] hover:text-[#0066FF] transition-all disabled:opacity-30">+</button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Passenger picker ────────────────────────────────────────────────────────
-function PassengerPicker({ adults, children, infants, onChange }: {
-  adults: number; children: number; infants: number;
-  onChange: (a: number, c: number, i: number) => void;
+function PassengerPicker({ adults, children, infants, childrenAges, onChange }: {
+  adults: number; children: number; infants: number; childrenAges: number[];
+  onChange: (a: number, c: number, i: number, ages: number[]) => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const fn = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const fn = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
     document.addEventListener('mousedown', fn);
     return () => document.removeEventListener('mousedown', fn);
   }, []);
+
+  function setAdults(n: number) { onChange(n, children, infants, childrenAges); }
+  function setChildren(n: number) {
+    const ages = [...childrenAges];
+    while (ages.length < n) ages.push(5);
+    onChange(adults, n, infants, ages.slice(0, n));
+  }
+  function setInfants(n: number) { onChange(adults, children, n, childrenAges); }
+  function setChildAge(idx: number, age: number) {
+    const ages = [...childrenAges];
+    ages[idx] = age;
+    onChange(adults, children, infants, ages);
+  }
 
   const label = [
     `${adults} Adult${adults !== 1 ? 's' : ''}`,
@@ -394,43 +431,50 @@ function PassengerPicker({ adults, children, infants, onChange }: {
     infants > 0 ? `${infants} Infant${infants !== 1 ? 's' : ''}` : null,
   ].filter(Boolean).join(', ');
 
-  const Row = ({ label: lbl, sub, val, onDec, onInc }: { label: string; sub: string; val: number; onDec: () => void; onInc: () => void }) => (
-    <div className="flex items-center justify-between py-3 border-b border-[#F1F3F7] last:border-0">
-      <div>
-        <div className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B]">{lbl}</div>
-        <div className="text-[.7rem] text-[#8E95A9] font-medium">{sub}</div>
-      </div>
-      <div className="flex items-center gap-3">
-        <button onMouseDown={onDec}
-          className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-[#0066FF] hover:text-[#0066FF] transition-all disabled:opacity-30"
-          disabled={val <= 0}>−</button>
-        <span className="font-[Poppins] font-black text-[.95rem] text-[#1A1D2B] w-5 text-center">{val}</span>
-        <button onMouseDown={onInc}
-          className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-[#0066FF] hover:text-[#0066FF] transition-all">+</button>
-      </div>
-    </div>
-  );
-
   return (
     <div ref={ref} className="relative">
-      <button type="button" onClick={() => setOpen(!open)}
+      <button type="button" onClick={() => setOpen(v => !v)}
         className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-left text-[.85rem] font-semibold text-[#1A1D2B] outline-none focus:border-[#0066FF] hover:bg-white transition-all flex items-center justify-between">
         <span>{label}</span>
-        <span className="text-[#B0B8CC] text-xs">▾</span>
+        <span className="text-[#B0B8CC] text-xs">{open ? '▴' : '▾'}</span>
       </button>
+
       {open && (
-        <div className="absolute z-50 w-72 mt-1.5 right-0 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl p-4">
-          <Row label="Adults" sub="Age 12+" val={adults}
-            onDec={() => onChange(Math.max(1, adults - 1), children, infants)}
-            onInc={() => onChange(Math.min(9, adults + 1), children, infants)} />
-          <Row label="Children" sub="Age 2–11" val={children}
-            onDec={() => onChange(adults, Math.max(0, children - 1), infants)}
-            onInc={() => onChange(adults, Math.min(8, children + 1), infants)} />
-          <Row label="Infants" sub="Under 2 (lap)" val={infants}
-            onDec={() => onChange(adults, children, Math.max(0, infants - 1))}
-            onInc={() => onChange(adults, children, Math.min(adults, infants + 1))} />
-          <button onMouseDown={() => setOpen(false)}
-            className="w-full mt-3 bg-[#0066FF] text-white font-[Poppins] font-bold text-[.8rem] py-2.5 rounded-xl">Done</button>
+        <div className="absolute z-50 w-80 mt-1.5 right-0 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl p-4">
+          <PaxRow label="Adults" sub="Age 12+" val={adults} min={1} max={9}
+            onDec={() => setAdults(adults - 1)} onInc={() => setAdults(adults + 1)} />
+          <PaxRow label="Children" sub="Age 2–11" val={children} min={0} max={8}
+            onDec={() => setChildren(children - 1)} onInc={() => setChildren(children + 1)} />
+
+          {/* Children age selectors */}
+          {children > 0 && (
+            <div className="py-3 border-b border-[#F1F3F7]">
+              <p className="text-[.68rem] font-bold text-[#8E95A9] uppercase tracking-[1.5px] mb-2">Child ages (at time of travel)</p>
+              <div className="grid grid-cols-4 gap-2">
+                {Array.from({ length: children }).map((_, i) => (
+                  <div key={i} className="text-center">
+                    <div className="text-[.6rem] text-[#8E95A9] mb-1">Child {i + 1}</div>
+                    <select
+                      value={childrenAges[i] ?? 5}
+                      onChange={e => setChildAge(i, Number(e.target.value))}
+                      className="w-full text-center text-[.8rem] font-bold text-[#1A1D2B] bg-[#F8FAFC] border border-[#E8ECF4] rounded-lg py-1.5 outline-none focus:border-[#0066FF]">
+                      {Array.from({ length: 10 }, (_, a) => a + 2).map(age => (
+                        <option key={age} value={age}>{age}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <PaxRow label="Infants" sub="Under 2 (lap)" val={infants} min={0} max={adults}
+            onDec={() => setInfants(infants - 1)} onInc={() => setInfants(infants + 1)} />
+
+          <button type="button" onClick={() => setOpen(false)}
+            className="w-full mt-3 bg-[#0066FF] hover:bg-[#0052CC] text-white font-[Poppins] font-bold text-[.8rem] py-2.5 rounded-xl transition-colors">
+            Done
+          </button>
         </div>
       )}
     </div>
@@ -520,6 +564,7 @@ export default function FlightsPage() {
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
   const [infants, setInfants] = useState(0);
+  const [childrenAges, setChildrenAges] = useState<number[]>([]);
   const [tripType, setTripType] = useState<'one-way' | 'return'>('return');
   const [loading, setLoading] = useState(false);
   const [flights, setFlights] = useState<FlightResult[] | null>(null);
@@ -616,8 +661,8 @@ export default function FlightsPage() {
             )}
             <div>
               <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Passengers</label>
-              <PassengerPicker adults={adults} children={children} infants={infants}
-                onChange={(a, c, i) => { setAdults(a); setChildren(c); setInfants(i); }} />
+              <PassengerPicker adults={adults} children={children} infants={infants} childrenAges={childrenAges}
+                onChange={(a, c, i, ages) => { setAdults(a); setChildren(c); setInfants(i); setChildrenAges(ages); }} />
             </div>
           </div>
 
