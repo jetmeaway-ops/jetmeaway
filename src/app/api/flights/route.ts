@@ -86,25 +86,57 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const oneWayPart = !retDate ? '&one_way=true' : `&return_at=${retDate}`;
-    const url = `https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${depDate}&currency=gbp&sorting=price&limit=10&market=gb${oneWayPart}&token=${token}`;
+    const depMonth = depDate.slice(0, 7); // YYYY-MM
+    const headers = { Accept: 'application/json' };
 
-    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    // Fire multiple queries in parallel for maximum coverage
+    const queries: Promise<any>[] = [];
 
-    if (!res.ok) {
-      return NextResponse.json({ error: 'Flight data API error', status: res.status }, { status: 502 });
+    // 1. Exact date (with return if provided)
+    if (retDate) {
+      queries.push(
+        fetch(`https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${depDate}&return_at=${retDate}&currency=gbp&sorting=price&limit=10&market=gb&token=${token}`, { headers })
+          .then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] }))
+      );
     }
 
-    const json = await res.json();
+    // 2. Exact date one-way
+    queries.push(
+      fetch(`https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${depDate}&currency=gbp&sorting=price&limit=10&market=gb&one_way=true&token=${token}`, { headers })
+        .then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] }))
+    );
 
-    if (!json.data?.length) {
+    // 3. Month-level query (returns cheapest per day across the month)
+    queries.push(
+      fetch(`https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${depMonth}&currency=gbp&sorting=price&limit=30&market=gb&one_way=true&token=${token}`, { headers })
+        .then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] }))
+    );
+
+    const results = await Promise.all(queries);
+
+    // Merge and deduplicate by airline+date
+    const seen = new Set<string>();
+    const allData: any[] = [];
+    for (const res of results) {
+      for (const f of (res.data || [])) {
+        const key = `${f.airline}-${f.departure_at}-${f.price}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          allData.push(f);
+        }
+      }
+    }
+
+    // Sort by price
+    allData.sort((a: any, b: any) => a.price - b.price);
+
+    if (!allData.length) {
       return NextResponse.json({ flights: [], message: 'No flights found for this route and date' });
     }
 
     const link = bookingLink(origin, destination, depDate, retDate, adults, children);
 
-    const flights = json.data.map((f: any) => {
-      // Use duration_to (outbound leg) — fall back to duration if not present
+    const flights = allData.slice(0, 15).map((f: any) => {
       const durationMins = f.duration_to || f.duration || 0;
       return {
         airline: airlineName(f.airline),
