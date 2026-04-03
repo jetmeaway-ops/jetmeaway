@@ -60,7 +60,9 @@ const PROVIDERS = [
     name: 'Booking.com',
     logo: '🏨',
     badge: '#1 Worldwide',
-    highlight: '28M+ properties · Free cancellation options · No booking fees',
+    desc: '28M+ properties worldwide with free cancellation options and no booking fees.',
+    perks: ['Free cancellation on most rooms', 'No booking fees', 'Genius loyalty discounts', 'Pay at the hotel options'],
+    color: 'bg-blue-600',
     getUrl: (city: string, cin: string, cout: string, adults: number, children: number) =>
       `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(city)}&checkin=${cin}&checkout=${cout}&group_adults=${adults}&group_children=${children}&no_rooms=1`,
   },
@@ -68,7 +70,9 @@ const PROVIDERS = [
     name: 'Expedia',
     logo: '🌍',
     badge: 'Bundle & Save',
-    highlight: 'Save up to 30% when you bundle hotel with a flight',
+    desc: 'Save up to 30% when you bundle your hotel with a flight. Member prices available.',
+    perks: ['Save up to 30% on bundles', 'Expedia Rewards points', 'Price match guarantee', 'Mobile-exclusive deals'],
+    color: 'bg-yellow-500',
     getUrl: (city: string, cin: string, cout: string, adults: number) => {
       const u = `https://www.expedia.co.uk/Hotel-Search?destination=${encodeURIComponent(city)}&startDate=${cin}&endDate=${cout}&adults=${adults}`;
       return `${u}&affcid=clbU3QK`;
@@ -77,23 +81,44 @@ const PROVIDERS = [
   {
     name: 'Trip.com',
     logo: '🗺',
-    badge: 'Exclusive Deals',
-    highlight: 'Flash sales & exclusive member prices on Asia & Middle East',
+    badge: 'Flash Deals',
+    desc: 'Flash sales and exclusive member prices, especially strong on Asia & Middle East.',
+    perks: ['Flash sale prices', 'Exclusive member deals', 'Asia & Middle East specialist', '24/7 customer support'],
+    color: 'bg-sky-500',
     getUrl: (city: string, cin: string, cout: string, adults: number, children: number) =>
       `https://uk.trip.com/hotels/list?cityName=${encodeURIComponent(city)}&checkin=${cin}&checkout=${cout}&adult=${adults}&child=${children}&Allianceid=8023009&SID=303363796&trip_sub3=D14969586`,
   },
+  {
+    name: 'Hotels.com',
+    logo: '🛏',
+    badge: 'Earn Free Nights',
+    desc: 'Collect 1 stamp per night — get 1 reward night after 10 stamps. Over 500,000 properties.',
+    perks: ['Earn free nights with stamps', '500,000+ properties', 'Secret Prices for members', 'Flexible date search'],
+    color: 'bg-red-600',
+    getUrl: (city: string, cin: string, cout: string, adults: number) =>
+      `https://uk.hotels.com/Hotel-Search?destination=${encodeURIComponent(city)}&startDate=${cin}&endDate=${cout}&adults=${adults}`,
+  },
+  {
+    name: 'Agoda',
+    logo: '🏝',
+    badge: 'Insider Deals',
+    desc: 'Best prices for Asia-Pacific hotels. Insider deals up to 75% off rack rates.',
+    perks: ['Up to 75% insider deals', 'Best Asia-Pacific coverage', 'No hidden fees', 'Reward program cashback'],
+    color: 'bg-violet-600',
+    getUrl: (city: string, cin: string, cout: string, adults: number) =>
+      `https://www.agoda.com/search?city=${encodeURIComponent(city)}&checkIn=${cin}&checkOut=${cout}&rooms=1&adults=${adults}`,
+  },
+  {
+    name: 'Trivago',
+    logo: '🔍',
+    badge: 'Price Comparison',
+    desc: 'Compares 5M+ hotels across 400+ sites to find the lowest price for you.',
+    perks: ['Compares 400+ booking sites', '5M+ hotels indexed', 'Price alerts', 'Deal ratings & reviews'],
+    color: 'bg-emerald-600',
+    getUrl: (city: string, cin: string, cout: string) =>
+      `https://www.trivago.co.uk/en-GB/srl?search=hotel&location=${encodeURIComponent(city)}&checkin=${cin}&checkout=${cout}`,
+  },
 ];
-
-type Hotel = {
-  id: number;
-  name: string;
-  stars: number;
-  price: number;
-  currency: string;
-  photo: string | null;
-  location: string;
-  bookingUrl: string;
-};
 
 function HotelsContent() {
   const [city, setCity] = useState('');
@@ -101,9 +126,7 @@ function HotelsContent() {
   const [checkout, setCheckout] = useState('');
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [hotels, setHotels] = useState<Hotel[] | null>(null);
-  const [apiError, setApiError] = useState('');
+  const [searched, setSearched] = useState(false);
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
@@ -121,31 +144,23 @@ function HotelsContent() {
 
   const today = new Date().toISOString().split('T')[0];
 
-  async function handleSearch() {
+  function handleSearch() {
     if (!city || !checkin || !checkout) { alert('Please enter destination and both dates'); return; }
-    setHotels(null);
-    setApiError('');
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({ city, checkin, checkout, adults: String(adults), children: String(children) });
-      const res = await fetch(`/api/hotels?${params}`);
-      const data = await res.json();
-      if (data.hotels?.length) {
-        setHotels(data.hotels);
-      } else {
-        setHotels([]);
-        setApiError(data.message || 'No hotels found for these dates');
-      }
-    } catch {
-      setApiError('Failed to fetch hotel prices. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+    setSearched(true);
+    // Scroll to results
+    setTimeout(() => document.getElementById('hotel-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
   }
 
   const nights = checkin && checkout
     ? Math.max(0, Math.round((new Date(checkout).getTime() - new Date(checkin).getTime()) / 86400000))
     : null;
+
+  function openAll() {
+    if (!city || !checkin || !checkout) return;
+    PROVIDERS.forEach((p, i) => {
+      setTimeout(() => window.open(p.getUrl(city, checkin, checkout, adults, children), '_blank', 'noopener'), i * 200);
+    });
+  }
 
   return (
     <>
@@ -158,7 +173,7 @@ function HotelsContent() {
           <h1 className="font-[Poppins] text-[2.4rem] md:text-[3.6rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
             Best Hotel <em className="italic bg-gradient-to-br from-orange-400 to-rose-500 bg-clip-text text-transparent">Rates</em>
           </h1>
-          <p className="text-[1rem] text-[#8E95A9] font-semibold max-w-[500px] mx-auto">Compare Booking.com, Expedia & Trip.com — results shown right here.</p>
+          <p className="text-[1rem] text-[#8E95A9] font-semibold max-w-[500px] mx-auto">Compare 6 top hotel sites side-by-side — find the cheapest room in seconds.</p>
         </div>
 
         {/* Search */}
@@ -201,119 +216,93 @@ function HotelsContent() {
             </div>
           </div>
 
-          <button onClick={handleSearch} disabled={loading}
-            className="w-full bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 disabled:opacity-60 text-white font-[Poppins] font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(249,115,22,0.3)]">
-            {loading ? 'Searching…' : 'Search Hotels →'}
+          <button onClick={handleSearch}
+            className="w-full bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-[Poppins] font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(249,115,22,0.3)]">
+            Search Hotels →
           </button>
         </div>
       </section>
 
-      {/* Loading */}
-      {loading && (
-        <section className="max-w-[860px] mx-auto px-5 py-10 text-center">
-          <div className="inline-flex items-center gap-3 bg-white border border-[#F1F3F7] rounded-2xl px-6 py-4 shadow-sm">
-            <div className="w-5 h-5 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
-            <span className="text-[.85rem] font-bold text-[#5C6378]">Searching hotels in <strong className="text-[#1A1D2B]">{city}</strong>…</span>
-          </div>
-        </section>
-      )}
-
-      {/* API Error */}
-      {apiError && !loading && (
-        <section className="max-w-[860px] mx-auto px-5 py-6">
-          <div className="bg-orange-50 border border-orange-100 rounded-2xl p-5 text-center">
-            <p className="text-[.85rem] text-[#5C6378] font-semibold mb-3">{apiError}</p>
-            <p className="text-[.75rem] text-[#8E95A9]">Try searching on our partner sites directly:</p>
-            <div className="flex flex-wrap justify-center gap-3 mt-3">
-              {PROVIDERS.map(p => (
-                <a key={p.name} href={p.getUrl(city, checkin, checkout, adults, children)} target="_blank" rel="noopener"
-                  className="text-[.78rem] font-bold text-orange-600 hover:text-orange-700 underline">{p.name} →</a>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Hotel Results - Live Data */}
-      {hotels && hotels.length > 0 && !loading && (
-        <section className="max-w-[1000px] mx-auto px-5 pb-6">
-          <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
+      {/* Search Results */}
+      {searched && city && checkin && checkout && (
+        <section id="hotel-results" className="max-w-[1000px] mx-auto px-5 py-10">
+          <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
             <div>
               <h2 className="font-[Poppins] font-black text-[1.3rem] text-[#1A1D2B]">
                 Hotels in {city}
                 {nights ? <span className="text-[#8E95A9] font-semibold text-[1rem]"> · {nights} night{nights !== 1 ? 's' : ''}</span> : null}
               </h2>
               <p className="text-[.72rem] text-[#8E95A9] font-semibold mt-0.5">
-                {hotels.length} hotels found · {adults} adult{adults !== 1 ? 's' : ''}{children > 0 ? ` · ${children} child${children !== 1 ? 'ren' : ''}` : ''} · Prices are cached estimates
+                {adults} adult{adults !== 1 ? 's' : ''}{children > 0 ? ` · ${children} child${children !== 1 ? 'ren' : ''}` : ''} · {checkin} to {checkout}
               </p>
             </div>
-            <span className="text-[.7rem] font-bold text-orange-500 bg-orange-50 px-3 py-1.5 rounded-full">Live prices</span>
+            <button onClick={openAll}
+              className="bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-[Poppins] font-bold text-[.75rem] px-5 py-2.5 rounded-xl transition-all shadow-sm">
+              Open All 6 Sites →
+            </button>
           </div>
 
-          {/* Hotel cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            {hotels.map((h, i) => (
-              <div key={h.id || i} className="bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden hover:shadow-lg transition-all group">
-                {/* Hotel photo */}
-                <div className="relative h-44 bg-[#F1F3F7] overflow-hidden">
-                  {h.photo ? (
-                    <img src={h.photo} alt={h.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-4xl text-[#C0C8D8]">🏨</div>
-                  )}
-                  {i === 0 && (
-                    <span className="absolute top-3 left-3 text-[.6rem] font-black uppercase tracking-[1.5px] bg-orange-500 text-white px-2.5 py-1 rounded-full shadow-md">Best Price</span>
-                  )}
-                  {h.stars > 0 && (
-                    <span className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-[.7rem] font-bold text-amber-500 px-2 py-0.5 rounded-full">
-                      {'★'.repeat(h.stars)}
-                    </span>
-                  )}
+          {/* Provider cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            {PROVIDERS.map((p, i) => (
+              <a key={p.name} href={p.getUrl(city, checkin, checkout, adults, children)} target="_blank" rel="noopener"
+                className="block bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden hover:shadow-lg hover:border-orange-200 transition-all group">
+                {/* Header strip */}
+                <div className={`${p.color} px-5 py-3 flex items-center justify-between`}>
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-xl">{p.logo}</span>
+                    <span className="font-[Poppins] font-extrabold text-[.95rem] text-white">{p.name}</span>
+                  </div>
+                  <span className="text-[.6rem] font-black uppercase tracking-[1.5px] bg-white/20 text-white px-2.5 py-1 rounded-full">{p.badge}</span>
                 </div>
 
-                {/* Hotel info */}
-                <div className="p-4">
-                  <h3 className="font-[Poppins] font-bold text-[.9rem] text-[#1A1D2B] mb-1 line-clamp-2 leading-tight">{h.name}</h3>
-                  <p className="text-[.7rem] text-[#8E95A9] font-semibold mb-3">{h.location}</p>
+                {/* Body */}
+                <div className="p-5">
+                  <p className="text-[.78rem] text-[#5C6378] font-semibold leading-relaxed mb-3">{p.desc}</p>
 
-                  <div className="flex items-end justify-between">
-                    <div>
-                      <span className="text-[.65rem] text-[#8E95A9] font-semibold">from</span>
-                      <div className="font-[Poppins] font-black text-[1.3rem] text-[#1A1D2B] leading-none">{h.currency}{h.price}</div>
-                      <span className="text-[.6rem] text-[#8E95A9] font-medium">total stay</span>
-                    </div>
-                    <a href={h.bookingUrl} target="_blank" rel="noopener"
-                      className="bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-[Poppins] font-bold text-[.75rem] px-4 py-2.5 rounded-xl transition-all shadow-sm">
-                      Book →
-                    </a>
+                  <ul className="space-y-1.5 mb-4">
+                    {p.perks.map(perk => (
+                      <li key={perk} className="flex items-start gap-2 text-[.72rem] text-[#5C6378] font-medium">
+                        <span className="text-orange-400 mt-0.5 flex-shrink-0">✓</span>
+                        {perk}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-[.68rem] text-[#8E95A9] font-semibold">{city} · {nights || '—'} nights</span>
+                    <span className="bg-gradient-to-r from-orange-500 to-rose-500 text-white font-[Poppins] font-bold text-[.75rem] px-4 py-2 rounded-xl group-hover:shadow-md transition-all">
+                      Check Prices →
+                    </span>
                   </div>
                 </div>
-              </div>
+              </a>
             ))}
           </div>
 
-          {/* Also compare on providers */}
-          <div className="bg-[#F8FAFC] border border-[#F1F3F7] rounded-2xl p-5">
-            <p className="text-[.72rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-3">Also compare on</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {PROVIDERS.map(p => (
-                <a key={p.name} href={p.getUrl(city, checkin, checkout, adults, children)} target="_blank" rel="noopener"
-                  className="flex items-center gap-3 bg-white border border-[#E8ECF4] rounded-xl px-4 py-3 hover:border-orange-200 hover:shadow-sm transition-all">
-                  <span className="text-xl">{p.logo}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-[Poppins] font-bold text-[.82rem] text-[#1A1D2B]">{p.name}</div>
-                    <div className="text-[.65rem] text-[#8E95A9] font-semibold truncate">{p.badge}</div>
-                  </div>
-                  <span className="text-orange-500 font-bold text-[.75rem]">→</span>
-                </a>
-              ))}
-            </div>
-          </div>
-
-          <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-4">
-            Prices are cached estimates from our data partners. Final prices shown on booking.
+          <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold">
+            Click any card to see live prices and availability on that site. We recommend comparing at least 2–3 sites.
           </p>
+        </section>
+      )}
+
+      {/* All Providers (shown before search too) */}
+      {!searched && (
+        <section className="max-w-[1100px] mx-auto px-5 py-10">
+          <p className="text-[.65rem] font-extrabold uppercase tracking-[3px] text-[#8E95A9] mb-1.5">Our Partners</p>
+          <h2 className="font-[Poppins] text-[1.4rem] font-black text-[#1A1D2B] mb-6">6 Hotel Comparison Platforms</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {PROVIDERS.map(p => (
+              <div key={p.name} className="block p-5 bg-white border border-[#F1F3F7] rounded-2xl">
+                <div className="flex items-center gap-2.5 mb-2">
+                  <span className="text-2xl">{p.logo}</span>
+                  <span className="font-[Poppins] font-extrabold text-[.88rem] text-[#1A1D2B]">{p.name}</span>
+                  <span className="text-[.58rem] font-black uppercase tracking-[1.5px] px-2 py-0.5 rounded-full bg-orange-50 text-orange-500">{p.badge}</span>
+                </div>
+                <p className="text-[.75rem] text-[#5C6378] font-semibold leading-relaxed">{p.desc}</p>
+              </div>
+            ))}
+          </div>
         </section>
       )}
 
@@ -323,7 +312,7 @@ function HotelsContent() {
           <h3 className="font-[Poppins] font-black text-[1.05rem] text-[#1A1D2B] mb-4">Tips for Getting the Best Hotel Rate</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
-              ['Book directly after comparing', 'Show the hotel a cheaper rate from a comparison site — many will price-match.'],
+              ['Compare at least 3 sites', 'Prices vary by 10–40% across booking platforms for the same room and dates.'],
               ['Free cancellation is worth it', 'Always prefer free cancellation — prices are often identical or slightly higher.'],
               ['Sunday check-ins are cheapest', 'Business hotels drop rates on weekends when corporate demand falls.'],
               ['Join loyalty programmes', 'Booking.com Genius and Expedia Rewards are free and unlock 10–15% off.'],
