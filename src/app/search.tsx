@@ -1,313 +1,208 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { handleSaveSearch } from './actions';
 
-const AIRPORTS = [
-  { code: 'LHR', name: 'London Heathrow', city: 'London', country: 'GB' },
-  { code: 'LGW', name: 'London Gatwick', city: 'London', country: 'GB' },
-  { code: 'STN', name: 'London Stansted', city: 'London', country: 'GB' },
-  { code: 'LTN', name: 'London Luton', city: 'London', country: 'GB' },
-  { code: 'LCY', name: 'London City', city: 'London', country: 'GB' },
-  { code: 'MAN', name: 'Manchester Airport', city: 'Manchester', country: 'GB' },
-  { code: 'BHX', name: 'Birmingham Airport', city: 'Birmingham', country: 'GB' },
-  { code: 'EDI', name: 'Edinburgh Airport', city: 'Edinburgh', country: 'GB' },
-  { code: 'GLA', name: 'Glasgow Airport', city: 'Glasgow', country: 'GB' },
-  { code: 'BRS', name: 'Bristol Airport', city: 'Bristol', country: 'GB' },
-  { code: 'NCL', name: 'Newcastle Airport', city: 'Newcastle', country: 'GB' },
-  { code: 'LPL', name: 'Liverpool John Lennon', city: 'Liverpool', country: 'GB' },
-  { code: 'JFK', name: 'John F. Kennedy International', city: 'New York', country: 'US' },
-  { code: 'EWR', name: 'Newark Liberty International', city: 'New York', country: 'US' },
-  { code: 'LGA', name: 'LaGuardia Airport', city: 'New York', country: 'US' },
-  { code: 'LAX', name: 'Los Angeles International', city: 'Los Angeles', country: 'US' },
-  { code: 'ORD', name: "O'Hare International", city: 'Chicago', country: 'US' },
-  { code: 'MDW', name: 'Midway International', city: 'Chicago', country: 'US' },
-  { code: 'ATL', name: 'Hartsfield-Jackson Atlanta', city: 'Atlanta', country: 'US' },
-  { code: 'DFW', name: 'Dallas/Fort Worth International', city: 'Dallas', country: 'US' },
-  { code: 'MIA', name: 'Miami International', city: 'Miami', country: 'US' },
-  { code: 'SFO', name: 'San Francisco International', city: 'San Francisco', country: 'US' },
-  { code: 'SEA', name: 'Seattle-Tacoma International', city: 'Seattle', country: 'US' },
-  { code: 'BOS', name: 'Boston Logan International', city: 'Boston', country: 'US' },
-  { code: 'DEN', name: 'Denver International', city: 'Denver', country: 'US' },
-  { code: 'LAS', name: 'Harry Reid International', city: 'Las Vegas', country: 'US' },
-  { code: 'MCO', name: 'Orlando International', city: 'Orlando', country: 'US' },
-  { code: 'PHX', name: 'Phoenix Sky Harbor', city: 'Phoenix', country: 'US' },
-  { code: 'IAD', name: 'Dulles International', city: 'Washington D.C.', country: 'US' },
-  { code: 'DCA', name: 'Ronald Reagan Washington National', city: 'Washington D.C.', country: 'US' },
-  { code: 'YYZ', name: 'Toronto Pearson International', city: 'Toronto', country: 'CA' },
-  { code: 'YVR', name: 'Vancouver International', city: 'Vancouver', country: 'CA' },
-  { code: 'YUL', name: 'Montreal-Trudeau International', city: 'Montreal', country: 'CA' },
-  { code: 'CDG', name: 'Charles de Gaulle', city: 'Paris', country: 'FR' },
-  { code: 'ORY', name: 'Paris Orly', city: 'Paris', country: 'FR' },
-  { code: 'AMS', name: 'Amsterdam Schiphol', city: 'Amsterdam', country: 'NL' },
-  { code: 'FRA', name: 'Frankfurt Airport', city: 'Frankfurt', country: 'DE' },
-  { code: 'MUC', name: 'Munich Airport', city: 'Munich', country: 'DE' },
-  { code: 'BER', name: 'Berlin Brandenburg', city: 'Berlin', country: 'DE' },
-  { code: 'MAD', name: 'Adolfo Suárez Madrid-Barajas', city: 'Madrid', country: 'ES' },
-  { code: 'BCN', name: 'Barcelona-El Prat', city: 'Barcelona', country: 'ES' },
-  { code: 'FCO', name: 'Leonardo da Vinci–Fiumicino', city: 'Rome', country: 'IT' },
-  { code: 'MXP', name: 'Milan Malpensa', city: 'Milan', country: 'IT' },
-  { code: 'ZUR', name: 'Zürich Airport', city: 'Zürich', country: 'CH' },
-  { code: 'ZRH', name: 'Zürich Airport', city: 'Zürich', country: 'CH' },
-  { code: 'VIE', name: 'Vienna International', city: 'Vienna', country: 'AT' },
-  { code: 'BRU', name: 'Brussels Airport', city: 'Brussels', country: 'BE' },
-  { code: 'CPH', name: 'Copenhagen Airport', city: 'Copenhagen', country: 'DK' },
-  { code: 'ARN', name: 'Stockholm Arlanda', city: 'Stockholm', country: 'SE' },
-  { code: 'OSL', name: 'Oslo Gardermoen', city: 'Oslo', country: 'NO' },
-  { code: 'HEL', name: 'Helsinki-Vantaa', city: 'Helsinki', country: 'FI' },
-  { code: 'WAW', name: 'Warsaw Chopin', city: 'Warsaw', country: 'PL' },
-  { code: 'PRG', name: 'Václav Havel Airport Prague', city: 'Prague', country: 'CZ' },
-  { code: 'BUD', name: 'Budapest Ferenc Liszt', city: 'Budapest', country: 'HU' },
-  { code: 'ATH', name: 'Athens International', city: 'Athens', country: 'GR' },
-  { code: 'IST', name: 'Istanbul Airport', city: 'Istanbul', country: 'TR' },
-  { code: 'SAW', name: 'Istanbul Sabiha Gökçen', city: 'Istanbul', country: 'TR' },
-  { code: 'DXB', name: 'Dubai International', city: 'Dubai', country: 'AE' },
-  { code: 'AUH', name: 'Abu Dhabi International', city: 'Abu Dhabi', country: 'AE' },
-  { code: 'DOH', name: 'Hamad International', city: 'Doha', country: 'QA' },
-  { code: 'RUH', name: 'King Khalid International', city: 'Riyadh', country: 'SA' },
-  { code: 'KWI', name: 'Kuwait International', city: 'Kuwait City', country: 'KW' },
-  { code: 'BOM', name: 'Chhatrapati Shivaji Maharaj International', city: 'Mumbai', country: 'IN' },
-  { code: 'DEL', name: 'Indira Gandhi International', city: 'New Delhi', country: 'IN' },
-  { code: 'BLR', name: 'Kempegowda International', city: 'Bangalore', country: 'IN' },
-  { code: 'MAA', name: 'Chennai International', city: 'Chennai', country: 'IN' },
-  { code: 'HYD', name: 'Rajiv Gandhi International', city: 'Hyderabad', country: 'IN' },
-  { code: 'CCU', name: 'Netaji Subhas Chandra Bose International', city: 'Kolkata', country: 'IN' },
-  { code: 'SIN', name: 'Singapore Changi', city: 'Singapore', country: 'SG' },
-  { code: 'KUL', name: 'Kuala Lumpur International', city: 'Kuala Lumpur', country: 'MY' },
-  { code: 'BKK', name: 'Suvarnabhumi Airport', city: 'Bangkok', country: 'TH' },
-  { code: 'DMK', name: 'Don Mueang International', city: 'Bangkok', country: 'TH' },
-  { code: 'CGK', name: 'Soekarno-Hatta International', city: 'Jakarta', country: 'ID' },
-  { code: 'MNL', name: 'Ninoy Aquino International', city: 'Manila', country: 'PH' },
-  { code: 'SGN', name: 'Tan Son Nhat International', city: 'Ho Chi Minh City', country: 'VN' },
-  { code: 'HAN', name: 'Noi Bai International', city: 'Hanoi', country: 'VN' },
-  { code: 'HKG', name: 'Hong Kong International', city: 'Hong Kong', country: 'HK' },
-  { code: 'PVG', name: 'Shanghai Pudong International', city: 'Shanghai', country: 'CN' },
-  { code: 'SHA', name: 'Shanghai Hongqiao International', city: 'Shanghai', country: 'CN' },
-  { code: 'PEK', name: 'Beijing Capital International', city: 'Beijing', country: 'CN' },
-  { code: 'PKX', name: 'Beijing Daxing International', city: 'Beijing', country: 'CN' },
-  { code: 'CAN', name: 'Guangzhou Baiyun International', city: 'Guangzhou', country: 'CN' },
-  { code: 'NRT', name: 'Tokyo Narita International', city: 'Tokyo', country: 'JP' },
-  { code: 'HND', name: 'Tokyo Haneda', city: 'Tokyo', country: 'JP' },
-  { code: 'KIX', name: 'Kansai International', city: 'Osaka', country: 'JP' },
-  { code: 'ICN', name: 'Incheon International', city: 'Seoul', country: 'KR' },
-  { code: 'GMP', name: 'Gimpo International', city: 'Seoul', country: 'KR' },
-  { code: 'SYD', name: 'Sydney Kingsford Smith', city: 'Sydney', country: 'AU' },
-  { code: 'MEL', name: 'Melbourne Airport', city: 'Melbourne', country: 'AU' },
-  { code: 'BNE', name: 'Brisbane Airport', city: 'Brisbane', country: 'AU' },
-  { code: 'PER', name: 'Perth Airport', city: 'Perth', country: 'AU' },
-  { code: 'AKL', name: 'Auckland Airport', city: 'Auckland', country: 'NZ' },
-  { code: 'JNB', name: 'OR Tambo International', city: 'Johannesburg', country: 'ZA' },
-  { code: 'CPT', name: 'Cape Town International', city: 'Cape Town', country: 'ZA' },
-  { code: 'NBO', name: 'Jomo Kenyatta International', city: 'Nairobi', country: 'KE' },
-  { code: 'CAI', name: 'Cairo International', city: 'Cairo', country: 'EG' },
-  { code: 'CMN', name: 'Mohammed V International', city: 'Casablanca', country: 'MA' },
-  { code: 'LOS', name: 'Murtala Muhammed International', city: 'Lagos', country: 'NG' },
-  { code: 'GRU', name: 'São Paulo/Guarulhos International', city: 'São Paulo', country: 'BR' },
-  { code: 'GIG', name: 'Rio de Janeiro/Galeão International', city: 'Rio de Janeiro', country: 'BR' },
-  { code: 'EZE', name: 'Ministro Pistarini International', city: 'Buenos Aires', country: 'AR' },
-  { code: 'BOG', name: 'El Dorado International', city: 'Bogotá', country: 'CO' },
-  { code: 'LIM', name: 'Jorge Chávez International', city: 'Lima', country: 'PE' },
-  { code: 'MEX', name: 'Benito Juárez International', city: 'Mexico City', country: 'MX' },
-  { code: 'CUN', name: 'Cancún International', city: 'Cancún', country: 'MX' },
-  { code: 'PMI', name: 'Palma de Mallorca Airport', city: 'Palma', country: 'ES' },
-  { code: 'AGP', name: 'Málaga-Costa del Sol', city: 'Málaga', country: 'ES' },
-  { code: 'TFS', name: 'Tenerife South Airport', city: 'Tenerife', country: 'ES' },
-  { code: 'LPA', name: 'Gran Canaria Airport', city: 'Las Palmas', country: 'ES' },
-  { code: 'FAO', name: 'Faro Airport', city: 'Faro', country: 'PT' },
-  { code: 'LIS', name: 'Humberto Delgado Airport', city: 'Lisbon', country: 'PT' },
-  { code: 'OPO', name: 'Francisco Sá Carneiro Airport', city: 'Porto', country: 'PT' },
-  { code: 'DUB', name: 'Dublin Airport', city: 'Dublin', country: 'IE' },
-  { code: 'ORK', name: 'Cork Airport', city: 'Cork', country: 'IE' },
-  { code: 'KEF', name: 'Keflavík International', city: 'Reykjavik', country: 'IS' },
-  { code: 'HER', name: 'Heraklion International', city: 'Heraklion', country: 'GR' },
-  { code: 'RHO', name: 'Rhodes International', city: 'Rhodes', country: 'GR' },
-  { code: 'CFU', name: 'Corfu International', city: 'Corfu', country: 'GR' },
-  { code: 'SKG', name: 'Thessaloniki Airport', city: 'Thessaloniki', country: 'GR' },
-  { code: 'TLV', name: 'Ben Gurion International', city: 'Tel Aviv', country: 'IL' },
-  { code: 'AMM', name: 'Queen Alia International', city: 'Amman', country: 'JO' },
-  { code: 'BEY', name: 'Rafic Hariri International', city: 'Beirut', country: 'LB' },
-  { code: 'KTM', name: 'Tribhuvan International', city: 'Kathmandu', country: 'NP' },
-  { code: 'CMB', name: 'Bandaranaike International', city: 'Colombo', country: 'LK' },
-  { code: 'MLE', name: 'Velana International', city: 'Malé', country: 'MV' },
-  { code: 'PPT', name: 'Faa\'a International', city: 'Papeete', country: 'PF' },
-  { code: 'NAN', name: 'Nadi International', city: 'Nadi', country: 'FJ' },
+const DESTINATIONS = [
+  { code: 'DXB', city: 'Dubai', country: 'UAE', flag: '🇦🇪' },
+  { code: 'BCN', city: 'Barcelona', country: 'Spain', flag: '🇪🇸' },
+  { code: 'AYT', city: 'Antalya', country: 'Turkey', flag: '🇹🇷' },
+  { code: 'PMI', city: 'Palma', country: 'Spain', flag: '🇪🇸' },
+  { code: 'TFS', city: 'Tenerife', country: 'Spain', flag: '🇪🇸' },
+  { code: 'LPA', city: 'Gran Canaria', country: 'Spain', flag: '🇪🇸' },
+  { code: 'AGP', city: 'Málaga', country: 'Spain', flag: '🇪🇸' },
+  { code: 'FAO', city: 'Faro', country: 'Portugal', flag: '🇵🇹' },
+  { code: 'LIS', city: 'Lisbon', country: 'Portugal', flag: '🇵🇹' },
+  { code: 'OPO', city: 'Porto', country: 'Portugal', flag: '🇵🇹' },
+  { code: 'CDG', city: 'Paris', country: 'France', flag: '🇫🇷' },
+  { code: 'AMS', city: 'Amsterdam', country: 'Netherlands', flag: '🇳🇱' },
+  { code: 'FCO', city: 'Rome', country: 'Italy', flag: '🇮🇹' },
+  { code: 'VCE', city: 'Venice', country: 'Italy', flag: '🇮🇹' },
+  { code: 'NAP', city: 'Naples', country: 'Italy', flag: '🇮🇹' },
+  { code: 'ATH', city: 'Athens', country: 'Greece', flag: '🇬🇷' },
+  { code: 'HER', city: 'Crete', country: 'Greece', flag: '🇬🇷' },
+  { code: 'RHO', city: 'Rhodes', country: 'Greece', flag: '🇬🇷' },
+  { code: 'CFU', city: 'Corfu', country: 'Greece', flag: '🇬🇷' },
+  { code: 'IST', city: 'Istanbul', country: 'Turkey', flag: '🇹🇷' },
+  { code: 'JFK', city: 'New York', country: 'USA', flag: '🇺🇸' },
+  { code: 'LAX', city: 'Los Angeles', country: 'USA', flag: '🇺🇸' },
+  { code: 'MIA', city: 'Miami', country: 'USA', flag: '🇺🇸' },
+  { code: 'MCO', city: 'Orlando', country: 'USA', flag: '🇺🇸' },
+  { code: 'LAS', city: 'Las Vegas', country: 'USA', flag: '🇺🇸' },
+  { code: 'SIN', city: 'Singapore', country: 'Singapore', flag: '🇸🇬' },
+  { code: 'BKK', city: 'Bangkok', country: 'Thailand', flag: '🇹🇭' },
+  { code: 'HKG', city: 'Hong Kong', country: 'China', flag: '🇭🇰' },
+  { code: 'NRT', city: 'Tokyo', country: 'Japan', flag: '🇯🇵' },
+  { code: 'SYD', city: 'Sydney', country: 'Australia', flag: '🇦🇺' },
+  { code: 'MXP', city: 'Milan', country: 'Italy', flag: '🇮🇹' },
+  { code: 'ZRH', city: 'Zürich', country: 'Switzerland', flag: '🇨🇭' },
+  { code: 'VIE', city: 'Vienna', country: 'Austria', flag: '🇦🇹' },
+  { code: 'BUD', city: 'Budapest', country: 'Hungary', flag: '🇭🇺' },
+  { code: 'PRG', city: 'Prague', country: 'Czech Republic', flag: '🇨🇿' },
+  { code: 'KEF', city: 'Reykjavik', country: 'Iceland', flag: '🇮🇸' },
+  { code: 'DUB', city: 'Dublin', country: 'Ireland', flag: '🇮🇪' },
+  { code: 'MLE', city: 'Maldives', country: 'Maldives', flag: '🇲🇻' },
+  { code: 'CMB', city: 'Colombo', country: 'Sri Lanka', flag: '🇱🇰' },
+  { code: 'KTM', city: 'Kathmandu', country: 'Nepal', flag: '🇳🇵' },
+  { code: 'DEL', city: 'New Delhi', country: 'India', flag: '🇮🇳' },
+  { code: 'BOM', city: 'Mumbai', country: 'India', flag: '🇮🇳' },
+  { code: 'DOH', city: 'Doha', country: 'Qatar', flag: '🇶🇦' },
+  { code: 'AUH', city: 'Abu Dhabi', country: 'UAE', flag: '🇦🇪' },
+  { code: 'CUN', city: 'Cancún', country: 'Mexico', flag: '🇲🇽' },
+  { code: 'CPT', city: 'Cape Town', country: 'South Africa', flag: '🇿🇦' },
+  { code: 'MAD', city: 'Madrid', country: 'Spain', flag: '🇪🇸' },
+  { code: 'IBZ', city: 'Ibiza', country: 'Spain', flag: '🇪🇸' },
+  { code: 'FNC', city: 'Madeira', country: 'Portugal', flag: '🇵🇹' },
+  { code: 'TLV', city: 'Tel Aviv', country: 'Israel', flag: '🇮🇱' },
+  { code: 'KUL', city: 'Kuala Lumpur', country: 'Malaysia', flag: '🇲🇾' },
 ];
 
-type Airport = typeof AIRPORTS[number];
+type Dest = typeof DESTINATIONS[number];
 
-function searchAirports(query: string): Airport[] {
-  if (!query || query.length < 2) return [];
-  const q = query.toLowerCase();
-  return AIRPORTS.filter(a =>
-    a.code.toLowerCase().startsWith(q) ||
-    a.city.toLowerCase().startsWith(q) ||
-    a.name.toLowerCase().includes(q)
-  ).slice(0, 6);
-}
-
-function AirportInput({
-  value,
-  onChange,
-  placeholder,
-}: {
-  value: string;
-  onChange: (code: string, label: string) => void;
-  placeholder: string;
-}) {
+export default function FlightSearch() {
   const [query, setQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<Airport[]>([]);
-  const [selected, setSelected] = useState('');
+  const [suggestions, setSuggestions] = useState<Dest[]>([]);
+  const [selected, setSelected] = useState<Dest | null>(null);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
+    const fn = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('mousedown', fn);
+    return () => document.removeEventListener('mousedown', fn);
   }, []);
 
-  const handleInput = (val: string) => {
+  function handleInput(val: string) {
     setQuery(val);
-    setSelected('');
-    onChange('', '');
-    const results = searchAirports(val);
-    setSuggestions(results);
-    setOpen(results.length > 0);
-  };
+    setSelected(null);
+    if (val.length < 1) { setSuggestions([]); setOpen(false); return; }
+    const q = val.toLowerCase();
+    const matches = DESTINATIONS.filter(d =>
+      d.city.toLowerCase().startsWith(q) ||
+      d.country.toLowerCase().startsWith(q) ||
+      d.code.toLowerCase().startsWith(q)
+    ).slice(0, 7);
+    setSuggestions(matches);
+    setOpen(matches.length > 0);
+  }
 
-  const handleSelect = (airport: Airport) => {
-    const label = `${airport.city} (${airport.code})`;
-    setQuery(label);
-    setSelected(airport.code);
-    onChange(airport.code, label);
-    setSuggestions([]);
+  function handleSelect(d: Dest) {
+    setQuery(`${d.city}, ${d.country}`);
+    setSelected(d);
     setOpen(false);
-  };
+  }
 
-  return (
-    <div ref={ref} className="relative">
-      <input
-        type="text"
-        placeholder={placeholder}
-        className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-black"
-        value={query}
-        onChange={e => handleInput(e.target.value)}
-        onFocus={() => suggestions.length > 0 && setOpen(true)}
-        autoComplete="off"
-      />
-      {open && (
-        <ul className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
-          {suggestions.map(airport => (
-            <li
-              key={airport.code}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 cursor-pointer transition-colors"
-              onMouseDown={() => handleSelect(airport)}
-            >
-              <span className="font-black text-[.8rem] text-blue-600 w-10 flex-shrink-0">{airport.code}</span>
-              <span className="text-[.82rem] text-slate-700 font-semibold leading-tight">
-                {airport.name}
-                <span className="block text-[.72rem] text-slate-400 font-medium">{airport.city}, {airport.country}</span>
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-export default function FlightSearch() {
-  const [origin, setOrigin] = useState('');
-  const [destination, setDestination] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [results, setResults] = useState<any[]>([]);
-
-  const userId = 'user_123';
-
-  const handleSearch = async () => {
-    if (!origin || !destination) return alert('Please select both airports!');
-
-    setIsLoading(true);
-    setResults([]);
-
-    try {
-      await handleSaveSearch(userId, {
-        origin,
-        destination,
-        date: new Date().toISOString().split('T')[0],
-      });
-
-      const mockResults = [
-        {
-          id: 1,
-          name: 'The Luxury Scout Plaza',
-          price: '£140/night',
-          image: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80',
-        },
-        {
-          id: 2,
-          name: 'Grand JetMeAway Suites',
-          price: '£210/night',
-          image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80',
-        },
-      ];
-
-      setResults(mockResults);
-    } catch (error) {
-      console.error(error);
-      alert('Something went wrong with the connection.');
-    } finally {
-      setIsLoading(false);
+  function handleSearch() {
+    if (!query.trim()) return;
+    // If nothing selected from dropdown, try to match
+    if (!selected) {
+      const q = query.toLowerCase();
+      const match = DESTINATIONS.find(d =>
+        d.city.toLowerCase().startsWith(q) || d.code.toLowerCase() === q
+      );
+      if (match) { setSelected(match); setOpen(false); }
     }
-  };
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+  const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+
+  const flightsUrl = selected
+    ? `/flights?dest=${selected.code}&destCity=${encodeURIComponent(selected.city)}`
+    : '/flights';
+
+  const hotelsUrl = selected
+    ? `/hotels?city=${encodeURIComponent(selected.city)}`
+    : '/hotels';
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 mb-8">
-        <h2 className="text-xl font-semibold text-slate-800 mb-4 text-black">Where to next?</h2>
+    <div className="max-w-2xl mx-auto w-full">
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <AirportInput
-            value={origin}
-            onChange={(code) => setOrigin(code)}
-            placeholder="From (e.g. London, LHR)"
+      {/* Search bar */}
+      <div ref={ref} className="relative">
+        <div className="bg-white border border-[#E8ECF4] rounded-2xl shadow-[0_8px_40px_rgba(0,102,255,0.08)] flex items-center gap-3 px-5 py-4">
+          <span className="text-[1.3rem]">🌍</span>
+          <input
+            type="text"
+            value={query}
+            onChange={e => handleInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSearch()}
+            placeholder="Where do you want to go?"
+            className="flex-1 bg-transparent outline-none font-[Poppins] font-semibold text-[1rem] text-[#1A1D2B] placeholder:text-[#B0B8CC]"
+            autoComplete="off"
           />
-          <AirportInput
-            value={destination}
-            onChange={(code) => setDestination(code)}
-            placeholder="To (e.g. New York, JFK)"
-          />
+          <button
+            onClick={handleSearch}
+            className="bg-[#0066FF] hover:bg-[#0052CC] text-white font-[Poppins] font-black text-[.82rem] px-5 py-2.5 rounded-xl transition-all shadow-[0_4px_14px_rgba(0,102,255,0.3)] whitespace-nowrap">
+            Search →
+          </button>
         </div>
 
-        <button
-          className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all disabled:opacity-50"
-          onClick={handleSearch}
-          disabled={isLoading}
-        >
-          {isLoading ? 'Scout is Searching...' : 'Search & Save to Scout'}
-        </button>
+        {/* Dropdown suggestions */}
+        {open && suggestions.length > 0 && (
+          <ul className="absolute z-50 w-full mt-2 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl overflow-hidden">
+            {suggestions.map(d => (
+              <li key={d.code}
+                onMouseDown={() => handleSelect(d)}
+                className="flex items-center gap-3 px-5 py-3 hover:bg-blue-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0">
+                <span className="text-xl">{d.flag}</span>
+                <div className="text-left">
+                  <div className="font-[Poppins] font-bold text-[.88rem] text-[#1A1D2B]">{d.city}</div>
+                  <div className="text-[.72rem] text-[#8E95A9] font-medium">{d.country} · {d.code}</div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {results.map((item) => (
-          <div key={item.id} className="bg-white rounded-xl overflow-hidden border border-slate-100 shadow-sm">
-            <img
-              src={item.image}
-              alt={item.name}
-              className="w-full h-48 object-cover"
-              onError={(e) => {
-                e.currentTarget.src = 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80';
-              }}
-            />
-            <div className="p-4">
-              <h3 className="font-bold text-slate-900">{item.name}</h3>
-              <p className="text-blue-600 font-semibold">{item.price}</p>
-            </div>
+      {/* Results — show once destination selected */}
+      {selected && (
+        <div className="mt-5 text-left">
+          <p className="text-[.68rem] font-black uppercase tracking-[2px] text-[#8E95A9] mb-3 text-center">
+            {selected.flag} Results for <strong className="text-[#1A1D2B]">{selected.city}</strong>
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Flights card */}
+            <a href={flightsUrl}
+              className="bg-white border border-[#E8ECF4] rounded-2xl p-5 hover:border-blue-300 hover:shadow-md transition-all group text-left">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-xl">✈</div>
+                <div>
+                  <div className="font-[Poppins] font-black text-[.9rem] text-[#1A1D2B] group-hover:text-[#0066FF] transition-colors">
+                    Flights to {selected.city}
+                  </div>
+                  <div className="text-[.68rem] text-[#8E95A9] font-semibold">Compare 5 providers · live prices</div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[.7rem] text-[#8E95A9]">Aviasales · Kiwi · Expedia · Trip.com</span>
+                <span className="text-[#0066FF] font-bold text-[.78rem]">Search →</span>
+              </div>
+            </a>
+
+            {/* Hotels card */}
+            <a href={hotelsUrl}
+              className="bg-white border border-[#E8ECF4] rounded-2xl p-5 hover:border-blue-300 hover:shadow-md transition-all group text-left">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-xl">🏨</div>
+                <div>
+                  <div className="font-[Poppins] font-black text-[.9rem] text-[#1A1D2B] group-hover:text-[#0066FF] transition-colors">
+                    Hotels in {selected.city}
+                  </div>
+                  <div className="text-[.68rem] text-[#8E95A9] font-semibold">Compare 3 providers · best rates</div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[.7rem] text-[#8E95A9]">Booking.com · Expedia · Trip.com</span>
+                <span className="text-[#0066FF] font-bold text-[.78rem]">Search →</span>
+              </div>
+            </a>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
