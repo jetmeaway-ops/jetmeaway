@@ -512,11 +512,10 @@ export default function DiscoverPopup() {
                       { name: 'Trip.com', icon: '🗺', desc: 'Great for Asia & Middle East deals', color: 'bg-purple-50 text-purple-600' },
                       { name: 'Booking.com', icon: '🏷', desc: 'Huge selection, no booking fees', color: 'bg-sky-50 text-sky-600' },
                     ].map(p => (
-                      <a
+                      <button
                         key={p.name}
-                        href={flightsUrl}
-                        onClick={close}
-                        className="flex items-center gap-3 p-4 bg-[#F8FAFC] hover:bg-white border border-[#F1F3F7] hover:border-blue-200 hover:shadow-md rounded-xl transition-all group"
+                        onClick={() => { close(); window.location.href = flightsUrl; }}
+                        className="flex items-center gap-3 p-4 bg-[#F8FAFC] hover:bg-white border border-[#F1F3F7] hover:border-blue-200 hover:shadow-md rounded-xl transition-all group w-full text-left"
                       >
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${p.color}`}>{p.icon}</div>
                         <div className="flex-1 min-w-0">
@@ -524,16 +523,15 @@ export default function DiscoverPopup() {
                           <div className="text-[.7rem] text-[#8E95A9] truncate">{p.desc}</div>
                         </div>
                         <span className="text-[#0066FF] font-bold text-[.8rem] group-hover:translate-x-0.5 transition-transform flex-shrink-0">→</span>
-                      </a>
+                      </button>
                     ))}
                   </div>
-                  <a
-                    href={flightsUrl}
-                    onClick={close}
+                  <button
+                    onClick={() => { close(); window.location.href = flightsUrl; }}
                     className="block w-full text-center bg-gradient-to-r from-[#0066FF] to-[#4F46E5] hover:brightness-110 text-white font-[Poppins] font-black text-[.95rem] py-4 rounded-2xl transition-all shadow-[0_4px_16px_rgba(0,102,255,0.25)]"
                   >
                     See all flights to {dest.city} →
-                  </a>
+                  </button>
                 </div>
               )}
 
@@ -547,11 +545,10 @@ export default function DiscoverPopup() {
                       { name: 'Expedia', icon: '🌍', desc: 'Bundle with flight & save up to 30%', color: 'bg-orange-50 text-orange-600' },
                       { name: 'Trip.com', icon: '🗺', desc: 'Flash sales & exclusive member prices', color: 'bg-purple-50 text-purple-600' },
                     ].map(p => (
-                      <a
+                      <button
                         key={p.name}
-                        href={hotelsUrl}
-                        onClick={close}
-                        className="flex items-center gap-3 p-4 bg-[#F8FAFC] hover:bg-white border border-[#F1F3F7] hover:border-orange-200 hover:shadow-md rounded-xl transition-all group"
+                        onClick={() => { close(); window.location.href = hotelsUrl; }}
+                        className="flex items-center gap-3 p-4 bg-[#F8FAFC] hover:bg-white border border-[#F1F3F7] hover:border-orange-200 hover:shadow-md rounded-xl transition-all group w-full text-left"
                       >
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${p.color}`}>{p.icon}</div>
                         <div className="flex-1 min-w-0">
@@ -559,16 +556,15 @@ export default function DiscoverPopup() {
                           <div className="text-[.7rem] text-[#8E95A9] truncate">{p.desc}</div>
                         </div>
                         <span className="text-orange-500 font-bold text-[.8rem] group-hover:translate-x-0.5 transition-transform flex-shrink-0">→</span>
-                      </a>
+                      </button>
                     ))}
                   </div>
-                  <a
-                    href={hotelsUrl}
-                    onClick={close}
+                  <button
+                    onClick={() => { close(); window.location.href = hotelsUrl; }}
                     className="block w-full text-center bg-gradient-to-r from-orange-500 to-rose-500 hover:brightness-110 text-white font-[Poppins] font-black text-[.95rem] py-4 rounded-2xl transition-all shadow-[0_4px_16px_rgba(249,115,22,0.25)]"
                   >
                     Find hotels in {dest.city} →
-                  </a>
+                  </button>
                 </div>
               )}
 
@@ -604,9 +600,9 @@ export default function DiscoverPopup() {
               <div className="font-[Poppins] font-bold text-[.9rem]">Don't pay roaming in {dest.country}!</div>
               <div className="text-[.7rem] text-white/60">eSIM plans from £3 — stay connected anywhere</div>
             </div>
-            <a href="/esim" onClick={close} className="bg-[#0066FF] text-white font-bold text-[.72rem] px-3.5 py-1.5 rounded-lg whitespace-nowrap flex-shrink-0">
+            <button onClick={() => { close(); window.location.href = '/esim'; }} className="bg-[#0066FF] text-white font-bold text-[.72rem] px-3.5 py-1.5 rounded-lg whitespace-nowrap flex-shrink-0">
               View →
-            </a>
+            </button>
           </div>
         </div>
       )}
@@ -620,9 +616,9 @@ export default function DiscoverPopup() {
               <div className="font-[Poppins] font-bold text-[.9rem]">Explore {dest.city} your way</div>
               <div className="text-[.7rem] text-white/60">Car hire from £15/day — compare top providers</div>
             </div>
-            <a href={carsUrl} onClick={close} className="bg-gradient-to-r from-orange-500 to-rose-500 text-white font-bold text-[.72rem] px-3.5 py-1.5 rounded-lg whitespace-nowrap flex-shrink-0">
+            <button onClick={() => { close(); window.location.href = carsUrl; }} className="bg-gradient-to-r from-orange-500 to-rose-500 text-white font-bold text-[.72rem] px-3.5 py-1.5 rounded-lg whitespace-nowrap flex-shrink-0">
               View →
-            </a>
+            </button>
           </div>
         </div>
       )}

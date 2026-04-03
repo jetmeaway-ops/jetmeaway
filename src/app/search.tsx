@@ -285,10 +285,10 @@ export default function FlightSearch() {
                     <div className="text-[.68rem] text-[#8E95A9] font-semibold">Compare 5 providers · live prices</div>
                   </div>
                 </div>
-                <a href={flightsUrl}
+                <button onClick={() => { window.location.href = flightsUrl; }}
                   className="bg-[#0066FF] hover:bg-[#0052CC] text-white font-[Poppins] font-bold text-[.75rem] px-4 py-2 rounded-xl transition-all whitespace-nowrap">
                   See all →
-                </a>
+                </button>
               </div>
               <div className="divide-y divide-[#F8FAFC]">
                 {[
@@ -297,15 +297,15 @@ export default function FlightSearch() {
                   { name: 'Expedia', icon: '🌍', desc: 'Bundle flight + hotel & save 30%' },
                   { name: 'Trip.com', icon: '🗺', desc: 'Best for Asia & Middle East' },
                 ].map(p => (
-                  <a key={p.name} href={flightsUrl}
-                    className="flex items-center gap-3 px-5 py-3.5 hover:bg-blue-50/50 transition-colors group">
+                  <button key={p.name} onClick={() => { window.location.href = flightsUrl; }}
+                    className="flex items-center gap-3 px-5 py-3.5 hover:bg-blue-50/50 transition-colors group w-full text-left">
                     <span className="text-lg w-7 text-center">{p.icon}</span>
                     <div className="flex-1">
                       <div className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B]">{p.name}</div>
                       <div className="text-[.68rem] text-[#8E95A9]">{p.desc}</div>
                     </div>
                     <span className="text-[#0066FF] text-[.75rem] font-bold opacity-0 group-hover:opacity-100 transition-opacity">→</span>
-                  </a>
+                  </button>
                 ))}
               </div>
             </div>
@@ -320,10 +320,10 @@ export default function FlightSearch() {
                     <div className="text-[.68rem] text-[#8E95A9] font-semibold">Compare 3 providers · best rates</div>
                   </div>
                 </div>
-                <a href={hotelsUrl}
+                <button onClick={() => { window.location.href = hotelsUrl; }}
                   className="bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-[Poppins] font-bold text-[.75rem] px-4 py-2 rounded-xl transition-all whitespace-nowrap">
                   See all →
-                </a>
+                </button>
               </div>
               <div className="divide-y divide-[#F8FAFC]">
                 {[
@@ -331,39 +331,39 @@ export default function FlightSearch() {
                   { name: 'Expedia', icon: '🌍', desc: 'Bundle with flight and save' },
                   { name: 'Trip.com', icon: '🗺', desc: 'Flash sales & exclusive prices' },
                 ].map(p => (
-                  <a key={p.name} href={hotelsUrl}
-                    className="flex items-center gap-3 px-5 py-3.5 hover:bg-orange-50/50 transition-colors group">
+                  <button key={p.name} onClick={() => { window.location.href = hotelsUrl; }}
+                    className="flex items-center gap-3 px-5 py-3.5 hover:bg-orange-50/50 transition-colors group w-full text-left">
                     <span className="text-lg w-7 text-center">{p.icon}</span>
                     <div className="flex-1">
                       <div className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B]">{p.name}</div>
                       <div className="text-[.68rem] text-[#8E95A9]">{p.desc}</div>
                     </div>
                     <span className="text-[#0066FF] text-[.75rem] font-bold opacity-0 group-hover:opacity-100 transition-opacity">→</span>
-                  </a>
+                  </button>
                 ))}
               </div>
             </div>
 
             {/* Car Hire + Packages row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <a href={carsUrl}
-                className="bg-white border border-[#E8ECF4] rounded-2xl p-5 hover:border-emerald-200 hover:shadow-md transition-all group">
+              <button onClick={() => { window.location.href = carsUrl; }}
+                className="bg-white border border-[#E8ECF4] rounded-2xl p-5 hover:border-emerald-200 hover:shadow-md transition-all group text-left">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-xl">🚗</span>
                   <div className="font-[Poppins] font-black text-[.95rem] text-[#1A1D2B]">Car Hire</div>
                 </div>
                 <p className="text-[.75rem] text-[#8E95A9] font-semibold mb-3">Compare 6 providers in {dest.city}</p>
                 <span className="text-emerald-600 font-[Poppins] font-bold text-[.78rem] group-hover:translate-x-0.5 transition-transform inline-block">Compare prices →</span>
-              </a>
-              <a href={packagesUrl}
-                className="bg-white border border-[#E8ECF4] rounded-2xl p-5 hover:border-purple-200 hover:shadow-md transition-all group">
+              </button>
+              <button onClick={() => { window.location.href = packagesUrl; }}
+                className="bg-white border border-[#E8ECF4] rounded-2xl p-5 hover:border-purple-200 hover:shadow-md transition-all group text-left">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-xl">📦</span>
                   <div className="font-[Poppins] font-black text-[.95rem] text-[#1A1D2B]">Packages</div>
                 </div>
                 <p className="text-[.75rem] text-[#8E95A9] font-semibold mb-3">Flight + hotel bundles to {dest.city}</p>
                 <span className="text-purple-600 font-[Poppins] font-bold text-[.78rem] group-hover:translate-x-0.5 transition-transform inline-block">See deals →</span>
-              </a>
+              </button>
             </div>
           </div>
         )}
