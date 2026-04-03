@@ -101,51 +101,61 @@ const PROVIDERS = [
 ];
 
 // Curated packages per destination
-type CuratedPackage = { name: string; type: string; priceFrom: number; duration: string; includes: string[]; highlights: string[]; photoId: number };
+type CuratedPackage = { name: string; type: string; stars: number; board: string; priceFrom: number; duration: string; includes: string[]; highlights: string[]; photoId: number };
 const CURATED_PACKAGES: Record<string, CuratedPackage[]> = {
   Dubai: [
-    { name: 'Dubai Beach & City Break', type: 'Flight + Hotel', priceFrom: 499, duration: '7 nights', includes: ['Return flights', '4★ hotel', 'Airport transfers'], highlights: ['JBR Beach', 'Dubai Mall', 'Burj Khalifa views'], photoId: 96491 },
-    { name: 'Dubai Luxury All-Inclusive', type: 'All-Inclusive', priceFrom: 1299, duration: '7 nights', includes: ['Return flights', '5★ resort', 'All meals & drinks', 'Spa access'], highlights: ['Palm Jumeirah', 'Private beach', 'Fine dining'], photoId: 7598 },
-    { name: 'Dubai Desert Safari Package', type: 'Flight + Hotel + Tour', priceFrom: 599, duration: '5 nights', includes: ['Return flights', '4★ hotel', 'Desert safari tour', 'Dhow cruise dinner'], highlights: ['Dune bashing', 'Camel riding', 'BBQ dinner under stars'], photoId: 289855 },
-    { name: 'Dubai Shopping Getaway', type: 'City Break', priceFrom: 399, duration: '4 nights', includes: ['Return flights', '3★ hotel', 'Metro pass'], highlights: ['Dubai Mall', 'Gold Souk', 'Mall of the Emirates'], photoId: 1073498 },
-    { name: 'Abu Dhabi & Dubai Combo', type: 'Multi-City', priceFrom: 799, duration: '10 nights', includes: ['Return flights', '4★ hotels', 'Inter-city transfer'], highlights: ['Louvre Abu Dhabi', 'Sheikh Zayed Mosque', 'Both cities'], photoId: 7742 },
+    { name: 'Dubai Beach & City Break', type: 'Flight + Hotel', stars: 4, board: 'Room Only', priceFrom: 499, duration: '7 nights', includes: ['Return flights', '4★ hotel', 'Airport transfers'], highlights: ['JBR Beach', 'Dubai Mall', 'Burj Khalifa views'], photoId: 96491 },
+    { name: 'Dubai Luxury All-Inclusive', type: 'All-Inclusive', stars: 5, board: 'All Inclusive', priceFrom: 1299, duration: '7 nights', includes: ['Return flights', '5★ resort', 'All meals & drinks', 'Spa access'], highlights: ['Palm Jumeirah', 'Private beach', 'Fine dining'], photoId: 7598 },
+    { name: 'Dubai Desert Safari Package', type: 'Flight + Hotel + Tour', stars: 4, board: 'Half Board', priceFrom: 599, duration: '5 nights', includes: ['Return flights', '4★ hotel', 'Desert safari tour', 'Dhow cruise dinner'], highlights: ['Dune bashing', 'Camel riding', 'BBQ dinner under stars'], photoId: 289855 },
+    { name: 'Dubai Shopping Getaway', type: 'City Break', stars: 3, board: 'Room Only', priceFrom: 399, duration: '4 nights', includes: ['Return flights', '3★ hotel', 'Metro pass'], highlights: ['Dubai Mall', 'Gold Souk', 'Mall of the Emirates'], photoId: 1073498 },
+    { name: 'Abu Dhabi & Dubai Combo', type: 'Multi-City', stars: 4, board: 'Half Board', priceFrom: 799, duration: '10 nights', includes: ['Return flights', '4★ hotels', 'Inter-city transfer'], highlights: ['Louvre Abu Dhabi', 'Sheikh Zayed Mosque', 'Both cities'], photoId: 7742 },
+  ],
+  Antalya: [
+    { name: 'Antalya Beach All-Inclusive', type: 'All-Inclusive', stars: 5, board: 'All Inclusive', priceFrom: 399, duration: '7 nights', includes: ['Return flights', '5★ resort', 'All meals & drinks', 'Pool & waterslides'], highlights: ['Lara Beach', 'Aquapark', 'Animation team'], photoId: 0 },
+    { name: 'Antalya Family Resort', type: 'Family Package', stars: 4, board: 'All Inclusive', priceFrom: 549, duration: '7 nights', includes: ['Return flights', '4★ family resort', 'All meals & drinks', 'Kids club'], highlights: ['Kids pool', 'Mini disco', 'Beach activities'], photoId: 0 },
+    { name: 'Antalya Old Town & Beach', type: 'Flight + Hotel', stars: 3, board: 'Half Board', priceFrom: 299, duration: '7 nights', includes: ['Return flights', '3★ hotel', 'Breakfast & dinner'], highlights: ['Kaleiçi Old Town', 'Konyaaltı Beach', 'Hadrian\'s Gate'], photoId: 0 },
+    { name: 'Turkish Riviera Luxury', type: 'Luxury Package', stars: 5, board: 'Full Board', priceFrom: 899, duration: '7 nights', includes: ['Return flights', '5★ spa resort', 'Full board', 'Spa treatment'], highlights: ['Belek golf', 'Private beach', 'Turkish hammam'], photoId: 0 },
+    { name: 'Antalya Budget Getaway', type: 'Budget Package', stars: 3, board: 'Room Only', priceFrom: 199, duration: '7 nights', includes: ['Return flights', '3★ hotel'], highlights: ['Great value', 'Pool access', 'Near beach'], photoId: 0 },
   ],
   Maldives: [
-    { name: 'Maldives Overwater Villa', type: 'All-Inclusive', priceFrom: 1899, duration: '7 nights', includes: ['Return flights', '5★ water villa', 'All meals & drinks', 'Snorkelling gear'], highlights: ['Overwater bungalow', 'House reef', 'Sunset views'], photoId: 37162 },
-    { name: 'Maldives Budget Paradise', type: 'Flight + Hotel', priceFrom: 899, duration: '7 nights', includes: ['Return flights', '4★ island resort', 'Half board'], highlights: ['White sand beach', 'Diving available', 'Island hopping'], photoId: 73178 },
-    { name: 'Maldives Honeymoon Escape', type: 'Luxury Package', priceFrom: 2499, duration: '10 nights', includes: ['Return flights', 'Private villa', 'Full board', 'Couples spa', 'Sunset cruise'], highlights: ['Private pool', 'Candlelit dinner', 'Dolphin cruise'], photoId: 75494 },
+    { name: 'Maldives Overwater Villa', type: 'All-Inclusive', stars: 5, board: 'All Inclusive', priceFrom: 1899, duration: '7 nights', includes: ['Return flights', '5★ water villa', 'All meals & drinks', 'Snorkelling gear'], highlights: ['Overwater bungalow', 'House reef', 'Sunset views'], photoId: 37162 },
+    { name: 'Maldives Budget Paradise', type: 'Flight + Hotel', stars: 4, board: 'Half Board', priceFrom: 899, duration: '7 nights', includes: ['Return flights', '4★ island resort', 'Breakfast & dinner'], highlights: ['White sand beach', 'Diving available', 'Island hopping'], photoId: 73178 },
+    { name: 'Maldives Honeymoon Escape', type: 'Luxury Package', stars: 5, board: 'Full Board', priceFrom: 2499, duration: '10 nights', includes: ['Return flights', 'Private villa', 'All meals', 'Couples spa', 'Sunset cruise'], highlights: ['Private pool', 'Candlelit dinner', 'Dolphin cruise'], photoId: 75494 },
   ],
   Tenerife: [
-    { name: 'Tenerife Beach All-Inclusive', type: 'All-Inclusive', priceFrom: 449, duration: '7 nights', includes: ['Return flights', '4★ resort', 'All meals & drinks', 'Pool'], highlights: ['Playa de las Américas', 'Year-round sun', 'Water park nearby'], photoId: 0 },
-    { name: 'Tenerife Family Fun', type: 'Family Package', priceFrom: 1299, duration: '7 nights', includes: ['Return flights (2+2)', '4★ family room', 'Half board', 'Siam Park tickets'], highlights: ['Siam Park', 'Loro Parque', 'Kids club'], photoId: 0 },
-    { name: 'Tenerife Hiking & Nature', type: 'Activity Holiday', priceFrom: 399, duration: '5 nights', includes: ['Return flights', '3★ hotel', 'Teide guided hike'], highlights: ['Mount Teide', 'Anaga forest', 'Stargazing'], photoId: 0 },
+    { name: 'Tenerife Beach All-Inclusive', type: 'All-Inclusive', stars: 4, board: 'All Inclusive', priceFrom: 449, duration: '7 nights', includes: ['Return flights', '4★ resort', 'All meals & drinks', 'Pool'], highlights: ['Playa de las Américas', 'Year-round sun', 'Water park nearby'], photoId: 0 },
+    { name: 'Tenerife Family Fun', type: 'Family Package', stars: 4, board: 'Half Board', priceFrom: 1299, duration: '7 nights', includes: ['Return flights (2+2)', '4★ family room', 'Breakfast & dinner', 'Siam Park tickets'], highlights: ['Siam Park', 'Loro Parque', 'Kids club'], photoId: 0 },
+    { name: 'Tenerife Hiking & Nature', type: 'Activity Holiday', stars: 3, board: 'Room Only', priceFrom: 399, duration: '5 nights', includes: ['Return flights', '3★ hotel', 'Teide guided hike'], highlights: ['Mount Teide', 'Anaga forest', 'Stargazing'], photoId: 0 },
   ],
   Barcelona: [
-    { name: 'Barcelona City Break', type: 'Flight + Hotel', priceFrom: 299, duration: '4 nights', includes: ['Return flights', '3★ central hotel', 'Metro pass'], highlights: ['La Sagrada Familia', 'Gothic Quarter', 'La Rambla'], photoId: 62539 },
-    { name: 'Barcelona Beach & Culture', type: 'Flight + Hotel', priceFrom: 449, duration: '7 nights', includes: ['Return flights', '4★ beachfront hotel', 'Sagrada Familia tickets'], highlights: ['Barceloneta Beach', 'Park Güell', 'Tapas tours'], photoId: 15296 },
-    { name: 'Costa Brava All-Inclusive', type: 'All-Inclusive', priceFrom: 549, duration: '7 nights', includes: ['Return flights', '4★ resort', 'All meals & drinks'], highlights: ['Pool & beach', 'Day trip to Barcelona', 'Water sports'], photoId: 24574 },
+    { name: 'Barcelona City Break', type: 'Flight + Hotel', stars: 3, board: 'Room Only', priceFrom: 299, duration: '4 nights', includes: ['Return flights', '3★ central hotel', 'Metro pass'], highlights: ['La Sagrada Familia', 'Gothic Quarter', 'La Rambla'], photoId: 62539 },
+    { name: 'Barcelona Beach & Culture', type: 'Flight + Hotel', stars: 4, board: 'Half Board', priceFrom: 449, duration: '7 nights', includes: ['Return flights', '4★ beachfront hotel', 'Sagrada Familia tickets'], highlights: ['Barceloneta Beach', 'Park Güell', 'Tapas tours'], photoId: 15296 },
+    { name: 'Costa Brava All-Inclusive', type: 'All-Inclusive', stars: 4, board: 'All Inclusive', priceFrom: 549, duration: '7 nights', includes: ['Return flights', '4★ resort', 'All meals & drinks'], highlights: ['Pool & beach', 'Day trip to Barcelona', 'Water sports'], photoId: 24574 },
   ],
   'New York': [
-    { name: 'NYC City Explorer', type: 'City Break', priceFrom: 599, duration: '5 nights', includes: ['Return flights', '3★ Manhattan hotel', 'CityPASS (6 attractions)'], highlights: ['Times Square', 'Statue of Liberty', 'Central Park'], photoId: 4627 },
-    { name: 'New York Shopping & Shows', type: 'Flight + Hotel', priceFrom: 799, duration: '5 nights', includes: ['Return flights', '4★ Midtown hotel', 'Broadway show ticket'], highlights: ['5th Avenue shopping', 'Broadway', 'Top of the Rock'], photoId: 258766 },
-    { name: 'NYC Luxury Experience', type: 'Luxury Package', priceFrom: 1499, duration: '7 nights', includes: ['Return flights', '5★ hotel', 'Helicopter tour', 'Private transfers'], highlights: ['Helicopter over Manhattan', 'Fine dining', 'VIP experience'], photoId: 60476 },
+    { name: 'NYC City Explorer', type: 'City Break', stars: 3, board: 'Room Only', priceFrom: 599, duration: '5 nights', includes: ['Return flights', '3★ Manhattan hotel', 'CityPASS (6 attractions)'], highlights: ['Times Square', 'Statue of Liberty', 'Central Park'], photoId: 4627 },
+    { name: 'New York Shopping & Shows', type: 'Flight + Hotel', stars: 4, board: 'Room Only', priceFrom: 799, duration: '5 nights', includes: ['Return flights', '4★ Midtown hotel', 'Broadway show ticket'], highlights: ['5th Avenue shopping', 'Broadway', 'Top of the Rock'], photoId: 258766 },
+    { name: 'NYC Luxury Experience', type: 'Luxury Package', stars: 5, board: 'Full Board', priceFrom: 1499, duration: '7 nights', includes: ['Return flights', '5★ hotel', 'Helicopter tour', 'Private transfers'], highlights: ['Helicopter over Manhattan', 'Fine dining', 'VIP experience'], photoId: 60476 },
   ],
   Bangkok: [
-    { name: 'Bangkok City & Temples', type: 'City Break', priceFrom: 449, duration: '7 nights', includes: ['Return flights', '4★ hotel', 'Temple tour', 'River cruise'], highlights: ['Grand Palace', 'Wat Arun', 'Chatuchak Market'], photoId: 3012 },
-    { name: 'Thailand Beach & City Combo', type: 'Multi-City', priceFrom: 699, duration: '10 nights', includes: ['Return flights', '4★ hotels', 'Internal flight to Phuket'], highlights: ['Bangkok temples', 'Phuket beaches', 'Thai cooking class'], photoId: 292419 },
-    { name: 'Bangkok Budget Backpacker', type: 'Budget Package', priceFrom: 349, duration: '7 nights', includes: ['Return flights', 'Hostel/budget hotel', 'Airport pickup'], highlights: ['Khao San Road', 'Street food', 'Night markets'], photoId: 322785 },
+    { name: 'Bangkok City & Temples', type: 'City Break', stars: 4, board: 'Half Board', priceFrom: 449, duration: '7 nights', includes: ['Return flights', '4★ hotel', 'Temple tour', 'River cruise'], highlights: ['Grand Palace', 'Wat Arun', 'Chatuchak Market'], photoId: 3012 },
+    { name: 'Thailand Beach & City Combo', type: 'Multi-City', stars: 4, board: 'Half Board', priceFrom: 699, duration: '10 nights', includes: ['Return flights', '4★ hotels', 'Internal flight to Phuket'], highlights: ['Bangkok temples', 'Phuket beaches', 'Thai cooking class'], photoId: 292419 },
+    { name: 'Bangkok Budget Backpacker', type: 'Budget Package', stars: 2, board: 'Room Only', priceFrom: 349, duration: '7 nights', includes: ['Return flights', 'Hostel/budget hotel', 'Airport pickup'], highlights: ['Khao San Road', 'Street food', 'Night markets'], photoId: 322785 },
   ],
   Rome: [
-    { name: 'Rome & Vatican City Break', type: 'City Break', priceFrom: 299, duration: '4 nights', includes: ['Return flights', '3★ central hotel', 'Vatican skip-the-line'], highlights: ['Colosseum', 'Vatican Museums', 'Trevi Fountain'], photoId: 8878 },
-    { name: 'Italian Highlights Multi-City', type: 'Multi-City', priceFrom: 799, duration: '10 nights', includes: ['Return flights', '3★ hotels', 'Train passes (Rome-Florence-Venice)'], highlights: ['Rome', 'Florence', 'Venice', 'All by train'], photoId: 16654 },
-    { name: 'Amalfi Coast & Rome', type: 'Flight + Hotel', priceFrom: 599, duration: '7 nights', includes: ['Return flights', '4★ hotels', 'Amalfi day trip'], highlights: ['Positano', 'Amalfi Coast', 'Roman ruins'], photoId: 137994 },
+    { name: 'Rome & Vatican City Break', type: 'City Break', stars: 3, board: 'Room Only', priceFrom: 299, duration: '4 nights', includes: ['Return flights', '3★ central hotel', 'Vatican skip-the-line'], highlights: ['Colosseum', 'Vatican Museums', 'Trevi Fountain'], photoId: 8878 },
+    { name: 'Italian Highlights Multi-City', type: 'Multi-City', stars: 3, board: 'Half Board', priceFrom: 799, duration: '10 nights', includes: ['Return flights', '3★ hotels', 'Train passes (Rome-Florence-Venice)'], highlights: ['Rome', 'Florence', 'Venice', 'All by train'], photoId: 16654 },
+    { name: 'Amalfi Coast & Rome', type: 'Flight + Hotel', stars: 4, board: 'Half Board', priceFrom: 599, duration: '7 nights', includes: ['Return flights', '4★ hotels', 'Amalfi day trip'], highlights: ['Positano', 'Amalfi Coast', 'Roman ruins'], photoId: 137994 },
   ],
   Paris: [
-    { name: 'Paris Romantic Getaway', type: 'City Break', priceFrom: 299, duration: '3 nights', includes: ['Return Eurostar/flights', '4★ hotel', 'Seine river cruise'], highlights: ['Eiffel Tower', 'Louvre Museum', 'Montmartre'], photoId: 24866 },
-    { name: 'Disneyland Paris Family', type: 'Family Package', priceFrom: 499, duration: '3 nights', includes: ['Return transport', 'Disney hotel', '2-day park tickets'], highlights: ['Both Disney parks', 'Character dining', 'Disney Village'], photoId: 42985 },
-    { name: 'Paris Food & Wine Tour', type: 'Experience Package', priceFrom: 599, duration: '5 nights', includes: ['Return flights', '4★ hotel', 'Food walking tour', 'Wine tasting'], highlights: ['Le Marais food tour', 'Champagne day trip', 'Cooking class'], photoId: 37048 },
+    { name: 'Paris Romantic Getaway', type: 'City Break', stars: 4, board: 'Room Only', priceFrom: 299, duration: '3 nights', includes: ['Return Eurostar/flights', '4★ hotel', 'Seine river cruise'], highlights: ['Eiffel Tower', 'Louvre Museum', 'Montmartre'], photoId: 24866 },
+    { name: 'Disneyland Paris Family', type: 'Family Package', stars: 3, board: 'Half Board', priceFrom: 499, duration: '3 nights', includes: ['Return transport', 'Disney hotel', '2-day park tickets'], highlights: ['Both Disney parks', 'Character dining', 'Disney Village'], photoId: 42985 },
+    { name: 'Paris Food & Wine Tour', type: 'Experience Package', stars: 4, board: 'Room Only', priceFrom: 599, duration: '5 nights', includes: ['Return flights', '4★ hotel', 'Food walking tour', 'Wine tasting'], highlights: ['Le Marais food tour', 'Champagne day trip', 'Cooking class'], photoId: 37048 },
   ],
 };
+
+const BOARD_TYPES = ['Any', 'Room Only', 'Half Board', 'Full Board', 'All Inclusive'] as const;
+const STAR_OPTIONS = ['Any', '2★', '3★', '4★', '5★'] as const;
 
 function getPackagesForCity(city: string): CuratedPackage[] {
   const lc = city.toLowerCase().trim();
@@ -153,10 +163,10 @@ function getPackagesForCity(city: string): CuratedPackage[] {
     if (key.toLowerCase() === lc) return pkgs;
   }
   return [
-    { name: `${city} City Break`, type: 'Flight + Hotel', priceFrom: 399, duration: '5 nights', includes: ['Return flights', '3★ hotel', 'Airport transfers'], highlights: ['City centre location', 'Guided walking tour', 'Local experience'], photoId: 0 },
-    { name: `${city} All-Inclusive`, type: 'All-Inclusive', priceFrom: 699, duration: '7 nights', includes: ['Return flights', '4★ resort', 'All meals & drinks'], highlights: ['Pool & beach access', 'Entertainment', 'Full board'], photoId: 0 },
-    { name: `${city} Budget Explorer`, type: 'Budget Package', priceFrom: 249, duration: '4 nights', includes: ['Return flights', 'Budget hotel'], highlights: ['Self-guided', 'Flexible schedule', 'Great value'], photoId: 0 },
-    { name: `${city} Luxury Escape`, type: 'Luxury Package', priceFrom: 1199, duration: '7 nights', includes: ['Return flights', '5★ hotel', 'Private transfers', 'Spa treatment'], highlights: ['Premium experience', 'Fine dining', 'VIP service'], photoId: 0 },
+    { name: `${city} City Break`, type: 'Flight + Hotel', stars: 3, board: 'Room Only', priceFrom: 399, duration: '5 nights', includes: ['Return flights', '3★ hotel', 'Airport transfers'], highlights: ['City centre location', 'Guided walking tour', 'Local experience'], photoId: 0 },
+    { name: `${city} All-Inclusive`, type: 'All-Inclusive', stars: 4, board: 'All Inclusive', priceFrom: 699, duration: '7 nights', includes: ['Return flights', '4★ resort', 'All meals & drinks'], highlights: ['Pool & beach access', 'Entertainment', 'Full board'], photoId: 0 },
+    { name: `${city} Budget Explorer`, type: 'Budget Package', stars: 2, board: 'Room Only', priceFrom: 249, duration: '4 nights', includes: ['Return flights', 'Budget hotel'], highlights: ['Self-guided', 'Flexible schedule', 'Great value'], photoId: 0 },
+    { name: `${city} Luxury Escape`, type: 'Luxury Package', stars: 5, board: 'Full Board', priceFrom: 1199, duration: '7 nights', includes: ['Return flights', '5★ hotel', 'Private transfers', 'Spa treatment'], highlights: ['Premium experience', 'Fine dining', 'VIP service'], photoId: 0 },
   ];
 }
 
@@ -166,6 +176,8 @@ function PackagesContent() {
   const [retDate, setRetDate] = useState('');
   const [guests, setGuests] = useState('2');
   const [duration, setDuration] = useState('7');
+  const [starFilter, setStarFilter] = useState('Any');
+  const [boardFilter, setBoardFilter] = useState('Any');
   const [searched, setSearched] = useState(false);
   const [packages, setPackages] = useState<CuratedPackage[]>([]);
 
@@ -185,7 +197,15 @@ function PackagesContent() {
 
   function handleSearch() {
     if (!dest || !depDate) { alert('Please enter a destination and departure date'); return; }
-    setPackages(getPackagesForCity(dest));
+    let results = getPackagesForCity(dest);
+    if (starFilter !== 'Any') {
+      const minStars = parseInt(starFilter);
+      results = results.filter(p => p.stars >= minStars);
+    }
+    if (boardFilter !== 'Any') {
+      results = results.filter(p => p.board === boardFilter);
+    }
+    setPackages(results.length > 0 ? results : getPackagesForCity(dest));
     setSearched(true);
     setTimeout(() => document.getElementById('package-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
   }
@@ -208,7 +228,7 @@ function PackagesContent() {
             <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Destination</label>
             <CityPicker value={dest} onChange={setDest} placeholder="Where do you want to go? — e.g. Maldives, New York, Bali, Dubai" />
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
             <div>
               <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Departure</label>
               <input type="date" min={today} value={depDate} onChange={e => setDepDate(e.target.value)}
@@ -226,11 +246,27 @@ function PackagesContent() {
                 {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n} {n === 1 ? 'person' : 'people'}</option>)}
               </select>
             </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3 mb-4">
             <div>
               <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Duration</label>
               <select value={duration} onChange={e => setDuration(e.target.value)}
                 className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-purple-500 focus:bg-white transition-all">
                 {[3,4,5,6,7,10,14,21].map(n => <option key={n} value={n}>{n} nights</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Star Rating</label>
+              <select value={starFilter} onChange={e => setStarFilter(e.target.value)}
+                className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-purple-500 focus:bg-white transition-all">
+                {STAR_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Board Type</label>
+              <select value={boardFilter} onChange={e => setBoardFilter(e.target.value)}
+                className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-purple-500 focus:bg-white transition-all">
+                {BOARD_TYPES.map(b => <option key={b} value={b}>{b}</option>)}
               </select>
             </div>
           </div>
@@ -283,8 +319,16 @@ function PackagesContent() {
                     {/* Info */}
                     <div className="flex-1 p-5 flex flex-col">
                       <div className="flex-1">
-                        <h3 className="font-[Poppins] font-bold text-[1.05rem] text-[#1A1D2B] mb-0.5">{pkg.name}</h3>
-                        <p className="text-[.72rem] text-[#8E95A9] font-semibold mb-2">{pkg.duration} · {pkg.type}</p>
+                        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                          <h3 className="font-[Poppins] font-bold text-[1.05rem] text-[#1A1D2B]">{pkg.name}</h3>
+                          {pkg.stars > 0 && (
+                            <span className="text-[.7rem] font-bold text-amber-500">{'★'.repeat(pkg.stars)}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <span className="text-[.72rem] text-[#8E95A9] font-semibold">{pkg.duration} · {pkg.type}</span>
+                          <span className="text-[.6rem] font-black uppercase tracking-[1px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600">{pkg.board}</span>
+                        </div>
 
                         {/* What's included */}
                         <div className="flex flex-wrap gap-1.5 mb-2">
