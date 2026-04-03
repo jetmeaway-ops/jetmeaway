@@ -55,6 +55,22 @@ export default function Header() {
         </div>
       </header>
 
+      {/* Mobile category bar — sits below the header glass bar */}
+      <nav className="lg:hidden fixed left-0 right-0 z-[101] bg-white border-b border-slate-200 shadow-md" style={{ top: '90px' }}>
+        <div className="flex overflow-x-auto gap-1.5 px-3 py-2.5" style={{ scrollbarWidth: 'none' }}>
+          {NAV.map(item => {
+            const active = pathname === item.href || pathname.startsWith(item.href + '/');
+            return (
+              <Link key={item.href} href={item.href}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[.65rem] font-extrabold uppercase tracking-[0.8px] whitespace-nowrap transition-all flex-shrink-0 ${active ? 'bg-[#0066FF] text-white shadow-sm' : 'text-slate-500 bg-slate-50 hover:text-[#0066FF] hover:bg-blue-50'}`}>
+                <span className="text-xs">{item.icon}</span>
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+
       {/* Mobile overlay */}
       {mobileOpen && <div className="fixed inset-0 bg-[#0F1119]/30 z-[150]" onClick={() => setMobileOpen(false)} />}
 
