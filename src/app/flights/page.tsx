@@ -669,98 +669,120 @@ export default function FlightsPage() {
             )}
           </div>
 
-          {/* Live prices from Aviasales */}
-          {flights.length === 0 ? (
-            <div className="text-center py-8 bg-white border border-[#F1F3F7] rounded-2xl mb-6">
-              <p className="text-[.95rem] font-bold text-[#1A1D2B] mb-1">No cached prices found for this route</p>
-              <p className="text-[.78rem] text-[#8E95A9] font-semibold">Try a different date — or check prices directly on the providers below.</p>
+          {/* Results table */}
+          <div className="bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden mb-4">
+
+            {/* Table header */}
+            <div className="hidden md:grid grid-cols-[2fr_2fr_1fr_1fr_auto] gap-4 px-5 py-3 bg-[#F8FAFC] border-b border-[#F1F3F7]">
+              <div className="text-[.62rem] font-black uppercase tracking-[2px] text-[#8E95A9]">Airline</div>
+              <div className="text-[.62rem] font-black uppercase tracking-[2px] text-[#8E95A9]">Times</div>
+              <div className="text-[.62rem] font-black uppercase tracking-[2px] text-[#8E95A9]">Duration</div>
+              <div className="text-[.62rem] font-black uppercase tracking-[2px] text-[#8E95A9]">Stops</div>
+              <div className="text-[.62rem] font-black uppercase tracking-[2px] text-[#8E95A9] text-right">Price / Book</div>
             </div>
-          ) : (
-            <>
-              <p className="text-[.68rem] font-black uppercase tracking-[2px] text-[#8E95A9] mb-3">Live Prices via Aviasales</p>
-              <div className="flex flex-col gap-3 mb-8">
-                {flights.map((f, i) => (
-                  <div key={i} className="bg-white border border-[#F1F3F7] rounded-2xl p-5 flex flex-col md:flex-row md:items-center gap-4 hover:border-blue-200 hover:shadow-md transition-all">
+
+            {flights.length === 0 ? (
+              <div className="text-center py-10 px-5">
+                <p className="text-[.95rem] font-bold text-[#1A1D2B] mb-1">No cached prices found for this route</p>
+                <p className="text-[.78rem] text-[#8E95A9] font-semibold">Try a different date — or check prices on the providers below.</p>
+              </div>
+            ) : (
+              flights.map((f, i) => {
+                const depTime = f.departure
+                  ? new Date(f.departure).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+                  : '—';
+                const isCheapest = i === 0;
+                return (
+                  <div key={i}
+                    className={`grid grid-cols-1 md:grid-cols-[2fr_2fr_1fr_1fr_auto] gap-3 md:gap-4 px-5 py-4 border-b border-[#F1F3F7] last:border-0 hover:bg-blue-50/40 transition-colors items-center ${isCheapest ? 'bg-green-50/30' : ''}`}>
+
                     {/* Airline */}
-                    <div className="flex items-center gap-3 min-w-[160px]">
-                      <div className="w-10 h-10 rounded-xl bg-[#F8FAFC] border border-[#E8ECF4] flex items-center justify-center">
-                        <img
-                          src={`https://pics.avs.io/40/40/${f.airlineCode}.png`}
-                          alt={f.airline}
-                          className="w-8 h-8 object-contain"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                        />
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-white border border-[#E8ECF4] flex items-center justify-center flex-shrink-0">
+                        <img src={`https://pics.avs.io/36/36/${f.airlineCode}.png`} alt={f.airline}
+                          className="w-7 h-7 object-contain"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                       </div>
                       <div>
-                        <div className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B]">{f.airline}</div>
-                        <div className="text-[.68rem] text-[#8E95A9] font-medium">
-                          {f.departure ? new Date(f.departure).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : ''}
-                          {f.gate ? ` · via ${f.gate}` : ''}
+                        <div className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B] flex items-center gap-2">
+                          {f.airline}
+                          {isCheapest && <span className="text-[.58rem] font-black uppercase tracking-[1.5px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">Cheapest</span>}
                         </div>
+                        {f.gate && <div className="text-[.65rem] text-[#8E95A9]">via {f.gate}</div>}
                       </div>
                     </div>
 
-                    {/* Route info */}
-                    <div className="flex-1 flex items-center gap-4 flex-wrap">
-                      <div className="flex items-center gap-2 text-[.8rem] font-semibold text-[#5C6378]">
-                        <span className="font-black text-[#1A1D2B]">{origin}</span>
-                        <span>→</span>
-                        <span className="font-black text-[#1A1D2B]">{dest}</span>
+                    {/* Times */}
+                    <div className="flex items-center gap-2 md:gap-3">
+                      <div className="text-center">
+                        <div className="font-[Poppins] font-black text-[1rem] text-[#1A1D2B]">{depTime}</div>
+                        <div className="text-[.62rem] text-[#8E95A9] font-semibold">{origin}</div>
                       </div>
-                      <span className={`text-[.65rem] font-black uppercase tracking-[1.5px] px-2.5 py-0.5 rounded-full ${f.stops === 'Direct' ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-500'}`}>
+                      <div className="flex-1 flex flex-col items-center gap-0.5 min-w-[40px]">
+                        <div className="text-[.6rem] text-[#8E95A9] font-semibold">{f.duration}</div>
+                        <div className="w-full flex items-center gap-0.5">
+                          <div className="flex-1 h-px bg-[#D1D5DB]" />
+                          <span className="text-[#D1D5DB] text-[.7rem]">✈</span>
+                          <div className="flex-1 h-px bg-[#D1D5DB]" />
+                        </div>
+                        <div className={`text-[.58rem] font-black uppercase tracking-[1px] ${f.stops === 'Direct' ? 'text-green-600' : 'text-orange-500'}`}>{f.stops}</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="font-[Poppins] font-black text-[1rem] text-[#1A1D2B]">—</div>
+                        <div className="text-[.62rem] text-[#8E95A9] font-semibold">{dest}</div>
+                      </div>
+                    </div>
+
+                    {/* Duration (desktop only — already in times on mobile) */}
+                    <div className="hidden md:block text-[.82rem] font-semibold text-[#5C6378]">{f.duration}</div>
+
+                    {/* Stops */}
+                    <div className="hidden md:block">
+                      <span className={`text-[.65rem] font-black uppercase tracking-[1.5px] px-2.5 py-1 rounded-full ${f.stops === 'Direct' ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-500'}`}>
                         {f.stops}
                       </span>
-                      {f.duration && (
-                        <span className="text-[.72rem] text-[#8E95A9] font-semibold">{f.duration}</span>
-                      )}
                     </div>
 
-                    {/* Price + book */}
-                    <div className="flex items-center gap-4 flex-shrink-0">
+                    {/* Price + Book */}
+                    <div className="flex items-center justify-between md:justify-end gap-4">
                       <div className="text-right">
-                        <div className="font-[Poppins] font-black text-[1.4rem] text-[#1A1D2B]">
-                          {f.currency}{f.price.toLocaleString()}
-                        </div>
-                        <div className="text-[.65rem] text-[#8E95A9] font-semibold">per person</div>
+                        <div className="font-[Poppins] font-black text-[1.35rem] text-[#1A1D2B] leading-none">{f.currency}{f.price.toLocaleString()}</div>
+                        <div className="text-[.62rem] text-[#8E95A9] font-semibold">per person</div>
                       </div>
                       <a href={f.link} target="_blank" rel="noopener"
-                        className="inline-flex items-center gap-1.5 bg-[#0066FF] hover:bg-[#0052CC] text-white font-[Poppins] font-bold text-[.78rem] px-5 py-3 rounded-xl transition-all shadow-[0_4px_12px_rgba(0,102,255,0.25)] whitespace-nowrap">
-                        Book →
+                        className="bg-[#0066FF] hover:bg-[#0052CC] text-white font-[Poppins] font-bold text-[.78rem] px-5 py-2.5 rounded-xl transition-all shadow-[0_4px_12px_rgba(0,102,255,0.2)] whitespace-nowrap">
+                        Select →
                       </a>
                     </div>
                   </div>
-                ))}
-              </div>
-            </>
-          )}
+                );
+              })
+            )}
+          </div>
 
-          {/* All other affiliated providers */}
-          <p className="text-[.68rem] font-black uppercase tracking-[2px] text-[#8E95A9] mb-3">Also Compare On</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          {/* Also compare on — other affiliated providers */}
+          <p className="text-[.62rem] font-black uppercase tracking-[2px] text-[#8E95A9] mb-3 mt-6">Also search on</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
             {PROVIDERS.filter(p => p.name !== 'Aviasales').map((p) => {
               const url = p.getUrl(origin, dest, depDate, tripType === 'return' ? retDate : '', adults, children);
               return (
-                <div key={p.name} className="bg-white border border-[#F1F3F7] rounded-2xl p-5 flex items-center justify-between gap-4 hover:border-blue-200 hover:shadow-md transition-all">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#F8FAFC] border border-[#E8ECF4] flex items-center justify-center text-xl">
-                      {p.logo}
-                    </div>
-                    <div>
-                      <div className="font-[Poppins] font-bold text-[.88rem] text-[#1A1D2B]">{p.name}</div>
-                      <div className="text-[.68rem] text-[#8E95A9] font-semibold">{p.highlight}</div>
-                    </div>
+                <a key={p.name} href={url} target="_blank" rel="noopener"
+                  className="bg-white border border-[#E8ECF4] rounded-xl p-4 flex items-center gap-3 hover:border-blue-300 hover:shadow-md transition-all group">
+                  <div className="w-9 h-9 rounded-lg bg-[#F8FAFC] border border-[#E8ECF4] flex items-center justify-center text-lg flex-shrink-0">
+                    {p.logo}
                   </div>
-                  <a href={url} target="_blank" rel="noopener"
-                    className="inline-flex items-center gap-1.5 bg-[#F8FAFC] hover:bg-[#0066FF] border border-[#E8ECF4] hover:border-[#0066FF] text-[#1A1D2B] hover:text-white font-[Poppins] font-bold text-[.75rem] px-4 py-2.5 rounded-xl transition-all whitespace-nowrap flex-shrink-0">
-                    Check Price →
-                  </a>
-                </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B] group-hover:text-[#0066FF] transition-colors">{p.name}</div>
+                    <div className="text-[.63rem] text-[#8E95A9] font-semibold truncate">{p.highlight}</div>
+                  </div>
+                  <span className="text-[#0066FF] text-[.75rem] font-bold flex-shrink-0">→</span>
+                </a>
               );
             })}
           </div>
 
-          <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold">
-            Clicking any provider earns Jetmeaway a small commission at no extra cost to you.
+          <p className="text-center text-[.65rem] text-[#8E95A9] font-semibold">
+            Prices from Travelpayouts data cache · Clicking any link earns JetMeAway a commission at no extra cost to you.
           </p>
         </section>
       )}
