@@ -3,7 +3,7 @@ import { priceBreakdown } from '@/lib/travel-logic';
 
 export const runtime = 'edge';
 
-const DUFFEL_KEY = process.env.DUFFEL_API_KEY || '';
+const DUFFEL_KEY = process.env.DUFFEL_ACCESS_TOKEN || process.env.DUFFEL_API_KEY || '';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
