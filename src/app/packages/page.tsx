@@ -62,7 +62,7 @@ const PROVIDERS = [
     badge: 'Best Bundles',
     priceMult: 1.0,
     getUrl: (dest: string, dep: string, ret: string, adults: number, children: number) =>
-      `https://www.expedia.co.uk/Holidays?destination=${encodeURIComponent(dest)}&startDate=${dep}&endDate=${ret}&adults=${adults}${children > 0 ? `&children=${children}` : ''}&affcid=clbU3QK`,
+      `https://www.expedia.co.uk/Packages?destination=${encodeURIComponent(dest)}&d1=${dep}&d2=${ret}&adults=${adults}${children > 0 ? `&children=${children}` : ''}&affcid=clbU3QK`,
   },
   {
     name: 'Trip.com',
@@ -70,7 +70,7 @@ const PROVIDERS = [
     badge: 'City Breaks',
     priceMult: 0.94,
     getUrl: (dest: string, dep: string, ret: string, adults: number, children: number) =>
-      `https://www.trip.com/hotels/list?cityName=${encodeURIComponent(dest)}&checkin=${dep}&checkout=${ret}&adult=${adults}&child=${children}&Allianceid=8023009&SID=303363796&trip_sub1=&trip_sub3=D15021113`,
+      `https://www.trip.com/packages/list?cityName=${encodeURIComponent(dest)}&startDate=${dep}&endDate=${ret}&adult=${adults}&child=${children}&Allianceid=8023009&SID=303363796&trip_sub1=&trip_sub3=D15021113`,
   },
   {
     name: 'Booking.com',
@@ -79,6 +79,14 @@ const PROVIDERS = [
     priceMult: 1.02,
     getUrl: (dest: string, dep: string, ret: string, adults: number, children: number) =>
       `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(dest)}&checkin=${dep}&checkout=${ret}&group_adults=${adults}${children > 0 ? `&group_children=${children}` : ''}&no_rooms=1`,
+  },
+  {
+    name: 'Klook',
+    logo: '🎟',
+    badge: 'Activities+Stay',
+    priceMult: 0.97,
+    getUrl: (_dest: string, _dep: string, _ret: string, _adults: number, _children: number) =>
+      `https://klook.tpk.lu/CByEYa65`,
   },
 ];
 
@@ -439,7 +447,7 @@ function PackagesContent() {
                       {/* Price comparison per provider */}
                       <div className="border-t border-[#F1F3F7] pt-3 mt-1">
                         <p className="text-[.62rem] text-[#8E95A9] font-semibold mb-2">COMPARE PRICES PER PERSON</p>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                           {PROVIDERS.map((p, pi) => {
                             const estPrice = Math.round(pkg.priceFrom * p.priceMult + ((pi * 7 + pkg.priceFrom) % 23) - 11);
                             const isCheapest = PROVIDERS.every((op, oi) => {
