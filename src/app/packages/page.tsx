@@ -275,8 +275,7 @@ function LoadingState({ dest }: { dest: string }) {
 const TP_WRAP = 'https://tp.media/r?marker=714449&trs=512633';
 
 function buildExpediaUrl(dest: string, _from: string, _depDate: string, _retDate: string, _adults: number) {
-  const inner = `https://www.expedia.co.uk/lp/packages-destinations?destination=${encodeURIComponent(dest)}&affcid=clbU3QK`;
-  return `${TP_WRAP}&p=11584&u=${encodeURIComponent(inner)}`;
+  return `https://www.expedia.co.uk/lp/packages-destinations?destination=${encodeURIComponent(dest)}&affcid=clbU3QK`;
 }
 
 function buildTripUrl(dest: string, depDate: string, retDate: string, adults: number) {
