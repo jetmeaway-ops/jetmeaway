@@ -62,11 +62,12 @@ const DESTINATIONS = [
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function buildKlookUrl(dest: string): string {
-  return `https://klook.tpk.lu/CByEYa65?city=${encodeURIComponent(dest)}`;
+  return `https://www.klook.com/en-GB/search/?query=${encodeURIComponent(dest + ' hotels')}&spm=SearchResult.SearchResult_LIST&clickFrom=HOME_SEARCH&aid=CByEYa65`;
 }
 
 function buildTripcomUrl(dest: string, cin: string, cout: string, adults: number): string {
-  return `https://www.trip.com/hotels/list?city=${encodeURIComponent(dest)}&checkin=${cin}&checkout=${cout}&adult=${adults}&curr=GBP&Allianceid=8023009&SID=303363796&trip_sub3=D15021113`;
+  const slug = dest.toLowerCase().replace(/\s+/g, '-');
+  return `https://www.trip.com/hotels/${slug}-hotels-list/?checkin=${cin}&checkout=${cout}&adult=${adults}&curr=GBP&Allianceid=8023009&SID=303363796&trip_sub3=D15021113`;
 }
 
 function buildExpediaUrl(dest: string, cin: string, cout: string, adults: number): string {
