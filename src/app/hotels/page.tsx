@@ -15,6 +15,27 @@ const CITIES = [
   'Kuala Lumpur', 'Hong Kong', 'Shanghai', 'Seoul', 'Sydney', 'Melbourne', 'Auckland',
   'Los Angeles', 'San Francisco', 'Miami', 'Las Vegas', 'Orlando', 'Toronto', 'Vancouver',
   'Havana', 'Punta Cana', 'Lima', 'Buenos Aires', 'Rio de Janeiro', 'São Paulo',
+  // Pakistan
+  'Lahore', 'Karachi', 'Islamabad', 'Peshawar', 'Faisalabad', 'Rawalpindi', 'Multan',
+  // India expanded
+  'Delhi', 'Goa', 'Jaipur', 'Udaipur', 'Kolkata', 'Chennai', 'Bangalore', 'Hyderabad',
+  // Middle East expanded
+  'Abu Dhabi', 'Muscat', 'Riyadh', 'Jeddah', 'Kuwait City', 'Bahrain', 'Amman', 'Beirut',
+  // Southeast Asia expanded
+  'Hanoi', 'Ho Chi Minh City', 'Siem Reap', 'Colombo', 'Langkawi', 'Penang', 'Manila', 'Cebu',
+  // East Asia expanded
+  'Osaka', 'Kyoto', 'Taipei', 'Beijing', 'Macau', 'Busan',
+  // Europe expanded
+  'Berlin', 'Munich', 'Madrid', 'Seville', 'Malaga', 'Santorini', 'Mykonos', 'Corfu',
+  'Florence', 'Amalfi', 'Bruges', 'Salzburg', 'Zurich', 'Interlaken', 'Monaco', 'Malta',
+  'Tallinn', 'Riga', 'Vilnius', 'Sofia', 'Belgrade', 'Tbilisi', 'Batumi',
+  // Africa expanded
+  'Zanzibar', 'Dar es Salaam', 'Accra', 'Lagos', 'Casablanca', 'Tunis', 'Sharm El Sheikh', 'Hurghada',
+  // Americas expanded
+  'Bogotá', 'Medellín', 'Cartagena', 'Santiago', 'Cusco', 'Mexico City', 'Playa del Carmen',
+  'Montego Bay', 'Barbados', 'Aruba', 'Nassau', 'Bermuda',
+  // Oceania expanded
+  'Gold Coast', 'Fiji', 'Queenstown', 'Perth', 'Cairns',
 ];
 
 function CityPicker({ value, onChange, placeholder }: {
@@ -296,6 +317,30 @@ const CURATED_HOTELS: Record<string, CuratedHotel[]> = {
     { name: 'Ibis Sydney Darling Harbour', stars: 3, area: 'Darling Harbour', priceFrom: 80, priceTo: 140, photos: [U('1631049307264-da0ec9d70304'), U('1618773928121-c32242e63f39'), U('1596394516093-501ba68a0ba6')], highlights: ['Harbour precinct', 'Budget option', 'Near ICC'] },
     { name: 'Wake Up! Sydney', stars: 2, area: 'Central Station', priceFrom: 25, priceTo: 50, photos: [U('1521783988139-89397d761dce'), U('1555854877-bab0e564b8d5'), U('1596394516093-501ba68a0ba6')], highlights: ['Huge hostel', 'Rooftop views', 'Near Surry Hills'] },
     { name: 'Shangri-La Hotel Sydney', stars: 5, area: 'The Rocks', priceFrom: 250, priceTo: 450, photos: [U('1571003123894-1f0594d2b5d9'), U('1582719508461-905c673771fd'), U('1542314831-068cd1dbfeeb')], highlights: ['Harbour views', 'Altitude restaurant', 'Day spa'] },
+  ],
+  Lahore: [
+    { name: 'Pearl Continental Lahore', stars: 5, area: 'The Mall', priceFrom: 60, priceTo: 120, photos: [U('1566073771259-6a8506099945'), U('1542314831-068cd1dbfeeb'), U('1564501049412-61c2a3083791')], highlights: ['Iconic 5-star', 'Pool & spa', 'Near Badshahi Mosque'] },
+    { name: 'Avari Hotel Lahore', stars: 5, area: 'Shahrah-e-Quaid-e-Azam', priceFrom: 50, priceTo: 100, photos: [U('1551882547-ff40c63fe5fa'), U('1445019980597-93fa8acb246c'), U('1578683010236-d716f9a3f461')], highlights: ['Heritage hotel', 'Fine dining', 'Business centre'] },
+    { name: 'Nishat Hotel Lahore', stars: 5, area: 'Gulberg', priceFrom: 55, priceTo: 95, photos: [U('1520250497591-112f2f40a3f4'), U('1611892440504-42a792e24d32'), U('1590490360182-c33d955571d1')], highlights: ['Modern luxury', 'Rooftop pool', 'Near MM Alam Road'] },
+    { name: 'Luxus Grand Hotel', stars: 4, area: 'Main Boulevard', priceFrom: 35, priceTo: 65, photos: [U('1618773928121-c32242e63f39'), U('1631049307264-da0ec9d70304'), U('1606402179428-a57976d71fa4')], highlights: ['Central location', 'Great value', 'Modern rooms'] },
+    { name: 'Faletti\'s Hotel', stars: 4, area: 'Egerton Road', priceFrom: 40, priceTo: 75, photos: [U('1455587734955-081b22074882'), U('1549294413-26f195200c16'), U('1582719478250-c89cae4dc85b')], highlights: ['Colonial heritage', 'Historic charm', 'Lush gardens'] },
+    { name: 'Hotel One Mall Road', stars: 3, area: 'The Mall', priceFrom: 20, priceTo: 40, photos: [U('1596394516093-501ba68a0ba6'), U('1555854877-bab0e564b8d5'), U('1521783988139-89397d761dce')], highlights: ['Budget-friendly', 'Central location', 'Clean & modern'] },
+  ],
+  Karachi: [
+    { name: 'Movenpick Hotel Karachi', stars: 5, area: 'Club Road', priceFrom: 65, priceTo: 130, photos: [U('1542314831-068cd1dbfeeb'), U('1566073771259-6a8506099945'), U('1578683010236-d716f9a3f461')], highlights: ['Swiss hospitality', 'Pool & gym', 'Multiple restaurants'] },
+    { name: 'Pearl Continental Karachi', stars: 5, area: 'Club Road', priceFrom: 55, priceTo: 110, photos: [U('1551882547-ff40c63fe5fa'), U('1520250497591-112f2f40a3f4'), U('1564501049412-61c2a3083791')], highlights: ['Iconic landmark', 'Sea views', 'Business hub'] },
+    { name: 'Avari Towers', stars: 5, area: 'Fatima Jinnah Road', priceFrom: 50, priceTo: 100, photos: [U('1445019980597-93fa8acb246c'), U('1611892440504-42a792e24d32'), U('1590490360182-c33d955571d1')], highlights: ['Twin towers', 'Rooftop restaurant', 'City views'] },
+    { name: 'Marriott Karachi', stars: 4, area: 'Abdullah Haroon Road', priceFrom: 45, priceTo: 85, photos: [U('1582719478250-c89cae4dc85b'), U('1618773928121-c32242e63f39'), U('1455587734955-081b22074882')], highlights: ['International chain', 'Pool', 'Near Clifton Beach'] },
+    { name: 'Beach Luxury Hotel', stars: 4, area: 'M.T. Khan Road', priceFrom: 35, priceTo: 60, photos: [U('1606402179428-a57976d71fa4'), U('1631049307264-da0ec9d70304'), U('1549294413-26f195200c16')], highlights: ['Seafront location', 'Heritage style', 'Harbour views'] },
+    { name: 'Hotel One Clifton', stars: 3, area: 'Clifton', priceFrom: 18, priceTo: 35, photos: [U('1596394516093-501ba68a0ba6'), U('1555854877-bab0e564b8d5'), U('1521783988139-89397d761dce')], highlights: ['Near beach', 'Budget-friendly', 'Modern rooms'] },
+  ],
+  Islamabad: [
+    { name: 'Islamabad Serena Hotel', stars: 5, area: 'Faisal Avenue', priceFrom: 80, priceTo: 160, photos: [U('1566073771259-6a8506099945'), U('1542314831-068cd1dbfeeb'), U('1520250497591-112f2f40a3f4')], highlights: ['Aga Khan property', 'Margalla Hills views', 'Award-winning spa'] },
+    { name: 'Islamabad Marriott', stars: 5, area: 'Aga Khan Road', priceFrom: 70, priceTo: 140, photos: [U('1551882547-ff40c63fe5fa'), U('1578683010236-d716f9a3f461'), U('1564501049412-61c2a3083791')], highlights: ['Near diplomatic enclave', 'Pool & tennis', 'Dynasty restaurant'] },
+    { name: 'Pearl Continental Islamabad', stars: 5, area: 'Blue Area', priceFrom: 55, priceTo: 100, photos: [U('1445019980597-93fa8acb246c'), U('1611892440504-42a792e24d32'), U('1590490360182-c33d955571d1')], highlights: ['Central business area', 'Mountain views', 'Multiple dining'] },
+    { name: 'Ramada by Wyndham', stars: 4, area: 'Jinnah Avenue', priceFrom: 40, priceTo: 70, photos: [U('1618773928121-c32242e63f39'), U('1606402179428-a57976d71fa4'), U('1631049307264-da0ec9d70304')], highlights: ['Modern hotel', 'Near Faisal Mosque', 'Good value'] },
+    { name: 'Envoy Continental', stars: 4, area: 'F-6', priceFrom: 30, priceTo: 55, photos: [U('1582719478250-c89cae4dc85b'), U('1455587734955-081b22074882'), U('1549294413-26f195200c16')], highlights: ['Supermarket area', 'Near hiking trails', 'Business centre'] },
+    { name: 'Hotel One F-7', stars: 3, area: 'F-7 Markaz', priceFrom: 15, priceTo: 30, photos: [U('1596394516093-501ba68a0ba6'), U('1555854877-bab0e564b8d5'), U('1521783988139-89397d761dce')], highlights: ['Budget chain', 'Shopping area', 'Clean & reliable'] },
   ],
 };
 
