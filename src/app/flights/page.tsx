@@ -803,12 +803,11 @@ function FlightsContent() {
                               <div className="text-[.55rem] text-green-600 font-bold mt-0.5">✓ Live price incl. taxes</div>
                             )}
                           </div>
-                          {isDuffel ? (
-                            <button
-                              className="bg-green-600 hover:bg-green-700 text-white font-[Poppins] font-bold text-[.78rem] px-5 py-2.5 rounded-xl transition-all shadow-[0_4px_12px_rgba(22,163,74,0.2)] whitespace-nowrap"
-                            >
+                          {isDuffel && f.offer_id ? (
+                            <a href={`/checkout/${f.offer_id}`}
+                              className="bg-green-600 hover:bg-green-700 text-white font-[Poppins] font-bold text-[.78rem] px-5 py-2.5 rounded-xl transition-all shadow-[0_4px_12px_rgba(22,163,74,0.2)] whitespace-nowrap">
                               Book Now →
-                            </button>
+                            </a>
                           ) : (
                             <a href={redirectUrl(viewDealUrl, 'Aviasales', destCity || destCode, 'flights')}
                               className="bg-[#0066FF] hover:bg-[#0052CC] text-white font-[Poppins] font-bold text-[.78rem] px-5 py-2.5 rounded-xl transition-all shadow-[0_4px_12px_rgba(0,102,255,0.2)] whitespace-nowrap">
