@@ -62,31 +62,7 @@ const PROVIDERS = [
     badge: 'Best Bundles',
     priceMult: 1.0,
     getUrl: (dest: string, dep: string, ret: string, adults: number, children: number) =>
-      `https://www.expedia.co.uk/lp/holidays/${encodeURIComponent(dest.toLowerCase().replace(/ /g, '-'))}?startDate=${dep}&endDate=${ret}&adults=${adults}${children > 0 ? `&children=${children}` : ''}&affcid=clbU3QK`,
-  },
-  {
-    name: 'On the Beach',
-    logo: '🏖',
-    badge: 'UK Favourite',
-    priceMult: 0.97,
-    getUrl: (dest: string) =>
-      `https://www.onthebeach.co.uk/holidays/${encodeURIComponent(dest.toLowerCase().replace(/ /g, '-'))}`,
-  },
-  {
-    name: 'Jet2Holidays',
-    logo: '✈',
-    badge: 'ATOL Protected',
-    priceMult: 1.05,
-    getUrl: (dest: string) =>
-      `https://www.jet2holidays.com/destinations/${encodeURIComponent(dest.toLowerCase().replace(/ /g, '-'))}`,
-  },
-  {
-    name: 'TUI',
-    logo: '🌴',
-    badge: 'All-Inclusive',
-    priceMult: 1.08,
-    getUrl: (dest: string) =>
-      `https://www.tui.co.uk/destinations/${encodeURIComponent(dest.toLowerCase().replace(/ /g, '-'))}`,
+      `https://www.expedia.co.uk/Holidays?destination=${encodeURIComponent(dest)}&startDate=${dep}&endDate=${ret}&adults=${adults}${children > 0 ? `&children=${children}` : ''}&affcid=clbU3QK`,
   },
   {
     name: 'Trip.com',
@@ -94,7 +70,7 @@ const PROVIDERS = [
     badge: 'City Breaks',
     priceMult: 0.94,
     getUrl: (dest: string, dep: string, ret: string, adults: number, children: number) =>
-      `https://www.trip.com/packages/?Allianceid=8023009&SID=303363796&trip_sub1=&trip_sub3=D15021113`,
+      `https://www.trip.com/hotels/list?cityName=${encodeURIComponent(dest)}&checkin=${dep}&checkout=${ret}&adult=${adults}&child=${children}&Allianceid=8023009&SID=303363796&trip_sub1=&trip_sub3=D15021113`,
   },
   {
     name: 'Booking.com',
