@@ -57,10 +57,8 @@ const DESTINATIONS = [
    PROVIDER DEEP LINKS (only affiliated providers)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-function buildHotellookUrl(dest: string, cin: string, cout: string, adults: number, hotelId?: number): string {
-  let u = `https://search.hotellook.com/hotels?destination=${encodeURIComponent(dest)}&checkIn=${cin}&checkOut=${cout}&adults=${adults}&currency=gbp`;
-  if (hotelId) u += `&hotelId=${hotelId}`;
-  return `https://tp.media/r?marker=714449&trs=512633&p=4132&u=${encodeURIComponent(u)}`;
+function buildKlookUrl(dest: string): string {
+  return `https://klook.tpk.lu/CByEYa65?city=${encodeURIComponent(dest)}`;
 }
 
 function buildTripcomUrl(dest: string, cin: string, cout: string, adults: number): string {
@@ -76,7 +74,7 @@ function buildExpediaUrl(dest: string, cin: string, cout: string, adults: number
 type Provider = { name: string; logo: string; getUrl: (dest: string, cin: string, cout: string, adults: number) => string };
 
 const PROVIDERS: Provider[] = [
-  { name: 'Hotellook', logo: '🏨', getUrl: (d, ci, co, a) => buildHotellookUrl(d, ci, co, a) },
+  { name: 'Klook', logo: '🎟', getUrl: (d) => buildKlookUrl(d) },
   { name: 'Trip.com', logo: '🗺', getUrl: (d, ci, co, a) => buildTripcomUrl(d, ci, co, a) },
   { name: 'Expedia', logo: '🌍', getUrl: (d, ci, co, a) => buildExpediaUrl(d, ci, co, a) },
 ];
@@ -177,7 +175,7 @@ function GuestPicker({ adults, onChange }: { adults: number; onChange: (a: numbe
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const LOADING_MSGS = [
-  'Searching Hotellook...',
+  'Searching Klook...',
   'Checking Trip.com...',
   'Comparing Expedia...',
   'Finding the best rates...',
@@ -402,7 +400,7 @@ function HotelsContent() {
               <div className="space-y-3">
                 {hotels!.map((h, i) => {
                   const isCheapest = i === 0;
-                  // Rotate through Unsplash hotel images (Hotellook CDN is dead)
+                  // Rotate through Unsplash hotel images
                   const HOTEL_PHOTOS = [
                     'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=640&h=480&fit=crop',
                     'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=640&h=480&fit=crop',
@@ -417,7 +415,7 @@ function HotelsContent() {
                   ];
                   const photoUrl = HOTEL_PHOTOS[i % HOTEL_PHOTOS.length];
                   const totalPrice = h.pricePerNight * (nights || 1);
-                  const hotellookUrl = buildHotellookUrl(searchedDest, checkin, checkout, adults, h.id);
+                  const klookUrl = buildKlookUrl(searchedDest);
                   const tripUrl = buildTripcomUrl(searchedDest, checkin, checkout, adults);
                   const expediaUrl = buildExpediaUrl(searchedDest, checkin, checkout, adults);
 
@@ -476,9 +474,9 @@ function HotelsContent() {
                               className="bg-[#1B2B65] hover:bg-[#142050] text-white font-[Poppins] font-bold text-[.72rem] px-4 py-2 rounded-lg transition-all text-center whitespace-nowrap">
                               Expedia →
                             </a>
-                            <a href={hotellookUrl} target="_blank" rel="noopener noreferrer"
+                            <a href={klookUrl} target="_blank" rel="noopener noreferrer"
                               className="bg-orange-500 hover:bg-orange-600 text-white font-[Poppins] font-bold text-[.72rem] px-4 py-2 rounded-lg transition-all text-center whitespace-nowrap">
-                              Hotellook →
+                              Klook →
                             </a>
                           </div>
                           <button type="button" title="Scout Sidebar coming soon — neighbourhood intelligence for every hotel."
