@@ -1,8 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+
+const ScoutSidebar = dynamic(() => import('@/components/ScoutSidebar'), { ssr: false });
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DESTINATIONS
@@ -90,6 +93,8 @@ type HotelResult = {
   pricePerNight: number;
   location: string;
   district: string | null;
+  lat?: number;
+  lng?: number;
 };
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -236,6 +241,9 @@ function HotelsContent() {
   const [apiError, setApiError] = useState('');
   const [searched, setSearched] = useState(false);
   const [searchedDest, setSearchedDest] = useState('');
+
+  // Scout sidebar state
+  const [scoutHotel, setScoutHotel] = useState<{ name: string; lat: number; lng: number } | null>(null);
 
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -479,10 +487,18 @@ function HotelsContent() {
                               Klook →
                             </a>
                           </div>
-                          <button type="button" title="Scout Sidebar coming soon — neighbourhood intelligence for every hotel."
-                            className="text-[.68rem] font-bold text-teal-600 border border-teal-200 hover:bg-teal-50 px-3 py-1.5 rounded-lg transition-all cursor-default">
-                            Explore Neighbourhood 🧭
-                          </button>
+                          {h.lat && h.lng ? (
+                            <button type="button"
+                              onClick={() => setScoutHotel({ name: h.name, lat: h.lat!, lng: h.lng! })}
+                              className="text-[.68rem] font-bold text-teal-600 border border-teal-200 hover:bg-teal-50 px-3 py-1.5 rounded-lg transition-all cursor-pointer">
+                              Explore Neighbourhood 🧭
+                            </button>
+                          ) : (
+                            <button type="button" disabled
+                              className="text-[.68rem] font-bold text-gray-400 border border-gray-200 px-3 py-1.5 rounded-lg cursor-default opacity-50">
+                              Neighbourhood N/A
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -581,6 +597,16 @@ function HotelsContent() {
           </div>
         </div>
       </section>
+
+      {/* Scout Sidebar */}
+      {scoutHotel && (
+        <ScoutSidebar
+          hotelName={scoutHotel.name}
+          latitude={scoutHotel.lat}
+          longitude={scoutHotel.lng}
+          onClose={() => setScoutHotel(null)}
+        />
+      )}
 
       <Footer />
     </>

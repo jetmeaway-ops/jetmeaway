@@ -23,6 +23,60 @@ interface CuratedHotel {
   district: string;
 }
 
+/* City-centre coordinates for Scout neighbourhood lookups */
+const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
+  'barcelona': { lat: 41.3874, lng: 2.1686 },
+  'london': { lat: 51.5074, lng: -0.1278 },
+  'paris': { lat: 48.8566, lng: 2.3522 },
+  'dubai': { lat: 25.2048, lng: 55.2708 },
+  'amsterdam': { lat: 52.3676, lng: 4.9041 },
+  'rome': { lat: 41.9028, lng: 12.4964 },
+  'madrid': { lat: 40.4168, lng: -3.7038 },
+  'lisbon': { lat: 38.7223, lng: -9.1393 },
+  'istanbul': { lat: 41.0082, lng: 28.9784 },
+  'new york': { lat: 40.7128, lng: -74.006 },
+  'tokyo': { lat: 35.6762, lng: 139.6503 },
+  'bangkok': { lat: 13.7563, lng: 100.5018 },
+  'singapore': { lat: 1.3521, lng: 103.8198 },
+  'bali': { lat: -8.3405, lng: 115.092 },
+  'malaga': { lat: 36.7213, lng: -4.4214 },
+  'tenerife': { lat: 28.2916, lng: -16.6291 },
+  'nice': { lat: 43.7102, lng: 7.262 },
+  'venice': { lat: 45.4408, lng: 12.3155 },
+  'florence': { lat: 43.7696, lng: 11.2558 },
+  'milan': { lat: 45.4642, lng: 9.19 },
+  'athens': { lat: 37.9838, lng: 23.7275 },
+  'santorini': { lat: 36.3932, lng: 25.4615 },
+  'crete': { lat: 35.2401, lng: 24.4709 },
+  'antalya': { lat: 36.8969, lng: 30.7133 },
+  'dubrovnik': { lat: 42.6507, lng: 18.0944 },
+  'edinburgh': { lat: 55.9533, lng: -3.1883 },
+  'manchester': { lat: 53.4808, lng: -2.2426 },
+  'faro': { lat: 37.0194, lng: -7.9322 },
+  'lanzarote': { lat: 28.9638, lng: -13.5477 },
+  'fuerteventura': { lat: 28.3587, lng: -14.0538 },
+  'alicante': { lat: 38.3452, lng: -0.481 },
+  'palma': { lat: 39.5696, lng: 2.6502 },
+  'rhodes': { lat: 36.4341, lng: 28.2176 },
+  'corfu': { lat: 39.6243, lng: 19.9217 },
+  'split': { lat: 43.5081, lng: 16.4402 },
+  'bodrum': { lat: 37.0344, lng: 27.4305 },
+  'dalaman': { lat: 36.7666, lng: 28.7929 },
+  'marrakech': { lat: 31.6295, lng: -7.9811 },
+  'cairo': { lat: 30.0444, lng: 31.2357 },
+  'cancun': { lat: 21.1619, lng: -86.8515 },
+  'phuket': { lat: 7.8804, lng: 98.3923 },
+  'maldives': { lat: 4.1755, lng: 73.5093 },
+  'sydney': { lat: -33.8688, lng: 151.2093 },
+  'cape town': { lat: -33.9249, lng: 18.4241 },
+  'los angeles': { lat: 34.0522, lng: -118.2437 },
+  'miami': { lat: 25.7617, lng: -80.1918 },
+  'gran canaria': { lat: 27.9202, lng: -15.5474 },
+  'glasgow': { lat: 55.8642, lng: -4.2518 },
+  'liverpool': { lat: 53.4084, lng: -2.9916 },
+  'birmingham': { lat: 52.4862, lng: -1.8904 },
+};
+
 const CURATED: Record<string, CuratedHotel[]> = {
   'barcelona': [
     { id: 1, name: 'Hotel Arts Barcelona', stars: 5, basePrice: 280, district: 'Port Olímpic' },
@@ -374,6 +428,7 @@ export async function GET(req: NextRequest) {
     // Try partial match
     const match = Object.keys(CURATED).find(k => k.includes(cityKey) || cityKey.includes(k));
     if (match) {
+      const coords = CITY_COORDS[match];
       const hotels = CURATED[match].map(h => ({
         id: h.id,
         name: h.name,
@@ -381,6 +436,7 @@ export async function GET(req: NextRequest) {
         pricePerNight: h.basePrice,
         location: match.charAt(0).toUpperCase() + match.slice(1),
         district: h.district,
+        ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
       }));
 
       const result = { hotels, city: match.charAt(0).toUpperCase() + match.slice(1), checkin, checkout, adults: parseInt(adults) };
@@ -391,6 +447,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ hotels: [], city, checkin, checkout, adults: parseInt(adults), message: 'No hotels found for this destination' });
   }
 
+  const coords = CITY_COORDS[cityKey];
   const hotels = curated.map(h => ({
     id: h.id,
     name: h.name,
@@ -398,6 +455,7 @@ export async function GET(req: NextRequest) {
     pricePerNight: h.basePrice,
     location: city.charAt(0).toUpperCase() + city.slice(1),
     district: h.district,
+    ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
   }));
 
   const result = {
