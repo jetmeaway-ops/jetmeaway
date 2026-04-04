@@ -417,7 +417,9 @@ function HotelsContent() {
                   ];
                   const photoUrl = HOTEL_PHOTOS[i % HOTEL_PHOTOS.length];
                   const totalPrice = h.pricePerNight * (nights || 1);
-                  const viewDealUrl = buildHotellookUrl(searchedDest, checkin, checkout, adults, h.id);
+                  const hotellookUrl = buildHotellookUrl(searchedDest, checkin, checkout, adults, h.id);
+                  const tripUrl = buildTripcomUrl(searchedDest, checkin, checkout, adults);
+                  const expediaUrl = buildExpediaUrl(searchedDest, checkin, checkout, adults);
 
                   return (
                     <div key={h.id || i} className={`bg-white border rounded-2xl overflow-hidden transition-shadow hover:shadow-md ${isCheapest ? 'border-orange-200 ring-1 ring-orange-100' : 'border-[#E8ECF4]'}`}>
@@ -465,10 +467,20 @@ function HotelsContent() {
                               <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">£{totalPrice} total for {nights} night{nights !== 1 ? 's' : ''}</div>
                             )}
                           </div>
-                          <a href={viewDealUrl} target="_blank" rel="noopener noreferrer"
-                            className="bg-orange-500 hover:bg-orange-600 text-white font-[Poppins] font-bold text-[.78rem] px-5 py-2.5 rounded-xl transition-all shadow-[0_4px_12px_rgba(245,158,11,0.2)] whitespace-nowrap">
-                            View Deal →
-                          </a>
+                          <div className="flex flex-col gap-1.5 w-full">
+                            <a href={tripUrl} target="_blank" rel="noopener noreferrer"
+                              className="bg-[#287DFA] hover:bg-[#1A6AE0] text-white font-[Poppins] font-bold text-[.72rem] px-4 py-2 rounded-lg transition-all text-center whitespace-nowrap">
+                              Trip.com →
+                            </a>
+                            <a href={expediaUrl} target="_blank" rel="noopener noreferrer"
+                              className="bg-[#1B2B65] hover:bg-[#142050] text-white font-[Poppins] font-bold text-[.72rem] px-4 py-2 rounded-lg transition-all text-center whitespace-nowrap">
+                              Expedia →
+                            </a>
+                            <a href={hotellookUrl} target="_blank" rel="noopener noreferrer"
+                              className="bg-orange-500 hover:bg-orange-600 text-white font-[Poppins] font-bold text-[.72rem] px-4 py-2 rounded-lg transition-all text-center whitespace-nowrap">
+                              Hotellook →
+                            </a>
+                          </div>
                           <button type="button" title="Scout Sidebar coming soon — neighbourhood intelligence for every hotel."
                             className="text-[.68rem] font-bold text-teal-600 border border-teal-200 hover:bg-teal-50 px-3 py-1.5 rounded-lg transition-all cursor-default">
                             Explore Neighbourhood 🧭
