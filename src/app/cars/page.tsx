@@ -67,49 +67,56 @@ const PROVIDERS = [
     logo: '🚗',
     badge: 'Cheapest Rates',
     priceMult: 0.94,
-    getUrl: () => `https://economybookings.tpk.lu/l4nXf9yp`,
+    getUrl: (loc: string, pickup: string, dropoff: string) =>
+      `https://www.economybookings.com/en/search?location=${encodeURIComponent(loc)}&pick_date=${pickup}&drop_date=${dropoff}&utm_source=travelpayouts&utm_medium=affiliate`,
   },
   {
     name: 'QEEQ',
     logo: '⚡',
     badge: 'Instant Booking',
     priceMult: 0.97,
-    getUrl: () => `https://qeeq.tpk.lu/Cyqm3v5G`,
+    getUrl: (loc: string, pickup: string, dropoff: string) =>
+      `https://www.qeeq.com/car-rental/${encodeURIComponent(loc.toLowerCase().replace(/ /g, '-'))}?pickup_date=${pickup}&dropoff_date=${dropoff}`,
   },
   {
     name: 'LocalRent',
     logo: '🗺',
     badge: 'Local Deals',
     priceMult: 0.91,
-    getUrl: () => `https://localrent.tpk.lu/YdaiKgGZ`,
+    getUrl: (loc: string) =>
+      `https://localrent.com/en/rent-a-car/${encodeURIComponent(loc.toLowerCase().replace(/ /g, '-'))}/`,
   },
   {
     name: 'GetRentaCar',
     logo: '🌐',
     badge: 'Worldwide',
     priceMult: 1.0,
-    getUrl: () => `https://getrentacar.tpk.lu/YC9A3PrT`,
+    getUrl: (loc: string, pickup: string, dropoff: string) =>
+      `https://getrentacar.com/en/search?location=${encodeURIComponent(loc)}&date_from=${pickup}&date_to=${dropoff}`,
   },
   {
     name: 'Klook',
     logo: '🎫',
     badge: 'Activities + Cars',
     priceMult: 1.03,
-    getUrl: () => `https://klook.tpk.lu/CByEYa65`,
+    getUrl: (loc: string) =>
+      `https://www.klook.com/en-GB/cars/?city=${encodeURIComponent(loc)}`,
   },
   {
     name: 'Expedia',
     logo: '🌍',
     badge: 'Bundle & Save',
     priceMult: 1.06,
-    getUrl: () => `https://expedia.com/affiliates/expedia-home.AVaycVy`,
+    getUrl: (loc: string, pickup: string, dropoff: string) =>
+      `https://www.expedia.co.uk/carsearch?locn=${encodeURIComponent(loc)}&date1=${pickup}&date2=${dropoff}&affcid=clbU3QK`,
   },
   {
     name: 'Trip.com',
     logo: '🗺',
     badge: 'City Rentals',
     priceMult: 1.02,
-    getUrl: () => `https://www.trip.com/carhire/?Allianceid=8023009&SID=303363796&trip_sub1=&trip_sub3=D15021113`,
+    getUrl: (loc: string, pickup: string, dropoff: string) =>
+      `https://www.trip.com/carhire/?pickUpLocation=${encodeURIComponent(loc)}&pickUpDate=${pickup}&dropOffDate=${dropoff}&Allianceid=8023009&SID=303363796&trip_sub1=&trip_sub3=D15021113`,
   },
 ];
 
@@ -400,7 +407,7 @@ export default function CarsPage() {
                               return estPrice <= opPrice;
                             });
                             return (
-                              <a key={p.name} href={p.getUrl()} target="_blank" rel="noopener"
+                              <a key={p.name} href={p.getUrl(location, pickupDate, dropoffDate)} target="_blank" rel="noopener"
                                 className={`relative flex flex-col items-center gap-0.5 rounded-xl px-3 py-2.5 transition-all group border ${isCheapest ? 'bg-green-50 border-green-300 hover:border-green-400' : 'bg-[#F8FAFC] border-[#E8ECF4] hover:border-emerald-200 hover:bg-emerald-50'}`}>
                                 {isCheapest && (
                                   <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[.5rem] font-black uppercase tracking-wider bg-green-500 text-white px-2 py-0.5 rounded-full">Cheapest</span>
