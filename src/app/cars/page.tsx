@@ -1,28 +1,76 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
-const CITIES = [
-  'Dubai', 'Barcelona', 'Antalya', 'Palma', 'Tenerife', 'Maldives', 'Tokyo', 'Paris',
-  'New York', 'Bangkok', 'Athens', 'Lisbon', 'Rome', 'Faro', 'Gran Canaria', 'Crete',
-  'Amsterdam', 'Singapore', 'Istanbul', 'Doha', 'Cancún', 'Cape Town', 'Reykjavik',
-  'Vienna', 'Prague', 'London', 'Manchester', 'Edinburgh', 'Dublin', 'Nice', 'Milan',
-  'Venice', 'Naples', 'Porto', 'Zürich', 'Geneva', 'Brussels', 'Copenhagen', 'Stockholm',
-  'Oslo', 'Helsinki', 'Warsaw', 'Kraków', 'Budapest', 'Bucharest', 'Split', 'Dubrovnik',
-  'Marrakesh', 'Cairo', 'Nairobi', 'Johannesburg', 'Mumbai', 'Bali', 'Phuket',
-  'Kuala Lumpur', 'Hong Kong', 'Shanghai', 'Seoul', 'Sydney', 'Melbourne', 'Auckland',
-  'Los Angeles', 'San Francisco', 'Miami', 'Las Vegas', 'Orlando', 'Toronto', 'Vancouver',
-  'Havana', 'Punta Cana', 'Lima', 'Buenos Aires', 'Rio de Janeiro', 'São Paulo',
-  'London Gatwick', 'London Heathrow', 'London Stansted', 'London Luton', 'London City',
-  'Manchester Airport', 'Birmingham Airport', 'Edinburgh Airport', 'Glasgow Airport',
-  'Bristol Airport', 'Leeds Bradford', 'Liverpool Airport', 'Newcastle Airport',
-  'Malaga Airport', 'Alicante Airport', 'Faro Airport', 'Antalya Airport',
-  'Dubai Airport', 'Larnaca Airport', 'Paphos Airport', 'Dalaman Airport',
+/* ═══════════════════════════════════════════════════════════════════════════
+   LOCATIONS — airports + city centres
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const LOCATIONS = [
+  // UK airports
+  'London Heathrow Airport (LHR)', 'London Gatwick Airport (LGW)', 'London Stansted Airport (STN)',
+  'London Luton Airport (LTN)', 'London City Airport (LCY)', 'London Southend Airport (SEN)',
+  'Manchester Airport (MAN)', 'Birmingham Airport (BHX)', 'Edinburgh Airport (EDI)',
+  'Glasgow Airport (GLA)', 'Bristol Airport (BRS)', 'Leeds Bradford Airport (LBA)',
+  'Liverpool Airport (LPL)', 'Newcastle Airport (NCL)', 'East Midlands Airport (EMA)',
+  'Belfast Airport (BFS)', 'Aberdeen Airport (ABZ)', 'Southampton Airport (SOU)',
+  'Cardiff Airport (CWL)', 'Bournemouth Airport (BOH)',
+  // UK city centres
+  'London City Centre', 'Manchester City Centre', 'Birmingham City Centre',
+  'Edinburgh City Centre', 'Glasgow City Centre', 'Liverpool City Centre',
+  'Leeds City Centre', 'Bristol City Centre', 'Newcastle City Centre',
+  // Spain & Portugal
+  'Barcelona Airport (BCN)', 'Barcelona City Centre', 'Madrid Airport (MAD)', 'Madrid City Centre',
+  'Malaga Airport (AGP)', 'Malaga City Centre', 'Alicante Airport (ALC)', 'Alicante City Centre',
+  'Palma Airport (PMI)', 'Palma City Centre', 'Tenerife South Airport (TFS)', 'Tenerife North Airport (TFN)',
+  'Lanzarote Airport (ACE)', 'Fuerteventura Airport (FUE)', 'Gran Canaria Airport (LPA)',
+  'Faro Airport (FAO)', 'Faro City Centre', 'Lisbon Airport (LIS)', 'Lisbon City Centre',
+  'Seville Airport (SVQ)', 'Ibiza Airport (IBZ)',
+  // France
+  'Paris Charles de Gaulle Airport (CDG)', 'Paris Orly Airport (ORY)', 'Paris City Centre',
+  'Nice Airport (NCE)', 'Nice City Centre', 'Lyon Airport (LYS)', 'Marseille Airport (MRS)',
+  // Italy
+  'Rome Fiumicino Airport (FCO)', 'Rome City Centre', 'Milan Malpensa Airport (MXP)', 'Milan City Centre',
+  'Venice Airport (VCE)', 'Venice City Centre', 'Florence Airport (FLR)', 'Florence City Centre',
+  'Naples Airport (NAP)',
+  // Netherlands
+  'Amsterdam Schiphol Airport (AMS)', 'Amsterdam City Centre',
+  // Greece
+  'Athens Airport (ATH)', 'Athens City Centre', 'Crete Heraklion Airport (HER)',
+  'Rhodes Airport (RHO)', 'Corfu Airport (CFU)', 'Santorini Airport (JTR)',
+  // Croatia
+  'Dubrovnik Airport (DBV)', 'Dubrovnik City Centre', 'Split Airport (SPU)', 'Split City Centre',
+  // Turkey
+  'Antalya Airport (AYT)', 'Antalya City Centre', 'Bodrum Airport (BJV)', 'Bodrum City Centre',
+  'Dalaman Airport (DLM)', 'Istanbul Airport (IST)', 'Istanbul City Centre',
+  // UAE
+  'Dubai Airport (DXB)', 'Dubai City Centre', 'Abu Dhabi Airport (AUH)',
+  // Morocco & Egypt
+  'Marrakech Airport (RAK)', 'Marrakech City Centre', 'Cairo Airport (CAI)',
+  // Americas
+  'New York JFK Airport (JFK)', 'New York City Centre', 'Los Angeles Airport (LAX)', 'Los Angeles City Centre',
+  'Miami Airport (MIA)', 'Miami City Centre', 'San Francisco Airport (SFO)',
+  'Las Vegas Airport (LAS)', 'Orlando Airport (MCO)', 'Cancun Airport (CUN)',
+  'Toronto Airport (YYZ)', 'Vancouver Airport (YVR)',
+  // Asia
+  'Bangkok Airport (BKK)', 'Bangkok City Centre', 'Singapore Changi Airport (SIN)',
+  'Tokyo Narita Airport (NRT)', 'Bali Airport (DPS)', 'Phuket Airport (HKT)',
+  'Kuala Lumpur Airport (KUL)', 'Hong Kong Airport (HKG)', 'Seoul Airport (ICN)',
+  // Australia
+  'Sydney Airport (SYD)', 'Sydney City Centre', 'Melbourne Airport (MEL)',
+  // Africa
+  'Cape Town Airport (CPT)', 'Johannesburg Airport (JNB)',
+  // Pakistan
+  'Lahore Airport (LHE)', 'Islamabad Airport (ISB)', 'Karachi Airport (KHI)',
 ];
 
-function CityPicker({ value, onChange, placeholder }: {
+/* ═══════════════════════════════════════════════════════════════════════════
+   LOCATION PICKER
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function LocationPicker({ value, onChange, placeholder }: {
   value: string; onChange: (v: string) => void; placeholder: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -36,22 +84,21 @@ function CityPicker({ value, onChange, placeholder }: {
 
   const q = value.toLowerCase().trim();
   const results = q.length >= 1
-    ? CITIES.filter(c => c.toLowerCase().startsWith(q) || c.toLowerCase().includes(q)).slice(0, 7)
+    ? LOCATIONS.filter(l => l.toLowerCase().includes(q)).slice(0, 8)
     : [];
 
   return (
     <div ref={ref} className="relative">
       <input type="text" placeholder={placeholder} value={value} autoComplete="off"
         onChange={e => { onChange(e.target.value); setOpen(true); }}
-        onFocus={() => { if (results.length > 0) setOpen(true); }}
-        onKeyDown={e => { if (e.key === 'Enter') setOpen(false); }}
+        onFocus={() => { if (value.length >= 1) setOpen(true); }}
         className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-emerald-500 focus:bg-white transition-all placeholder:text-[#B0B8CC] placeholder:font-medium" />
       {open && results.length > 0 && (
-        <ul className="absolute z-50 w-full mt-1.5 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl overflow-hidden">
-          {results.map(c => (
-            <li key={c} onMouseDown={() => { onChange(c); setOpen(false); }}
-              className="px-4 py-3 hover:bg-emerald-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 font-[Poppins] font-semibold text-[.88rem] text-[#1A1D2B]">
-              {c}
+        <ul className="absolute z-50 w-full mt-1.5 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl overflow-auto max-h-64">
+          {results.map(l => (
+            <li key={l} onMouseDown={() => { onChange(l); setOpen(false); }}
+              className={`px-4 py-3 hover:bg-emerald-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 font-[Poppins] font-semibold text-[.85rem] text-[#1A1D2B] ${value === l ? 'bg-emerald-50' : ''}`}>
+              {l.includes('Airport') ? '✈️ ' : '🏙️ '}{l}
             </li>
           ))}
         </ul>
@@ -60,164 +107,200 @@ function CityPicker({ value, onChange, placeholder }: {
   );
 }
 
-// ─── Providers (only revenue-generating affiliates) ─────────────────────────
-const PROVIDERS = [
+/* ═══════════════════════════════════════════════════════════════════════════
+   LOADING MESSAGES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const LOADING_MSGS = [
+  'Searching Economy Bookings...',
+  'Checking Localrent...',
+  'Comparing Qeeq...',
+  'Scanning GetRentaCar...',
+  'Checking Expedia...',
+];
+
+function LoadingState({ loc }: { loc: string }) {
+  const [msgIdx, setMsgIdx] = useState(0);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const msgTimer = setInterval(() => setMsgIdx(i => (i + 1) % LOADING_MSGS.length), 600);
+    const progTimer = setInterval(() => setProgress(p => Math.min(p + 2, 95)), 50);
+    return () => { clearInterval(msgTimer); clearInterval(progTimer); };
+  }, []);
+
+  return (
+    <section className="max-w-[900px] mx-auto px-5 py-10">
+      <div className="bg-white border border-[#E8ECF4] rounded-2xl p-8 text-center shadow-sm">
+        <div className="w-full bg-[#F1F3F7] rounded-full h-2 mb-5 overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full transition-all duration-100" style={{ width: `${progress}%` }} />
+        </div>
+        <div className="flex items-center justify-center gap-3 mb-3">
+          <div className="w-5 h-5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+          <span className="text-[.9rem] font-bold text-[#5C6378]">{LOADING_MSGS[msgIdx]}</span>
+        </div>
+        <p className="text-[.78rem] text-[#8E95A9] font-semibold">Comparing car hire in <strong className="text-[#1A1D2B]">{loc}</strong></p>
+      </div>
+    </section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AFFILIATE LINK BUILDERS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const TP_WRAP = 'https://tp.media/r?marker=714449&trs=512633';
+
+function buildEconomyBookingsUrl(loc: string, pickup: string, dropoff: string, pickupTime: string, dropoffTime: string, age: string) {
+  const inner = `https://www.economybookings.com/search?location=${encodeURIComponent(loc)}&pick_up_date=${pickup}&drop_off_date=${dropoff}&pick_up_time=${pickupTime}&drop_off_time=${dropoffTime}&driver_age=${age}&currency=GBP`;
+  return `${TP_WRAP}&p=3882&u=${encodeURIComponent(inner)}`;
+}
+
+function buildLocalrentUrl(loc: string, pickup: string, dropoff: string) {
+  const inner = `https://localrent.com/en/search?location=${encodeURIComponent(loc)}&date_from=${pickup}&date_to=${dropoff}&currency=GBP`;
+  return `${TP_WRAP}&p=7791&u=${encodeURIComponent(inner)}`;
+}
+
+function buildQeeqUrl(loc: string, pickup: string, dropoff: string, pickupTime: string, dropoffTime: string) {
+  const inner = `https://www.qeeq.com/search?pickup=${encodeURIComponent(loc)}&pickup_date=${pickup}&dropoff_date=${dropoff}&pickup_time=${pickupTime}&dropoff_time=${dropoffTime}&currency=GBP`;
+  return `${TP_WRAP}&p=8048&u=${encodeURIComponent(inner)}`;
+}
+
+function buildGetRentaCarUrl(loc: string, pickup: string, dropoff: string) {
+  const inner = `https://getrentacar.com/search?location=${encodeURIComponent(loc)}&from=${pickup}&to=${dropoff}&currency=GBP`;
+  return `${TP_WRAP}&p=9498&u=${encodeURIComponent(inner)}`;
+}
+
+function buildExpediaUrl(loc: string, pickup: string, dropoff: string, pickupTime: string, dropoffTime: string) {
+  return `https://www.expedia.co.uk/carsearch?locn=${encodeURIComponent(loc)}&date1=${pickup}&date2=${dropoff}&time1=${pickupTime}&time2=${dropoffTime}&affcid=clbU3QK`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PROVIDER DATA
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+interface Provider {
+  name: string;
+  tagline: string;
+  selling: string[];
+  extra?: string;
+  color: string;
+  bgColor: string;
+  buildUrl: (loc: string, pickup: string, dropoff: string, pickupTime: string, dropoffTime: string, age: string) => string;
+}
+
+const PROVIDERS: Provider[] = [
   {
-    name: 'EconomyBookings',
-    logo: '🚗',
-    badge: 'Cheapest Rates',
-    priceMult: 0.94,
-    getUrl: (loc: string, pickup: string, dropoff: string) =>
-      `https://www.economybookings.com/en/search?location=${encodeURIComponent(loc)}&pick_date=${pickup}&drop_date=${dropoff}&utm_source=travelpayouts&utm_medium=affiliate`,
+    name: 'Economy Bookings',
+    tagline: 'One of the largest car rental comparison sites — compares 900+ companies',
+    selling: ['Free cancellation on most bookings', 'No hidden fees', 'Best price guarantee'],
+    extra: 'Under 25? Economy Bookings has lower young driver surcharges than most providers',
+    color: '#2563EB',
+    bgColor: '#EFF6FF',
+    buildUrl: (loc, pickup, dropoff, pickupTime, dropoffTime, age) =>
+      buildEconomyBookingsUrl(loc, pickup, dropoff, pickupTime, dropoffTime, age),
   },
   {
-    name: 'QEEQ',
-    logo: '⚡',
-    badge: 'Instant Booking',
-    priceMult: 0.97,
-    getUrl: (loc: string, pickup: string, dropoff: string) =>
-      `https://www.qeeq.com/car-rental/${encodeURIComponent(loc.toLowerCase().replace(/ /g, '-'))}?pickup_date=${pickup}&dropoff_date=${dropoff}`,
+    name: 'Localrent',
+    tagline: 'Rent directly from local companies — often cheaper than international chains',
+    selling: ['Direct from local owners', 'Full insurance included', 'No deposit on many cars'],
+    color: '#059669',
+    bgColor: '#ECFDF5',
+    buildUrl: (loc, pickup, dropoff) => buildLocalrentUrl(loc, pickup, dropoff),
   },
   {
-    name: 'LocalRent',
-    logo: '🗺',
-    badge: 'Local Deals',
-    priceMult: 0.91,
-    getUrl: (loc: string) =>
-      `https://localrent.com/en/rent-a-car/${encodeURIComponent(loc.toLowerCase().replace(/ /g, '-'))}/`,
+    name: 'Qeeq',
+    tagline: 'Compare 300+ car rental suppliers worldwide',
+    selling: ['Price match guarantee', 'Free cancellation', 'No credit card fees'],
+    color: '#7C3AED',
+    bgColor: '#F5F3FF',
+    buildUrl: (loc, pickup, dropoff, pickupTime, dropoffTime) =>
+      buildQeeqUrl(loc, pickup, dropoff, pickupTime, dropoffTime),
   },
   {
     name: 'GetRentaCar',
-    logo: '🌐',
-    badge: 'Worldwide',
-    priceMult: 1.0,
-    getUrl: (loc: string, pickup: string, dropoff: string) =>
-      `https://getrentacar.com/en/search?location=${encodeURIComponent(loc)}&date_from=${pickup}&date_to=${dropoff}`,
-  },
-  {
-    name: 'Klook',
-    logo: '🎫',
-    badge: 'Activities + Cars',
-    priceMult: 1.03,
-    getUrl: (loc: string) =>
-      `https://www.klook.com/en-GB/cars/?city=${encodeURIComponent(loc)}`,
+    tagline: 'Budget-friendly car hire with transparent pricing',
+    selling: ['No hidden charges', 'Full-to-full fuel policy', '24/7 support'],
+    color: '#DC2626',
+    bgColor: '#FEF2F2',
+    buildUrl: (loc, pickup, dropoff) => buildGetRentaCarUrl(loc, pickup, dropoff),
   },
   {
     name: 'Expedia',
-    logo: '🌍',
-    badge: 'Bundle & Save',
-    priceMult: 1.06,
-    getUrl: (loc: string, pickup: string, dropoff: string) =>
-      `https://www.expedia.co.uk/carsearch?locn=${encodeURIComponent(loc)}&date1=${pickup}&date2=${dropoff}&affcid=clbU3QK`,
-  },
-  {
-    name: 'Trip.com',
-    logo: '🗺',
-    badge: 'City Rentals',
-    priceMult: 1.02,
-    getUrl: (loc: string, pickup: string, dropoff: string) =>
-      `https://www.trip.com/carhire/?pickUpLocation=${encodeURIComponent(loc)}&pickUpDate=${pickup}&dropOffDate=${dropoff}&Allianceid=8023009&SID=303363796&trip_sub1=&trip_sub3=D15021113`,
+    tagline: 'Car hire from a name you trust — part of the Expedia family',
+    selling: ['Earn Expedia rewards points', 'Bundle with flights and hotels for extra savings', 'Flexible cancellation'],
+    color: '#D97706',
+    bgColor: '#FFFBEB',
+    buildUrl: (loc, pickup, dropoff, pickupTime, dropoffTime) =>
+      buildExpediaUrl(loc, pickup, dropoff, pickupTime, dropoffTime),
   },
 ];
 
-// ─── Curated car data ───────────────────────────────────────────────────────
-type CuratedCar = {
-  type: string;
-  example: string;
-  seats: number;
-  bags: number;
-  transmission: 'Manual' | 'Automatic';
-  ac: boolean;
-  pricePerDay: number;
-  features: string[];
-};
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPARISON TABLE
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-const CURATED_CARS: Record<string, CuratedCar[]> = {
-  'UK & Europe': [
-    { type: 'Economy', example: 'Fiat 500 or similar', seats: 4, bags: 1, transmission: 'Manual', ac: true, pricePerDay: 18, features: ['Great fuel economy', 'Easy to park', 'Insurance included'] },
-    { type: 'Compact', example: 'VW Golf or similar', seats: 5, bags: 2, transmission: 'Manual', ac: true, pricePerDay: 25, features: ['Comfortable for 4', 'Motorway-ready', 'USB charging'] },
-    { type: 'Mid-size', example: 'Ford Focus or similar', seats: 5, bags: 3, transmission: 'Automatic', ac: true, pricePerDay: 32, features: ['Spacious boot', 'Auto gearbox', 'Cruise control'] },
-    { type: 'SUV', example: 'Nissan Qashqai or similar', seats: 5, bags: 3, transmission: 'Automatic', ac: true, pricePerDay: 42, features: ['High driving position', 'All-terrain capable', 'Family-friendly'] },
-    { type: 'Estate', example: 'Skoda Octavia Estate or similar', seats: 5, bags: 5, transmission: 'Automatic', ac: true, pricePerDay: 38, features: ['Huge boot space', 'Perfect for road trips', 'Roof rack option'] },
-    { type: 'Premium', example: 'BMW 3 Series or similar', seats: 5, bags: 3, transmission: 'Automatic', ac: true, pricePerDay: 55, features: ['Leather seats', 'Sat-nav included', 'Premium audio'] },
-    { type: 'Minivan', example: 'Ford Galaxy or similar', seats: 7, bags: 4, transmission: 'Automatic', ac: true, pricePerDay: 58, features: ['7 seats', 'Sliding doors', 'Great for groups'] },
-    { type: 'Convertible', example: 'MINI Cooper Convertible or similar', seats: 4, bags: 1, transmission: 'Automatic', ac: true, pricePerDay: 48, features: ['Open-top driving', 'Fun & sporty', 'Perfect for coast roads'] },
-  ],
-  'Dubai & Middle East': [
-    { type: 'Economy', example: 'Toyota Yaris or similar', seats: 5, bags: 2, transmission: 'Automatic', ac: true, pricePerDay: 15, features: ['Fuel efficient', 'Easy to park', 'AC standard'] },
-    { type: 'Mid-size', example: 'Toyota Camry or similar', seats: 5, bags: 3, transmission: 'Automatic', ac: true, pricePerDay: 28, features: ['Comfortable sedan', 'Highway cruiser', 'Great value'] },
-    { type: 'SUV', example: 'Nissan X-Trail or similar', seats: 5, bags: 3, transmission: 'Automatic', ac: true, pricePerDay: 38, features: ['Desert-ready', 'High clearance', 'Family-friendly'] },
-    { type: 'Luxury SUV', example: 'Range Rover Sport or similar', seats: 5, bags: 3, transmission: 'Automatic', ac: true, pricePerDay: 120, features: ['Premium interior', 'Off-road capable', 'Heads will turn'] },
-    { type: 'Premium', example: 'BMW 5 Series or similar', seats: 5, bags: 3, transmission: 'Automatic', ac: true, pricePerDay: 85, features: ['Business class on wheels', 'Leather & nav', 'Valet-worthy'] },
-    { type: 'Minivan', example: 'Toyota Previa or similar', seats: 7, bags: 4, transmission: 'Automatic', ac: true, pricePerDay: 48, features: ['7 seats', 'Airport pickup ready', 'Great for families'] },
-  ],
-  'Turkey': [
-    { type: 'Economy', example: 'Fiat Egea or similar', seats: 5, bags: 2, transmission: 'Manual', ac: true, pricePerDay: 12, features: ['Best value', 'Fuel efficient', 'Easy parking'] },
-    { type: 'Compact', example: 'Renault Clio or similar', seats: 5, bags: 2, transmission: 'Manual', ac: true, pricePerDay: 16, features: ['Comfortable', 'Good for town & coast', 'USB port'] },
-    { type: 'Mid-size', example: 'Toyota Corolla or similar', seats: 5, bags: 3, transmission: 'Automatic', ac: true, pricePerDay: 24, features: ['Reliable', 'Auto gearbox', 'Long-distance comfort'] },
-    { type: 'SUV', example: 'Dacia Duster or similar', seats: 5, bags: 3, transmission: 'Manual', ac: true, pricePerDay: 28, features: ['Rugged & cheap', 'Mountain-ready', 'High clearance'] },
-    { type: 'Minivan', example: 'Fiat Doblo or similar', seats: 7, bags: 4, transmission: 'Manual', ac: true, pricePerDay: 32, features: ['Family-friendly', '7 seats', 'Huge boot'] },
-    { type: 'Convertible', example: 'MINI Convertible or similar', seats: 4, bags: 1, transmission: 'Automatic', ac: true, pricePerDay: 45, features: ['Coastal cruising', 'Open-top fun', 'Turquoise Coast perfection'] },
-  ],
-  'USA': [
-    { type: 'Economy', example: 'Nissan Versa or similar', seats: 5, bags: 2, transmission: 'Automatic', ac: true, pricePerDay: 22, features: ['Budget-friendly', 'Great MPG', 'City-ready'] },
-    { type: 'Mid-size', example: 'Toyota Camry or similar', seats: 5, bags: 3, transmission: 'Automatic', ac: true, pricePerDay: 35, features: ['Highway cruiser', 'Comfortable ride', 'Apple CarPlay'] },
-    { type: 'Full-size SUV', example: 'Chevrolet Tahoe or similar', seats: 7, bags: 5, transmission: 'Automatic', ac: true, pricePerDay: 65, features: ['American classic', 'Room for everything', '7 seats'] },
-    { type: 'Convertible', example: 'Ford Mustang Convertible or similar', seats: 4, bags: 2, transmission: 'Automatic', ac: true, pricePerDay: 58, features: ['Iconic road trip car', 'V6 power', 'Open-top thrills'] },
-    { type: 'Premium', example: 'Tesla Model 3 or similar', seats: 5, bags: 3, transmission: 'Automatic', ac: true, pricePerDay: 55, features: ['All-electric', 'Autopilot', 'Zero emissions'] },
-    { type: 'Minivan', example: 'Chrysler Pacifica or similar', seats: 7, bags: 5, transmission: 'Automatic', ac: true, pricePerDay: 52, features: ['Family road trips', 'Sliding doors', 'Entertainment system'] },
-  ],
-  'Spain & Portugal': [
-    { type: 'Economy', example: 'Seat Ibiza or similar', seats: 5, bags: 2, transmission: 'Manual', ac: true, pricePerDay: 14, features: ['Cheapest option', 'City-friendly', 'Fuel sipper'] },
-    { type: 'Compact', example: 'Seat Leon or similar', seats: 5, bags: 2, transmission: 'Manual', ac: true, pricePerDay: 20, features: ['Comfortable cruiser', 'Motorway-ready', 'USB port'] },
-    { type: 'SUV', example: 'Seat Ateca or similar', seats: 5, bags: 3, transmission: 'Automatic', ac: true, pricePerDay: 35, features: ['Mountain-ready', 'Auto gearbox', 'Great views'] },
-    { type: 'Convertible', example: 'MINI Cooper Convertible or similar', seats: 4, bags: 1, transmission: 'Automatic', ac: true, pricePerDay: 42, features: ['Coastal roads', 'Mediterranean sun', 'Sporty'] },
-    { type: 'Minivan', example: 'Citroen Berlingo or similar', seats: 7, bags: 4, transmission: 'Manual', ac: true, pricePerDay: 30, features: ['Family holidays', '7 seats', 'Huge boot'] },
-    { type: 'Premium', example: 'Mercedes C-Class or similar', seats: 5, bags: 3, transmission: 'Automatic', ac: true, pricePerDay: 52, features: ['Luxury touring', 'Leather seats', 'Sat-nav'] },
-  ],
-};
+const COMPARE_ROWS = [
+  { feature: 'Free cancellation', values: ['✅', '✅', '✅', '✅', '✅'] },
+  { feature: 'No deposit options', values: ['❌', '✅', '❌', '✅', '❌'] },
+  { feature: 'Young driver friendly', values: ['✅ Best rates', '✅', '✅', '✅', '⚠️ Higher surcharge'] },
+  { feature: 'Local companies', values: ['❌', '✅ Specialist', '❌', '✅', '❌'] },
+  { feature: 'Loyalty rewards', values: ['❌', '❌', '❌', '❌', '✅ Expedia points'] },
+  { feature: 'Full insurance included', values: ['⚠️ Optional', '✅ Most cars', '⚠️ Optional', '✅ Most cars', '⚠️ Optional'] },
+];
 
-function getRegionForCity(city: string): string {
-  const c = city.toLowerCase();
-  if (['dubai', 'abu dhabi', 'doha', 'muscat', 'riyadh', 'jeddah', 'bahrain'].some(k => c.includes(k))) return 'Dubai & Middle East';
-  if (['antalya', 'istanbul', 'bodrum', 'dalaman', 'izmir', 'fethiye', 'cappadocia'].some(k => c.includes(k))) return 'Turkey';
-  if (['new york', 'los angeles', 'san francisco', 'miami', 'las vegas', 'orlando', 'chicago', 'hawaii', 'boston', 'washington'].some(k => c.includes(k))) return 'USA';
-  if (['malaga', 'barcelona', 'madrid', 'alicante', 'palma', 'tenerife', 'gran canaria', 'faro', 'lisbon', 'porto', 'seville', 'ibiza'].some(k => c.includes(k))) return 'Spain & Portugal';
-  return 'UK & Europe';
+const PROVIDER_NAMES = ['Economy Bookings', 'Localrent', 'Qeeq', 'GetRentaCar', 'Expedia'];
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   HELPER: extract city name for cross-sell links
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function extractCity(loc: string): string {
+  return loc.replace(/ Airport.*$/, '').replace(/ City Centre$/, '').replace(/ \(.*\)$/, '').trim();
 }
 
-function getCarsForCity(city: string): CuratedCar[] {
-  const region = getRegionForCity(city);
-  return CURATED_CARS[region] || CURATED_CARS['UK & Europe'];
+function extractIATA(loc: string): string {
+  const m = loc.match(/\(([A-Z]{3})\)/);
+  return m ? m[1] : '';
 }
 
-const CAR_ICONS: Record<string, string> = {
-  'Economy': '🚙', 'Compact': '🚗', 'Mid-size': '🚘', 'SUV': '🚙',
-  'Full-size SUV': '🚙', 'Luxury SUV': '🚙', 'Estate': '🚗', 'Premium': '🏎',
-  'Minivan': '🚐', 'Convertible': '🏎',
-};
+/* ═══════════════════════════════════════════════════════════════════════════
+   MAIN PAGE
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-export default function CarsPage() {
+function CarsContent() {
   const [location, setLocation] = useState('');
   const [returnLocation, setReturnLocation] = useState('');
   const [differentReturn, setDifferentReturn] = useState(false);
   const [pickupDate, setPickupDate] = useState('');
   const [dropoffDate, setDropoffDate] = useState('');
   const [pickupTime, setPickupTime] = useState('10:00');
-  const [driverAge, setDriverAge] = useState('30-65');
-  const [searched, setSearched] = useState(false);
-  const [cars, setCars] = useState<CuratedCar[]>([]);
+  const [dropoffTime, setDropoffTime] = useState('10:00');
+  const [driverAge, setDriverAge] = useState('30');
 
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const [searchedLoc, setSearchedLoc] = useState('');
+
+  const resultsRef = useRef<HTMLDivElement>(null);
+
+  // Read URL params
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
-    const loc = p.get('location');
-    const ret = p.get('returnLocation');
-    const pickup = p.get('pickup');
-    const dropoff = p.get('dropoff');
+    const loc = p.get('location') || '';
+    const ret = p.get('returnLocation') || '';
+    const pickup = p.get('pickup') || '';
+    const dropoff = p.get('dropoff') || '';
+    const pTime = p.get('pickupTime') || '';
+    const dTime = p.get('dropoffTime') || '';
+    const age = p.get('age') || '';
     if (loc) setLocation(loc);
     if (ret) { setReturnLocation(ret); setDifferentReturn(true); }
     if (pickup) setPickupDate(pickup);
     if (dropoff) setDropoffDate(dropoff);
+    if (pTime) setPickupTime(pTime);
+    if (dTime) setDropoffTime(dTime);
+    if (age) setDriverAge(age);
   }, []);
 
   const today = new Date().toISOString().split('T')[0];
@@ -226,38 +309,59 @@ export default function CarsPage() {
     ? Math.max(1, Math.round((new Date(dropoffDate).getTime() - new Date(pickupDate).getTime()) / 86400000))
     : null;
 
-  const effectiveReturn = differentReturn && returnLocation ? returnLocation : location;
-  const isOneWay = differentReturn && returnLocation && returnLocation !== location;
-
-  function handleSearch() {
-    if (!location || !pickupDate || !dropoffDate) { alert('Please enter pickup location and both dates'); return; }
+  const handleSearch = useCallback(() => {
+    if (!location) { alert('Please enter a pickup location'); return; }
+    if (!pickupDate) { alert('Please select a pickup date'); return; }
+    if (!dropoffDate) { alert('Please select a return date'); return; }
     if (differentReturn && !returnLocation) { alert('Please enter a return location'); return; }
-    setCars(getCarsForCity(location));
-    setSearched(true);
-    setTimeout(() => document.getElementById('car-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-  }
+
+    setSearchedLoc(location);
+    setLoading(true);
+    setSearched(false);
+
+    // Simulate brief loading for the animation
+    setTimeout(() => {
+      setLoading(false);
+      setSearched(true);
+      setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    }, 1800);
+  }, [location, pickupDate, dropoffDate, differentReturn, returnLocation]);
+
+  // Auto-search when URL params fill all required fields
+  const autoSearched = useRef(false);
+  useEffect(() => {
+    if (!autoSearched.current && location && pickupDate && dropoffDate) {
+      autoSearched.current = true;
+      handleSearch();
+    }
+  }, [location, pickupDate, dropoffDate, handleSearch]);
+
+  const ageGroup = parseInt(driverAge) < 25 ? 'young' : parseInt(driverAge) > 65 ? 'senior' : 'standard';
+  const city = extractCity(searchedLoc);
+  const iata = extractIATA(searchedLoc);
 
   return (
     <>
       <Header />
 
-      <section className="pt-36 pb-16 px-5 bg-[radial-gradient(ellipse_at_top,#E8F8EE_0%,#fff_55%,#F8FAFC_100%)] relative">
+      {/* ── Hero + Search Form ── */}
+      <section className="pt-36 pb-16 px-5 bg-[radial-gradient(ellipse_at_top,#E8F8EE_0%,#fff_55%,#F8FAFC_100%)]">
         <div className="max-w-[860px] mx-auto text-center mb-10">
           <span className="inline-block bg-emerald-50 text-emerald-600 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4">🚗 Car Rental Comparison</span>
           <h1 className="font-[Poppins] text-[2.6rem] md:text-[3.8rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
             Hire a Car <em className="italic bg-gradient-to-br from-emerald-500 to-teal-500 bg-clip-text text-transparent">Anywhere</em>
           </h1>
-          <p className="text-[1rem] text-[#8E95A9] font-semibold max-w-[520px] mx-auto">Compare 6 car rental platforms — no hidden fees, best prices guaranteed.</p>
+          <p className="text-[1rem] text-[#8E95A9] font-semibold max-w-[520px] mx-auto">Compare 5 trusted car rental providers — real prices, no hidden fees.</p>
         </div>
 
         <div className="max-w-[860px] mx-auto bg-white border border-[#E8ECF4] rounded-3xl p-6 shadow-[0_8px_40px_rgba(0,0,0,0.07)]">
           {/* Pickup location */}
           <div className="mb-3">
             <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Pickup Location</label>
-            <CityPicker value={location} onChange={setLocation} placeholder="Airport, city or address — e.g. London Gatwick, Malaga Airport" />
+            <LocationPicker value={location} onChange={setLocation} placeholder="Airport or city — e.g. Barcelona Airport (BCN)" />
           </div>
 
-          {/* Different return toggle + return location */}
+          {/* Different return toggle */}
           <div className="mb-3">
             <label className="flex items-center gap-2 cursor-pointer mb-2">
               <input type="checkbox" checked={differentReturn} onChange={e => setDifferentReturn(e.target.checked)}
@@ -267,13 +371,13 @@ export default function CarsPage() {
             {differentReturn && (
               <div>
                 <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Return Location</label>
-                <CityPicker value={returnLocation} onChange={setReturnLocation} placeholder="Where are you dropping off? — e.g. Manchester, Edinburgh Airport" />
+                <LocationPicker value={returnLocation} onChange={setReturnLocation} placeholder="Where are you dropping off?" />
               </div>
             )}
           </div>
 
-          {/* Date, time, driver age row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          {/* Dates, times, driver age */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
             <div>
               <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Pickup Date</label>
               <input type="date" min={today} value={pickupDate} onChange={e => setPickupDate(e.target.value)}
@@ -290,14 +394,14 @@ export default function CarsPage() {
                 className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-emerald-500 focus:bg-white transition-all" />
             </div>
             <div>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Return Time</label>
+              <input type="time" value={dropoffTime} onChange={e => setDropoffTime(e.target.value)}
+                className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-emerald-500 focus:bg-white transition-all" />
+            </div>
+            <div>
               <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Driver Age</label>
-              <select value={driverAge} onChange={e => setDriverAge(e.target.value)}
-                className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-emerald-500 focus:bg-white transition-all">
-                <option value="18-24">18-24 (young driver)</option>
-                <option value="25-29">25-29</option>
-                <option value="30-65">30-65</option>
-                <option value="66+">66+</option>
-              </select>
+              <input type="number" min={18} max={99} value={driverAge} onChange={e => setDriverAge(e.target.value)}
+                className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-emerald-500 focus:bg-white transition-all" />
             </div>
           </div>
 
@@ -305,141 +409,150 @@ export default function CarsPage() {
             className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-[Poppins] font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(16,185,129,0.3)]">
             Search Car Rentals →
           </button>
-          <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">No booking fees added. Prices include taxes where possible.</p>
+          <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">Free comparison · Prices shown here · Click any provider to book on their site</p>
         </div>
       </section>
 
-      {/* Car Results */}
-      {searched && cars.length > 0 && (
-        <section id="car-results" className="max-w-[1100px] mx-auto px-5 py-10">
-          <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
-            <div>
-              <h2 className="font-[Poppins] font-black text-[1.3rem] text-[#1A1D2B]">
-                Car Hire in {location}
-                {days ? <span className="text-[#8E95A9] font-semibold text-[1rem]"> · {days} day{days !== 1 ? 's' : ''}</span> : null}
+      {/* ── Loading ── */}
+      {loading && <LoadingState loc={location} />}
+
+      {/* ── Results ── */}
+      {searched && (
+        <div ref={resultsRef}>
+          {/* Search summary */}
+          <section className="max-w-[900px] mx-auto px-5 pt-8 pb-4">
+            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-2xl px-6 py-4">
+              <h2 className="font-[Poppins] font-black text-[1.15rem] text-[#1A1D2B]">
+                Car hire in {city} — {pickupDate} to {dropoffDate}{days ? ` (${days} day${days !== 1 ? 's' : ''})` : ''}
               </h2>
-              <p className="text-[.72rem] text-[#8E95A9] font-semibold mt-0.5">
-                {cars.length} vehicles · {pickupDate} to {dropoffDate}
-                {isOneWay ? ` · returning to ${returnLocation}` : ''}
-              </p>
+              <p className="text-[.75rem] text-[#5C6378] font-semibold mt-1">Compare prices across 5 providers below</p>
             </div>
-            <div className="flex gap-2">
-              {isOneWay && (
-                <span className="text-[.7rem] font-bold text-amber-600 bg-amber-50 px-3 py-1.5 rounded-full">One-way rental</span>
-              )}
-              <span className="text-[.7rem] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full">{cars.length} options</span>
-            </div>
-          </div>
+          </section>
 
-          {isOneWay && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-5 flex items-start gap-2.5">
-              <span className="text-lg">📍</span>
-              <div>
-                <p className="text-[.78rem] font-bold text-amber-800">One-way rental: {location} → {returnLocation}</p>
-                <p className="text-[.7rem] text-amber-700 font-medium">One-way fees vary by provider (typically £30–£150 extra). Check each provider for the exact surcharge.</p>
-              </div>
-            </div>
-          )}
+          {/* Provider cards */}
+          <section className="max-w-[900px] mx-auto px-5 pb-6">
+            <div className="space-y-4">
+              {PROVIDERS.map((p) => {
+                const url = p.buildUrl(searchedLoc, pickupDate, dropoffDate, pickupTime, dropoffTime, driverAge);
+                return (
+                  <div key={p.name}
+                    className="bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden hover:shadow-lg transition-all"
+                    style={{ borderLeftWidth: '4px', borderLeftColor: p.color }}>
+                    <div className="p-6">
+                      {/* Header */}
+                      <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
+                        <div>
+                          <h3 className="font-[Poppins] font-black text-[1.15rem] text-[#1A1D2B] mb-1">{p.name}</h3>
+                          <p className="text-[.8rem] text-[#5C6378] font-semibold">{p.tagline}</p>
+                        </div>
+                        <a href={url} target="_blank" rel="noopener noreferrer"
+                          className="flex-shrink-0 px-6 py-3 rounded-xl font-[Poppins] font-black text-[.85rem] text-white transition-all hover:opacity-90 shadow-md"
+                          style={{ backgroundColor: p.color }}>
+                          Search {p.name} →
+                        </a>
+                      </div>
 
-          {/* Car cards */}
-          <div className="space-y-4 mb-6">
-            {cars.map((car, i) => {
-              const totalPrice = days ? car.pricePerDay * days : car.pricePerDay;
-              return (
-                <div key={car.type} className="bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden hover:shadow-lg transition-all">
-                  <div className="flex flex-col md:flex-row">
-                    {/* Car icon area */}
-                    <div className="relative w-full md:w-56 h-40 md:h-auto flex-shrink-0 bg-gradient-to-br from-[#F1F8F4] to-[#E8F8EE] flex items-center justify-center">
-                      <span className="text-6xl">{CAR_ICONS[car.type] || '🚗'}</span>
-                      {i === 0 && (
-                        <span className="absolute top-3 left-3 text-[.6rem] font-black uppercase tracking-[1.5px] bg-emerald-500 text-white px-2.5 py-1 rounded-full shadow-md">Best Value</span>
+                      {/* Selling points */}
+                      <div className="flex flex-wrap gap-3 mb-3">
+                        {p.selling.map(s => (
+                          <span key={s} className="flex items-center gap-1.5 text-[.75rem] font-semibold text-[#1A1D2B] rounded-full px-3 py-1.5"
+                            style={{ backgroundColor: p.bgColor }}>
+                            <span className="text-emerald-500">✓</span> {s}
+                          </span>
+                        ))}
+                      </div>
+
+                      {/* Extra note */}
+                      {p.extra && (
+                        <div className="mt-2 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-100">
+                          <p className="text-[.72rem] font-semibold text-amber-800">💡 {p.extra}</p>
+                        </div>
                       )}
-                      <span className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm text-[.65rem] font-black uppercase tracking-[1px] text-emerald-600 px-2 py-0.5 rounded-full">
-                        {car.type}
-                      </span>
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 p-5 flex flex-col">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                          <h3 className="font-[Poppins] font-bold text-[1.05rem] text-[#1A1D2B]">{car.type}</h3>
-                          <span className="text-[.68rem] font-semibold text-[#8E95A9]">{car.example}</span>
-                        </div>
-
-                        {/* Specs */}
-                        <div className="flex flex-wrap gap-2.5 mb-2.5 mt-1.5">
-                          <span className="flex items-center gap-1 text-[.68rem] font-bold text-[#5C6378]">
-                            <span className="text-sm">👤</span> {car.seats} seats
-                          </span>
-                          <span className="flex items-center gap-1 text-[.68rem] font-bold text-[#5C6378]">
-                            <span className="text-sm">🧳</span> {car.bags} bag{car.bags !== 1 ? 's' : ''}
-                          </span>
-                          <span className="flex items-center gap-1 text-[.68rem] font-bold text-[#5C6378]">
-                            <span className="text-sm">⚙</span> {car.transmission}
-                          </span>
-                          {car.ac && (
-                            <span className="flex items-center gap-1 text-[.68rem] font-bold text-[#5C6378]">
-                              <span className="text-sm">❄</span> AC
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Features */}
-                        <div className="flex flex-wrap gap-1.5 mb-3">
-                          {car.features.map(f => (
-                            <span key={f} className="flex items-center gap-1 text-[.62rem] font-bold text-green-700 bg-green-50 px-2 py-1 rounded-full">
-                              <span className="text-green-500">✓</span> {f}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Price comparison per provider */}
-                      <div className="border-t border-[#F1F3F7] pt-3 mt-1">
-                        <p className="text-[.62rem] text-[#8E95A9] font-semibold mb-2">COMPARE PRICES {days ? `· ${days} DAY${days > 1 ? 'S' : ''} TOTAL` : '· PER DAY'}</p>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-                          {PROVIDERS.map((p, pi) => {
-                            const base = days ? car.pricePerDay * days : car.pricePerDay;
-                            const estPrice = Math.round(base * p.priceMult + ((pi * 7 + car.pricePerDay) % 11) - 5);
-                            const isCheapest = PROVIDERS.every((op, oi) => {
-                              const opPrice = Math.round(base * op.priceMult + ((oi * 7 + car.pricePerDay) % 11) - 5);
-                              return estPrice <= opPrice;
-                            });
-                            return (
-                              <a key={p.name} href={p.getUrl(location, pickupDate, dropoffDate)} target="_blank" rel="noopener"
-                                className={`relative flex flex-col items-center gap-0.5 rounded-xl px-3 py-2.5 transition-all group border ${isCheapest ? 'bg-green-50 border-green-300 hover:border-green-400' : 'bg-[#F8FAFC] border-[#E8ECF4] hover:border-emerald-200 hover:bg-emerald-50'}`}>
-                                {isCheapest && (
-                                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[.5rem] font-black uppercase tracking-wider bg-green-500 text-white px-2 py-0.5 rounded-full">Cheapest</span>
-                                )}
-                                <span className="text-base">{p.logo}</span>
-                                <span className="text-[.68rem] font-bold text-[#1A1D2B]">{p.name}</span>
-                                <span className={`font-[Poppins] font-black text-[1rem] leading-none ${isCheapest ? 'text-green-600' : 'text-[#1A1D2B]'}`}>£{estPrice}</span>
-                                <span className="text-[.55rem] text-[#8E95A9] font-medium">{days ? 'total' : 'per day'}</span>
-                                <span className="text-[.6rem] text-emerald-500 font-bold mt-0.5 group-hover:underline">View Deal →</span>
-                              </a>
-                            );
-                          })}
-                        </div>
-                        <p className="text-[.55rem] text-[#8E95A9] font-medium mt-2 text-center">Estimated prices · click any provider for live availability & final pricing</p>
-                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Smart recommendation */}
+          <section className="max-w-[900px] mx-auto px-5 pb-6">
+            <div className="bg-gradient-to-r from-emerald-50 to-cyan-50 border border-emerald-200 rounded-2xl p-6">
+              <h3 className="font-[Poppins] font-black text-[.95rem] text-[#1A1D2B] mb-2">💡 Our Recommendation</h3>
+              {ageGroup === 'young' && (
+                <p className="text-[.82rem] text-[#5C6378] font-semibold leading-relaxed">
+                  <strong className="text-[#1A1D2B]">Young driver?</strong> We recommend <strong>Economy Bookings</strong> and <strong>Qeeq</strong> — they typically have the lowest young driver surcharges, saving you £5-15/day compared to booking direct.
+                </p>
+              )}
+              {ageGroup === 'standard' && (
+                <p className="text-[.82rem] text-[#5C6378] font-semibold leading-relaxed">
+                  For the best overall value, start with <strong>Economy Bookings</strong> for international chains or <strong>Localrent</strong> for local deals with full insurance included.
+                </p>
+              )}
+              {ageGroup === 'senior' && (
+                <p className="text-[.82rem] text-[#5C6378] font-semibold leading-relaxed">
+                  <strong className="text-[#1A1D2B]">Senior drivers</strong> may find the best rates on <strong>Economy Bookings</strong> and <strong>Expedia</strong>, which have no upper age limits on most vehicles.
+                </p>
+              )}
+            </div>
+          </section>
+
+          {/* Cross-sell */}
+          <section className="max-w-[900px] mx-auto px-5 pb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-[#F8FAFC] border border-[#E8ECF4] rounded-2xl p-6">
+              <span className="text-2xl mb-2 block">✈️</span>
+              <h3 className="font-[Poppins] font-black text-[1rem] text-[#1A1D2B] mb-1">Flights to {city}</h3>
+              <p className="text-[.78rem] text-[#5C6378] font-semibold mb-3">Still need flights? Compare across our providers.</p>
+              <a href={`/flights?to=${iata || encodeURIComponent(city)}`}
+                className="inline-block px-5 py-2.5 rounded-xl border-2 border-[#0066FF] text-[#0066FF] font-[Poppins] font-bold text-[.8rem] hover:bg-blue-50 transition-colors">
+                Compare Flights →
+              </a>
+            </div>
+            <div className="bg-[#F8FAFC] border border-[#E8ECF4] rounded-2xl p-6">
+              <span className="text-2xl mb-2 block">🏨</span>
+              <h3 className="font-[Poppins] font-black text-[1rem] text-[#1A1D2B] mb-1">Hotels in {city}</h3>
+              <p className="text-[.78rem] text-[#5C6378] font-semibold mb-3">Find your hotel too.</p>
+              <a href={`/hotels?destination=${encodeURIComponent(city)}`}
+                className="inline-block px-5 py-2.5 rounded-xl border-2 border-orange-500 text-orange-500 font-[Poppins] font-bold text-[.8rem] hover:bg-orange-50 transition-colors">
+                Compare Hotels →
+              </a>
+            </div>
+          </section>
+
+          {/* Comparison table */}
+          <section className="max-w-[900px] mx-auto px-5 pb-8">
+            <div className="bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden">
+              <div className="px-6 py-4 border-b border-[#E8ECF4] bg-[#F8FAFC]">
+                <h3 className="font-[Poppins] font-black text-[1rem] text-[#1A1D2B]">How Our Providers Compare</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-[.75rem]">
+                  <thead>
+                    <tr className="border-b border-[#E8ECF4]">
+                      <th className="text-left px-4 py-3 font-bold text-[#8E95A9] text-[.65rem] uppercase tracking-wider">Feature</th>
+                      {PROVIDER_NAMES.map(n => (
+                        <th key={n} className="text-center px-3 py-3 font-bold text-[#1A1D2B] text-[.7rem]">{n}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {COMPARE_ROWS.map((row, ri) => (
+                      <tr key={row.feature} className={ri % 2 === 0 ? 'bg-[#F8FAFC]' : 'bg-white'}>
+                        <td className="px-4 py-3 font-bold text-[#1A1D2B] text-[.75rem] whitespace-nowrap">{row.feature}</td>
+                        {row.values.map((v, vi) => (
+                          <td key={vi} className="text-center px-3 py-3 font-semibold text-[#5C6378] text-[.72rem]">{v}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </div>
       )}
 
-      {/* No results */}
-      {searched && cars.length === 0 && (
-        <section className="max-w-[860px] mx-auto px-5 py-10 text-center">
-          <p className="text-[1.2rem] text-[#8E95A9] font-semibold">No cars found for this location. Try a different city or airport.</p>
-        </section>
-      )}
-
-      {/* Tips section */}
+      {/* ── Tips section (always visible) ── */}
       <section className="max-w-[860px] mx-auto px-5 pb-16">
         <div className="bg-[#F8FAFC] border border-[#F1F3F7] rounded-3xl p-8">
           <h3 className="font-[Poppins] font-black text-[1.05rem] text-[#1A1D2B] mb-4">Tips for Cheaper Car Rentals</h3>
@@ -465,4 +578,8 @@ export default function CarsPage() {
       <Footer />
     </>
   );
+}
+
+export default function CarsPage() {
+  return <CarsContent />;
 }
