@@ -510,7 +510,7 @@ export default function DiscoverPopup() {
                       { name: 'Aviasales', icon: '✈', desc: 'Best price from 750+ airlines', color: 'bg-blue-50 text-blue-600' },
                       { name: 'Expedia', icon: '🌍', desc: 'Bundle flight + hotel & save 30%', color: 'bg-orange-50 text-orange-600' },
                       { name: 'Trip.com', icon: '🗺', desc: 'Great for Asia & Middle East deals', color: 'bg-purple-50 text-purple-600' },
-                      { name: 'Booking.com', icon: '🏷', desc: 'Huge selection, no booking fees', color: 'bg-sky-50 text-sky-600' },
+                      { name: 'Klook', icon: '🎟', desc: 'Activities, tours & travel deals', color: 'bg-orange-50 text-orange-600' },
                     ].map(p => (
                       <button
                         key={p.name}
@@ -541,7 +541,7 @@ export default function DiscoverPopup() {
                   <p className="text-[.8rem] text-[#5C6378] font-semibold mb-4">Find the best hotel rates in {dest.city} — pre-filled with your stay dates</p>
                   <div className="space-y-3 mb-5">
                     {[
-                      { name: 'Booking.com', icon: '🏨', desc: '28M+ listings · free cancellation', color: 'bg-blue-50 text-blue-700' },
+                      { name: 'Klook', icon: '🎟', desc: 'Hotels & experiences worldwide', color: 'bg-orange-50 text-orange-600' },
                       { name: 'Expedia', icon: '🌍', desc: 'Bundle with flight & save up to 30%', color: 'bg-orange-50 text-orange-600' },
                       { name: 'Trip.com', icon: '🗺', desc: 'Flash sales & exclusive member prices', color: 'bg-purple-50 text-purple-600' },
                     ].map(p => (

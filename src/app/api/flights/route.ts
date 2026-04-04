@@ -135,17 +135,21 @@ export async function GET(req: NextRequest) {
 
     const results = await Promise.all(queries);
 
-    const seen = new Set<string>();
-    const allData: any[] = [];
+    // Deduplicate: by flight_number + departure date (keep cheapest), fallback to airline + departure_at
+    const bestByKey = new Map<string, any>();
     for (const res of results) {
       for (const f of (res.data || [])) {
-        const key = `${f.airline}-${f.departure_at}-${f.price}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          allData.push(f);
+        const depDay = (f.departure_at || '').slice(0, 10);
+        const key = f.flight_number
+          ? `${f.flight_number}-${depDay}`
+          : `${f.airline}-${depDay}-${f.duration_to}`;
+        const existing = bestByKey.get(key);
+        if (!existing || f.price < existing.price) {
+          bestByKey.set(key, f);
         }
       }
     }
+    const allData = Array.from(bestByKey.values());
     allData.sort((a: any, b: any) => a.price - b.price);
 
     const flights = allData.slice(0, 10).map((f: any) => ({

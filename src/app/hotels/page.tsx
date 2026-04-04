@@ -332,7 +332,7 @@ function HotelsContent() {
           <h1 className="font-[Poppins] text-[2.4rem] md:text-[3.6rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
             Find the <em className="italic bg-gradient-to-br from-orange-400 to-amber-600 bg-clip-text text-transparent">Best</em> Hotels
           </h1>
-          <p className="text-[1rem] text-[#8E95A9] font-semibold max-w-[520px] mx-auto">Compare 3 trusted providers — real prices shown right here.</p>
+          <p className="text-[1rem] text-[#8E95A9] font-semibold max-w-[520px] mx-auto">Compare trusted hotel providers — real prices shown right here.</p>
         </div>
 
         <div className="max-w-[860px] mx-auto bg-white border border-[#E8ECF4] rounded-3xl p-6 shadow-[0_8px_40px_rgba(245,158,11,0.08)]">
@@ -475,15 +475,15 @@ function HotelsContent() {
                           </div>
                           <div className="flex flex-col gap-1.5 w-full">
                             <a href={tripUrl} target="_blank" rel="noopener noreferrer"
-                              className="bg-[#287DFA] hover:bg-[#1A6AE0] text-white font-[Poppins] font-bold text-[.72rem] px-4 py-2 rounded-lg transition-all text-center whitespace-nowrap">
+                              className="bg-[#287DFA] hover:bg-[#1A6AE0] text-white font-[Poppins] font-bold text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap">
                               Trip.com →
                             </a>
                             <a href={expediaUrl} target="_blank" rel="noopener noreferrer"
-                              className="bg-[#1B2B65] hover:bg-[#142050] text-white font-[Poppins] font-bold text-[.72rem] px-4 py-2 rounded-lg transition-all text-center whitespace-nowrap">
+                              className="bg-[#1B2B65] hover:bg-[#142050] text-white font-[Poppins] font-bold text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap">
                               Expedia →
                             </a>
                             <a href={klookUrl} target="_blank" rel="noopener noreferrer"
-                              className="bg-orange-500 hover:bg-orange-600 text-white font-[Poppins] font-bold text-[.72rem] px-4 py-2 rounded-lg transition-all text-center whitespace-nowrap">
+                              className="bg-orange-500 hover:bg-orange-600 text-white font-[Poppins] font-bold text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap">
                               Klook →
                             </a>
                           </div>

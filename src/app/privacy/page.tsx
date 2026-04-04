@@ -3,6 +3,11 @@ export const runtime = 'edge';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
+export const metadata = {
+  title: 'Privacy Policy | JetMeAway',
+  description: 'How JetMeAway handles your data. UK GDPR compliant privacy policy.',
+};
+
 export default function Privacy() {
   return (
     <>
@@ -26,7 +31,7 @@ export default function Privacy() {
           <ul className="list-disc ml-5 space-y-1"><li>Provide and improve our comparison service.</li><li>Send price drop alerts (if opted in).</li><li>Respond to enquiries.</li><li>Understand site usage.</li><li>Comply with legal obligations.</li></ul>
 
           <h2 className="font-[Poppins] text-[.95rem] font-bold text-[#0066FF] mt-5">4. Cookies &amp; Affiliate Tracking</h2>
-          <p>We use cookies for affiliate tracking. Partners include Expedia (Partnerize), Booking.com (CJ Affiliate), Travelpayouts, Trip.com, and others. This never affects your price.</p>
+          <p>We use cookies for affiliate tracking. Partners include Expedia (Partnerize), Travelpayouts, Trip.com, and others. This never affects your price.</p>
 
           <h2 className="font-[Poppins] text-[.95rem] font-bold text-[#0066FF] mt-5">5. Your Rights (UK GDPR)</h2>
           <ul className="list-disc ml-5 space-y-1"><li>Access your personal data.</li><li>Request correction or deletion.</li><li>Object to or restrict processing.</li><li>Withdraw consent at any time.</li></ul>

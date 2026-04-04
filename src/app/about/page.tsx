@@ -3,6 +3,11 @@ export const runtime = 'edge';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
+export const metadata = {
+  title: 'About Us | JetMeAway',
+  description: 'Learn about JetMeAway, the UK travel comparison platform. Free to use, no hidden fees. We compare 20+ providers to find you the best deals.',
+};
+
 export default function About() {
   return (
     <>
@@ -18,7 +23,7 @@ export default function About() {
           <p>We believe everyone deserves a great trip at a fair price. That&apos;s why we built Jetmeaway — to take the stress out of travel planning.</p>
         </Card>
         <Card title="🔍 How It Works">
-          <p>Tell us where you want to go. Jetmeaway scouts across 20+ providers — including Expedia, Booking.com, Trip.com, GetYourGuide, Airalo, Klook, and many more — to help you find the best prices.</p>
+          <p>Tell us where you want to go. Jetmeaway scouts across 20+ providers — including Expedia, Trip.com, GetYourGuide, Aviasales, Airalo, Klook, and many more — to help you find the best prices.</p>
           <p>When you find a deal, we take you directly to the provider&apos;s website. We don&apos;t add fees or markups — the price you see is the price you pay.</p>
         </Card>
         <Card title="💷 How We Make Money">

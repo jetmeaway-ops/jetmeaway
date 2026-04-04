@@ -3,6 +3,11 @@ export const runtime = 'edge';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
+export const metadata = {
+  title: 'Terms & Conditions | JetMeAway',
+  description: 'Terms of service and affiliate disclosure for JetMeAway travel comparison platform.',
+};
+
 export default function Terms() {
   return (
     <>
@@ -22,7 +27,7 @@ export default function Terms() {
           <p>Jetmeaway is a travel comparison website. We display prices from third-party providers. We are not a travel agent, tour operator, or booking provider. When you click a deal, you are redirected to the provider&apos;s website.</p>
 
           <h2 className="font-[Poppins] text-[.95rem] font-bold text-[#0066FF] mt-5">3. Affiliate Disclosure</h2>
-          <p>We participate in affiliate programmes with Expedia (Partnerize), Booking.com (CJ Affiliate), Travelpayouts, Trip.com, GetYourGuide, Viator, Klook, Tiqets, Airalo, Yesim, Ekta Traveling, Economy Bookings, Localrent, Qeeq, GetRentaCar, KiwiTaxi, Welcome Pickups, GetTransfer, AirHelp, Compensair, WeGoTrip, and Aviasales. We earn commission at no extra cost to you.</p>
+          <p>We participate in affiliate programmes with Expedia (Partnerize), Travelpayouts, Trip.com, GetYourGuide, Viator, Klook, Tiqets, Airalo, Yesim, Ekta Traveling, Economy Bookings, Localrent, Qeeq, GetRentaCar, KiwiTaxi, Welcome Pickups, GetTransfer, AirHelp, Compensair, WeGoTrip, and Aviasales. We earn commission at no extra cost to you.</p>
 
           <h2 className="font-[Poppins] text-[.95rem] font-bold text-[#0066FF] mt-5">4. Accuracy</h2>
           <p>Prices change rapidly and we cannot guarantee accuracy. The final price is always determined by the provider.</p>

@@ -548,7 +548,7 @@ function PackagesContent() {
                         <div className="text-right">
                           <span className="font-[Poppins] font-black text-[1rem] text-[#1A1D2B]">£{cheapestHotel}</span>
                           <span className="text-[.65rem] text-[#8E95A9] font-medium ml-1">/night</span>
-                          <div className="text-[.6rem] text-[#8E95A9]">(via Hotellook data)</div>
+                          <div className="text-[.6rem] text-[#8E95A9]">(indicative price)</div>
                         </div>
                       </div>
                       <div className="flex items-center justify-between">

@@ -726,7 +726,7 @@ function FlightsContent() {
                     {cheapest.transfers === 0 && <span className="text-green-600"> (direct)</span>}
                   </span>
                 </div>
-                <p className="text-[.7rem] text-[#8E95A9] font-semibold">Prices based on recent searches — click any deal for live pricing</p>
+                <p className="text-[.7rem] text-[#8E95A9] font-semibold">Prices are indicative based on recent searches. Click &apos;View Deal&apos; for live pricing from the provider.</p>
               </div>
             </section>
           )}
@@ -788,7 +788,7 @@ function FlightsContent() {
                         <div className="flex items-center gap-4 md:flex-col md:items-end md:gap-2">
                           <div className="text-right">
                             <div className="font-[Poppins] font-black text-[1.5rem] text-[#1A1D2B] leading-none">{f.currency}{f.price}</div>
-                            <div className="text-[.6rem] text-[#8E95A9] font-semibold">per person</div>
+                            <div className="text-[.6rem] text-[#8E95A9] font-semibold">per person, {f.return_at ? 'return' : 'one-way'}</div>
                           </div>
                           <a href={viewDealUrl} target="_blank" rel="noopener noreferrer"
                             className="bg-[#0066FF] hover:bg-[#0052CC] text-white font-[Poppins] font-bold text-[.78rem] px-5 py-2.5 rounded-xl transition-all shadow-[0_4px_12px_rgba(0,102,255,0.2)] whitespace-nowrap">
@@ -859,7 +859,7 @@ function FlightsContent() {
                 <span className="text-2xl mb-2 block">🏨</span>
                 <h4 className="font-[Poppins] font-black text-[.9rem] text-[#1A1D2B] mb-1">Hotels in {destCity || destCode}</h4>
                 <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">Found your flight? Now find your hotel.</p>
-                <a href={`/hotels?destination=${encodeURIComponent(destCity || destCode)}`}
+                <a href={`/hotels?destination=${encodeURIComponent(destCity || destCode)}${depDate ? `&checkin=${depDate}` : ''}${retDate ? `&checkout=${retDate}` : ''}`}
                   className="inline-block bg-white hover:bg-blue-50 text-[#0066FF] font-[Poppins] font-bold text-[.75rem] px-4 py-2 rounded-lg border border-blue-200 transition-all">
                   Compare Hotels →
                 </a>
@@ -870,7 +870,7 @@ function FlightsContent() {
                 <span className="text-2xl mb-2 block">🚗</span>
                 <h4 className="font-[Poppins] font-black text-[.9rem] text-[#1A1D2B] mb-1">Car Hire at {destCity || destCode}</h4>
                 <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">Need wheels when you land?</p>
-                <a href={`/cars?location=${destCode}`}
+                <a href={`/cars?location=${encodeURIComponent(destCity || destCode)}`}
                   className="inline-block bg-white hover:bg-amber-50 text-amber-600 font-[Poppins] font-bold text-[.75rem] px-4 py-2 rounded-lg border border-amber-200 transition-all">
                   Compare Car Hire →
                 </a>

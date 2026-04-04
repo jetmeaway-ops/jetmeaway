@@ -5,9 +5,35 @@ import Footer from '@/components/Footer';
 import FlightSearch from './search';
 import DiscoverPopup from '@/components/DiscoverPopup';
 
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'JetMeAway',
+    url: 'https://jetmeaway.co.uk',
+    logo: 'https://jetmeaway.co.uk/jetmeaway-logo.png',
+    description: 'UK travel price comparison platform',
+    sameAs: [],
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'JetMeAway',
+    url: 'https://jetmeaway.co.uk',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: 'https://jetmeaway.co.uk/flights?to={search_term_string}',
+      'query-input': 'required name=search_term_string',
+    },
+  },
+];
+
 export default function Home() {
   return (
     <>
+      {jsonLd.map((ld, i) => (
+        <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
+      ))}
       <DiscoverPopup />
       <Header />
 
@@ -44,7 +70,7 @@ export default function Home() {
 
           {/* Partner strip */}
           <div className="max-w-[720px] mx-auto mt-5 flex items-center justify-center gap-5 opacity-30">
-            {['Expedia','Booking.com','GetYourGuide','Airalo','Trip.com','Klook'].map((p, i) => (
+            {['Expedia','Trip.com','Aviasales','GetYourGuide','Klook','Airalo'].map((p, i) => (
               <span key={p}>
                 <span className="font-[Poppins] font-extrabold text-[.7rem] uppercase tracking-wider text-[#1A1D2B]">{p}</span>
                 {i < 5 && <span className="inline-block w-[3px] h-[3px] rounded-full bg-[#8E95A9] mx-2.5 align-middle"></span>}
@@ -63,7 +89,7 @@ export default function Home() {
           <div>
             <h4 className="font-[Poppins] font-black text-[.85rem] text-[#1A1D2B] mb-1.5">Our Trust Commitment</h4>
             <p className="text-[.78rem] text-[#5C6378] leading-relaxed font-semibold">
-              Jetmeaway is a comparison engine, not a travel agency. We find you the best rates from partners like Booking.com, Expedia, Trip.com, and GetYourGuide. We receive a commission for referrals, which keeps our tools free. We never add fees or mark up prices.{' '}
+              Jetmeaway is a comparison engine, not a travel agency. We find you the best rates from partners like Expedia, Trip.com, GetYourGuide, and Aviasales. We receive a commission for referrals, which keeps our tools free. We never add fees or mark up prices.{' '}
               <a href="/terms" className="text-[#0066FF] font-black">Full Transparency Policy</a>.
             </p>
           </div>

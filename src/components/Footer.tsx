@@ -7,7 +7,7 @@ export default function Footer() {
       <div className="max-w-[1100px] mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr_1fr_1.2fr] gap-9 mb-10">
           <div>
-            <img src="/jetmeaway-logo.png" alt="Jetmeaway" className="h-7 brightness-0 invert mb-2.5" />
+            <img src="/jetmeaway-logo.png" alt="Jetmeaway" className="h-7 brightness-0 invert mb-2.5" loading="lazy" />
             <p className="text-[.75rem] text-white/25 leading-relaxed font-semibold">Your AI-powered travel scout. Compare flights, hotels, packages &amp; more from 21 trusted providers.</p>
           </div>
           <div>
@@ -34,12 +34,12 @@ export default function Footer() {
         <div className="h-px bg-white/[.06] mb-7"></div>
         <div className="max-w-[800px] mb-7">
           <div className="text-[.55rem] uppercase tracking-[2.5px] font-extrabold text-white/20 mb-1.5">Affiliate Disclosure</div>
-          <p className="text-[.68rem] text-white/[.12] leading-relaxed font-semibold">Jetmeaway participates in the Expedia Affiliate Program (Partnerize), Travelpayouts Network, CJ Affiliate Network, and works with Booking.com, GetYourGuide, Viator, Klook, Tiqets, Airalo, Yesim, Ekta Traveling, Economy Bookings, Localrent, Qeeq, GetRentaCar, KiwiTaxi, Welcome Pickups, GetTransfer, AirHelp, Compensair, WeGoTrip, Aviasales, and Trip.com. We may receive compensation when you book through our links at no additional cost to you.</p>
+          <p className="text-[.68rem] text-white/[.12] leading-relaxed font-semibold">Jetmeaway participates in the Expedia Affiliate Program (Partnerize), Travelpayouts Network, and works with GetYourGuide, Viator, Klook, Tiqets, Airalo, Yesim, Ekta Traveling, Economy Bookings, Localrent, Qeeq, GetRentaCar, KiwiTaxi, Welcome Pickups, GetTransfer, AirHelp, Compensair, WeGoTrip, Aviasales, and Trip.com. We may receive compensation when you book through our links at no additional cost to you.</p>
         </div>
         <div className="flex justify-between items-center flex-wrap gap-3">
           <p className="text-[.6rem] text-white/10">© 2026 Jetmeaway (jetmeaway.co.uk). All rights reserved.</p>
           <div className="flex gap-4 opacity-[.12] hover:opacity-30 transition-opacity">
-            {['Expedia','Booking.com','Airalo','Klook','Trip.com','Aviasales'].map(p => (
+            {['Expedia','Trip.com','Aviasales','GetYourGuide','Klook','Airalo'].map(p => (
               <span key={p} className="font-[Poppins] font-extrabold text-[.65rem] text-white uppercase tracking-wider">{p}</span>
             ))}
           </div>
