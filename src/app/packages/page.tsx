@@ -279,8 +279,7 @@ function buildExpediaUrl(dest: string, _from: string, _depDate: string, _retDate
 }
 
 function buildTripUrl(dest: string, depDate: string, retDate: string, adults: number) {
-  const inner = `https://www.trip.com/packages/list?from=&to=${encodeURIComponent(dest)}&startDate=${depDate}&endDate=${retDate}&adult=${adults}`;
-  return `${TP_WRAP}&p=8311&u=${encodeURIComponent(inner)}`;
+  return `https://www.trip.com/packages/list?from=&to=${encodeURIComponent(dest)}&startDate=${depDate}&endDate=${retDate}&adult=${adults}&Allianceid=8023009&SID=303363796&trip_sub3=D15021113`;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

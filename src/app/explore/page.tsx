@@ -20,13 +20,11 @@ const DESTINATIONS = [
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function buildGetYourGuideUrl(dest: string): string {
-  const u = `https://www.getyourguide.co.uk/s/?q=${encodeURIComponent(dest)}&searchSource=1`;
-  return `https://tp.media/r?marker=714449&trs=512633&p=7631&u=${encodeURIComponent(u)}`;
+  return `https://www.getyourguide.co.uk/s/?q=${encodeURIComponent(dest)}&searchSource=1&partner_id=SsZyZ48h&cmp=jetmeaway`;
 }
 
 function buildViatorUrl(dest: string): string {
-  const u = `https://www.viator.com/searchResults/all?text=${encodeURIComponent(dest)}`;
-  return `https://tp.media/r?marker=714449&trs=512633&p=8241&u=${encodeURIComponent(u)}`;
+  return `https://www.viator.com/searchResults/all?text=${encodeURIComponent(dest)}&pid=P00293856&mcid=42383&medium=link`;
 }
 
 function buildKlookUrl(dest: string): string {

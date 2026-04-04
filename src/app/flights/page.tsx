@@ -120,9 +120,9 @@ function buildAviasalesUrl(o: string, d: string, dep: string, ret: string | null
 function buildTripUrl(o: string, d: string, dep: string, ret: string | null, adults: number): string {
   const oL = o.toLowerCase();
   const dL = d.toLowerCase();
-  let u = `https://www.trip.com/flights/${oL}-to-${dL}/tickets-${o}-${d}?dcity=${o}&acity=${d}&ddate=${dep}&adult=${adults}`;
+  let u = `https://www.trip.com/flights/${oL}-to-${dL}/tickets-${o}-${d}?dcity=${o}&acity=${d}&ddate=${dep}&adult=${adults}&Allianceid=8023009&SID=303363796&trip_sub3=D15021113`;
   if (ret) u += `&rdate=${ret}`;
-  return `https://tp.media/r?marker=714449&trs=512633&p=8311&u=${encodeURIComponent(u)}`;
+  return u;
 }
 
 function buildSkyscannerUrl(o: string, d: string, dep: string, ret: string | null, adults: number): string {
@@ -137,7 +137,7 @@ function buildExpediaUrl(o: string, d: string, dep: string, ret: string | null, 
   const trip = ret ? 'roundtrip' : 'oneway';
   let u = `https://www.expedia.co.uk/Flights-Search?trip=${trip}&leg1=from:${o},to:${d},departure:${dep}TANYT&passengers=adults:${adults}&affcid=clbU3QK`;
   if (ret) u += `&leg2=from:${d},to:${o},departure:${ret}TANYT`;
-  return `https://tp.media/r?marker=714449&trs=512633&p=11584&u=${encodeURIComponent(u)}`;
+  return u;
 }
 
 function buildKiwiUrl(o: string, d: string, dep: string, ret: string | null, adults: number, fromCity: string, toCity: string): string {

@@ -66,13 +66,11 @@ function buildKlookUrl(dest: string): string {
 }
 
 function buildTripcomUrl(dest: string, cin: string, cout: string, adults: number): string {
-  const u = `https://www.trip.com/hotels/list?city=${encodeURIComponent(dest)}&checkin=${cin}&checkout=${cout}&adult=${adults}&curr=GBP`;
-  return `https://tp.media/r?marker=714449&trs=512633&p=8311&u=${encodeURIComponent(u)}`;
+  return `https://www.trip.com/hotels/list?city=${encodeURIComponent(dest)}&checkin=${cin}&checkout=${cout}&adult=${adults}&curr=GBP&Allianceid=8023009&SID=303363796&trip_sub3=D15021113`;
 }
 
 function buildExpediaUrl(dest: string, cin: string, cout: string, adults: number): string {
-  const u = `https://www.expedia.co.uk/Hotel-Search?destination=${encodeURIComponent(dest)}&startDate=${cin}&endDate=${cout}&adults=${adults}`;
-  return `https://tp.media/r?marker=714449&trs=512633&p=11584&u=${encodeURIComponent(u)}`;
+  return `https://www.expedia.co.uk/Hotel-Search?destination=${encodeURIComponent(dest)}&startDate=${cin}&endDate=${cout}&adults=${adults}&affcid=clbU3QK`;
 }
 
 type Provider = { name: string; logo: string; getUrl: (dest: string, cin: string, cout: string, adults: number) => string };
