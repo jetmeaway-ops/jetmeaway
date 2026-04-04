@@ -5,12 +5,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const NAV = [
-  { href: '/flights', label: 'Flights', icon: '✈' },
+  { href: '/packages', label: 'Packages', icon: '📦' },
   { href: '/hotels', label: 'Hotels', icon: '🏨' },
   { href: '/cars', label: 'Car Hire', icon: '🚗' },
-  { href: '/packages', label: 'Packages', icon: '📦' },
-  { href: '/insurance', label: 'Insurance', icon: '🛡' },
   { href: '/esim', label: 'eSIM', icon: '📱' },
+  { href: '/flights', label: 'Flights', icon: '✈' },
+  { href: '/explore', label: 'Explore', icon: '🧭' },
 ];
 
 export default function Header() {

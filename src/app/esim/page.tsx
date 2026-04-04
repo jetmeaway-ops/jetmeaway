@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { redirectUrl } from '@/lib/redirect';
 
 // ─── Country list ───────────────────────────────────────────────────────────
 const COUNTRIES = [
@@ -345,7 +346,7 @@ export default function ESIMPage() {
                           </div>
                           <span className="text-[.6rem] text-[#8E95A9] font-medium">{plan.data} · {plan.validity} · prices vary on provider site</span>
                         </div>
-                        <a href={PROVIDERS.find(p => p.name === plan.provider)?.getUrl(country) || '#'}
+                        <a href={redirectUrl(PROVIDERS.find(p => p.name === plan.provider)?.getUrl(country) || '#', plan.provider, country, 'esim')}
                           target="_blank" rel="noopener"
                           className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-[Poppins] font-bold text-[.8rem] px-5 py-2.5 rounded-xl transition-all shadow-[0_2px_10px_rgba(79,70,229,0.2)]">
                           Get on {plan.provider} <span>→</span>
@@ -363,7 +364,7 @@ export default function ESIMPage() {
             <p className="text-[.7rem] font-bold text-[#8E95A9] uppercase tracking-[2px] mb-3">Compare all providers for {country}</p>
             <div className="flex flex-wrap gap-2">
               {PROVIDERS.map(p => (
-                <a key={p.name} href={p.getUrl(country)} target="_blank" rel="noopener"
+                <a key={p.name} href={redirectUrl(p.getUrl(country), p.name, country, 'esim')} target="_blank" rel="noopener"
                   className="flex items-center gap-1.5 bg-white hover:bg-indigo-50 border border-[#E8ECF4] hover:border-indigo-200 rounded-lg px-3 py-2 transition-all group">
                   <span className="text-sm">{p.logo}</span>
                   <span className="text-[.7rem] font-bold text-[#1A1D2B] group-hover:text-indigo-600">{p.name}</span>

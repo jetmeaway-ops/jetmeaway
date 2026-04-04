@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { redirectUrl } from '@/lib/redirect';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    LOCATIONS — airports + city centres
@@ -445,7 +446,7 @@ function CarsContent() {
                           <h3 className="font-[Poppins] font-black text-[1.15rem] text-[#1A1D2B] mb-1">{p.name}</h3>
                           <p className="text-[.8rem] text-[#5C6378] font-semibold">{p.tagline}</p>
                         </div>
-                        <a href={url} target="_blank" rel="noopener noreferrer"
+                        <a href={redirectUrl(url, p.name, city, 'cars')} target="_blank" rel="noopener noreferrer"
                           className="flex-shrink-0 px-6 py-3 rounded-xl font-[Poppins] font-black text-[.85rem] text-white transition-all hover:opacity-90 shadow-md"
                           style={{ backgroundColor: p.color }}>
                           Search {p.name} →

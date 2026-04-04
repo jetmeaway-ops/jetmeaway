@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { redirectUrl } from '@/lib/redirect';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DESTINATIONS (matches hotels page)
@@ -603,8 +604,7 @@ function PackagesContent() {
                       <h3 className="font-[Poppins] font-black text-[1.2rem] text-[#1A1D2B] mb-1">Expedia Packages</h3>
                       <p className="text-[.82rem] text-[#5C6378] font-semibold">Flight + Hotel bundles with price guarantee</p>
                     </div>
-                    <a href={buildExpediaUrl(searchedDest, searchedFrom, depDate, effectiveReturn, adults)}
-                      target="_blank" rel="noopener noreferrer"
+                    <a href={redirectUrl(buildExpediaUrl(searchedDest, searchedFrom, depDate, effectiveReturn, adults), 'Expedia', searchedDest, 'packages')}
                       className="flex-shrink-0 px-6 py-3 rounded-xl font-[Poppins] font-black text-[.85rem] text-white bg-[#1B2B65] hover:bg-[#142050] transition-all shadow-md">
                       Search Expedia Packages →
                     </a>
@@ -633,8 +633,7 @@ function PackagesContent() {
                       <h3 className="font-[Poppins] font-black text-[1.2rem] text-[#1A1D2B] mb-1">Trip.com Packages</h3>
                       <p className="text-[.82rem] text-[#5C6378] font-semibold">Flight + Hotel deals from a global travel leader</p>
                     </div>
-                    <a href={buildTripUrl(searchedDest, depDate, effectiveReturn, adults)}
-                      target="_blank" rel="noopener noreferrer"
+                    <a href={redirectUrl(buildTripUrl(searchedDest, depDate, effectiveReturn, adults), 'Trip.com', searchedDest, 'packages')}
                       className="flex-shrink-0 px-6 py-3 rounded-xl font-[Poppins] font-black text-[.85rem] text-white bg-[#287DFA] hover:bg-[#1A6AE0] transition-all shadow-md">
                       Search Trip.com Packages →
                     </a>

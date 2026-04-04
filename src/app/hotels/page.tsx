@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { redirectUrl } from '@/lib/redirect';
 
 const ScoutSidebar = dynamic(() => import('@/components/ScoutSidebar'), { ssr: false });
 
@@ -474,15 +475,15 @@ function HotelsContent() {
                             )}
                           </div>
                           <div className="flex flex-col gap-1.5 w-full">
-                            <a href={tripUrl} target="_blank" rel="noopener noreferrer"
+                            <a href={redirectUrl(tripUrl, 'Trip.com', searchedDest, 'hotels')}
                               className="bg-[#287DFA] hover:bg-[#1A6AE0] text-white font-[Poppins] font-bold text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap">
                               Trip.com →
                             </a>
-                            <a href={expediaUrl} target="_blank" rel="noopener noreferrer"
+                            <a href={redirectUrl(expediaUrl, 'Expedia', searchedDest, 'hotels')}
                               className="bg-[#1B2B65] hover:bg-[#142050] text-white font-[Poppins] font-bold text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap">
                               Expedia →
                             </a>
-                            <a href={klookUrl} target="_blank" rel="noopener noreferrer"
+                            <a href={redirectUrl(klookUrl, 'Klook', searchedDest, 'hotels')}
                               className="bg-orange-500 hover:bg-orange-600 text-white font-[Poppins] font-bold text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap">
                               Klook →
                             </a>
@@ -536,7 +537,7 @@ function HotelsContent() {
                     ) : (
                       <div className="text-[.72rem] font-semibold text-[#8E95A9] mb-2">Check Price</div>
                     )}
-                    <a href={url} target="_blank" rel="noopener noreferrer"
+                    <a href={redirectUrl(url, p.name, searchedDest, 'hotels')}
                       className="w-full bg-orange-500 hover:bg-orange-600 text-white font-[Poppins] font-bold text-[.72rem] py-2 rounded-lg transition-all">
                       Search {p.name} →
                     </a>

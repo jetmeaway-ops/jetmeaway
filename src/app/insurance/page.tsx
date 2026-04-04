@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { redirectUrl } from '@/lib/redirect';
 
 const PROVIDERS = [
   {
@@ -68,7 +69,7 @@ export default function InsurancePage() {
   function openAll() {
     if (!destination) { alert('Please select a destination region'); return; }
     PROVIDERS.forEach((p, i) => {
-      setTimeout(() => window.open(p.url, '_blank', 'noopener'), i * 200);
+      setTimeout(() => window.open(redirectUrl(p.url, p.name, destination, 'insurance'), '_blank', 'noopener'), i * 200);
     });
   }
 
@@ -148,7 +149,7 @@ export default function InsurancePage() {
         <h2 className="font-[Poppins] text-[1.4rem] font-black text-[#1A1D2B] mb-6">6 Travel Insurance & Compensation Providers</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {PROVIDERS.map(p => (
-            <a key={p.name} href={p.url} target="_blank" rel="noopener"
+            <a key={p.name} href={redirectUrl(p.url, p.name, destination || 'your trip', 'insurance')} target="_blank" rel="noopener"
               className="block p-5 bg-white border border-[#F1F3F7] rounded-2xl hover:border-green-200 hover:shadow-md transition-all group">
               <div className="text-2xl mb-3">{p.logo}</div>
               <div className="flex items-center gap-2 mb-1.5 flex-wrap">

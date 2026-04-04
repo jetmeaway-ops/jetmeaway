@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { redirectUrl } from '@/lib/redirect';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    AIRPORTS — 20 UK departures + 250+ worldwide destinations
@@ -790,7 +791,7 @@ function FlightsContent() {
                             <div className="font-[Poppins] font-black text-[1.5rem] text-[#1A1D2B] leading-none">{f.currency}{f.price}</div>
                             <div className="text-[.6rem] text-[#8E95A9] font-semibold">per person, {f.return_at ? 'return' : 'one-way'}</div>
                           </div>
-                          <a href={viewDealUrl} target="_blank" rel="noopener noreferrer"
+                          <a href={redirectUrl(viewDealUrl, 'Aviasales', destCity || destCode, 'flights')}
                             className="bg-[#0066FF] hover:bg-[#0052CC] text-white font-[Poppins] font-bold text-[.78rem] px-5 py-2.5 rounded-xl transition-all shadow-[0_4px_12px_rgba(0,102,255,0.2)] whitespace-nowrap">
                             View Deal →
                           </a>
@@ -841,7 +842,7 @@ function FlightsContent() {
                     {!cheapest && (
                       <div className="text-[.72rem] font-semibold text-[#8E95A9] mb-2">Check Price</div>
                     )}
-                    <a href={url} target="_blank" rel="noopener noreferrer"
+                    <a href={redirectUrl(url, p.name, destCity || destCode, 'flights')}
                       className="w-full bg-[#0066FF] hover:bg-[#0052CC] text-white font-[Poppins] font-bold text-[.72rem] py-2 rounded-lg transition-all">
                       Search {p.name} →
                     </a>
