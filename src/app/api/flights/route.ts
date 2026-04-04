@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
+import { applyMarkup, logFlightSearch } from '@/lib/travel-logic';
 
 export const runtime = 'edge';
 
-const TOKEN = 'f797fbb7074a15838d5536c10be6f7b5';
-const MARKER = '714449';
-const KV_TTL = 21600; // 6 hours in seconds
+const DUFFEL_KEY = process.env.DUFFEL_API_KEY || '';
+const TP_TOKEN = 'f797fbb7074a15838d5536c10be6f7b5';
+const KV_TTL = 3600; // 1 hour cache (shorter — Duffel prices are live)
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AIRLINES LOOKUP
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 const AIRLINES: Record<string, string> = {
   AA: 'American Airlines', AB: 'Air Berlin', AC: 'Air Canada',
@@ -49,6 +54,197 @@ function formatDuration(minutes: number): string {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   DUFFEL FLIGHT SEARCH
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+async function searchDuffel(
+  origin: string,
+  destination: string,
+  depDate: string,
+  retDate: string | null,
+  adults: number,
+): Promise<any[]> {
+  // Build slices
+  const slices: any[] = [
+    {
+      origin,
+      destination,
+      departure_date: depDate,
+    },
+  ];
+
+  if (retDate) {
+    slices.push({
+      origin: destination,
+      destination: origin,
+      departure_date: retDate,
+    });
+  }
+
+  // Build passengers
+  const passengers: any[] = [];
+  for (let i = 0; i < adults; i++) {
+    passengers.push({ type: 'adult' });
+  }
+
+  // Create offer request
+  const offerRes = await fetch('https://api.duffel.com/air/offer_requests', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${DUFFEL_KEY}`,
+      'Duffel-Version': 'v2',
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify({
+      data: {
+        slices,
+        passengers,
+        cabin_class: 'economy',
+        return_offers: true,
+        max_connections: 1,
+      },
+    }),
+  });
+
+  if (!offerRes.ok) {
+    const errText = await offerRes.text();
+    console.error('Duffel error:', offerRes.status, errText);
+    return [];
+  }
+
+  const offerJson = await offerRes.json();
+  const offers = offerJson.data?.offers || [];
+
+  return offers;
+}
+
+/** Transform Duffel offers into our standardised flight format (with markup) */
+function transformDuffelOffers(offers: any[], adults: number): any[] {
+  return offers.slice(0, 15).map((offer: any) => {
+    const outSlice = offer.slices?.[0];
+    const retSlice = offer.slices?.[1] || null;
+
+    // Airline from first segment
+    const firstSeg = outSlice?.segments?.[0];
+    const airlineCode = firstSeg?.marketing_carrier?.iata_code || firstSeg?.operating_carrier?.iata_code || '';
+    const airlineFullName = firstSeg?.marketing_carrier?.name || airlineName(airlineCode);
+
+    // Duration in minutes
+    const parseDuration = (iso: string | null): number => {
+      if (!iso) return 0;
+      const match = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
+      if (!match) return 0;
+      return (parseInt(match[1] || '0') * 60) + parseInt(match[2] || '0');
+    };
+
+    // Stops
+    const outStops = (outSlice?.segments?.length || 1) - 1;
+    const stopsLabel = outStops === 0 ? 'Direct' : outStops === 1 ? '1 stop' : `${outStops} stops`;
+
+    // Price: Duffel returns total_amount for all passengers in the offer currency
+    const basePrice = parseFloat(offer.total_amount || '0');
+    const perPerson = basePrice / adults;
+    const totalWithMarkup = applyMarkup(perPerson);
+
+    // Departure/arrival times
+    const depTime = firstSeg?.departing_at || null;
+    const lastOutSeg = outSlice?.segments?.[outSlice.segments.length - 1];
+    const arrTime = lastOutSeg?.arriving_at || null;
+
+    return {
+      airline: airlineFullName,
+      airlineCode,
+      price: totalWithMarkup,         // per person, with markup
+      basePrice: perPerson,            // per person, airline price only
+      currency: '£',
+      stops: stopsLabel,
+      transfers: outStops,
+      duration_to: parseDuration(outSlice?.duration),
+      duration_back: retSlice ? parseDuration(retSlice.duration) : 0,
+      departure_at: depTime,
+      arrival_at: arrTime,
+      return_at: retSlice?.segments?.[0]?.departing_at || null,
+      flight_number: firstSeg?.marketing_carrier_flight_number
+        ? `${airlineCode}${firstSeg.marketing_carrier_flight_number}`
+        : null,
+      offer_id: offer.id,              // Duffel offer ID for booking
+      source: 'duffel',
+      link: null,
+    };
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TRAVELPAYOUTS FALLBACK (cached prices)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+async function searchTravelpayouts(
+  origin: string,
+  destination: string,
+  depDate: string,
+  retDate: string | null,
+  adults: number,
+): Promise<any[]> {
+  const headers = { Accept: 'application/json' };
+  const queries: Promise<any>[] = [];
+
+  if (retDate) {
+    queries.push(
+      fetch(`https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${depDate}&return_at=${retDate}&currency=gbp&sorting=price&limit=10&market=gb&token=${TP_TOKEN}`, { headers })
+        .then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] }))
+    );
+  }
+
+  queries.push(
+    fetch(`https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${depDate}&currency=gbp&sorting=price&limit=10&market=gb&one_way=true&token=${TP_TOKEN}`, { headers })
+      .then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] }))
+  );
+
+  const results = await Promise.all(queries);
+
+  // Deduplicate
+  const bestByKey = new Map<string, any>();
+  for (const res of results) {
+    for (const f of (res.data || [])) {
+      const depDay = (f.departure_at || '').slice(0, 10);
+      const key = f.flight_number
+        ? `${f.flight_number}-${depDay}`
+        : `${f.airline}-${depDay}-${f.duration_to}`;
+      const existing = bestByKey.get(key);
+      if (!existing || f.price < existing.price) {
+        bestByKey.set(key, f);
+      }
+    }
+  }
+
+  const allData = Array.from(bestByKey.values());
+  allData.sort((a: any, b: any) => a.price - b.price);
+
+  return allData.slice(0, 10).map((f: any) => ({
+    airline: airlineName(f.airline),
+    airlineCode: f.airline,
+    price: f.price,                    // Travelpayouts prices shown as-is (no markup — affiliate model)
+    basePrice: f.price,
+    currency: '£',
+    stops: f.transfers === 0 ? 'Direct' : f.transfers === 1 ? '1 stop' : `${f.transfers} stops`,
+    transfers: f.transfers,
+    duration_to: f.duration_to || 0,
+    duration_back: f.duration_back || 0,
+    departure_at: f.departure_at || null,
+    return_at: f.return_at || null,
+    flight_number: f.flight_number || null,
+    offer_id: null,
+    source: 'travelpayouts',
+    link: f.link || null,
+  }));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MAIN HANDLER
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const origin = searchParams.get('origin')?.toUpperCase();
@@ -56,7 +252,8 @@ export async function GET(req: NextRequest) {
   const depDate = searchParams.get('departure');
   const retDate = searchParams.get('return') || null;
   const adults = parseInt(searchParams.get('adults') || '1', 10);
-  const mode = searchParams.get('mode'); // 'calendar' for month-matrix
+  const mode = searchParams.get('mode');
+  const sessionId = searchParams.get('sid') || 'anon';
 
   if (!origin || !destination) {
     return NextResponse.json({ error: 'Missing origin or destination' }, { status: 400 });
@@ -64,9 +261,9 @@ export async function GET(req: NextRequest) {
 
   const headers = { Accept: 'application/json' };
 
-  // ── Calendar / month-matrix mode ──
+  // ── Calendar / month-matrix mode (Travelpayouts only — Duffel doesn't have this) ──
   if (mode === 'calendar') {
-    const month = searchParams.get('month'); // YYYY-MM
+    const month = searchParams.get('month');
     if (!month) {
       return NextResponse.json({ error: 'Missing month param' }, { status: 400 });
     }
@@ -74,102 +271,63 @@ export async function GET(req: NextRequest) {
     const kvKey = `cal:${origin}:${destination}:${month}`;
     try {
       const cached = await kv.get<any>(kvKey);
-      if (cached) {
-        return NextResponse.json({ ...cached, cached: true });
-      }
-    } catch { /* KV miss — continue */ }
+      if (cached) return NextResponse.json({ ...cached, cached: true });
+    } catch { /* KV miss */ }
 
     try {
-      const url = `https://api.travelpayouts.com/v2/prices/month-matrix?origin=${origin}&destination=${destination}&month=${month}&currency=gbp&show_to_affiliates=true&token=${TOKEN}`;
+      const url = `https://api.travelpayouts.com/v2/prices/month-matrix?origin=${origin}&destination=${destination}&month=${month}&currency=gbp&show_to_affiliates=true&token=${TP_TOKEN}`;
       const res = await fetch(url, { headers });
-      if (!res.ok) {
-        return NextResponse.json({ success: false, data: [] });
-      }
+      if (!res.ok) return NextResponse.json({ success: false, data: [] });
       const json = await res.json();
       const result = { success: true, data: json.data || [] };
-
-      try { await kv.set(kvKey, result, { ex: KV_TTL }); } catch { /* KV write fail */ }
-
+      try { await kv.set(kvKey, result, { ex: 21600 }); } catch {}
       return NextResponse.json(result);
     } catch {
       return NextResponse.json({ success: false, data: [] });
     }
   }
 
-  // ── Price search mode (default) ──
+  // ── Price search mode ──
   if (!depDate) {
     return NextResponse.json({ error: 'Missing departure date' }, { status: 400 });
   }
 
-  const kvKey = `flights:${origin}:${destination}:${depDate}:${retDate || 'ow'}`;
+  // Check cache
+  const kvKey = `flights:v2:${origin}:${destination}:${depDate}:${retDate || 'ow'}:${adults}`;
   try {
     const cached = await kv.get<any>(kvKey);
-    if (cached) {
-      return NextResponse.json({ ...cached, cached: true });
-    }
-  } catch { /* KV miss */ }
+    if (cached) return NextResponse.json({ ...cached, cached: true });
+  } catch {}
 
   try {
-    const queries: Promise<any>[] = [];
+    // Try Duffel first (live prices), fall back to Travelpayouts
+    let flights: any[] = [];
+    let source = 'duffel';
 
-    // Query 1: exact dates (return trip)
-    if (retDate) {
-      queries.push(
-        fetch(`https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${depDate}&return_at=${retDate}&currency=gbp&sorting=price&limit=10&market=gb&token=${TOKEN}`, { headers })
-          .then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] }))
-      );
-    }
-
-    // Query 2: exact departure date one-way
-    queries.push(
-      fetch(`https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${depDate}&currency=gbp&sorting=price&limit=10&market=gb&one_way=true&token=${TOKEN}`, { headers })
-        .then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] }))
-    );
-
-    // Query 3: broader month search
-    const depMonth = depDate.slice(0, 7);
-    queries.push(
-      fetch(`https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${depMonth}&currency=gbp&sorting=price&limit=30&market=gb&token=${TOKEN}`, { headers })
-        .then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] }))
-    );
-
-    const results = await Promise.all(queries);
-
-    // Deduplicate: by flight_number + departure date (keep cheapest), fallback to airline + departure_at
-    const bestByKey = new Map<string, any>();
-    for (const res of results) {
-      for (const f of (res.data || [])) {
-        const depDay = (f.departure_at || '').slice(0, 10);
-        const key = f.flight_number
-          ? `${f.flight_number}-${depDay}`
-          : `${f.airline}-${depDay}-${f.duration_to}`;
-        const existing = bestByKey.get(key);
-        if (!existing || f.price < existing.price) {
-          bestByKey.set(key, f);
+    if (DUFFEL_KEY) {
+      try {
+        const duffelOffers = await searchDuffel(origin, destination, depDate, retDate, adults);
+        if (duffelOffers.length > 0) {
+          flights = transformDuffelOffers(duffelOffers, adults);
         }
+      } catch (err) {
+        console.error('Duffel search failed, falling back to Travelpayouts:', err);
       }
     }
-    const allData = Array.from(bestByKey.values());
-    allData.sort((a: any, b: any) => a.price - b.price);
 
-    const flights = allData.slice(0, 10).map((f: any) => ({
-      airline: airlineName(f.airline),
-      airlineCode: f.airline,
-      price: f.price,
-      currency: '£',
-      stops: f.transfers === 0 ? 'Direct' : f.transfers === 1 ? '1 stop' : `${f.transfers} stops`,
-      transfers: f.transfers,
-      duration_to: f.duration_to || 0,
-      duration_back: f.duration_back || 0,
-      departure_at: f.departure_at || null,
-      return_at: f.return_at || null,
-      flight_number: f.flight_number || null,
-      link: f.link || null,
-    }));
+    // Fallback to Travelpayouts if Duffel returned nothing
+    if (flights.length === 0) {
+      flights = await searchTravelpayouts(origin, destination, depDate, retDate, adults);
+      source = 'travelpayouts';
+    }
+
+    // Sort by total price
+    flights.sort((a, b) => a.price - b.price);
 
     const result = {
       success: true,
       flights,
+      source,
       origin,
       destination,
       depDate,
@@ -177,7 +335,19 @@ export async function GET(req: NextRequest) {
       adults,
     };
 
-    try { await kv.set(kvKey, result, { ex: KV_TTL }); } catch { /* KV write fail */ }
+    // Cache results
+    try { await kv.set(kvKey, result, { ex: KV_TTL }); } catch {}
+
+    // Log search to user's history (non-blocking)
+    logFlightSearch(sessionId, {
+      origin,
+      destination,
+      departure: depDate,
+      returnDate: retDate,
+      passengers: adults,
+      cheapest: flights.length > 0 ? flights[0].price : null,
+      ts: Date.now(),
+    }).catch(() => {});
 
     return NextResponse.json(result);
   } catch (err: any) {

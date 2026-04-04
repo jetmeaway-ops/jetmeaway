@@ -169,14 +169,18 @@ type FlightResult = {
   airline: string;
   airlineCode: string;
   price: number;
+  basePrice?: number;
   currency: string;
   stops: string;
   transfers: number;
   duration_to: number;
   duration_back: number;
   departure_at: string | null;
+  arrival_at?: string | null;
   return_at: string | null;
-  flight_number: number | null;
+  flight_number: string | null;
+  offer_id?: string | null;
+  source?: 'duffel' | 'travelpayouts';
   link: string | null;
 };
 
@@ -727,7 +731,7 @@ function FlightsContent() {
                     {cheapest.transfers === 0 && <span className="text-green-600"> (direct)</span>}
                   </span>
                 </div>
-                <p className="text-[.7rem] text-[#8E95A9] font-semibold">Prices are indicative based on recent searches. Click &apos;View Deal&apos; for live pricing from the provider.</p>
+                <p className="text-[.7rem] text-[#8E95A9] font-semibold">{cheapest.source === 'duffel' ? 'Live prices including all taxes & fees. Book directly.' : 'Prices are indicative based on recent searches. Click \'View Deal\' for live pricing from the provider.'}</p>
               </div>
             </section>
           )}
@@ -742,7 +746,10 @@ function FlightsContent() {
                   const arrTime = arrivalTime(f.departure_at, f.duration_to);
                   const duration = fmtDuration(f.duration_to);
                   const airlineLogo = `https://pics.avs.io/80/80/${f.airlineCode}.png`;
-                  const viewDealUrl = buildAviasalesUrl(originCode, destCode, depDate, effectiveRet, adults);
+                  const isDuffel = f.source === 'duffel';
+                  const viewDealUrl = isDuffel
+                    ? '#' // Duffel flights — booking flow coming soon
+                    : buildAviasalesUrl(originCode, destCode, depDate, effectiveRet, adults);
 
                   return (
                     <div key={i} className={`bg-white border rounded-2xl overflow-hidden transition-shadow hover:shadow-md ${isCheapest ? 'border-green-200 ring-1 ring-green-100' : 'border-[#E8ECF4]'}`}>
@@ -789,12 +796,25 @@ function FlightsContent() {
                         <div className="flex items-center gap-4 md:flex-col md:items-end md:gap-2">
                           <div className="text-right">
                             <div className="font-[Poppins] font-black text-[1.5rem] text-[#1A1D2B] leading-none">{f.currency}{f.price}</div>
-                            <div className="text-[.6rem] text-[#8E95A9] font-semibold">per person, {f.return_at ? 'return' : 'one-way'}</div>
+                            <div className="text-[.6rem] text-[#8E95A9] font-semibold">
+                              {isDuffel ? 'total price, per person' : `per person, ${f.return_at ? 'return' : 'one-way'}`}
+                            </div>
+                            {isDuffel && (
+                              <div className="text-[.55rem] text-green-600 font-bold mt-0.5">✓ Live price incl. taxes</div>
+                            )}
                           </div>
-                          <a href={redirectUrl(viewDealUrl, 'Aviasales', destCity || destCode, 'flights')}
-                            className="bg-[#0066FF] hover:bg-[#0052CC] text-white font-[Poppins] font-bold text-[.78rem] px-5 py-2.5 rounded-xl transition-all shadow-[0_4px_12px_rgba(0,102,255,0.2)] whitespace-nowrap">
-                            View Deal →
-                          </a>
+                          {isDuffel ? (
+                            <button
+                              className="bg-green-600 hover:bg-green-700 text-white font-[Poppins] font-bold text-[.78rem] px-5 py-2.5 rounded-xl transition-all shadow-[0_4px_12px_rgba(22,163,74,0.2)] whitespace-nowrap"
+                            >
+                              Book Now →
+                            </button>
+                          ) : (
+                            <a href={redirectUrl(viewDealUrl, 'Aviasales', destCity || destCode, 'flights')}
+                              className="bg-[#0066FF] hover:bg-[#0052CC] text-white font-[Poppins] font-bold text-[.78rem] px-5 py-2.5 rounded-xl transition-all shadow-[0_4px_12px_rgba(0,102,255,0.2)] whitespace-nowrap">
+                              View Deal →
+                            </a>
+                          )}
                         </div>
                       </div>
 
@@ -817,10 +837,10 @@ function FlightsContent() {
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
                 <span className="text-3xl mb-3 block">🔎</span>
                 <p className="font-[Poppins] font-bold text-[.95rem] text-[#1A1D2B] mb-2">
-                  We don&apos;t have cached prices for this route yet.
+                  No flights found for this route and date.
                 </p>
                 <p className="text-[.78rem] text-[#8E95A9] font-semibold">
-                  Compare live prices directly across our providers below.
+                  Try different dates or compare directly across our providers below.
                 </p>
               </div>
             </section>
