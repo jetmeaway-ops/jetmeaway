@@ -276,7 +276,7 @@ const TP_WRAP = 'https://tp.media/r?marker=714449&trs=512633';
 
 function buildExpediaUrl(dest: string, from: string, depDate: string, retDate: string, adults: number) {
   const fromCity = from.replace(/\s*\(.*\)$/, '');
-  return `https://www.expedia.co.uk/Packages-search?destination=${encodeURIComponent(dest)}&startDate=${depDate}&endDate=${retDate}&adults=${adults}&origin=${encodeURIComponent(fromCity)}&affcid=clbU3QK`;
+  return `https://www.expedia.co.uk/Holidays?d1=${encodeURIComponent(dest)}&d2=${encodeURIComponent(fromCity)}&startDate=${depDate}&endDate=${retDate}&adults=${adults}&affcid=clbU3QK`;
 }
 
 function buildTripUrl(dest: string, depDate: string, retDate: string, adults: number) {
