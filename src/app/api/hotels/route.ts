@@ -35,11 +35,17 @@ async function fetchLiteApiHotels(
   adults: number,
   childrenCount: number,
   rooms: number,
-  timeoutMs: number = 5000,
+  timeoutMs: number = 12000,
 ): Promise<HotelOffer[]> {
-  if (!process.env.LITE_API_KEY) return [];
+  if (!process.env.LITE_API_KEY) {
+    console.warn('[liteapi] LITE_API_KEY not set — skipping hotel search');
+    return [];
+  }
   const countryCode = CITY_COUNTRY[cityKey];
-  if (!countryCode) return [];
+  if (!countryCode) {
+    console.warn('[liteapi] no country code mapping for city:', cityKey);
+    return [];
+  }
   const cityName = cityKey.charAt(0).toUpperCase() + cityKey.slice(1);
 
   // Build occupancy: one entry per room. Split adults across rooms (min 1 per
@@ -62,6 +68,7 @@ async function fetchLiteApiHotels(
     children: idx === 0 ? childAges : [],
   }));
 
+  const t0 = Date.now();
   try {
     const result = await Promise.race([
       liteapiGetHotels({
@@ -78,9 +85,11 @@ async function fetchLiteApiHotels(
         setTimeout(() => reject(new Error('LiteAPI timeout')), timeoutMs),
       ),
     ]);
+    console.log(`[liteapi] ${cityName} (${countryCode}) ${checkin}→${checkout}: ${result.length} offers in ${Date.now() - t0}ms`);
     return result;
-  } catch (err: any) {
-    console.warn('[liteapi] hotels fetch failed:', err?.message || err);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`[liteapi] ${cityName} (${countryCode}) fetch failed after ${Date.now() - t0}ms:`, message);
     return [];
   }
 }
