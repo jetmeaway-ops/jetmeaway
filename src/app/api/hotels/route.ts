@@ -500,8 +500,8 @@ export async function GET(req: NextRequest) {
   const childrenNum = Math.max(0, Math.min(4, parseInt(childrenParam) || 0));
   const roomsNum = Math.max(1, Math.min(3, parseInt(roomsParam) || 1));
   const minStars = Math.max(0, Math.min(5, parseInt(starsParam) || 0));
-  // Cache key v3 — includes children/rooms/stars so filter changes don't collide
-  const kvKey = `hotels:v3:${cityKey}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
+  // Cache key v4 — bumped after LiteAPI sandbox → production swap
+  const kvKey = `hotels:v4:${cityKey}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
 
   // Check KV cache
   try {
