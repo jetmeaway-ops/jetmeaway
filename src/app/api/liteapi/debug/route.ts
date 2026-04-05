@@ -46,30 +46,15 @@ export async function GET(_req: NextRequest) {
     return NextResponse.json({ step: 'rates', ratesStatus: ratesRes.status, ratesPreview: JSON.stringify(rates).slice(0, 800) });
   }
 
-  const keys = Object.keys(firstRate);
-  const offerId = firstRate.offerId || firstRate.rateId || '';
-
-  // 3. Try prebook with three shapes
-  const attempts: any[] = [];
-  const shapes = [
-    { label: 'flat', body: { offerId, usePaymentSdk: false } },
-    { label: 'data-wrapped', body: { data: { offerId, usePaymentSdk: false } } },
-    { label: 'rateId-flat', body: { rateId: offerId, usePaymentSdk: false } },
-  ];
-  for (const s of shapes) {
-    const r = await fetch(`${BASE}/rates/prebook`, {
-      method: 'POST', headers: h, cache: 'no-store',
-      body: JSON.stringify(s.body),
-    });
-    const text = await r.text();
-    attempts.push({ label: s.label, status: r.status, body: text.slice(0, 600) });
-    if (r.ok) break;
-  }
-
   return NextResponse.json({
-    offerIdLen: offerId.length,
-    offerIdPreview: offerId.slice(0, 40) + '...',
-    rateKeys: keys,
-    attempts,
+    rateKeys: Object.keys(firstRate),
+    paymentTypes: firstRate.paymentTypes,
+    retailRateKeys: Object.keys(firstRate.retailRate || {}),
+    retailRate: firstRate.retailRate,
+    rateIdPreview: String(firstRate.rateId || '').slice(0, 50),
+    // Full raw rate (truncated) so we can find the real offerId
+    rawRate: JSON.parse(JSON.stringify(firstRate).slice(0, 3500)).toString ? firstRate : firstRate,
+    topLevelDataKeys: Object.keys(rates.data?.[0] || {}),
+    roomTypeKeys: Object.keys(rates.data?.[0]?.roomTypes?.[0] || {}),
   });
 }
