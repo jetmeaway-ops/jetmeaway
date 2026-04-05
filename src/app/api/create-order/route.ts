@@ -4,7 +4,7 @@ import { applyMarkup, saveBookingIntent, MARKUP_GBP } from '@/lib/travel-logic';
 
 export const runtime = 'edge';
 
-const DUFFEL_KEY = process.env.DUFFEL_ACCESS_TOKEN || process.env.DUFFEL_API_KEY || '';
+const DUFFEL_KEY = process.env.DUFFEL_TEST_TOKEN || process.env.DUFFEL_ACCESS_TOKEN || process.env.DUFFEL_API_KEY || '';
 const RESEND_KEY = process.env.RESEND_API_KEY || '';
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -83,8 +83,8 @@ function buildEmailHtml(order: any, passengers: any[], totalPerPerson: number, t
 
     <!-- Header -->
     <div style="text-align:center;margin-bottom:32px;">
-      <h1 style="font-size:24px;font-weight:800;color:#0066FF;margin:0;">JetMeAway</h1>
-      <p style="font-size:13px;color:#8E95A9;margin:4px 0 0;">Your travel scout</p>
+      <img src="https://jetmeaway.co.uk/jetmeaway-logo.png" alt="JetMeAway" width="160" style="display:inline-block;height:auto;max-width:160px;border:0;outline:none;text-decoration:none;" />
+      <p style="font-size:13px;color:#8E95A9;margin:8px 0 0;">Your travel scout</p>
     </div>
 
     <!-- Confirmation Banner -->

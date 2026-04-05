@@ -4,7 +4,7 @@ import { applyMarkup, logFlightSearch } from '@/lib/travel-logic';
 
 export const runtime = 'edge';
 
-const DUFFEL_KEY = process.env.DUFFEL_ACCESS_TOKEN || process.env.DUFFEL_API_KEY || '';
+const DUFFEL_KEY = process.env.DUFFEL_TEST_TOKEN || process.env.DUFFEL_ACCESS_TOKEN || process.env.DUFFEL_API_KEY || '';
 const TP_TOKEN = 'f797fbb7074a15838d5536c10be6f7b5';
 const KV_TTL = 3600; // 1 hour cache (shorter — Duffel prices are live)
 
