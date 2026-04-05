@@ -556,7 +556,9 @@ function HotelsContent() {
               <div className="space-y-3">
                 {hotels!.map((h, i) => {
                   const isCheapest = i === 0;
-                  // Rotate through Unsplash hotel images
+                  // Prefer the real LiteAPI thumbnail; fall back to an Unsplash
+                  // rotation for curated entries (or when LiteAPI omits the
+                  // photo field, which happens occasionally on edge cases).
                   const HOTEL_PHOTOS = [
                     'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=640&h=480&fit=crop',
                     'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=640&h=480&fit=crop',
@@ -569,7 +571,7 @@ function HotelsContent() {
                     'https://images.unsplash.com/photo-1587213811864-46e59f6873b1?w=640&h=480&fit=crop',
                     'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=640&h=480&fit=crop',
                   ];
-                  const photoUrl = HOTEL_PHOTOS[i % HOTEL_PHOTOS.length];
+                  const photoUrl = h.thumbnail || HOTEL_PHOTOS[i % HOTEL_PHOTOS.length];
                   const totalPrice = h.pricePerNight * (nights || 1);
                   const klookUrl = buildKlookUrl(searchedDest);
                   const tripUrl = buildTripcomUrl(searchedDest, checkin, checkout, adults);
