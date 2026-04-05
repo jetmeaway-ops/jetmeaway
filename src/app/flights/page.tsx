@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { redirectUrl } from '@/lib/redirect';
@@ -529,6 +529,19 @@ function FlightsContent() {
   const [apiError, setApiError] = useState('');
   const [searched, setSearched] = useState(false);
 
+  // Filter + sort state
+  type SortBy = 'price-asc' | 'price-desc' | 'duration-asc' | 'duration-desc';
+  type StopsFilter = 'any' | 'direct' | 'max1' | 'max2';
+  const [sortBy, setSortBy] = useState<SortBy>('price-asc');
+  const [stopsFilter, setStopsFilter] = useState<StopsFilter>('any');
+  const [selectedAirlines, setSelectedAirlines] = useState<string[]>([]);
+  const [flightNumFilter, setFlightNumFilter] = useState('');
+  const [takeoffMin, setTakeoffMin] = useState(0);      // minutes since 00:00
+  const [takeoffMax, setTakeoffMax] = useState(1439);
+  const [landingMin, setLandingMin] = useState(0);
+  const [landingMax, setLandingMax] = useState(1439);
+  const [filtersOpenMobile, setFiltersOpenMobile] = useState(false);
+
   // URL param initialisation
   const [initOrigin, setInitOrigin] = useState('');
   const [initDest, setInitDest] = useState('');
@@ -635,6 +648,96 @@ function FlightsContent() {
   const cheapest = flights && flights.length > 0 ? flights[0] : null;
   const effectiveRet = tripType === 'return' ? retDate : null;
 
+  // Available airlines (from unfiltered results)
+  const availableAirlines = useMemo(() => {
+    if (!flights) return [] as string[];
+    return Array.from(new Set(flights.map(f => f.airline))).sort();
+  }, [flights]);
+
+  // Apply filters + sort
+  const visibleFlights = useMemo(() => {
+    if (!flights) return [] as FlightResult[];
+    let list = flights.slice();
+
+    // Stops
+    if (stopsFilter === 'direct') list = list.filter(f => f.transfers === 0);
+    else if (stopsFilter === 'max1') list = list.filter(f => f.transfers <= 1);
+    else if (stopsFilter === 'max2') list = list.filter(f => f.transfers <= 2);
+
+    // Airlines
+    if (selectedAirlines.length > 0) {
+      list = list.filter(f => selectedAirlines.includes(f.airline));
+    }
+
+    // Flight number (matches "BA117", "ba 117", "117", etc.)
+    const fn = flightNumFilter.trim().toUpperCase().replace(/\s+/g, '');
+    if (fn) {
+      list = list.filter(f => {
+        const combined = `${(f.airlineCode || '').toUpperCase()}${(f.flight_number || '').toUpperCase()}`;
+        return combined.includes(fn);
+      });
+    }
+
+    // Take-off time
+    if (takeoffMin > 0 || takeoffMax < 1439) {
+      list = list.filter(f => {
+        if (!f.departure_at) return true;
+        const d = new Date(f.departure_at);
+        const mins = d.getHours() * 60 + d.getMinutes();
+        return mins >= takeoffMin && mins <= takeoffMax;
+      });
+    }
+
+    // Landing time
+    if (landingMin > 0 || landingMax < 1439) {
+      list = list.filter(f => {
+        if (!f.departure_at || !f.duration_to) return true;
+        const d = new Date(f.departure_at);
+        d.setMinutes(d.getMinutes() + f.duration_to);
+        const mins = d.getHours() * 60 + d.getMinutes();
+        return mins >= landingMin && mins <= landingMax;
+      });
+    }
+
+    // Sort
+    list.sort((a, b) => {
+      switch (sortBy) {
+        case 'price-asc': return a.price - b.price;
+        case 'price-desc': return b.price - a.price;
+        case 'duration-asc': return a.duration_to - b.duration_to;
+        case 'duration-desc': return b.duration_to - a.duration_to;
+      }
+    });
+
+    return list;
+  }, [flights, sortBy, stopsFilter, selectedAirlines, flightNumFilter, takeoffMin, takeoffMax, landingMin, landingMax]);
+
+  const filtersActive =
+    sortBy !== 'price-asc' ||
+    stopsFilter !== 'any' ||
+    selectedAirlines.length > 0 ||
+    flightNumFilter.trim() !== '' ||
+    takeoffMin > 0 || takeoffMax < 1439 ||
+    landingMin > 0 || landingMax < 1439;
+
+  const clearAllFilters = () => {
+    setSortBy('price-asc');
+    setStopsFilter('any');
+    setSelectedAirlines([]);
+    setFlightNumFilter('');
+    setTakeoffMin(0); setTakeoffMax(1439);
+    setLandingMin(0); setLandingMax(1439);
+  };
+
+  const minsToLabel = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+
+  // Reset filters whenever a new search lands (avoid stale airline filter carrying over)
+  useEffect(() => {
+    if (flights) {
+      setSelectedAirlines(prev => prev.filter(a => flights.some(f => f.airline === a)));
+    }
+  }, [flights]);
+
   return (
     <>
       <Header />
@@ -736,12 +839,168 @@ function FlightsContent() {
             </section>
           )}
 
-          {/* Section 2: Flight Result Cards */}
+          {/* Section 2: Sidebar filters + Result cards */}
           {flights.length > 0 ? (
-            <section className="max-w-[1000px] mx-auto px-5 pb-6">
-              <div className="space-y-3">
-                {flights.map((f, i) => {
-                  const isCheapest = i === 0;
+            <section className="max-w-[1240px] mx-auto px-5 pb-6">
+              {/* Mobile filters toggle */}
+              <div className="md:hidden mb-4 flex items-center justify-between gap-3">
+                <button
+                  onClick={() => setFiltersOpenMobile(v => !v)}
+                  className="flex items-center gap-2 bg-white border border-[#E8ECF4] hover:border-[#0066FF] text-[#1A1D2B] font-[Poppins] font-bold text-[.78rem] px-4 py-2 rounded-full shadow-sm transition-all"
+                >
+                  <span>⚙</span> Filters & Sort
+                  {filtersActive && <span className="w-1.5 h-1.5 rounded-full bg-[#0066FF]" />}
+                </button>
+                <div className="text-[.72rem] text-[#8E95A9] font-bold">
+                  {visibleFlights.length} of {flights.length}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-5">
+                {/* ─── Sidebar ─── */}
+                <aside className={`${filtersOpenMobile ? 'block' : 'hidden'} md:block md:sticky md:top-24 self-start bg-white border border-[#E8ECF4] rounded-2xl p-5 h-fit`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-[Poppins] font-black text-[.95rem] text-[#1A1D2B]">Filters</h3>
+                    {filtersActive && (
+                      <button onClick={clearAllFilters} className="text-[.7rem] font-bold text-[#0066FF] hover:underline">
+                        Clear all
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Sort by */}
+                  <div className="mb-5">
+                    <h4 className="font-[Poppins] font-black text-[.78rem] text-[#1A1D2B] mb-2 uppercase tracking-wide">Sort by</h4>
+                    <div className="space-y-1.5">
+                      {([
+                        { v: 'price-asc', l: 'Least expensive' },
+                        { v: 'price-desc', l: 'Most expensive' },
+                        { v: 'duration-asc', l: 'Shortest duration' },
+                        { v: 'duration-desc', l: 'Longest duration' },
+                      ] as { v: SortBy; l: string }[]).map(o => (
+                        <label key={o.v} className="flex items-center gap-2 cursor-pointer text-[.78rem] text-[#5C6378] font-semibold">
+                          <input type="radio" name="sortby" checked={sortBy === o.v} onChange={() => setSortBy(o.v)} className="accent-[#0066FF]" />
+                          {o.l}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Stops */}
+                  <div className="mb-5">
+                    <h4 className="font-[Poppins] font-black text-[.78rem] text-[#1A1D2B] mb-2 uppercase tracking-wide">Stops</h4>
+                    <div className="space-y-1.5">
+                      {([
+                        { v: 'direct', l: 'Direct only' },
+                        { v: 'max1', l: '1 stop at most' },
+                        { v: 'max2', l: '2 stops at most' },
+                        { v: 'any', l: 'Any number of stops' },
+                      ] as { v: StopsFilter; l: string }[]).map(o => (
+                        <label key={o.v} className="flex items-center gap-2 cursor-pointer text-[.78rem] text-[#5C6378] font-semibold">
+                          <input type="radio" name="stops" checked={stopsFilter === o.v} onChange={() => setStopsFilter(o.v)} className="accent-[#0066FF]" />
+                          {o.l}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Airlines */}
+                  {availableAirlines.length > 0 && (
+                    <div className="mb-5">
+                      <h4 className="font-[Poppins] font-black text-[.78rem] text-[#1A1D2B] mb-2 uppercase tracking-wide">Airlines</h4>
+                      <div className="space-y-1.5">
+                        {availableAirlines.map(a => (
+                          <label key={a} className="flex items-center gap-2 cursor-pointer text-[.78rem] text-[#5C6378] font-semibold">
+                            <input
+                              type="checkbox"
+                              checked={selectedAirlines.includes(a)}
+                              onChange={(e) => {
+                                setSelectedAirlines(prev => e.target.checked ? [...prev, a] : prev.filter(x => x !== a));
+                              }}
+                              className="accent-[#0066FF]"
+                            />
+                            <span className="truncate">{a}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Flight number */}
+                  <div className="mb-5">
+                    <h4 className="font-[Poppins] font-black text-[.78rem] text-[#1A1D2B] mb-2 uppercase tracking-wide">Flight number</h4>
+                    <input
+                      type="text"
+                      value={flightNumFilter}
+                      onChange={(e) => setFlightNumFilter(e.target.value)}
+                      placeholder="e.g. BA117"
+                      className="w-full border border-[#E8ECF4] rounded-lg px-3 py-2 text-[.8rem] focus:outline-none focus:border-[#0066FF]"
+                    />
+                  </div>
+
+                  {/* Take-off time */}
+                  <div className="mb-5">
+                    <div className="flex items-center justify-between mb-1">
+                      <h4 className="font-[Poppins] font-black text-[.78rem] text-[#1A1D2B] uppercase tracking-wide">Take-off</h4>
+                      <span className="text-[.65rem] text-[#8E95A9] font-bold">
+                        {takeoffMin === 0 && takeoffMax === 1439 ? 'at any time' : `${minsToLabel(takeoffMin)} – ${minsToLabel(takeoffMax)}`}
+                      </span>
+                    </div>
+                    <label className="text-[.65rem] text-[#8E95A9] font-semibold block mb-0.5">Earliest</label>
+                    <input type="range" min={0} max={1439} step={15} value={takeoffMin}
+                      onChange={e => { const v = Number(e.target.value); setTakeoffMin(Math.min(v, takeoffMax)); }}
+                      className="w-full accent-[#0066FF]" />
+                    <label className="text-[.65rem] text-[#8E95A9] font-semibold block mb-0.5 mt-1">Latest</label>
+                    <input type="range" min={0} max={1439} step={15} value={takeoffMax}
+                      onChange={e => { const v = Number(e.target.value); setTakeoffMax(Math.max(v, takeoffMin)); }}
+                      className="w-full accent-[#0066FF]" />
+                    <div className="flex justify-between text-[.58rem] text-[#B0B8CC] font-bold mt-1">
+                      <span>00:00</span><span>08:00</span><span>16:00</span><span>23:59</span>
+                    </div>
+                  </div>
+
+                  {/* Landing time */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <h4 className="font-[Poppins] font-black text-[.78rem] text-[#1A1D2B] uppercase tracking-wide">Landing</h4>
+                      <span className="text-[.65rem] text-[#8E95A9] font-bold">
+                        {landingMin === 0 && landingMax === 1439 ? 'at any time' : `${minsToLabel(landingMin)} – ${minsToLabel(landingMax)}`}
+                      </span>
+                    </div>
+                    <label className="text-[.65rem] text-[#8E95A9] font-semibold block mb-0.5">Earliest</label>
+                    <input type="range" min={0} max={1439} step={15} value={landingMin}
+                      onChange={e => { const v = Number(e.target.value); setLandingMin(Math.min(v, landingMax)); }}
+                      className="w-full accent-[#0066FF]" />
+                    <label className="text-[.65rem] text-[#8E95A9] font-semibold block mb-0.5 mt-1">Latest</label>
+                    <input type="range" min={0} max={1439} step={15} value={landingMax}
+                      onChange={e => { const v = Number(e.target.value); setLandingMax(Math.max(v, landingMin)); }}
+                      className="w-full accent-[#0066FF]" />
+                    <div className="flex justify-between text-[.58rem] text-[#B0B8CC] font-bold mt-1">
+                      <span>00:00</span><span>08:00</span><span>16:00</span><span>23:59</span>
+                    </div>
+                  </div>
+                </aside>
+
+                {/* ─── Results ─── */}
+                <div>
+                  <div className="hidden md:flex items-center justify-between mb-3">
+                    <h3 className="font-[Poppins] font-black text-[.9rem] text-[#1A1D2B]">
+                      {visibleFlights.length} of {flights.length} flights
+                    </h3>
+                  </div>
+
+                  {visibleFlights.length === 0 ? (
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
+                      <span className="text-3xl mb-3 block">🔎</span>
+                      <p className="font-[Poppins] font-bold text-[.95rem] text-[#1A1D2B] mb-2">No flights match your filters.</p>
+                      <button onClick={clearAllFilters} className="text-[.78rem] text-[#0066FF] font-bold hover:underline">
+                        Clear all filters
+                      </button>
+                    </div>
+                  ) : (
+                  <div className="space-y-3">
+                {visibleFlights.map((f, i) => {
+                  const isCheapest = cheapest !== null && f === cheapest;
                   const depTime = fmtTime(f.departure_at);
                   const arrTime = arrivalTime(f.departure_at, f.duration_to);
                   const duration = fmtDuration(f.duration_to);
@@ -828,10 +1087,13 @@ function FlightsContent() {
                     </div>
                   );
                 })}
+                  </div>
+                  )}
+                </div>
               </div>
             </section>
           ) : (
-            /* Section G: No results */
+            /* No results from API */
             <section className="max-w-[860px] mx-auto px-5 py-8">
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
                 <span className="text-3xl mb-3 block">🔎</span>
