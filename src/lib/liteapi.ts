@@ -351,11 +351,14 @@ export async function completeBooking(
     throw new Error('LiteAPI prebook did not return a prebookId');
   }
 
-  // b) Book — merchant wallet settlement, customer paid us via Stripe.
-  // LiteAPI's merchant model accepts the Stripe PaymentIntent ID as
-  // transactionId; the amount is debited from our pre-funded merchant wallet.
+  // b) Book — merchant wallet settlement. The customer has already paid us via
+  // Stripe on jetmeaway.co.uk; we settle the booking against our pre-funded
+  // LiteAPI merchant wallet using `payment.method = "WALLET"`. The Stripe
+  // PaymentIntent ID, if provided, is stored as `clientReference` for
+  // reconciliation between our Stripe dashboard and LiteAPI bookings.
   const bookBody = {
     prebookId: prebookData.prebookId,
+    ...(stripePaymentIntentId ? { clientReference: stripePaymentIntentId } : {}),
     holder: {
       firstName: guest.firstName,
       lastName: guest.lastName,
@@ -371,10 +374,7 @@ export async function completeBooking(
         ...(guest.phone ? { phone: guest.phone } : {}),
       },
     ],
-    payment: {
-      method: 'TRANSACTION_ID',
-      ...(stripePaymentIntentId ? { transactionId: stripePaymentIntentId } : {}),
-    },
+    payment: { method: 'WALLET' },
   };
 
   const booking = await liteFetch<{
@@ -383,10 +383,11 @@ export async function completeBooking(
       status: string;
       supplierBookingId?: string;
       hotelConfirmationCode?: string;
-      currency: string;
-      price: number;
+      currency?: string;
+      price?: number;
       checkin: string;
       checkout: string;
+      hotel?: { name?: string };
     };
   }>('/rates/book', {
     method: 'POST',
@@ -399,8 +400,8 @@ export async function completeBooking(
     status: b.status,
     supplierReference: b.supplierBookingId ?? null,
     hotelConfirmationCode: b.hotelConfirmationCode ?? null,
-    currency: b.currency,
-    totalPrice: b.price,
+    currency: b.currency || prebookData.currency,
+    totalPrice: b.price ?? prebookData.price,
     checkIn: b.checkin,
     checkOut: b.checkout,
     raw: b,
