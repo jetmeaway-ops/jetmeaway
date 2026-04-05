@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { applyMarkup, saveBookingIntent, MARKUP_GBP } from '@/lib/travel-logic';
+import { sendSms, SCOUT_BOOKING_MESSAGE } from '@/lib/twilio';
 
 export const runtime = 'edge';
 
@@ -328,6 +329,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    /* ── Step 5b: Send Personal Scout SMS via Twilio ─────────────────── */
+    // Privacy Shield: phone is used only for this notification.
+    let smsSent = false;
+    if (leadPassenger?.phone) {
+      const smsRes = await sendSms(leadPassenger.phone, SCOUT_BOOKING_MESSAGE);
+      smsSent = smsRes.ok;
+    }
+
     /* ── Step 6: Save booking intent to KV ───────────────────────────── */
 
     if (sessionId) {
@@ -358,6 +367,7 @@ export async function POST(req: NextRequest) {
       orderId: order.id,
       documentsUrl,
       emailSent,
+      smsSent,
       totalPerPerson,
       totalAll,
     });
