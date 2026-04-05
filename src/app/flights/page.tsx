@@ -523,6 +523,7 @@ function FlightsContent() {
   const [children, setChildren] = useState(0);
   const [infants, setInfants] = useState(0);
   const [tripType, setTripType] = useState<'one-way' | 'return'>('return');
+  const [cabinClass, setCabinClass] = useState<'economy' | 'premium_economy' | 'business' | 'first'>('economy');
 
   const [loading, setLoading] = useState(false);
   const [flights, setFlights] = useState<FlightResult[] | null>(null);
@@ -568,6 +569,8 @@ function FlightsContent() {
     if (destCityParam && d) setDestCity(destCityParam);
     if (dep) setDepDate(dep);
     if (ret) { setRetDate(ret); setTripType('return'); }
+    const cab = (p.get('cabin') || '').toLowerCase();
+    if (cab === 'premium_economy' || cab === 'business' || cab === 'first') setCabinClass(cab);
   }, []);
 
   const today = new Date().toISOString().split('T')[0];
@@ -591,6 +594,7 @@ function FlightsContent() {
       });
       if (children > 0) params.set('children', String(children));
       if (infants > 0) params.set('infants', String(infants));
+      if (cabinClass !== 'economy') params.set('cabin', cabinClass);
       if (retDate && tripType === 'return') params.set('return', retDate);
 
       const res = await fetch(`/api/flights?${params}`);
@@ -611,7 +615,7 @@ function FlightsContent() {
       setApiError('Could not load flight prices. Please try again.');
       setLoading(false);
     }
-  }, [originCode, destCode, depDate, retDate, adults, children, infants, tripType]);
+  }, [originCode, destCode, depDate, retDate, adults, children, infants, tripType, cabinClass]);
 
   // Helper: format departure/arrival times from ISO string
   function fmtTime(iso: string | null): string {
@@ -755,14 +759,27 @@ function FlightsContent() {
         </div>
 
         <div className="max-w-[860px] mx-auto bg-white border border-[#E8ECF4] rounded-3xl p-6 shadow-[0_8px_40px_rgba(0,102,255,0.08)]">
-          {/* Trip type */}
-          <div className="flex gap-1.5 mb-5 bg-[#F8FAFC] p-1 rounded-xl w-fit">
-            {(['return', 'one-way'] as const).map(t => (
-              <button key={t} onClick={() => { setTripType(t); if (t === 'one-way') setRetDate(''); }}
-                className={`px-4 py-2 rounded-lg text-[.75rem] font-extrabold uppercase tracking-[1.5px] transition-all ${tripType === t ? 'bg-white text-[#0066FF] shadow-sm' : 'text-[#8E95A9] hover:text-[#1A1D2B]'}`}>
-                {t === 'return' ? '↔ Return' : '→ One-way'}
-              </button>
-            ))}
+          {/* Trip type + Cabin */}
+          <div className="flex flex-wrap items-center gap-3 mb-5">
+            <div className="flex gap-1.5 bg-[#F8FAFC] p-1 rounded-xl w-fit">
+              {(['return', 'one-way'] as const).map(t => (
+                <button key={t} onClick={() => { setTripType(t); if (t === 'one-way') setRetDate(''); }}
+                  className={`px-4 py-2 rounded-lg text-[.75rem] font-extrabold uppercase tracking-[1.5px] transition-all ${tripType === t ? 'bg-white text-[#0066FF] shadow-sm' : 'text-[#8E95A9] hover:text-[#1A1D2B]'}`}>
+                  {t === 'return' ? '↔ Return' : '→ One-way'}
+                </button>
+              ))}
+            </div>
+            <select
+              value={cabinClass}
+              onChange={e => setCabinClass(e.target.value as typeof cabinClass)}
+              className="bg-[#F8FAFC] border border-[#E8ECF4] rounded-xl px-3 py-2 text-[.75rem] font-extrabold uppercase tracking-[1.5px] text-[#1A1D2B] outline-none focus:border-[#0066FF] cursor-pointer"
+              aria-label="Cabin class"
+            >
+              <option value="economy">Economy</option>
+              <option value="premium_economy">Premium Economy</option>
+              <option value="business">Business</option>
+              <option value="first">First</option>
+            </select>
           </div>
 
           {/* From / To */}

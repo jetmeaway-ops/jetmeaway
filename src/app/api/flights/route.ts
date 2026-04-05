@@ -58,6 +58,8 @@ function formatDuration(minutes: number): string {
    DUFFEL FLIGHT SEARCH
    ═══════════════════════════════════════════════════════════════════════════ */
 
+type CabinClass = 'economy' | 'premium_economy' | 'business' | 'first';
+
 async function searchDuffel(
   origin: string,
   destination: string,
@@ -66,6 +68,7 @@ async function searchDuffel(
   adults: number,
   children: number,
   infants: number,
+  cabinClass: CabinClass,
 ): Promise<any[]> {
   // Build slices
   const slices: any[] = [
@@ -104,7 +107,7 @@ async function searchDuffel(
       data: {
         slices,
         passengers,
-        cabin_class: 'economy',
+        cabin_class: cabinClass,
         return_offers: true,
         max_connections: 1,
       },
@@ -260,6 +263,11 @@ export async function GET(req: NextRequest) {
   const children = parseInt(searchParams.get('children') || '0', 10);
   const infants = parseInt(searchParams.get('infants') || '0', 10);
   const paxCount = adults + children + infants;
+  const cabinParam = (searchParams.get('cabin') || 'economy').toLowerCase();
+  const cabinClass: CabinClass =
+    cabinParam === 'premium_economy' || cabinParam === 'business' || cabinParam === 'first'
+      ? (cabinParam as CabinClass)
+      : 'economy';
   const mode = searchParams.get('mode');
   const sessionId = searchParams.get('sid') || 'anon';
 
@@ -301,7 +309,7 @@ export async function GET(req: NextRequest) {
   }
 
   // Check cache (include children/infants so mixed-party searches don't collide)
-  const kvKey = `flights:v3:${origin}:${destination}:${depDate}:${retDate || 'ow'}:${adults}c${children}i${infants}`;
+  const kvKey = `flights:v4:${origin}:${destination}:${depDate}:${retDate || 'ow'}:${adults}c${children}i${infants}:${cabinClass}`;
   try {
     const cached = await kv.get<any>(kvKey);
     if (cached) return NextResponse.json({ ...cached, cached: true });
@@ -314,7 +322,7 @@ export async function GET(req: NextRequest) {
 
     if (DUFFEL_KEY) {
       try {
-        const duffelOffers = await searchDuffel(origin, destination, depDate, retDate, adults, children, infants);
+        const duffelOffers = await searchDuffel(origin, destination, depDate, retDate, adults, children, infants, cabinClass);
         if (duffelOffers.length > 0) {
           flights = transformDuffelOffers(duffelOffers, paxCount);
         }
@@ -343,6 +351,7 @@ export async function GET(req: NextRequest) {
       adults,
       children,
       infants,
+      cabinClass,
     };
 
     // Cache results

@@ -100,7 +100,23 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       cabinClass: firstSeg?.passengers?.[0]?.cabin_class_marketing_name || 'Economy',
       // Expiry
       expiresAt: offer.expires_at || null,
+      // Payment requirements — exposes whether this offer can be held and paid later.
+      // Most real carriers return requires_instant_payment=true, so we just track it
+      // in logs for now; no UI is built against it yet. See Duffel "Holding Orders" guide.
+      paymentRequirements: {
+        requiresInstantPayment: offer.payment_requirements?.requires_instant_payment ?? true,
+        paymentRequiredBy: offer.payment_requirements?.payment_required_by || null,
+        priceGuaranteeExpiresAt: offer.payment_requirements?.price_guarantee_expires_at || null,
+      },
     };
+
+    // Log whenever a hold-capable offer shows up so we know when it's worth building the UI
+    if (offer.payment_requirements?.requires_instant_payment === false) {
+      console.log(
+        `[hold-capable offer] ${airlineCode} ${result.origin}->${result.destination} ` +
+        `offer=${offer.id} pay_by=${offer.payment_requirements?.payment_required_by}`,
+      );
+    }
 
     return NextResponse.json({ success: true, offer: result });
   } catch (err: any) {
