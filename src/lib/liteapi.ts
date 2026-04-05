@@ -351,6 +351,110 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
 }
 
 /* ───────────────────────────────────────────────────────────────────────── */
+/*  HOTEL DETAILS — getHotelDetails                                          */
+/* ───────────────────────────────────────────────────────────────────────── */
+
+export interface HotelDetails {
+  id: string;
+  name: string;
+  description: string | null;
+  address: string | null;
+  city: string | null;
+  country: string | null;
+  stars: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  mainPhoto: string | null;
+  photos: string[];
+  amenities: string[];
+  checkInTime: string | null;
+  checkOutTime: string | null;
+}
+
+/**
+ * Fetch full hotel metadata (photos, description, amenities) from LiteAPI
+ * `/data/hotel`. Used to render /hotels/[id] detail pages.
+ */
+export async function getHotelDetails(hotelId: string): Promise<HotelDetails | null> {
+  if (!hotelId) return null;
+  try {
+    type RawHotel = {
+      id?: string;
+      name?: string;
+      hotelDescription?: string;
+      description?: string;
+      address?: string;
+      city?: string;
+      country?: string;
+      starRating?: number;
+      stars?: number;
+      rating?: number;
+      latitude?: number;
+      longitude?: number;
+      main_photo?: string;
+      thumbnail?: string;
+      hotelImages?: Array<{ url?: string; urlHd?: string } | string>;
+      hotelFacilities?: Array<string | { name?: string }>;
+      facilities?: Array<string | { name?: string }>;
+      amenities?: Array<string | { name?: string }>;
+      checkinCheckoutTimes?: { checkin?: string; checkout?: string };
+    };
+    const res = await liteFetch<{ data: RawHotel }>(
+      `/data/hotel?hotelId=${encodeURIComponent(hotelId)}`,
+      { method: 'GET' },
+      12_000,
+    );
+    const h = res.data;
+    if (!h) return null;
+
+    const photos: string[] = [];
+    if (Array.isArray(h.hotelImages)) {
+      for (const img of h.hotelImages) {
+        if (!img) continue;
+        const url = typeof img === 'string' ? img : (img.urlHd || img.url);
+        if (url) photos.push(url);
+      }
+    }
+    if (h.main_photo && !photos.includes(h.main_photo)) {
+      photos.unshift(h.main_photo);
+    }
+
+    const rawAmenities = h.hotelFacilities || h.facilities || h.amenities || [];
+    const amenities: string[] = [];
+    for (const a of rawAmenities) {
+      const name = typeof a === 'string' ? a : a?.name;
+      if (name && typeof name === 'string') amenities.push(name);
+    }
+
+    // Strip HTML tags from description
+    const rawDesc = h.hotelDescription || h.description || '';
+    const description = typeof rawDesc === 'string'
+      ? rawDesc.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() || null
+      : null;
+
+    return {
+      id: h.id || hotelId,
+      name: h.name || hotelId,
+      description,
+      address: h.address || null,
+      city: h.city || null,
+      country: h.country || null,
+      stars: h.starRating ?? h.stars ?? h.rating ?? null,
+      latitude: h.latitude ?? null,
+      longitude: h.longitude ?? null,
+      mainPhoto: h.main_photo || h.thumbnail || photos[0] || null,
+      photos,
+      amenities,
+      checkInTime: h.checkinCheckoutTimes?.checkin || null,
+      checkOutTime: h.checkinCheckoutTimes?.checkout || null,
+    };
+  } catch (err) {
+    console.warn('[liteapi] getHotelDetails failed:', err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────────────── */
 /*  BOOKING — completeBooking                                                */
 /* ───────────────────────────────────────────────────────────────────────── */
 

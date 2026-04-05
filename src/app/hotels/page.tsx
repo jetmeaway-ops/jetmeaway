@@ -7,6 +7,10 @@ import Footer from '@/components/Footer';
 import { redirectUrl } from '@/lib/redirect';
 
 const ScoutSidebar = dynamic(() => import('@/components/ScoutSidebar'), { ssr: false });
+const HotelMap = dynamic(() => import('@/components/HotelMap'), { ssr: false });
+
+type SortBy = 'recommended' | 'price-asc' | 'price-desc' | 'distance';
+type ViewMode = 'list' | 'map';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DESTINATIONS
@@ -367,6 +371,8 @@ function HotelsContent() {
   const [apiError, setApiError] = useState('');
   const [searched, setSearched] = useState(false);
   const [searchedDest, setSearchedDest] = useState('');
+  const [sortBy, setSortBy] = useState<SortBy>('recommended');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   // Scout sidebar state
   const [scoutHotel, setScoutHotel] = useState<{ name: string; lat: number; lng: number } | null>(null);
@@ -453,8 +459,57 @@ function HotelsContent() {
     }
   }, [destination, checkin, checkout, handleSearch]);
 
-  const cheapest = hotels && hotels.length > 0 ? hotels[0] : null;
+  // Compute centre of hotels that have coordinates — used as "city centre"
+  // reference for the distance sort and map default view.
+  const geoHotels = (hotels || []).filter(h => typeof h.lat === 'number' && typeof h.lng === 'number');
+  const cityCentre = geoHotels.length > 0
+    ? {
+        lat: geoHotels.reduce((s, h) => s + (h.lat || 0), 0) / geoHotels.length,
+        lng: geoHotels.reduce((s, h) => s + (h.lng || 0), 0) / geoHotels.length,
+      }
+    : null;
+
+  // Haversine distance in km
+  const distanceKm = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+    const R = 6371;
+    const toRad = (d: number) => (d * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(a));
+  };
+
+  const sortedHotels = hotels ? [...hotels].sort((a, b) => {
+    if (sortBy === 'price-asc') return a.pricePerNight - b.pricePerNight;
+    if (sortBy === 'price-desc') return b.pricePerNight - a.pricePerNight;
+    if (sortBy === 'distance' && cityCentre) {
+      const da = a.lat != null && a.lng != null ? distanceKm(a.lat, a.lng, cityCentre.lat, cityCentre.lng) : Infinity;
+      const db = b.lat != null && b.lng != null ? distanceKm(b.lat, b.lng, cityCentre.lat, cityCentre.lng) : Infinity;
+      return da - db;
+    }
+    // 'recommended' — keep server order (LiteAPI bookable first, then curated)
+    return 0;
+  }) : null;
+
+  const cheapest = sortedHotels && sortedHotels.length > 0 ? sortedHotels[0] : null;
   const nights = getNights();
+
+  // Build the href for a hotel's detail page, carrying search context
+  const buildDetailHref = (h: HotelResult) => {
+    const qp = new URLSearchParams({
+      checkin,
+      checkout,
+      adults: String(adults),
+      children: String(childCount),
+      rooms: String(rooms),
+      city: searchedDest,
+    });
+    if (h.offerId) qp.set('offerId', h.offerId);
+    if (h.totalPrice) qp.set('price', String(h.totalPrice));
+    else qp.set('price', String(h.pricePerNight * Math.max(1, nights)));
+    if (h.currency) qp.set('currency', h.currency);
+    return `/hotels/${encodeURIComponent(String(h.id))}?${qp.toString()}`;
+  };
 
   return (
     <>
@@ -550,11 +605,75 @@ function HotelsContent() {
             </section>
           )}
 
+          {/* Sort + View toolbar */}
+          {hotels!.length > 0 && (
+            <section className="max-w-[1000px] mx-auto px-5 pb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                {/* View toggle */}
+                <div className="inline-flex bg-[#F1F3F7] rounded-xl p-1 self-start">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('list')}
+                    className={`px-4 py-2 rounded-lg text-[.78rem] font-[Poppins] font-bold transition-all flex items-center gap-1.5 ${viewMode === 'list' ? 'bg-white text-[#1A1D2B] shadow-sm' : 'text-[#5C6378]'}`}
+                  >
+                    <i className="fa-solid fa-list text-[.72rem]" /> List
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('map')}
+                    disabled={geoHotels.length === 0}
+                    className={`px-4 py-2 rounded-lg text-[.78rem] font-[Poppins] font-bold transition-all flex items-center gap-1.5 ${viewMode === 'map' ? 'bg-white text-[#1A1D2B] shadow-sm' : 'text-[#5C6378]'} disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    <i className="fa-solid fa-map-location-dot text-[.72rem]" /> Map
+                  </button>
+                </div>
+
+                {/* Sort dropdown */}
+                <div className="flex items-center gap-2">
+                  <label htmlFor="hotel-sort" className="text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9]">Sort by</label>
+                  <select
+                    id="hotel-sort"
+                    value={sortBy}
+                    onChange={e => setSortBy(e.target.value as SortBy)}
+                    className="px-3 py-2 rounded-xl border border-[#E8ECF4] bg-white text-[.8rem] font-bold text-[#1A1D2B] outline-none focus:border-orange-400 cursor-pointer"
+                  >
+                    <option value="recommended">Recommended</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                    <option value="distance" disabled={!cityCentre}>Distance from centre</option>
+                  </select>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Section 2A: Map view */}
+          {hotels!.length > 0 && viewMode === 'map' && cityCentre && (
+            <section className="max-w-[1000px] mx-auto px-5 pb-6">
+              <HotelMap
+                centerLat={cityCentre.lat}
+                centerLng={cityCentre.lng}
+                hotels={sortedHotels!
+                  .filter(h => typeof h.lat === 'number' && typeof h.lng === 'number')
+                  .map(h => ({
+                    id: h.id,
+                    name: h.name,
+                    stars: h.stars,
+                    pricePerNight: h.pricePerNight,
+                    currency: h.currency || 'GBP',
+                    lat: h.lat as number,
+                    lng: h.lng as number,
+                    href: buildDetailHref(h),
+                  }))}
+              />
+            </section>
+          )}
+
           {/* Section 2: Hotel Result Cards */}
-          {hotels!.length > 0 ? (
+          {hotels!.length > 0 && viewMode === 'list' ? (
             <section className="max-w-[1000px] mx-auto px-5 pb-6">
               <div className="space-y-3">
-                {hotels!.map((h, i) => {
+                {sortedHotels!.map((h, i) => {
                   const isCheapest = i === 0;
                   // Prefer the real LiteAPI thumbnail; fall back to an Unsplash
                   // rotation for curated entries (or when LiteAPI omits the
@@ -576,15 +695,16 @@ function HotelsContent() {
                   const klookUrl = buildKlookUrl(searchedDest);
                   const tripUrl = buildTripcomUrl(searchedDest, checkin, checkout, adults);
                   const expediaUrl = buildExpediaUrl(searchedDest, checkin, checkout, adults);
+                  const detailHref = buildDetailHref(h);
 
                   return (
                     <div key={h.id || i} className={`bg-white border rounded-2xl overflow-hidden transition-shadow hover:shadow-md ${isCheapest ? 'border-orange-200 ring-1 ring-orange-100' : 'border-[#E8ECF4]'}`}>
                       <div className="grid grid-cols-1 md:grid-cols-[240px_1fr_auto] gap-0">
-                        {/* Image */}
-                        <div className="relative h-48 md:h-full min-h-[180px]">
+                        {/* Image — clickable to detail page */}
+                        <a href={detailHref} className="relative h-48 md:h-full min-h-[180px] block group">
                           {photoUrl ? (
                             <img src={photoUrl} alt={h.name} loading="lazy"
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-cover group-hover:brightness-95 transition-all"
                               onError={(e) => {
                                 const el = e.target as HTMLImageElement;
                                 el.style.display = 'none';
@@ -599,21 +719,22 @@ function HotelsContent() {
                           {isCheapest && (
                             <span className="absolute top-3 left-3 text-[.55rem] font-black uppercase tracking-[1.5px] bg-orange-500 text-white px-2 py-1 rounded-full">Cheapest</span>
                           )}
-                        </div>
+                        </a>
 
-                        {/* Info */}
-                        <div className="p-5 flex flex-col justify-center">
+                        {/* Info — clickable to detail page */}
+                        <a href={detailHref} className="p-5 flex flex-col justify-center hover:bg-[#F8FAFC] transition-colors">
                           <div className="mb-1">
                             <Stars count={h.stars} />
                           </div>
-                          <h3 className="font-[Poppins] font-black text-[1.05rem] text-[#1A1D2B] mb-1">{h.name}</h3>
+                          <h3 className="font-[Poppins] font-black text-[1.05rem] text-[#1A1D2B] mb-1 group-hover:text-orange-600">{h.name}</h3>
                           {h.district && (
                             <p className="text-[.75rem] text-[#8E95A9] font-semibold mb-2">📍 {h.district}</p>
                           )}
                           {nights > 0 && (
                             <p className="text-[.72rem] text-[#5C6378] font-semibold">{nights} night{nights !== 1 ? 's' : ''} · {adults} guest{adults !== 1 ? 's' : ''}</p>
                           )}
-                        </div>
+                          <p className="text-[.7rem] text-orange-600 font-bold mt-2">View details →</p>
+                        </a>
 
                         {/* Price + Actions */}
                         <div className="p-5 flex flex-col items-end justify-center gap-2 border-t md:border-t-0 md:border-l border-[#F1F3F7]">
@@ -659,8 +780,10 @@ function HotelsContent() {
                 })}
               </div>
             </section>
-          ) : (
-            /* No results */
+          ) : null}
+
+          {/* No results */}
+          {hotels!.length === 0 && (
             <section className="max-w-[860px] mx-auto px-5 py-8">
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
                 <span className="text-3xl mb-3 block">🔎</span>
