@@ -77,7 +77,15 @@ export async function createCheckoutSession(
     // Build line items from whichever prices the caller supplied.
     // Prices are validated server-side: must be numbers, > 0, < £50,000 each.
     const MAX = 50000;
-    const items: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
+    type LineItem = {
+      quantity: number;
+      price_data: {
+        currency: string;
+        unit_amount: number;
+        product_data: { name: string; description?: string };
+      };
+    };
+    const items: LineItem[] = [];
 
     const push = (label: string, amount: number | undefined, description?: string) => {
       if (amount == null || amount <= 0) return;
