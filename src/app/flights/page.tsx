@@ -589,6 +589,8 @@ function FlightsContent() {
         departure: depDate,
         adults: String(adults),
       });
+      if (children > 0) params.set('children', String(children));
+      if (infants > 0) params.set('infants', String(infants));
       if (retDate && tripType === 'return') params.set('return', retDate);
 
       const res = await fetch(`/api/flights?${params}`);
@@ -609,7 +611,7 @@ function FlightsContent() {
       setApiError('Could not load flight prices. Please try again.');
       setLoading(false);
     }
-  }, [originCode, destCode, depDate, retDate, adults, tripType]);
+  }, [originCode, destCode, depDate, retDate, adults, children, infants, tripType]);
 
   // Helper: format departure/arrival times from ISO string
   function fmtTime(iso: string | null): string {

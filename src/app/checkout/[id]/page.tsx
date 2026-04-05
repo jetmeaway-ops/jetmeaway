@@ -89,15 +89,23 @@ function stopsLabel(n: number): string {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const NAME_RE = /^[a-zA-Z\s'-]{2,}$/;
 
-function validatePassenger(p: PassengerForm, isLead: boolean): FieldErrors {
+function validatePassenger(p: PassengerForm, isLead: boolean, paxType?: string): FieldErrors {
   const err: FieldErrors = {};
   if (!NAME_RE.test(p.firstName.trim())) err.firstName = 'Enter a valid first name (as on passport)';
   if (!NAME_RE.test(p.lastName.trim())) err.lastName = 'Enter a valid last name (as on passport)';
   if (!p.dob || !/^\d{4}-\d{2}-\d{2}$/.test(p.dob)) {
     err.dob = 'Enter date of birth (YYYY-MM-DD)';
   } else {
-    const age = (Date.now() - new Date(p.dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000);
-    if (age < 0 || age > 120) err.dob = 'Enter a valid date of birth';
+    const ageYears = (Date.now() - new Date(p.dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+    if (ageYears < 0 || ageYears > 120) {
+      err.dob = 'Enter a valid date of birth';
+    } else if (paxType === 'adult' && ageYears < 18) {
+      err.dob = 'Adults must be 18 or older';
+    } else if (paxType === 'child' && (ageYears < 2 || ageYears >= 12)) {
+      err.dob = 'Children must be aged 2–11';
+    } else if (paxType === 'infant_without_seat' && ageYears >= 2) {
+      err.dob = 'Infants must be under 2';
+    }
   }
   if (!p.gender) err.gender = 'Select gender';
   if (isLead) {
@@ -424,24 +432,33 @@ export default function CheckoutPage() {
   }, []);
 
   // ── Build Duffel passenger array (shared by payment + order) ──
+  // Lead passenger (contact email/phone) is the first ADULT in the offer.
+  // The server ({@link /api/create-order}) links infants to adults via
+  // `infant_passenger_id` using the `type` we pass here.
+  const leadIdx = offer
+    ? Math.max(0, offer.passengers.findIndex((p) => p.type === 'adult'))
+    : 0;
   const buildDuffelPassengers = useCallback(() => {
     if (!offer) return [];
     return passengers.map((p, i) => ({
       id: offer.passengers[i]?.id,
+      type: offer.passengers[i]?.type, // 'adult' | 'child' | 'infant_without_seat'
       given_name: p.firstName.trim(),
       family_name: p.lastName.trim(),
       born_on: p.dob,
       gender: p.gender || 'undisclosed',
-      ...(i === 0 ? { email: p.email.trim(), phone: p.phone.trim() } : {}),
+      ...(i === leadIdx ? { email: p.email.trim(), phone: p.phone.trim() } : {}),
     }));
-  }, [offer, passengers]);
+  }, [offer, passengers, leadIdx]);
 
   // ── Step 1: Validate passengers → create payment intent → go to step 2 ──
   const handleContinueToPayment = async () => {
     if (!offer || paymentLoading) return;
 
     // Validate
-    const newErrors = passengers.map((p, i) => validatePassenger(p, i === 0));
+    const newErrors = passengers.map((p, i) =>
+      validatePassenger(p, i === leadIdx, offer?.passengers[i]?.type),
+    );
     setErrors(newErrors);
     setSubmitted(true);
 
@@ -611,7 +628,7 @@ export default function CheckoutPage() {
           <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 mb-6 space-y-2.5">
             {confirmation.emailSent && (
               <div className="flex items-center gap-2 text-[.78rem] text-blue-700 font-semibold">
-                <span>✉</span> Confirmation email sent to {passengers[0]?.email}
+                <span>✉</span> Confirmation email sent to {passengers[leadIdx]?.email}
               </div>
             )}
             {confirmation.documentsUrl && (
@@ -684,8 +701,12 @@ export default function CheckoutPage() {
 
                   {/* Passenger forms */}
                   {passengers.map((p, idx) => {
-                    const isLead = idx === 0;
+                    const isLead = idx === leadIdx;
                     const paxType = offer.passengers[idx]?.type || 'adult';
+                    const paxTypeLabel =
+                      paxType === 'infant_without_seat' ? 'infant'
+                      : paxType === 'child' ? 'child'
+                      : 'adult';
                     const pErr = errors[idx] || {};
 
                     return (
@@ -695,7 +716,7 @@ export default function CheckoutPage() {
                             {isLead ? 'Lead Passenger' : `Passenger ${idx + 1}`}
                           </h3>
                           <span className="text-[.6rem] font-black uppercase tracking-[1.5px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">
-                            {paxType}
+                            {paxTypeLabel}
                           </span>
                         </div>
 

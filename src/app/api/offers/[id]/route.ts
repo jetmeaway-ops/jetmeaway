@@ -86,6 +86,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       passengers: offer.passengers?.map((p: any) => ({
         id: p.id,
         type: p.type, // 'adult', 'child', 'infant_without_seat'
+        age: p.age ?? null, // Duffel echoes back the age we sent for under-18s
       })) || [],
       // Pricing
       currency: offer.currency || 'GBP',

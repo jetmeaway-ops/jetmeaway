@@ -64,6 +64,8 @@ async function searchDuffel(
   depDate: string,
   retDate: string | null,
   adults: number,
+  children: number,
+  infants: number,
 ): Promise<any[]> {
   // Build slices
   const slices: any[] = [
@@ -82,11 +84,12 @@ async function searchDuffel(
     });
   }
 
-  // Build passengers
+  // Build passengers — Duffel expects adults as {type:'adult'} and under-18s by age.
+  // We use default ages (child=8, infant=1) since the search form doesn't collect exact ages.
   const passengers: any[] = [];
-  for (let i = 0; i < adults; i++) {
-    passengers.push({ type: 'adult' });
-  }
+  for (let i = 0; i < adults; i++) passengers.push({ type: 'adult' });
+  for (let i = 0; i < children; i++) passengers.push({ age: 8 });
+  for (let i = 0; i < infants; i++) passengers.push({ age: 1 });
 
   // Create offer request
   const offerRes = await fetch('https://api.duffel.com/air/offer_requests', {
@@ -121,7 +124,7 @@ async function searchDuffel(
 }
 
 /** Transform Duffel offers into our standardised flight format (with markup) */
-function transformDuffelOffers(offers: any[], adults: number): any[] {
+function transformDuffelOffers(offers: any[], paxCount: number): any[] {
   return offers.slice(0, 15).map((offer: any) => {
     const outSlice = offer.slices?.[0];
     const retSlice = offer.slices?.[1] || null;
@@ -143,9 +146,11 @@ function transformDuffelOffers(offers: any[], adults: number): any[] {
     const outStops = (outSlice?.segments?.length || 1) - 1;
     const stopsLabel = outStops === 0 ? 'Direct' : outStops === 1 ? '1 stop' : `${outStops} stops`;
 
-    // Price: Duffel returns total_amount for all passengers in the offer currency
+    // Price: Duffel returns total_amount for all passengers in the offer currency.
+    // Divide by total pax count (adults + children + infants) so "per person" is a
+    // fair average across everyone on the booking.
     const basePrice = parseFloat(offer.total_amount || '0');
-    const perPerson = basePrice / adults;
+    const perPerson = basePrice / Math.max(paxCount, 1);
     const totalWithMarkup = applyMarkup(perPerson);
 
     // Departure/arrival times
@@ -252,6 +257,9 @@ export async function GET(req: NextRequest) {
   const depDate = searchParams.get('departure');
   const retDate = searchParams.get('return') || null;
   const adults = parseInt(searchParams.get('adults') || '1', 10);
+  const children = parseInt(searchParams.get('children') || '0', 10);
+  const infants = parseInt(searchParams.get('infants') || '0', 10);
+  const paxCount = adults + children + infants;
   const mode = searchParams.get('mode');
   const sessionId = searchParams.get('sid') || 'anon';
 
@@ -292,8 +300,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Missing departure date' }, { status: 400 });
   }
 
-  // Check cache
-  const kvKey = `flights:v2:${origin}:${destination}:${depDate}:${retDate || 'ow'}:${adults}`;
+  // Check cache (include children/infants so mixed-party searches don't collide)
+  const kvKey = `flights:v3:${origin}:${destination}:${depDate}:${retDate || 'ow'}:${adults}c${children}i${infants}`;
   try {
     const cached = await kv.get<any>(kvKey);
     if (cached) return NextResponse.json({ ...cached, cached: true });
@@ -306,9 +314,9 @@ export async function GET(req: NextRequest) {
 
     if (DUFFEL_KEY) {
       try {
-        const duffelOffers = await searchDuffel(origin, destination, depDate, retDate, adults);
+        const duffelOffers = await searchDuffel(origin, destination, depDate, retDate, adults, children, infants);
         if (duffelOffers.length > 0) {
-          flights = transformDuffelOffers(duffelOffers, adults);
+          flights = transformDuffelOffers(duffelOffers, paxCount);
         }
       } catch (err) {
         console.error('Duffel search failed, falling back to Travelpayouts:', err);
@@ -333,6 +341,8 @@ export async function GET(req: NextRequest) {
       depDate,
       retDate,
       adults,
+      children,
+      infants,
     };
 
     // Cache results

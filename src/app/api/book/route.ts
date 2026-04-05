@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { applyMarkup, saveBookingIntent, MARKUP_GBP } from '@/lib/travel-logic';
 import { sendSms, scoutBookingMessage } from '@/lib/twilio';
+import { buildDuffelPassengers, pickLeadPassenger } from '@/lib/duffel-passengers';
 
 export const runtime = 'edge';
 
@@ -191,18 +192,17 @@ export async function POST(req: NextRequest) {
 
     /* ── Step 1: Create Duffel order ────────────────────────────────── */
 
-    const duffelPassengers = passengers.map((p: any, i: number) => ({
-      id: p.id, // Duffel passenger ID from the offer
-      given_name: p.given_name,
-      family_name: p.family_name,
-      born_on: p.born_on,
-      gender: p.gender,
-      title: p.gender === 'male' ? 'mr' : 'ms',
-      ...(i === 0 ? {
-        email: p.email,
-        phone_number: p.phone?.replace(/\s+/g, ''),
-      } : {}),
-    }));
+    // Validate: there must be at least one adult (infants must have a guardian)
+    const infantCount = passengers.filter((p: any) => p.type === 'infant_without_seat').length;
+    const adultCount = passengers.filter((p: any) => !p.type || p.type === 'adult').length;
+    if (infantCount > adultCount) {
+      return NextResponse.json(
+        { error: 'Each infant must be accompanied by an adult.' },
+        { status: 400 },
+      );
+    }
+
+    const duffelPassengers = buildDuffelPassengers(passengers);
 
     const orderRes = await fetch('https://api.duffel.com/air/orders', {
       method: 'POST',
@@ -276,7 +276,7 @@ export async function POST(req: NextRequest) {
 
     /* ── Step 4: Send confirmation email via Resend ──────────────────── */
 
-    const leadPassenger = passengers[0];
+    const leadPassenger = pickLeadPassenger(passengers) || passengers[0];
     let emailSent = false;
 
     if (RESEND_KEY && leadPassenger?.email) {
