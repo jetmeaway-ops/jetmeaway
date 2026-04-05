@@ -12,7 +12,14 @@
  *   LITE_API_KEY   — private API key (X-API-Key header)
  */
 
-const LITE_API_BASE = 'https://api.liteapi.travel/v3.0';
+/**
+ * Base URL — defaults to production.
+ * Set LITE_API_BASE=https://api.sandbox.liteapi.travel/v3.0 in env to use the
+ * sandbox (fake bookings, test cards) — useful for end-to-end testing.
+ */
+function baseUrl(): string {
+  return (process.env.LITE_API_BASE || 'https://api.liteapi.travel/v3.0').replace(/\/$/, '');
+}
 
 function apiKey(): string {
   const k = process.env.LITE_API_KEY;
@@ -24,7 +31,7 @@ async function liteFetch<T = any>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
-  const res = await fetch(`${LITE_API_BASE}${path}`, {
+  const res = await fetch(`${baseUrl()}${path}`, {
     ...init,
     headers: {
       'X-API-Key': apiKey(),
@@ -53,8 +60,14 @@ export interface Occupancy {
 }
 
 export interface GetHotelsParams {
-  /** City/place ID (LiteAPI placeId), IATA city code, or a hotel ID list */
-  destinationId: string;
+  /**
+   * One of these resolutions is required:
+   *  - `destinationId`: LiteAPI placeId, OR comma-separated hotel ID list
+   *  - `cityName` + `countryCode`: free-text city with ISO-3166 alpha-2
+   */
+  destinationId?: string;
+  cityName?: string;
+  countryCode?: string;
   checkIn: string;   // YYYY-MM-DD
   checkOut: string;  // YYYY-MM-DD
   occupancy: Occupancy[];
@@ -127,6 +140,8 @@ export interface BookingResult {
 export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> {
   const {
     destinationId,
+    cityName,
+    countryCode,
     checkIn,
     checkOut,
     occupancy,
@@ -135,19 +150,26 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     limit = 25,
   } = params;
 
-  if (!destinationId) throw new Error('destinationId is required');
+  if (!destinationId && !(cityName && countryCode)) {
+    throw new Error('destinationId or cityName+countryCode is required');
+  }
   if (!checkIn || !checkOut) throw new Error('checkIn and checkOut are required');
   if (!occupancy?.length) throw new Error('occupancy is required');
 
-  // 1. Resolve hotelIds. If caller passed a CSV of hotel ids, skip the lookup.
+  // 1. Resolve hotelIds.
   let hotelIds: string[];
-  if (destinationId.includes(',')) {
+  if (destinationId && destinationId.includes(',')) {
+    // Caller passed a CSV of hotel ids directly
     hotelIds = destinationId.split(',').map((s) => s.trim()).filter(Boolean);
   } else {
-    const listQuery = new URLSearchParams({
-      placeId: destinationId,
-      limit: String(limit),
-    });
+    // Look up hotels by placeId OR cityName+countryCode
+    const listQuery = new URLSearchParams({ limit: String(limit) });
+    if (destinationId) {
+      listQuery.set('placeId', destinationId);
+    } else {
+      listQuery.set('cityName', cityName!);
+      listQuery.set('countryCode', countryCode!);
+    }
     const list = await liteFetch<{ data: Array<{ id: string }> }>(
       `/data/hotels?${listQuery.toString()}`,
       { method: 'GET' },

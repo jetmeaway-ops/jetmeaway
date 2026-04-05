@@ -1,9 +1,67 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
+import { getHotels as liteapiGetHotels, type HotelOffer } from '@/lib/liteapi';
 
 export const runtime = 'edge';
 
 const KV_TTL = 43200; // 12 hours
+
+/** City → ISO-3166 alpha-2 country code for LiteAPI lookups */
+const CITY_COUNTRY: Record<string, string> = {
+  'barcelona': 'ES', 'madrid': 'ES', 'malaga': 'ES', 'alicante': 'ES', 'palma': 'ES',
+  'tenerife': 'ES', 'lanzarote': 'ES', 'fuerteventura': 'ES', 'gran canaria': 'ES',
+  'london': 'GB', 'edinburgh': 'GB', 'manchester': 'GB', 'glasgow': 'GB',
+  'liverpool': 'GB', 'birmingham': 'GB',
+  'paris': 'FR', 'nice': 'FR',
+  'rome': 'IT', 'venice': 'IT', 'florence': 'IT', 'milan': 'IT',
+  'lisbon': 'PT', 'faro': 'PT',
+  'amsterdam': 'NL', 'berlin': 'DE', 'munich': 'DE',
+  'athens': 'GR', 'santorini': 'GR', 'crete': 'GR', 'rhodes': 'GR', 'corfu': 'GR',
+  'istanbul': 'TR', 'antalya': 'TR', 'bodrum': 'TR', 'dalaman': 'TR',
+  'dubrovnik': 'HR', 'split': 'HR',
+  'dubai': 'AE', 'cairo': 'EG', 'marrakech': 'MA',
+  'new york': 'US', 'los angeles': 'US', 'miami': 'US',
+  'tokyo': 'JP', 'bangkok': 'TH', 'phuket': 'TH', 'singapore': 'SG',
+  'bali': 'ID', 'maldives': 'MV',
+  'sydney': 'AU', 'cape town': 'ZA',
+  'cancun': 'MX',
+};
+
+/** Fetch LiteAPI bookable offers with a hard timeout so we never block the response */
+async function fetchLiteApiHotels(
+  cityKey: string,
+  checkin: string,
+  checkout: string,
+  adults: number,
+  timeoutMs: number = 5000,
+): Promise<HotelOffer[]> {
+  if (!process.env.LITE_API_KEY) return [];
+  const countryCode = CITY_COUNTRY[cityKey];
+  if (!countryCode) return [];
+  const cityName = cityKey.charAt(0).toUpperCase() + cityKey.slice(1);
+
+  try {
+    const result = await Promise.race([
+      liteapiGetHotels({
+        cityName,
+        countryCode,
+        checkIn: checkin,
+        checkOut: checkout,
+        occupancy: [{ adults, children: [] }],
+        currency: 'GBP',
+        guestNationality: 'GB',
+        limit: 20,
+      }),
+      new Promise<HotelOffer[]>((_, reject) =>
+        setTimeout(() => reject(new Error('LiteAPI timeout')), timeoutMs),
+      ),
+    ]);
+    return result;
+  } catch (err: any) {
+    console.warn('[liteapi] hotels fetch failed:', err?.message || err);
+    return [];
+  }
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    CURATED HOTEL DATA
@@ -413,13 +471,50 @@ export async function GET(req: NextRequest) {
   }
 
   const cityKey = city.toLowerCase().trim();
-  const kvKey = `hotels:${cityKey}:${checkin}:${checkout}:${adults}`;
+  // Cache key bumped to v2 — LiteAPI results must not be served from the old cache
+  const kvKey = `hotels:v2:${cityKey}:${checkin}:${checkout}:${adults}`;
 
   // Check KV cache
   try {
     const cached = await kv.get<any>(kvKey);
     if (cached) return NextResponse.json({ ...cached, cached: true });
   } catch { /* KV miss */ }
+
+  /**
+   * Normalise LiteAPI offers into the shape the /hotels page expects.
+   * We tag them source='liteapi' + bookable=true so the frontend can show a
+   * "Book Direct" badge (and we keep the offerId so checkout can call
+   * /api/liteapi/book).
+   */
+  const nights = Math.max(
+    1,
+    Math.round(
+      (new Date(checkout).getTime() - new Date(checkin).getTime()) / 86400000,
+    ),
+  );
+  const normaliseLiteApi = (offers: HotelOffer[]) =>
+    offers.map((o, i) => ({
+      id: `la_${o.hotelId}`,
+      name: o.hotelName,
+      stars: o.stars ?? 0,
+      pricePerNight: Math.round((o.pricePerNight ?? o.price / nights) * 100) / 100,
+      totalPrice: Math.round(o.price * 100) / 100,
+      currency: o.currency || 'GBP',
+      location: o.city || city,
+      district: null,
+      lat: o.latitude ?? undefined,
+      lng: o.longitude ?? undefined,
+      thumbnail: o.thumbnail || null,
+      refundable: o.refundable,
+      boardType: o.boardType,
+      source: 'liteapi' as const,
+      bookable: true,
+      offerId: o.offerId,
+      rank: i,
+    }));
+
+  // Kick off the LiteAPI fetch in parallel — we'll await it below alongside curated
+  const liteApiPromise = fetchLiteApiHotels(cityKey, checkin, checkout, parseInt(adults));
 
   // Look up curated hotels
   const curated = CURATED[cityKey];
@@ -429,18 +524,30 @@ export async function GET(req: NextRequest) {
     const match = Object.keys(CURATED).find(k => k.includes(cityKey) || cityKey.includes(k));
     if (match) {
       const coords = CITY_COORDS[match];
-      const hotels = CURATED[match].map(h => ({
+      const curatedHotels = CURATED[match].map(h => ({
         id: h.id,
         name: h.name,
         stars: h.stars,
         pricePerNight: h.basePrice,
         location: match.charAt(0).toUpperCase() + match.slice(1),
         district: h.district,
+        source: 'curated' as const,
+        bookable: false,
         ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
       }));
+      const liteApiHotels = normaliseLiteApi(await liteApiPromise);
+      const hotels = [...liteApiHotels, ...curatedHotels];
 
-      const result = { hotels, city: match.charAt(0).toUpperCase() + match.slice(1), checkin, checkout, adults: parseInt(adults) };
+      const result = { hotels, city: match.charAt(0).toUpperCase() + match.slice(1), checkin, checkout, adults: parseInt(adults), liteapiCount: liteApiHotels.length };
       try { await kv.set(kvKey, result, { ex: KV_TTL }); } catch { /* KV write fail */ }
+      return NextResponse.json(result);
+    }
+
+    // No curated match — still try LiteAPI as a last resort
+    const liteApiHotels = normaliseLiteApi(await liteApiPromise);
+    if (liteApiHotels.length > 0) {
+      const result = { hotels: liteApiHotels, city, checkin, checkout, adults: parseInt(adults), liteapiCount: liteApiHotels.length };
+      try { await kv.set(kvKey, result, { ex: KV_TTL }); } catch {}
       return NextResponse.json(result);
     }
 
@@ -448,15 +555,20 @@ export async function GET(req: NextRequest) {
   }
 
   const coords = CITY_COORDS[cityKey];
-  const hotels = curated.map(h => ({
+  const curatedHotels = curated.map(h => ({
     id: h.id,
     name: h.name,
     stars: h.stars,
     pricePerNight: h.basePrice,
     location: city.charAt(0).toUpperCase() + city.slice(1),
     district: h.district,
+    source: 'curated' as const,
+    bookable: false,
     ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
   }));
+  const liteApiHotels = normaliseLiteApi(await liteApiPromise);
+  // LiteAPI bookable hotels first, curated deep-link hotels after
+  const hotels = [...liteApiHotels, ...curatedHotels];
 
   const result = {
     hotels,
@@ -464,6 +576,7 @@ export async function GET(req: NextRequest) {
     checkin,
     checkout,
     adults: parseInt(adults),
+    liteapiCount: liteApiHotels.length,
   };
 
   // Cache in KV
