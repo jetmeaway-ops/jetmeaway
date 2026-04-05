@@ -192,6 +192,27 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     })),
   };
 
+  type RateObj = {
+    rateId?: string;
+    name?: string;
+    boardType?: string;
+    boardName?: string;
+    cancellationPolicies?: { refundableTag?: string; cancelPolicyInfos?: Array<{ cancelTime?: string }> };
+    retailRate?: {
+      total?: Array<{ amount: number; currency: string }>;
+      suggestedSellingPrice?: Array<{ amount: number; currency: string }>;
+      taxesAndFees?: Array<{ amount: number; currency: string; included?: boolean }>;
+    };
+    commission?: Array<{ amount: number; currency: string }>;
+  };
+  type RoomType = {
+    roomTypeId?: string;
+    offerId?: string; // ← THIS is what /rates/prebook expects
+    rates?: RateObj[];
+    offerRetailRate?: Array<{ amount: number; currency: string }>;
+    priceType?: string;
+    paymentTypes?: string[];
+  };
   const ratesRes = await liteFetch<{
     data: Array<{
       hotelId: string;
@@ -206,22 +227,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
         latitude?: number;
         longitude?: number;
       };
-      roomTypes?: Array<{
-        rates?: Array<{
-          rateId?: string;
-          offerId?: string;
-          name?: string;
-          boardType?: string;
-          refundable?: boolean;
-          cancellationPolicies?: { refundableTag?: string; cancelPolicyInfos?: Array<{ cancelTime?: string }> };
-          retailRate?: {
-            total?: Array<{ amount: number; currency: string }>;
-            suggestedSellingPrice?: Array<{ amount: number; currency: string }>;
-            taxesAndFees?: Array<{ amount: number; currency: string }>;
-          };
-          commission?: Array<{ amount: number; currency: string }>;
-        }>;
-      }>;
+      roomTypes?: RoomType[];
     }>;
   }>('/hotels/rates', {
     method: 'POST',
@@ -236,30 +242,40 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     ),
   );
 
-  // 3. Flatten: one cheapest offer per hotel
+  // 3. Flatten: one cheapest offer per hotel.
+  //    NOTE: offerId lives on the roomType (not the rate). Each roomType groups
+  //    one or more rate variants; prebook/book operate on the offerId.
   const offers: HotelOffer[] = [];
   for (const entry of ratesRes.data || []) {
-    const rates = (entry.roomTypes || []).flatMap((rt) => rt.rates || []);
-    if (rates.length === 0) continue;
+    let bestRoomType: RoomType | null = null;
+    let bestRate: RateObj | null = null;
+    let bestPrice = Infinity;
 
-    // Pick cheapest rate
-    const cheapest = rates.reduce((best, r) => {
-      const bPrice = best?.retailRate?.total?.[0]?.amount ?? Infinity;
-      const rPrice = r.retailRate?.total?.[0]?.amount ?? Infinity;
-      return rPrice < bPrice ? r : best;
-    });
+    for (const rt of entry.roomTypes || []) {
+      if (!rt.offerId) continue;
+      for (const r of rt.rates || []) {
+        const price = r.retailRate?.total?.[0]?.amount ?? Infinity;
+        if (price < bestPrice) {
+          bestPrice = price;
+          bestRoomType = rt;
+          bestRate = r;
+        }
+      }
+    }
 
-    const offerId = cheapest.offerId || cheapest.rateId || '';
-    if (!offerId) continue;
+    if (!bestRoomType || !bestRate || !bestRoomType.offerId) continue;
 
-    const total = cheapest.retailRate?.total?.[0];
-    const suggested = cheapest.retailRate?.suggestedSellingPrice?.[0];
-    const taxes = cheapest.retailRate?.taxesAndFees?.[0]?.amount ?? 0;
-    const commission = cheapest.commission?.[0]?.amount ?? null;
+    const total = bestRate.retailRate?.total?.[0];
+    const suggested = bestRate.retailRate?.suggestedSellingPrice?.[0];
+    // Sum only taxes that aren't already included in `total`
+    const extraTaxes = (bestRate.retailRate?.taxesAndFees || [])
+      .filter((t) => t.included === false)
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+    const commission = bestRate.commission?.[0]?.amount ?? null;
 
     const h = entry.hotel;
     offers.push({
-      offerId,
+      offerId: bestRoomType.offerId,
       hotelId: entry.hotelId,
       hotelName: h?.name || entry.hotelId,
       address: h?.address,
@@ -269,16 +285,14 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       thumbnail: h?.main_photo || null,
       latitude: h?.latitude ?? null,
       longitude: h?.longitude ?? null,
-      boardType: cheapest.boardType || cheapest.name || null,
-      refundable:
-        cheapest.refundable ??
-        (cheapest.cancellationPolicies?.refundableTag === 'RFN'),
+      boardType: bestRate.boardName || bestRate.boardType || bestRate.name || null,
+      refundable: bestRate.cancellationPolicies?.refundableTag === 'RFN',
       cancellationDeadline:
-        cheapest.cancellationPolicies?.cancelPolicyInfos?.[0]?.cancelTime || null,
+        bestRate.cancellationPolicies?.cancelPolicyInfos?.[0]?.cancelTime || null,
       currency: total?.currency || currency,
       price: suggested?.amount ?? total?.amount ?? 0,
       priceBeforeTax:
-        total?.amount != null ? total.amount - taxes : null,
+        total?.amount != null ? total.amount + extraTaxes : null,
       pricePerNight:
         total?.amount != null ? total.amount / nights : null,
       commission,
