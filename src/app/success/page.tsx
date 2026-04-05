@@ -196,7 +196,16 @@ export default async function SuccessPage({
         <div className="bg-[#F8FAFC] border border-[#E8ECF4] rounded-xl p-5 mt-4 space-y-2">
           <div className="flex justify-between text-[.85rem]">
             <span className="text-[#5C6378] font-semibold">Hotel</span>
-            <strong className="text-[#1A1D2B]">{b.hotelName}</strong>
+            <strong className="text-[#1A1D2B] text-right">
+              {b.hotelName}
+              {b.stars && b.stars > 0 ? (
+                <span className="block mt-0.5" aria-label={`${b.stars} star hotel`}>
+                  {Array.from({ length: Math.min(5, Math.round(b.stars)) }).map((_, i) => (
+                    <i key={i} className="fa-solid fa-star text-amber-400 text-[.7rem] ml-0.5" />
+                  ))}
+                </span>
+              ) : null}
+            </strong>
           </div>
           <div className="flex justify-between text-[.85rem]">
             <span className="text-[#5C6378] font-semibold">Check-in</span>

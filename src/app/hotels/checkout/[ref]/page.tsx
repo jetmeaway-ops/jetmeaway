@@ -7,6 +7,7 @@ import { createCheckoutSession } from '@/app/actions/stripe';
 interface PendingSummary {
   ref: string;
   hotelName: string;
+  stars: number;
   totalPrice: number;
   currency: string;
   checkIn: string;
@@ -16,6 +17,17 @@ interface PendingSummary {
   nights: number;
   thumbnail: string | null;
   state: 'pending' | 'paid' | 'confirmed' | 'failed';
+}
+
+function StarRow({ count }: { count: number }) {
+  if (!count || count < 1) return null;
+  return (
+    <div className="flex items-center gap-0.5 mb-1" aria-label={`${count} star hotel`}>
+      {Array.from({ length: Math.min(5, Math.round(count)) }).map((_, i) => (
+        <i key={i} className="fa-solid fa-star text-amber-400 text-[.7rem]" />
+      ))}
+    </div>
+  );
 }
 
 export default function HotelCheckoutPage() {
@@ -188,6 +200,7 @@ export default function HotelCheckoutPage() {
             <img src={booking.thumbnail} alt={booking.hotelName}
               className="w-full h-36 object-cover rounded-xl mb-3" />
           )}
+          <StarRow count={booking.stars} />
           <h3 className="font-[Poppins] font-black text-[1rem] text-[#1A1D2B] mb-1">{booking.hotelName}</h3>
           {booking.city && <p className="text-[.75rem] text-[#8E95A9] font-semibold mb-3">📍 {booking.city}</p>}
           <div className="text-[.78rem] text-[#5C6378] font-semibold space-y-1 mb-4">

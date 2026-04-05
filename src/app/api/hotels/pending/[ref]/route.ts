@@ -30,6 +30,7 @@ export async function GET(
       booking: {
         ref: record.ref,
         hotelName: record.hotelName,
+        stars: record.stars ?? 0,
         totalPrice: record.totalPrice,
         currency: record.currency,
         checkIn: record.checkIn,

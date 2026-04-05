@@ -176,8 +176,23 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
   if (!checkIn || !checkOut) throw new Error('checkIn and checkOut are required');
   if (!occupancy?.length) throw new Error('occupancy is required');
 
-  // 1. Resolve hotelIds.
+  // 1. Resolve hotelIds — and keep a directory of hotel metadata so we can
+  // fall back to it when /hotels/rates doesn't echo an expanded `hotel` object
+  // (which is inconsistent in sandbox — sometimes present, sometimes not).
+  type HotelMeta = {
+    id: string;
+    name?: string;
+    address?: string;
+    city?: string;
+    country?: string;
+    stars?: number;
+    main_photo?: string;
+    hotelImages?: Array<{ url?: string } | string>;
+    latitude?: number;
+    longitude?: number;
+  };
   let hotelIds: string[];
+  const hotelDirectory = new Map<string, HotelMeta>();
   if (destinationId && destinationId.includes(',')) {
     // Caller passed a CSV of hotel ids directly
     hotelIds = destinationId.split(',').map((s) => s.trim()).filter(Boolean);
@@ -190,11 +205,15 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       listQuery.set('cityName', cityName!);
       listQuery.set('countryCode', countryCode!);
     }
-    const list = await liteFetch<{ data: Array<{ id: string }> }>(
+    const list = await liteFetch<{ data: HotelMeta[] }>(
       `/data/hotels?${listQuery.toString()}`,
       { method: 'GET' },
     );
-    hotelIds = (list.data || []).map((h) => h.id).slice(0, limit);
+    const rows = (list.data || []).slice(0, limit);
+    for (const row of rows) {
+      if (row?.id) hotelDirectory.set(row.id, row);
+    }
+    hotelIds = rows.map((h) => h.id);
   }
 
   if (hotelIds.length === 0) return [];
@@ -293,18 +312,25 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       .reduce((sum, t) => sum + (t.amount || 0), 0);
     const commission = bestRate.commission?.[0]?.amount ?? null;
 
+    // Prefer the expanded `hotel` object from /hotels/rates when present,
+    // otherwise fall back to the directory we built from /data/hotels. This
+    // avoids showing `lp6558ae6f` as a hotel name when rates skips the object.
     const h = entry.hotel;
+    const meta = hotelDirectory.get(entry.hotelId);
+    const firstImage = Array.isArray(meta?.hotelImages) && meta!.hotelImages.length
+      ? (typeof meta!.hotelImages[0] === 'string' ? meta!.hotelImages[0] as string : (meta!.hotelImages[0] as { url?: string }).url)
+      : undefined;
     offers.push({
       offerId: bestRoomType.offerId,
       hotelId: entry.hotelId,
-      hotelName: h?.name || entry.hotelId,
-      address: h?.address,
-      city: h?.city,
-      country: h?.country,
-      stars: h?.stars,
-      thumbnail: h?.main_photo || null,
-      latitude: h?.latitude ?? null,
-      longitude: h?.longitude ?? null,
+      hotelName: h?.name || meta?.name || entry.hotelId,
+      address: h?.address || meta?.address,
+      city: h?.city || meta?.city,
+      country: h?.country || meta?.country,
+      stars: h?.stars ?? meta?.stars,
+      thumbnail: h?.main_photo || meta?.main_photo || firstImage || null,
+      latitude: h?.latitude ?? meta?.latitude ?? null,
+      longitude: h?.longitude ?? meta?.longitude ?? null,
       boardType: bestRate.boardName || bestRate.boardType || bestRate.name || null,
       refundable: bestRate.cancellationPolicies?.refundableTag === 'RFN',
       cancellationDeadline:

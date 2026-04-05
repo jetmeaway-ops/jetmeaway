@@ -28,6 +28,7 @@ export interface PendingBooking {
   ref: string;
   offerId: string;
   hotelName: string;
+  stars: number;
   totalPrice: number;
   currency: string;
   checkIn: string;
@@ -66,6 +67,7 @@ export async function POST(req: NextRequest) {
     const {
       offerId,
       hotelName,
+      stars = 0,
       totalPrice,
       currency = 'GBP',
       checkIn,
@@ -98,6 +100,7 @@ export async function POST(req: NextRequest) {
       ref,
       offerId,
       hotelName,
+      stars: Number.isFinite(stars) ? Math.max(0, Math.min(5, Math.round(stars))) : 0,
       totalPrice: Math.round(totalPrice * 100) / 100,
       currency: currency.toUpperCase(),
       checkIn,

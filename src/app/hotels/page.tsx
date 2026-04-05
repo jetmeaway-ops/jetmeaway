@@ -217,6 +217,7 @@ function BookDirectButton({
         body: JSON.stringify({
           offerId: hotel.offerId,
           hotelName: hotel.name,
+          stars: hotel.stars ?? 0,
           totalPrice: hotel.totalPrice ?? hotel.pricePerNight * Math.max(1, nights),
           currency: hotel.currency || 'GBP',
           checkIn,
