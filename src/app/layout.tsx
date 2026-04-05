@@ -1,6 +1,7 @@
 export const runtime = 'edge';
 
 import './globals.css';
+import ScoutChat from '@/components/ScoutChat';
 
 export const metadata = {
   title: 'JetMeAway | Compare Flights, Hotels, Car Hire & Holidays — UK Travel Comparison',
@@ -37,7 +38,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <ScoutChat />
+      </body>
     </html>
   );
 }
