@@ -21,6 +21,8 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
 
   const destinationId = searchParams.get('destinationId') || '';
+  const cityName = searchParams.get('cityName') || '';
+  const countryCode = searchParams.get('countryCode') || '';
   const checkIn = searchParams.get('checkIn') || '';
   const checkOut = searchParams.get('checkOut') || '';
   const adults = parseInt(searchParams.get('adults') || '2', 10);
@@ -29,9 +31,9 @@ export async function GET(req: NextRequest) {
   const nationality = searchParams.get('nationality') || 'GB';
   const limit = parseInt(searchParams.get('limit') || '25', 10);
 
-  if (!destinationId || !checkIn || !checkOut) {
+  if ((!destinationId && !(cityName && countryCode)) || !checkIn || !checkOut) {
     return NextResponse.json(
-      { success: false, error: 'destinationId, checkIn and checkOut are required' },
+      { success: false, error: 'destinationId OR cityName+countryCode, plus checkIn and checkOut, are required' },
       { status: 400 },
     );
   }
@@ -44,7 +46,9 @@ export async function GET(req: NextRequest) {
 
   try {
     const offers = await getHotels({
-      destinationId,
+      ...(destinationId ? { destinationId } : {}),
+      ...(cityName ? { cityName } : {}),
+      ...(countryCode ? { countryCode } : {}),
       checkIn,
       checkOut,
       occupancy,
