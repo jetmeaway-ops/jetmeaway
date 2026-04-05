@@ -87,7 +87,7 @@ const PROVIDERS: Provider[] = [
    ═══════════════════════════════════════════════════════════════════════════ */
 
 type HotelResult = {
-  id: number;
+  id: number | string;
   name: string;
   stars: number;
   pricePerNight: number;
@@ -95,6 +95,15 @@ type HotelResult = {
   district: string | null;
   lat?: number;
   lng?: number;
+  // LiteAPI-sourced bookable fields (present when source === 'liteapi')
+  source?: 'liteapi' | 'curated';
+  bookable?: boolean;
+  offerId?: string;
+  totalPrice?: number;
+  currency?: string;
+  thumbnail?: string | null;
+  refundable?: boolean;
+  boardType?: string | null;
 };
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -171,6 +180,73 @@ function GuestPicker({ adults, onChange }: { adults: number; onChange: (a: numbe
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BOOK DIRECT (LiteAPI) — creates a pending booking then redirects to checkout
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function BookDirectButton({
+  hotel,
+  checkIn,
+  checkOut,
+  nights,
+  adults,
+  city,
+}: {
+  hotel: HotelResult;
+  checkIn: string;
+  checkOut: string;
+  nights: number;
+  adults: number;
+  city: string;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const onClick = async () => {
+    if (!hotel.offerId) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch('/api/hotels/start-booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          offerId: hotel.offerId,
+          hotelName: hotel.name,
+          totalPrice: hotel.totalPrice ?? hotel.pricePerNight * Math.max(1, nights),
+          currency: hotel.currency || 'GBP',
+          checkIn,
+          checkOut,
+          city,
+          adults,
+          nights: Math.max(1, nights),
+          thumbnail: hotel.thumbnail || null,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success || !data.ref) throw new Error(data.error || 'Could not start booking');
+      window.location.assign(`/hotels/checkout/${encodeURIComponent(data.ref)}`);
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : 'Unexpected error');
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col">
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={busy}
+        className="bg-gradient-to-r from-[#0066FF] to-[#4C8BFF] hover:from-[#0052CC] hover:to-[#3B7AEE] disabled:opacity-60 disabled:cursor-not-allowed text-white font-[Poppins] font-black text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap shadow-[0_2px_10px_rgba(0,102,255,0.25)]"
+      >
+        {busy ? 'Loading…' : <><i className="fa-solid fa-lock mr-1" /> Book Direct →</>}
+      </button>
+      {err && <span className="text-[.62rem] text-red-600 font-bold mt-1">{err}</span>}
     </div>
   );
 }
@@ -474,6 +550,9 @@ function HotelsContent() {
                             )}
                           </div>
                           <div className="flex flex-col gap-1.5 w-full">
+                            {h.bookable && h.offerId && (
+                              <BookDirectButton hotel={h} checkIn={checkin} checkOut={checkout} adults={adults} nights={nights} city={searchedDest} />
+                            )}
                             <a href={redirectUrl(tripUrl, 'Trip.com', searchedDest, 'hotels')}
                               className="bg-[#287DFA] hover:bg-[#1A6AE0] text-white font-[Poppins] font-bold text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap">
                               Trip.com →
