@@ -92,7 +92,14 @@ export default function HotelCheckoutPage() {
       // 2) Create Stripe Checkout Session via server action
       const fullName = `${firstName.trim()} ${lastName.trim()}`;
       const result = await createCheckoutSession(
-        { hotelPrice: booking.totalPrice, currency: booking.currency.toLowerCase() },
+        {
+          hotelPrice: booking.totalPrice,
+          hotelName: booking.hotelName,
+          checkIn: booking.checkIn,
+          checkOut: booking.checkOut,
+          nights: booking.nights,
+          currency: booking.currency.toLowerCase(),
+        },
         {
           name: fullName,
           reference: booking.ref,

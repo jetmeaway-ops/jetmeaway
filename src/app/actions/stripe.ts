@@ -31,6 +31,13 @@ function stripe(): Stripe {
 export interface CheckoutLineItems {
   /** Total hotel stay price in GBP (e.g. 412.50). Omit or 0 to skip the line */
   hotelPrice?: number;
+  /** Hotel display name — shown as the product on the Stripe receipt */
+  hotelName?: string;
+  /** Stay dates — shown in the receipt line item description */
+  checkIn?: string;
+  checkOut?: string;
+  /** Number of nights, used for the receipt line item description */
+  nights?: number;
   /** Total flight reservation price in GBP. Omit or 0 to skip */
   flightPrice?: number;
   /** JetMeAway Scout concierge fee in GBP. Omit or 0 to skip */
@@ -105,7 +112,20 @@ export async function createCheckoutSession(
       });
     };
 
-    push('Hotel Stay', lineItems.hotelPrice, `Booking reference: ${traveler.reference}`);
+    // Build a descriptive name so the hotel appears on the Stripe receipt
+    // (product name row) instead of a generic "Hotel Stay".
+    const hotelLabel = lineItems.hotelName
+      ? `Hotel: ${lineItems.hotelName}`
+      : 'Hotel Stay';
+    const stayDescParts: string[] = [];
+    if (lineItems.checkIn && lineItems.checkOut) {
+      stayDescParts.push(`${lineItems.checkIn} → ${lineItems.checkOut}`);
+    }
+    if (lineItems.nights && lineItems.nights > 0) {
+      stayDescParts.push(`${lineItems.nights} night${lineItems.nights !== 1 ? 's' : ''}`);
+    }
+    stayDescParts.push(`Ref: ${traveler.reference}`);
+    push(hotelLabel, lineItems.hotelPrice, stayDescParts.join(' · '));
     push('Flight Reservation', lineItems.flightPrice, `Booking reference: ${traveler.reference}`);
     push('JetMeAway Scout Fee', lineItems.scoutFee, 'Concierge assistance + Deep Neighbourhood guide');
 
@@ -128,6 +148,7 @@ export async function createCheckoutSession(
         ...(traveler.departureDate ? { departure_date: traveler.departureDate } : {}),
         ...(traveler.destination ? { destination: traveler.destination } : {}),
         hotel_price: String(lineItems.hotelPrice ?? 0),
+        ...(lineItems.hotelName ? { hotel_name: lineItems.hotelName.slice(0, 500) } : {}),
         flight_price: String(lineItems.flightPrice ?? 0),
         scout_fee: String(lineItems.scoutFee ?? 0),
       },
@@ -141,7 +162,9 @@ export async function createCheckoutSession(
           traveler_name: traveler.name,
           booking_reference: traveler.reference,
         },
-        description: `JetMeAway booking ${traveler.reference} — ${traveler.name}`,
+        description: lineItems.hotelName
+          ? `${lineItems.hotelName} · ${traveler.reference} · ${traveler.name}`
+          : `JetMeAway booking ${traveler.reference} — ${traveler.name}`,
         ...(traveler.email ? { receipt_email: traveler.email } : {}),
       },
     });
