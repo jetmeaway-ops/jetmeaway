@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
+import { requireAdmin } from '@/lib/admin-auth';
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,8 +30,12 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET endpoint to view all subscribers (for you to check)
-export async function GET() {
+// ADMIN ONLY — requires Authorization: Bearer <ADMIN_SECRET>
+// Lists all subscribers. Previously this was public and leaked the mailing list.
+export async function GET(req: NextRequest) {
+  const unauth = requireAdmin(req);
+  if (unauth) return unauth;
+
   try {
     const subscribers = await kv.get<string[]>('deal_alert_subscribers') || [];
     return NextResponse.json({ subscribers, count: subscribers.length });

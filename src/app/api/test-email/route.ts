@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { MARKUP_GBP } from '@/lib/travel-logic';
+import { requireAdmin } from '@/lib/admin-auth';
 
 export const runtime = 'edge';
 
@@ -8,10 +9,14 @@ const RESEND_KEY = process.env.RESEND_API_KEY || '';
 
 /**
  * POST /api/test-email
+ * ADMIN ONLY — requires Authorization: Bearer <ADMIN_SECRET>.
  * Sends a test booking confirmation email to verify Resend integration.
  * Body: { to: string }
  */
 export async function POST(req: NextRequest) {
+  const unauth = requireAdmin(req);
+  if (unauth) return unauth;
+
   try {
     const { to } = await req.json();
     if (!to) return NextResponse.json({ error: 'Missing "to" email' }, { status: 400 });

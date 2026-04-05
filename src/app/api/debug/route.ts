@@ -1,8 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/admin-auth';
 
 export const runtime = 'edge';
 
-export async function GET() {
+// ADMIN ONLY — requires Authorization: Bearer <ADMIN_SECRET>
+export async function GET(req: NextRequest) {
+  const unauth = requireAdmin(req);
+  if (unauth) return unauth;
+
   const token = process.env.TRAVELPAYOUTS_TOKEN;
 
   if (!token) {
