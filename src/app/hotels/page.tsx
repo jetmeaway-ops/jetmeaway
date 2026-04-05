@@ -145,7 +145,19 @@ function DestinationPicker({ value, onChange }: { value: string; onChange: (v: s
   );
 }
 
-function GuestPicker({ adults, onChange }: { adults: number; onChange: (a: number) => void }) {
+/**
+ * OccupancyPicker — adults, children, rooms in a single dropdown.
+ * Caps: 6 adults, 4 children, 3 rooms. Group size > 6 or rooms > 1 will
+ * suppress the Book Direct button on results and route to affiliate providers.
+ */
+function OccupancyPicker({
+  adults, children, rooms, onChange,
+}: {
+  adults: number;
+  children: number;
+  rooms: number;
+  onChange: (next: { adults: number; children: number; rooms: number }) => void;
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -155,31 +167,65 @@ function GuestPicker({ adults, onChange }: { adults: number; onChange: (a: numbe
     return () => document.removeEventListener('mousedown', fn);
   }, []);
 
+  const Row = ({ label, value, min, max, onSet }: { label: string; value: number; min: number; max: number; onSet: (v: number) => void }) => (
+    <div className="flex items-center justify-between py-2">
+      <span className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B]">{label}</span>
+      <div className="flex items-center gap-3">
+        <button type="button" onClick={() => onSet(Math.max(min, value - 1))}
+          className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-orange-400 transition-all disabled:opacity-30" disabled={value <= min}>−</button>
+        <span className="font-[Poppins] font-black text-[.95rem] text-[#1A1D2B] w-5 text-center">{value}</span>
+        <button type="button" onClick={() => onSet(Math.min(max, value + 1))}
+          className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-orange-400 transition-all disabled:opacity-30" disabled={value >= max}>+</button>
+      </div>
+    </div>
+  );
+
+  const label = `${adults} Adult${adults !== 1 ? 's' : ''}${children > 0 ? ` · ${children} Child${children !== 1 ? 'ren' : ''}` : ''} · ${rooms} Room${rooms !== 1 ? 's' : ''}`;
+
   return (
     <div ref={ref} className="relative">
       <button type="button" onClick={() => setOpen(v => !v)}
-        className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-left text-[.85rem] font-semibold text-[#1A1D2B] outline-none focus:border-orange-400 hover:bg-white transition-all flex items-center justify-between">
-        <span>{adults} Adult{adults !== 1 ? 's' : ''}</span>
-        <span className="text-[#B0B8CC] text-xs">{open ? '▴' : '▾'}</span>
+        className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-left text-[.78rem] font-semibold text-[#1A1D2B] outline-none focus:border-orange-400 hover:bg-white transition-all flex items-center justify-between whitespace-nowrap">
+        <span className="truncate">{label}</span>
+        <span className="text-[#B0B8CC] text-xs ml-2">{open ? '▴' : '▾'}</span>
       </button>
       {open && (
-        <div className="absolute z-50 w-48 mt-1.5 right-0 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl p-4">
-          <div className="flex items-center justify-between">
-            <span className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B]">Adults</span>
-            <div className="flex items-center gap-3">
-              <button type="button" onClick={() => onChange(Math.max(1, adults - 1))}
-                className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-orange-400 transition-all disabled:opacity-30" disabled={adults <= 1}>−</button>
-              <span className="font-[Poppins] font-black text-[.95rem] text-[#1A1D2B] w-5 text-center">{adults}</span>
-              <button type="button" onClick={() => onChange(Math.min(6, adults + 1))}
-                className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-orange-400 transition-all disabled:opacity-30" disabled={adults >= 6}>+</button>
-            </div>
-          </div>
+        <div className="absolute z-50 w-64 mt-1.5 right-0 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl p-4">
+          <Row label="Adults" value={adults} min={1} max={6}
+            onSet={(v) => onChange({ adults: v, children, rooms })} />
+          <Row label="Children" value={children} min={0} max={4}
+            onSet={(v) => onChange({ adults, children: v, rooms })} />
+          <Row label="Rooms" value={rooms} min={1} max={3}
+            onSet={(v) => onChange({ adults, children, rooms: v })} />
           <button type="button" onClick={() => setOpen(false)}
             className="w-full mt-3 bg-orange-500 hover:bg-orange-600 text-white font-[Poppins] font-bold text-[.8rem] py-2 rounded-xl transition-colors">
             Done
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * StarFilter — pill selector for hotel class (any / 3★+ / 4★+ / 5★).
+ * "Any" is the default; picking a minimum filters search results server-side.
+ */
+function StarFilter({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const options: { label: string; value: number }[] = [
+    { label: 'Any', value: 0 },
+    { label: '3★+', value: 3 },
+    { label: '4★+', value: 4 },
+    { label: '5★', value: 5 },
+  ];
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      {options.map(o => (
+        <button key={o.value} type="button" onClick={() => onChange(o.value)}
+          className={`px-3 py-1.5 rounded-full text-[.72rem] font-[Poppins] font-bold border transition-all ${value === o.value ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-[#5C6378] border-[#E8ECF4] hover:border-orange-400'}`}>
+          {o.label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -312,6 +358,9 @@ function HotelsContent() {
   const [checkin, setCheckin] = useState('');
   const [checkout, setCheckout] = useState('');
   const [adults, setAdults] = useState(2);
+  const [childCount, setChildCount] = useState(0);
+  const [rooms, setRooms] = useState(1);
+  const [minStars, setMinStars] = useState(0);
 
   const [loading, setLoading] = useState(false);
   const [hotels, setHotels] = useState<HotelResult[] | null>(null);
@@ -331,10 +380,16 @@ function HotelsContent() {
     const cin = p.get('checkin') || '';
     const cout = p.get('checkout') || '';
     const a = p.get('adults');
+    const c = p.get('children');
+    const r = p.get('rooms');
+    const s = p.get('stars');
     if (dest) setDestination(dest);
     if (cin) setCheckin(cin);
     if (cout) setCheckout(cout);
-    if (a) setAdults(Math.max(1, parseInt(a)));
+    if (a) setAdults(Math.min(6, Math.max(1, parseInt(a))));
+    if (c) setChildCount(Math.min(4, Math.max(0, parseInt(c))));
+    if (r) setRooms(Math.min(3, Math.max(1, parseInt(r))));
+    if (s) setMinStars(Math.min(5, Math.max(0, parseInt(s))));
   }, []);
 
   const today = new Date().toISOString().split('T')[0];
@@ -365,6 +420,9 @@ function HotelsContent() {
         checkin,
         checkout,
         adults: String(adults),
+        children: String(childCount),
+        rooms: String(rooms),
+        stars: String(minStars),
       });
 
       const res = await fetch(`/api/hotels?${params}`);
@@ -384,7 +442,7 @@ function HotelsContent() {
       setApiError('Could not load hotel prices. Please try again.');
       setLoading(false);
     }
-  }, [destination, checkin, checkout, adults]);
+  }, [destination, checkin, checkout, adults, childCount, rooms, minStars]);
 
   // Auto-search when URL params are present
   const autoSearched = useRef(false);
@@ -432,9 +490,22 @@ function HotelsContent() {
                 className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.85rem] font-semibold text-[#1A1D2B] outline-none focus:border-orange-400 focus:bg-white transition-all" />
             </div>
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Guests</label>
-              <GuestPicker adults={adults} onChange={setAdults} />
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Guests &amp; Rooms</label>
+              <OccupancyPicker
+                adults={adults}
+                children={childCount}
+                rooms={rooms}
+                onChange={({ adults: a, children: c, rooms: r }) => {
+                  setAdults(a); setChildCount(c); setRooms(r);
+                }}
+              />
             </div>
+          </div>
+
+          {/* Star filter */}
+          <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
+            <label className="text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9]">Hotel class</label>
+            <StarFilter value={minStars} onChange={setMinStars} />
           </div>
 
           <button onClick={handleSearch} disabled={loading}
@@ -551,7 +622,7 @@ function HotelsContent() {
                             )}
                           </div>
                           <div className="flex flex-col gap-1.5 w-full">
-                            {h.bookable && h.offerId && (
+                            {h.bookable && h.offerId && rooms <= 1 && (adults + childCount) <= 6 && (
                               <BookDirectButton hotel={h} checkIn={checkin} checkOut={checkout} adults={adults} nights={nights} city={searchedDest} />
                             )}
                             <a href={redirectUrl(tripUrl, 'Trip.com', searchedDest, 'hotels')}

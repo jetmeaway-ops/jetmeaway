@@ -33,12 +33,34 @@ async function fetchLiteApiHotels(
   checkin: string,
   checkout: string,
   adults: number,
+  childrenCount: number,
+  rooms: number,
   timeoutMs: number = 5000,
 ): Promise<HotelOffer[]> {
   if (!process.env.LITE_API_KEY) return [];
   const countryCode = CITY_COUNTRY[cityKey];
   if (!countryCode) return [];
   const cityName = cityKey.charAt(0).toUpperCase() + cityKey.slice(1);
+
+  // Build occupancy: one entry per room. Split adults across rooms (min 1 per
+  // room). Put all children in the first room — LiteAPI allows uneven splits.
+  const safeRooms = Math.max(1, Math.min(3, rooms));
+  const safeAdults = Math.max(1, adults);
+  const safeChildren = Math.max(0, childrenCount);
+  const adultsPerRoom: number[] = [];
+  let remaining = safeAdults;
+  for (let i = 0; i < safeRooms; i++) {
+    const a = i === safeRooms - 1 ? remaining : Math.max(1, Math.floor(safeAdults / safeRooms));
+    adultsPerRoom.push(a);
+    remaining -= a;
+  }
+  // Children are represented as an array of ages — LiteAPI expects integers.
+  // We default any unknown child age to 8 (mid-range, no cot/infant surcharge).
+  const childAges = Array.from({ length: safeChildren }, () => 8);
+  const occupancy = adultsPerRoom.map((a, idx) => ({
+    adults: a,
+    children: idx === 0 ? childAges : [],
+  }));
 
   try {
     const result = await Promise.race([
@@ -47,7 +69,7 @@ async function fetchLiteApiHotels(
         countryCode,
         checkIn: checkin,
         checkOut: checkout,
-        occupancy: [{ adults, children: [] }],
+        occupancy,
         currency: 'GBP',
         guestNationality: 'GB',
         limit: 20,
@@ -465,14 +487,21 @@ export async function GET(req: NextRequest) {
   const checkin = searchParams.get('checkin');
   const checkout = searchParams.get('checkout');
   const adults = searchParams.get('adults') || '2';
+  const childrenParam = searchParams.get('children') || '0';
+  const roomsParam = searchParams.get('rooms') || '1';
+  const starsParam = searchParams.get('stars') || '0';
 
   if (!city || !checkin || !checkout) {
     return NextResponse.json({ error: 'Missing required parameters (city, checkin, checkout)' }, { status: 400 });
   }
 
   const cityKey = city.toLowerCase().trim();
-  // Cache key bumped to v2 — LiteAPI results must not be served from the old cache
-  const kvKey = `hotels:v2:${cityKey}:${checkin}:${checkout}:${adults}`;
+  const adultsNum = parseInt(adults);
+  const childrenNum = Math.max(0, Math.min(4, parseInt(childrenParam) || 0));
+  const roomsNum = Math.max(1, Math.min(3, parseInt(roomsParam) || 1));
+  const minStars = Math.max(0, Math.min(5, parseInt(starsParam) || 0));
+  // Cache key v3 — includes children/rooms/stars so filter changes don't collide
+  const kvKey = `hotels:v3:${cityKey}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
 
   // Check KV cache
   try {
@@ -514,7 +543,14 @@ export async function GET(req: NextRequest) {
     }));
 
   // Kick off the LiteAPI fetch in parallel — we'll await it below alongside curated
-  const liteApiPromise = fetchLiteApiHotels(cityKey, checkin, checkout, parseInt(adults));
+  const liteApiPromise = fetchLiteApiHotels(cityKey, checkin, checkout, adultsNum, childrenNum, roomsNum);
+
+  // Apply server-side minStars filter. minStars === 5 means exactly 5; else >=.
+  const passesStars = <T extends { stars: number }>(h: T) => {
+    if (minStars === 0) return true;
+    if (minStars === 5) return h.stars >= 5;
+    return h.stars >= minStars;
+  };
 
   // Look up curated hotels
   const curated = CURATED[cityKey];
@@ -535,23 +571,23 @@ export async function GET(req: NextRequest) {
         bookable: false,
         ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
       }));
-      const liteApiHotels = normaliseLiteApi(await liteApiPromise);
-      const hotels = [...liteApiHotels, ...curatedHotels];
+      const liteApiHotels = normaliseLiteApi(await liteApiPromise).filter(passesStars);
+      const hotels = [...liteApiHotels, ...curatedHotels.filter(passesStars)];
 
-      const result = { hotels, city: match.charAt(0).toUpperCase() + match.slice(1), checkin, checkout, adults: parseInt(adults), liteapiCount: liteApiHotels.length };
+      const result = { hotels, city: match.charAt(0).toUpperCase() + match.slice(1), checkin, checkout, adults: adultsNum, liteapiCount: liteApiHotels.length };
       try { await kv.set(kvKey, result, { ex: KV_TTL }); } catch { /* KV write fail */ }
       return NextResponse.json(result);
     }
 
     // No curated match — still try LiteAPI as a last resort
-    const liteApiHotels = normaliseLiteApi(await liteApiPromise);
+    const liteApiHotels = normaliseLiteApi(await liteApiPromise).filter(passesStars);
     if (liteApiHotels.length > 0) {
-      const result = { hotels: liteApiHotels, city, checkin, checkout, adults: parseInt(adults), liteapiCount: liteApiHotels.length };
+      const result = { hotels: liteApiHotels, city, checkin, checkout, adults: adultsNum, liteapiCount: liteApiHotels.length };
       try { await kv.set(kvKey, result, { ex: KV_TTL }); } catch {}
       return NextResponse.json(result);
     }
 
-    return NextResponse.json({ hotels: [], city, checkin, checkout, adults: parseInt(adults), message: 'No hotels found for this destination' });
+    return NextResponse.json({ hotels: [], city, checkin, checkout, adults: adultsNum, message: 'No hotels found for this destination' });
   }
 
   const coords = CITY_COORDS[cityKey];
@@ -566,16 +602,16 @@ export async function GET(req: NextRequest) {
     bookable: false,
     ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
   }));
-  const liteApiHotels = normaliseLiteApi(await liteApiPromise);
+  const liteApiHotels = normaliseLiteApi(await liteApiPromise).filter(passesStars);
   // LiteAPI bookable hotels first, curated deep-link hotels after
-  const hotels = [...liteApiHotels, ...curatedHotels];
+  const hotels = [...liteApiHotels, ...curatedHotels.filter(passesStars)];
 
   const result = {
     hotels,
     city: city.charAt(0).toUpperCase() + city.slice(1),
     checkin,
     checkout,
-    adults: parseInt(adults),
+    adults: adultsNum,
     liteapiCount: liteApiHotels.length,
   };
 
