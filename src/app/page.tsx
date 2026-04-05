@@ -51,11 +51,11 @@ export default function Home() {
           {/* Category nav */}
           <div className="flex flex-wrap justify-center gap-2 mb-5">
             {[
-              { href: '/packages', icon: '📦', label: 'Packages' },
+              { href: '/flights', icon: '✈', label: 'Flights' },
               { href: '/hotels', icon: '🏨', label: 'Hotels' },
+              { href: '/packages', icon: '📦', label: 'Packages' },
               { href: '/cars', icon: '🚗', label: 'Car Hire' },
               { href: '/esim', icon: '📱', label: 'eSIM' },
-              { href: '/flights', icon: '✈', label: 'Flights' },
               { href: '/explore', icon: '🧭', label: 'Explore' },
             ].map(({ href, icon, label }) => (
               <a key={href} href={href}
