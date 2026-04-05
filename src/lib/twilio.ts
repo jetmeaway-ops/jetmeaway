@@ -80,6 +80,19 @@ export async function sendSms(to: string, body: string): Promise<{ ok: boolean; 
 
 /**
  * Booking confirmation SMS — the "Personal Scout" notification.
+ * Includes the booking reference and route/date so passengers have the
+ * key details at a glance.
  */
-export const SCOUT_BOOKING_MESSAGE =
-  'Your Scout has secured your flight! Check your email for your Deep Neighborhood guide. 🌿 - JetMeAway';
+export function scoutBookingMessage(params: {
+  bookingRef: string;
+  origin: string;
+  destination: string;
+  departureDate: string; // e.g. "Fri 15 May"
+}): string {
+  const { bookingRef, origin, destination, departureDate } = params;
+  return (
+    `Your Scout has secured your flight! ${origin} to ${destination}, ${departureDate}. ` +
+    `Booking ref: ${bookingRef}. ` +
+    `Check your email for full details and your Deep Neighbourhood guide. - JetMeAway`
+  );
+}

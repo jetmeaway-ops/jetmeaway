@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { applyMarkup, saveBookingIntent, MARKUP_GBP } from '@/lib/travel-logic';
-import { sendSms, SCOUT_BOOKING_MESSAGE } from '@/lib/twilio';
+import { sendSms, scoutBookingMessage } from '@/lib/twilio';
 
 export const runtime = 'edge';
 
@@ -333,7 +333,17 @@ export async function POST(req: NextRequest) {
     // Privacy Shield: phone is used only for this notification.
     let smsSent = false;
     if (leadPassenger?.phone) {
-      const smsRes = await sendSms(leadPassenger.phone, SCOUT_BOOKING_MESSAGE);
+      const outSlice = order.slices?.[0];
+      const firstSeg = outSlice?.segments?.[0];
+      const smsBody = scoutBookingMessage({
+        bookingRef: order.booking_reference || order.id,
+        origin: outSlice?.origin?.iata_code || '',
+        destination: outSlice?.destination?.iata_code || '',
+        departureDate: firstSeg?.departing_at
+          ? new Date(firstSeg.departing_at).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+          : '',
+      });
+      const smsRes = await sendSms(leadPassenger.phone, smsBody);
       smsSent = smsRes.ok;
     }
 
