@@ -133,12 +133,16 @@ export async function createCheckoutSession(
       },
       // PaymentIntent metadata mirrors session metadata — shows up on the
       // underlying charge so LiteAPI/Duffel reconciliation by reference works.
+      // `receipt_email` forces Stripe to send a receipt once the payment
+      // succeeds; `customer_email` on the session alone only prefills the
+      // checkout form in sandbox and does not trigger automatic delivery.
       payment_intent_data: {
         metadata: {
           traveler_name: traveler.name,
           booking_reference: traveler.reference,
         },
         description: `JetMeAway booking ${traveler.reference} — ${traveler.name}`,
+        ...(traveler.email ? { receipt_email: traveler.email } : {}),
       },
     });
 
