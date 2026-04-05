@@ -27,27 +27,47 @@ function apiKey(): string {
   return k;
 }
 
+/**
+ * Per-request hard timeout. LiteAPI sandbox has been observed to hang for
+ * 30s+ occasionally; we'd rather fail fast and let the caller decide how to
+ * recover than eat the whole serverless function timeout.
+ */
+const DEFAULT_TIMEOUT_MS = 20_000;
+
 async function liteFetch<T = any>(
   path: string,
   init: RequestInit = {},
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
 ): Promise<T> {
-  const res = await fetch(`${baseUrl()}${path}`, {
-    ...init,
-    headers: {
-      'X-API-Key': apiKey(),
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      ...(init.headers || {}),
-    },
-    // Edge-friendly: no keepalive agent, no cache by default
-    cache: 'no-store',
-  });
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${baseUrl()}${path}`, {
+      ...init,
+      signal: ctrl.signal,
+      headers: {
+        'X-API-Key': apiKey(),
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...(init.headers || {}),
+      },
+      // Edge-friendly: no keepalive agent, no cache by default
+      cache: 'no-store',
+    });
 
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`LiteAPI ${res.status} ${path}: ${body.slice(0, 400)}`);
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`LiteAPI ${res.status} ${path}: ${body.slice(0, 400)}`);
+    }
+    return (await res.json()) as T;
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error(`LiteAPI timeout after ${timeoutMs}ms: ${path}`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
   }
-  return res.json() as Promise<T>;
 }
 
 /* ───────────────────────────────────────────────────────────────────────── */

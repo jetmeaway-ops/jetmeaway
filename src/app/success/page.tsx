@@ -4,6 +4,11 @@ import { completeBooking } from '@/lib/liteapi';
 import type { PendingBooking } from '@/app/api/hotels/start-booking/route';
 import type { PendingGuest } from '@/app/api/hotels/pending/[ref]/guest/route';
 
+// LiteAPI prebook+book can take 15–25s in sandbox. Stripe retrieve + KV are
+// quick. Give the whole flow 60s before Vercel pulls the plug.
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+
 /**
  * /success?session_id=...
  *
