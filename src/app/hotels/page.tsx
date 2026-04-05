@@ -691,7 +691,10 @@ function HotelsContent() {
                     'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=640&h=480&fit=crop',
                   ];
                   const photoUrl = h.thumbnail || HOTEL_PHOTOS[i % HOTEL_PHOTOS.length];
-                  const totalPrice = h.pricePerNight * (nights || 1);
+                  // Prefer the server-rounded total when LiteAPI provides it,
+                  // otherwise derive from nightly rate and round to 2dp to
+                  // avoid float noise like 136.64 * 3 = 409.9199999999.
+                  const totalPrice = h.totalPrice ?? Math.round(h.pricePerNight * (nights || 1) * 100) / 100;
                   const klookUrl = buildKlookUrl(searchedDest);
                   const tripUrl = buildTripcomUrl(searchedDest, checkin, checkout, adults);
                   const expediaUrl = buildExpediaUrl(searchedDest, checkin, checkout, adults);
