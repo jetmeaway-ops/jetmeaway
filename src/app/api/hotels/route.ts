@@ -126,6 +126,7 @@ async function fetchLiteApiHotels(
   adults: number,
   childrenCount: number,
   rooms: number,
+  childAgesParam: number[] = [],
   timeoutMs: number = 12000,
 ): Promise<HotelOffer[]> {
   if (!process.env.LITE_API_KEY) {
@@ -152,8 +153,10 @@ async function fetchLiteApiHotels(
     remaining -= a;
   }
   // Children are represented as an array of ages — LiteAPI expects integers.
-  // We default any unknown child age to 8 (mid-range, no cot/infant surcharge).
-  const childAges = Array.from({ length: safeChildren }, () => 8);
+  const childAges = childAgesParam.length > 0
+    ? childAgesParam.slice(0, safeChildren)
+    : Array.from({ length: safeChildren }, () => 8);
+  while (childAges.length < safeChildren) childAges.push(8);
   const occupancy = adultsPerRoom.map((a, idx) => ({
     adults: a,
     children: idx === 0 ? childAges : [],
@@ -588,6 +591,7 @@ export async function GET(req: NextRequest) {
   const checkout = searchParams.get('checkout');
   const adults = searchParams.get('adults') || '2';
   const childrenParam = searchParams.get('children') || '0';
+  const childrenAgesParam = searchParams.get('childrenAges') || '';
   const roomsParam = searchParams.get('rooms') || '1';
   const starsParam = searchParams.get('stars') || '0';
 
@@ -598,6 +602,9 @@ export async function GET(req: NextRequest) {
   const cityKey = city.toLowerCase().trim();
   const adultsNum = parseInt(adults);
   const childrenNum = Math.max(0, Math.min(4, parseInt(childrenParam) || 0));
+  const childAges = childrenAgesParam
+    ? childrenAgesParam.split(',').map(a => Math.max(0, Math.min(17, parseInt(a) || 0)))
+    : [];
   const roomsNum = Math.max(1, Math.min(3, parseInt(roomsParam) || 1));
   const minStars = Math.max(0, Math.min(5, parseInt(starsParam) || 0));
   // Cache key v4 — bumped after LiteAPI sandbox → production swap
@@ -643,7 +650,7 @@ export async function GET(req: NextRequest) {
     }));
 
   // Kick off the LiteAPI fetch in parallel — we'll await it below alongside curated
-  const liteApiPromise = fetchLiteApiHotels(cityKey, checkin, checkout, adultsNum, childrenNum, roomsNum);
+  const liteApiPromise = fetchLiteApiHotels(cityKey, checkin, checkout, adultsNum, childrenNum, roomsNum, childAges);
 
   // Apply server-side minStars filter. minStars === 5 means exactly 5; else >=.
   const passesStars = <T extends { stars: number }>(h: T) => {

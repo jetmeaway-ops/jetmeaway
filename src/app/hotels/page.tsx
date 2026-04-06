@@ -197,12 +197,13 @@ function DestinationPicker({ value, onChange }: { value: string; onChange: (v: s
  * Caps: 6 adults, 4 children, 3 rooms.
  */
 function OccupancyPicker({
-  adults, children, rooms, onChange,
+  adults, children, rooms, childrenAges, onChange,
 }: {
   adults: number;
   children: number;
   rooms: number;
-  onChange: (next: { adults: number; children: number; rooms: number }) => void;
+  childrenAges: number[];
+  onChange: (next: { adults: number; children: number; rooms: number; childrenAges: number[] }) => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -213,9 +214,23 @@ function OccupancyPicker({
     return () => document.removeEventListener('mousedown', fn);
   }, []);
 
-  const Row = ({ label, value, min, max, onSet }: { label: string; value: number; min: number; max: number; onSet: (v: number) => void }) => (
+  function setChildren(n: number) {
+    const ages = [...childrenAges];
+    while (ages.length < n) ages.push(5);
+    onChange({ adults, children: n, rooms, childrenAges: ages.slice(0, n) });
+  }
+  function setChildAge(idx: number, age: number) {
+    const ages = [...childrenAges];
+    ages[idx] = age;
+    onChange({ adults, children, rooms, childrenAges: ages });
+  }
+
+  const Row = ({ label, sublabel, value, min, max, onSet }: { label: string; sublabel?: string; value: number; min: number; max: number; onSet: (v: number) => void }) => (
     <div className="flex items-center justify-between py-2">
-      <span className="font-poppins font-bold text-[.85rem] text-[#1A1D2B]">{label}</span>
+      <div>
+        <span className="font-poppins font-bold text-[.85rem] text-[#1A1D2B]">{label}</span>
+        {sublabel && <div className="text-[.7rem] text-[#8E95A9]">{sublabel}</div>}
+      </div>
       <div className="flex items-center gap-3">
         <button type="button" onClick={() => onSet(Math.max(min, value - 1))}
           className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-orange-400 transition-all disabled:opacity-30" disabled={value <= min}>−</button>
@@ -238,11 +253,29 @@ function OccupancyPicker({
       {open && (
         <div className="absolute z-50 w-64 mt-1.5 right-0 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl p-4">
           <Row label="Adults" value={adults} min={1} max={6}
-            onSet={(v) => onChange({ adults: v, children, rooms })} />
-          <Row label="Children" value={children} min={0} max={4}
-            onSet={(v) => onChange({ adults, children: v, rooms })} />
+            onSet={(v) => onChange({ adults: v, children, rooms, childrenAges })} />
+          <Row label="Children" sublabel="Age 0–17" value={children} min={0} max={4}
+            onSet={(v) => setChildren(v)} />
+          {children > 0 && (
+            <div className="py-2 border-t border-[#F1F3F7]">
+              <p className="text-[.68rem] font-bold text-[#8E95A9] uppercase tracking-[1.5px] mb-2">Child ages</p>
+              <div className="grid grid-cols-2 gap-2">
+                {Array.from({ length: children }).map((_, i) => (
+                  <div key={i} className="text-center">
+                    <div className="text-[.6rem] text-[#8E95A9] mb-1">Child {i + 1}</div>
+                    <select value={childrenAges[i] ?? 5} onChange={e => setChildAge(i, Number(e.target.value))}
+                      className="w-full text-center text-[.8rem] font-bold text-[#1A1D2B] bg-[#F8FAFC] border border-[#E8ECF4] rounded-lg py-1.5 outline-none focus:border-orange-400">
+                      {Array.from({ length: 18 }, (_, a) => a).map(age => (
+                        <option key={age} value={age}>{age < 1 ? 'Under 1' : age}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <Row label="Rooms" value={rooms} min={1} max={3}
-            onSet={(v) => onChange({ adults, children, rooms: v })} />
+            onSet={(v) => onChange({ adults, children, rooms: v, childrenAges })} />
           <button type="button" onClick={() => setOpen(false)}
             className="w-full mt-3 bg-orange-500 hover:bg-orange-600 text-white font-poppins font-bold text-[.8rem] py-2 rounded-xl transition-colors">
             Done
@@ -405,6 +438,7 @@ function HotelsContent() {
   const [checkout, setCheckout] = useState('');
   const [adults, setAdults] = useState(2);
   const [childCount, setChildCount] = useState(0);
+  const [childrenAges, setChildrenAges] = useState<number[]>([]);
   const [rooms, setRooms] = useState(1);
   const [minStars, setMinStars] = useState(0);
 
@@ -472,6 +506,9 @@ function HotelsContent() {
         rooms: String(rooms),
         stars: String(minStars),
       });
+      if (childrenAges.length > 0) {
+        params.set('childrenAges', childrenAges.join(','));
+      }
 
       const res = await fetch(`/api/hotels?${params}`);
       const data = await res.json();
@@ -490,7 +527,7 @@ function HotelsContent() {
       setApiError('Could not load hotel prices. Please try again.');
       setLoading(false);
     }
-  }, [destination, checkin, checkout, adults, childCount, rooms, minStars]);
+  }, [destination, checkin, checkout, adults, childCount, rooms, minStars, childrenAges]);
 
   // Auto-search when URL params are present
   const autoSearched = useRef(false);
@@ -594,8 +631,9 @@ function HotelsContent() {
                 adults={adults}
                 children={childCount}
                 rooms={rooms}
-                onChange={({ adults: a, children: c, rooms: r }) => {
-                  setAdults(a); setChildCount(c); setRooms(r);
+                childrenAges={childrenAges}
+                onChange={({ adults: a, children: c, rooms: r, childrenAges: ages }) => {
+                  setAdults(a); setChildCount(c); setRooms(r); setChildrenAges(ages);
                 }}
               />
             </div>
