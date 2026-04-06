@@ -115,6 +115,14 @@ export interface HotelOffer {
   priceBeforeTax?: number | null;
   pricePerNight?: number | null;
   commission?: number | null; // our commission (merchant margin)
+  /** All available board options for this hotel (including the selected one) */
+  boardOptions?: Array<{
+    offerId: string;
+    boardType: string;
+    totalPrice: number;
+    pricePerNight: number;
+    refundable: boolean;
+  }>;
 }
 
 export interface Guest {
@@ -281,7 +289,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     ),
   );
 
-  // 3. Flatten: one cheapest offer per hotel.
+  // 3. Flatten: one cheapest offer per hotel, plus all board options.
   //    NOTE: offerId lives on the roomType (not the rate). Each roomType groups
   //    one or more rate variants; prebook/book operate on the offerId.
   const offers: HotelOffer[] = [];
@@ -290,10 +298,44 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     let bestRate: RateObj | null = null;
     let bestPrice = Infinity;
 
+    // Collect ALL board options for this hotel
+    const allOptions: Array<{
+      offerId: string;
+      boardType: string;
+      totalPrice: number;
+      pricePerNight: number;
+      refundable: boolean;
+    }> = [];
+
     for (const rt of entry.roomTypes || []) {
       if (!rt.offerId) continue;
       for (const r of rt.rates || []) {
         const price = r.retailRate?.total?.[0]?.amount ?? Infinity;
+        const suggested = r.retailRate?.suggestedSellingPrice?.[0]?.amount;
+        const effectivePrice = suggested ?? price;
+        const board = r.boardName || r.boardType || r.name || 'Room Only';
+        const isRefundable = r.cancellationPolicies?.refundableTag === 'RFN';
+
+        // Only add unique board types (keep cheapest per board type)
+        const existingIdx = allOptions.findIndex(o => o.boardType.toLowerCase() === board.toLowerCase());
+        if (existingIdx === -1) {
+          allOptions.push({
+            offerId: rt.offerId,
+            boardType: board,
+            totalPrice: Math.round(effectivePrice * 100) / 100,
+            pricePerNight: Math.round((effectivePrice / nights) * 100) / 100,
+            refundable: isRefundable,
+          });
+        } else if (effectivePrice < allOptions[existingIdx].totalPrice) {
+          allOptions[existingIdx] = {
+            offerId: rt.offerId,
+            boardType: board,
+            totalPrice: Math.round(effectivePrice * 100) / 100,
+            pricePerNight: Math.round((effectivePrice / nights) * 100) / 100,
+            refundable: isRefundable,
+          };
+        }
+
         if (price < bestPrice) {
           bestPrice = price;
           bestRoomType = rt;
@@ -303,6 +345,9 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     }
 
     if (!bestRoomType || !bestRate || !bestRoomType.offerId) continue;
+
+    // Sort board options by price
+    allOptions.sort((a, b) => a.totalPrice - b.totalPrice);
 
     const total = bestRate.retailRate?.total?.[0];
     const suggested = bestRate.retailRate?.suggestedSellingPrice?.[0];
@@ -342,6 +387,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       pricePerNight:
         total?.amount != null ? total.amount / nights : null,
       commission,
+      boardOptions: allOptions.length > 1 ? allOptions : undefined,
     });
   }
 

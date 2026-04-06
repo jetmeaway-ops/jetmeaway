@@ -643,6 +643,7 @@ export async function GET(req: NextRequest) {
       thumbnail: o.thumbnail || null,
       refundable: o.refundable,
       boardType: o.boardType,
+      boardOptions: o.boardOptions || undefined,
       source: 'liteapi' as const,
       bookable: true,
       offerId: o.offerId,

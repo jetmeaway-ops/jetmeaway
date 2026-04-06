@@ -127,6 +127,14 @@ const PROVIDERS: Provider[] = [
    TYPES
    ═══════════════════════════════════════════════════════════════════════════ */
 
+type BoardOption = {
+  offerId: string;
+  boardType: string;
+  totalPrice: number;
+  pricePerNight: number;
+  refundable: boolean;
+};
+
 type HotelResult = {
   id: number | string;
   name: string;
@@ -145,6 +153,7 @@ type HotelResult = {
   thumbnail?: string | null;
   refundable?: boolean;
   boardType?: string | null;
+  boardOptions?: BoardOption[];
 };
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -312,6 +321,166 @@ function StarFilter({ value, onChange }: { value: number; onChange: (v: number) 
 /* ═══════════════════════════════════════════════════════════════════════════
    BOOK DIRECT (LiteAPI) — creates a pending booking then redirects to checkout
    ═══════════════════════════════════════════════════════════════════════════ */
+
+function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, checkin, checkout, searchedDest, buildDetailHref, setScoutHotel }: {
+  hotel: HotelResult;
+  index: number;
+  isCheapest: boolean;
+  nights: number;
+  adults: number;
+  checkin: string;
+  checkout: string;
+  searchedDest: string;
+  buildDetailHref: (h: HotelResult) => string;
+  setScoutHotel: (s: { name: string; lat: number; lng: number } | null) => void;
+}) {
+  const [selectedBoard, setSelectedBoard] = useState(0);
+  const h = hotel;
+  const opts = h.boardOptions;
+  const active = opts && opts[selectedBoard] ? opts[selectedBoard] : null;
+
+  // Use the selected board's price/offerId if available
+  const displayPrice = active ? active.pricePerNight : h.pricePerNight;
+  const displayTotal = active ? active.totalPrice : (h.totalPrice ?? Math.round(h.pricePerNight * (nights || 1) * 100) / 100);
+  const displayOfferId = active ? active.offerId : h.offerId;
+  const displayBoard = active ? active.boardType : h.boardType;
+  const displayRefundable = active ? active.refundable : h.refundable;
+
+  const HOTEL_PHOTOS = [
+    'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=640&h=480&fit=crop',
+    'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=640&h=480&fit=crop',
+    'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=640&h=480&fit=crop',
+    'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=640&h=480&fit=crop',
+    'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=640&h=480&fit=crop',
+    'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=640&h=480&fit=crop',
+    'https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=640&h=480&fit=crop',
+    'https://images.unsplash.com/photo-1455587734955-081b22074882?w=640&h=480&fit=crop',
+    'https://images.unsplash.com/photo-1587213811864-46e59f6873b1?w=640&h=480&fit=crop',
+    'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=640&h=480&fit=crop',
+  ];
+  const photoUrl = h.thumbnail || HOTEL_PHOTOS[index % HOTEL_PHOTOS.length];
+  const klookUrl = buildKlookUrl(searchedDest);
+  const tripUrl = buildTripcomUrl(searchedDest, checkin, checkout, adults);
+  const expediaUrl = buildExpediaUrl(searchedDest, checkin, checkout, adults);
+  const detailHref = buildDetailHref(h);
+
+  // Build a modified hotel object with the selected board's offerId for BookDirect
+  const bookHotel = { ...h, offerId: displayOfferId, totalPrice: displayTotal, pricePerNight: displayPrice };
+
+  return (
+    <div className={`bg-white border rounded-2xl overflow-hidden transition-shadow hover:shadow-md ${isCheapest ? 'border-orange-200 ring-1 ring-orange-100' : 'border-[#E8ECF4]'}`}>
+      <div className="grid grid-cols-1 md:grid-cols-[240px_1fr_auto] gap-0">
+        {/* Image */}
+        <a href={detailHref} className="relative h-48 md:h-full min-h-[180px] block group">
+          {photoUrl ? (
+            <img src={photoUrl} alt={h.name} loading="lazy"
+              className="w-full h-full object-cover group-hover:brightness-95 transition-all"
+              onError={(e) => {
+                const el = e.target as HTMLImageElement;
+                el.style.display = 'none';
+                el.parentElement!.classList.add('bg-gradient-to-br', 'from-orange-100', 'to-amber-50');
+                el.parentElement!.innerHTML = '<div class="flex items-center justify-center h-full"><span class="text-4xl">🛏</span></div>';
+              }} />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-orange-100 to-amber-50 flex items-center justify-center">
+              <span className="text-4xl">🛏</span>
+            </div>
+          )}
+          {isCheapest && (
+            <span className="absolute top-3 left-3 text-[.55rem] font-black uppercase tracking-[1.5px] bg-orange-500 text-white px-2 py-1 rounded-full">Cheapest</span>
+          )}
+        </a>
+
+        {/* Info */}
+        <div className="p-5 flex flex-col justify-center">
+          <a href={detailHref} className="hover:bg-[#F8FAFC] transition-colors">
+            <div className="mb-1"><Stars count={h.stars} /></div>
+            <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-1">{h.name}</h3>
+            {h.district && <p className="text-[.75rem] text-[#8E95A9] font-semibold mb-2">📍 {h.district}</p>}
+            {nights > 0 && <p className="text-[.72rem] text-[#5C6378] font-semibold">{nights} night{nights !== 1 ? 's' : ''} · {adults} guest{adults !== 1 ? 's' : ''}</p>}
+            {h.bookable && typeof displayRefundable === 'boolean' && (
+              <span className={`inline-flex items-center gap-1 mt-1.5 text-[.68rem] font-bold ${displayRefundable ? 'text-green-600' : 'text-red-500'}`}>
+                <i className={`fa-solid ${displayRefundable ? 'fa-circle-check' : 'fa-circle-xmark'} text-[.6rem]`} />
+                {displayRefundable ? 'Free cancellation' : 'Non-refundable'}
+              </span>
+            )}
+            {displayBoard && !opts && (
+              <span className="text-[.66rem] text-[#8E95A9] font-semibold mt-0.5 block">{displayBoard}</span>
+            )}
+          </a>
+          {opts && opts.length > 1 && (
+            <BoardSelector options={opts} selected={selectedBoard} onSelect={setSelectedBoard} />
+          )}
+          <a href={detailHref} className="text-[.7rem] text-orange-600 font-bold mt-2 inline-block">View details →</a>
+        </div>
+
+        {/* Price + Actions */}
+        <div className="p-5 flex flex-col items-end justify-center gap-2 border-t md:border-t-0 md:border-l border-[#F1F3F7]">
+          <div className="text-right">
+            <div className="font-poppins font-black text-[1.5rem] text-[#1A1D2B] leading-none">£{displayPrice}<span className="text-[.7rem] font-semibold text-[#8E95A9]">/night</span></div>
+            {nights > 0 && (
+              <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">£{displayTotal} total for {nights} night{nights !== 1 ? 's' : ''}</div>
+            )}
+          </div>
+          <div className="flex flex-col gap-1.5 w-full">
+            {h.bookable && displayOfferId && (
+              <BookDirectButton hotel={bookHotel} checkIn={checkin} checkOut={checkout} adults={adults} nights={nights} city={searchedDest} />
+            )}
+            <a href={redirectUrl(tripUrl, 'Trip.com', searchedDest, 'hotels')}
+              className="bg-[#287DFA] hover:bg-[#1A6AE0] text-white font-poppins font-bold text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap">
+              Trip.com →
+            </a>
+            <a href={redirectUrl(expediaUrl, 'Expedia', searchedDest, 'hotels')}
+              className="bg-[#1B2B65] hover:bg-[#142050] text-white font-poppins font-bold text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap">
+              Expedia →
+            </a>
+            <a href={redirectUrl(klookUrl, 'Klook', searchedDest, 'hotels')}
+              className="bg-orange-500 hover:bg-orange-600 text-white font-poppins font-bold text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap">
+              Klook →
+            </a>
+          </div>
+          {h.lat && h.lng ? (
+            <button type="button"
+              onClick={() => setScoutHotel({ name: h.name, lat: h.lat!, lng: h.lng! })}
+              className="text-[.68rem] font-bold text-teal-600 border border-teal-200 hover:bg-teal-50 px-3 py-1.5 rounded-lg transition-all cursor-pointer">
+              Explore Neighbourhood 🧭
+            </button>
+          ) : (
+            <button type="button" disabled
+              className="text-[.68rem] font-bold text-gray-400 border border-gray-200 px-3 py-1.5 rounded-lg cursor-default opacity-50">
+              Explore Neighbourhood 🧭
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BoardSelector({ options, selected, onSelect }: {
+  options: BoardOption[];
+  selected: number;
+  onSelect: (idx: number) => void;
+}) {
+  return (
+    <div className="mt-1.5">
+      <p className="text-[.6rem] font-bold text-[#8E95A9] uppercase tracking-[1px] mb-1">Board type</p>
+      <div className="flex flex-col gap-1">
+        {options.map((opt, idx) => (
+          <button key={idx} type="button" onClick={() => onSelect(idx)}
+            className={`text-left px-2.5 py-1.5 rounded-lg text-[.68rem] font-semibold transition-all border ${
+              selected === idx
+                ? 'border-orange-400 bg-orange-50 text-[#1A1D2B]'
+                : 'border-[#E8ECF4] bg-white text-[#5C6378] hover:border-orange-200'
+            }`}>
+            <span className="font-bold">{opt.boardType}</span>
+            <span className="ml-1.5 text-[#8E95A9]">£{opt.pricePerNight}/night</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function BookDirectButton({
   hotel,
@@ -782,123 +951,21 @@ function HotelsContent() {
           {hotels!.length > 0 && viewMode === 'list' ? (
             <section className="max-w-[1000px] mx-auto px-5 pb-6">
               <div className="space-y-3">
-                {sortedHotels!.map((h, i) => {
-                  const isCheapest = i === 0;
-                  // Prefer the real LiteAPI thumbnail; fall back to an Unsplash
-                  // rotation for curated entries (or when LiteAPI omits the
-                  // photo field, which happens occasionally on edge cases).
-                  const HOTEL_PHOTOS = [
-                    'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=640&h=480&fit=crop',
-                    'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=640&h=480&fit=crop',
-                    'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=640&h=480&fit=crop',
-                    'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=640&h=480&fit=crop',
-                    'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=640&h=480&fit=crop',
-                    'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=640&h=480&fit=crop',
-                    'https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=640&h=480&fit=crop',
-                    'https://images.unsplash.com/photo-1455587734955-081b22074882?w=640&h=480&fit=crop',
-                    'https://images.unsplash.com/photo-1587213811864-46e59f6873b1?w=640&h=480&fit=crop',
-                    'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=640&h=480&fit=crop',
-                  ];
-                  const photoUrl = h.thumbnail || HOTEL_PHOTOS[i % HOTEL_PHOTOS.length];
-                  // Prefer the server-rounded total when LiteAPI provides it,
-                  // otherwise derive from nightly rate and round to 2dp to
-                  // avoid float noise like 136.64 * 3 = 409.9199999999.
-                  const totalPrice = h.totalPrice ?? Math.round(h.pricePerNight * (nights || 1) * 100) / 100;
-                  const klookUrl = buildKlookUrl(searchedDest);
-                  const tripUrl = buildTripcomUrl(searchedDest, checkin, checkout, adults);
-                  const expediaUrl = buildExpediaUrl(searchedDest, checkin, checkout, adults);
-                  const detailHref = buildDetailHref(h);
-
-                  return (
-                    <div key={h.id || i} className={`bg-white border rounded-2xl overflow-hidden transition-shadow hover:shadow-md ${isCheapest ? 'border-orange-200 ring-1 ring-orange-100' : 'border-[#E8ECF4]'}`}>
-                      <div className="grid grid-cols-1 md:grid-cols-[240px_1fr_auto] gap-0">
-                        {/* Image — clickable to detail page */}
-                        <a href={detailHref} className="relative h-48 md:h-full min-h-[180px] block group">
-                          {photoUrl ? (
-                            <img src={photoUrl} alt={h.name} loading="lazy"
-                              className="w-full h-full object-cover group-hover:brightness-95 transition-all"
-                              onError={(e) => {
-                                const el = e.target as HTMLImageElement;
-                                el.style.display = 'none';
-                                el.parentElement!.classList.add('bg-gradient-to-br', 'from-orange-100', 'to-amber-50');
-                                el.parentElement!.innerHTML = '<div class="flex items-center justify-center h-full"><span class="text-4xl">🛏</span></div>';
-                              }} />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-orange-100 to-amber-50 flex items-center justify-center">
-                              <span className="text-4xl">🛏</span>
-                            </div>
-                          )}
-                          {isCheapest && (
-                            <span className="absolute top-3 left-3 text-[.55rem] font-black uppercase tracking-[1.5px] bg-orange-500 text-white px-2 py-1 rounded-full">Cheapest</span>
-                          )}
-                        </a>
-
-                        {/* Info — clickable to detail page */}
-                        <a href={detailHref} className="p-5 flex flex-col justify-center hover:bg-[#F8FAFC] transition-colors">
-                          <div className="mb-1">
-                            <Stars count={h.stars} />
-                          </div>
-                          <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-1 group-hover:text-orange-600">{h.name}</h3>
-                          {h.district && (
-                            <p className="text-[.75rem] text-[#8E95A9] font-semibold mb-2">📍 {h.district}</p>
-                          )}
-                          {nights > 0 && (
-                            <p className="text-[.72rem] text-[#5C6378] font-semibold">{nights} night{nights !== 1 ? 's' : ''} · {adults} guest{adults !== 1 ? 's' : ''}</p>
-                          )}
-                          {h.bookable && typeof h.refundable === 'boolean' && (
-                            <span className={`inline-flex items-center gap-1 mt-1.5 text-[.68rem] font-bold ${h.refundable ? 'text-green-600' : 'text-red-500'}`}>
-                              <i className={`fa-solid ${h.refundable ? 'fa-circle-check' : 'fa-circle-xmark'} text-[.6rem]`} />
-                              {h.refundable ? 'Free cancellation' : 'Non-refundable'}
-                            </span>
-                          )}
-                          {h.boardType && (
-                            <span className="text-[.66rem] text-[#8E95A9] font-semibold mt-0.5">{h.boardType}</span>
-                          )}
-                          <p className="text-[.7rem] text-orange-600 font-bold mt-2">View details →</p>
-                        </a>
-
-                        {/* Price + Actions */}
-                        <div className="p-5 flex flex-col items-end justify-center gap-2 border-t md:border-t-0 md:border-l border-[#F1F3F7]">
-                          <div className="text-right">
-                            <div className="font-poppins font-black text-[1.5rem] text-[#1A1D2B] leading-none">£{h.pricePerNight}<span className="text-[.7rem] font-semibold text-[#8E95A9]">/night</span></div>
-                            {nights > 0 && (
-                              <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">£{totalPrice} total for {nights} night{nights !== 1 ? 's' : ''}</div>
-                            )}
-                          </div>
-                          <div className="flex flex-col gap-1.5 w-full">
-                            {h.bookable && h.offerId && (
-                              <BookDirectButton hotel={h} checkIn={checkin} checkOut={checkout} adults={adults} nights={nights} city={searchedDest} />
-                            )}
-                            <a href={redirectUrl(tripUrl, 'Trip.com', searchedDest, 'hotels')}
-                              className="bg-[#287DFA] hover:bg-[#1A6AE0] text-white font-poppins font-bold text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap">
-                              Trip.com →
-                            </a>
-                            <a href={redirectUrl(expediaUrl, 'Expedia', searchedDest, 'hotels')}
-                              className="bg-[#1B2B65] hover:bg-[#142050] text-white font-poppins font-bold text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap">
-                              Expedia →
-                            </a>
-                            <a href={redirectUrl(klookUrl, 'Klook', searchedDest, 'hotels')}
-                              className="bg-orange-500 hover:bg-orange-600 text-white font-poppins font-bold text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap">
-                              Klook →
-                            </a>
-                          </div>
-                          {h.lat && h.lng ? (
-                            <button type="button"
-                              onClick={() => setScoutHotel({ name: h.name, lat: h.lat!, lng: h.lng! })}
-                              className="text-[.68rem] font-bold text-teal-600 border border-teal-200 hover:bg-teal-50 px-3 py-1.5 rounded-lg transition-all cursor-pointer">
-                              Explore Neighbourhood 🧭
-                            </button>
-                          ) : (
-                            <button type="button" disabled
-                              className="text-[.68rem] font-bold text-gray-400 border border-gray-200 px-3 py-1.5 rounded-lg cursor-default opacity-50">
-                              Neighbourhood N/A
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                {sortedHotels!.map((h, i) => (
+                    <HotelCardWrapper
+                      key={h.id || i}
+                      hotel={h}
+                      index={i}
+                      isCheapest={i === 0}
+                      nights={nights}
+                      adults={adults}
+                      checkin={checkin}
+                      checkout={checkout}
+                      searchedDest={searchedDest}
+                      buildDetailHref={buildDetailHref}
+                      setScoutHotel={setScoutHotel}
+                    />
+                ))}
               </div>
             </section>
           ) : null}
