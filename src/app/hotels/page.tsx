@@ -39,7 +39,8 @@ const DESTINATIONS = [
   // Austria
   'Vienna', 'Salzburg', 'Innsbruck',
   // Switzerland
-  'Zurich', 'Geneva', 'Lucerne', 'Interlaken',
+  'Zurich', 'Geneva', 'Lucerne', 'Interlaken', 'Zermatt', 'Leukerbad', 'Basel',
+  'Bern', 'Lausanne', 'St Moritz', 'Davos', 'Grindelwald', 'Montreux', 'Lugano',
   // Italy
   'Rome', 'Venice', 'Florence', 'Milan', 'Naples', 'Amalfi', 'Sorrento',
   'Turin', 'Bologna', 'Verona', 'Sardinia', 'Sicily', 'Lake Como',
@@ -167,18 +168,24 @@ function DestinationPicker({ value, onChange }: { value: string; onChange: (v: s
 
   return (
     <div ref={ref} className="relative">
-      <input type="text" placeholder="City — e.g. Barcelona, Dubai" value={value} autoComplete="off"
+      <input type="text" placeholder="Any city or town worldwide" value={value} autoComplete="off"
         onChange={e => { onChange(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
         className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-orange-400 focus:bg-white transition-all placeholder:text-[#B0B8CC]" />
       {open && (
         <ul className="absolute z-50 w-full mt-1.5 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl overflow-auto max-h-64">
-          {filtered.map(c => (
+          {filtered.length > 0 ? filtered.map(c => (
             <li key={c} onMouseDown={() => { onChange(c); setOpen(false); }}
               className={`px-4 py-3 hover:bg-orange-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 font-poppins font-semibold text-[.88rem] text-[#1A1D2B] ${value === c ? 'bg-orange-50' : ''}`}>
               {c}
             </li>
-          ))}
+          )) : q.length >= 2 ? (
+            <li onMouseDown={() => { setOpen(false); }}
+              className="px-4 py-3 cursor-pointer hover:bg-orange-50 transition-colors font-poppins font-semibold text-[.88rem] text-[#1A1D2B]">
+              <span className="text-orange-500">Search &quot;{value}&quot;</span>
+              <span className="text-[#8E95A9] text-[.8rem] ml-2">— we cover cities worldwide</span>
+            </li>
+          ) : null}
         </ul>
       )}
     </div>
