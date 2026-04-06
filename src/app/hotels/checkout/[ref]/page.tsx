@@ -146,7 +146,13 @@ export default function HotelCheckoutPage() {
 
       <div className="grid md:grid-cols-[1fr_320px] gap-6">
         <div className="bg-white border border-[#E8ECF4] rounded-2xl p-6">
-          <h2 className="font-[Poppins] font-black text-[1.1rem] text-[#1A1D2B] mb-4">Lead guest details</h2>
+          <h2 className="font-[Poppins] font-black text-[1.1rem] text-[#1A1D2B] mb-3">Lead guest details</h2>
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 flex items-start gap-2.5">
+            <i className="fa-solid fa-passport text-amber-600 text-sm mt-0.5" />
+            <p className="text-[.78rem] text-amber-800 font-semibold leading-snug">
+              Enter all names exactly as they appear on your passport or ID to avoid boarding and check-in complications.
+            </p>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
               <span className="text-[.7rem] font-bold text-[#5C6378] uppercase tracking-wide">First name</span>

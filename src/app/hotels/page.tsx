@@ -19,46 +19,82 @@ type ViewMode = 'list' | 'map';
 const DESTINATIONS = [
   // UK
   'London', 'Manchester', 'Birmingham', 'Edinburgh', 'Glasgow', 'Liverpool',
+  'Bristol', 'Leeds', 'Newcastle', 'Belfast', 'Cardiff', 'Aberdeen', 'Inverness',
+  'Bath', 'Oxford', 'Cambridge', 'Brighton', 'York',
   // Spain
   'Barcelona', 'Madrid', 'Malaga', 'Tenerife', 'Lanzarote', 'Fuerteventura',
-  'Gran Canaria', 'Palma', 'Alicante',
+  'Gran Canaria', 'Palma', 'Alicante', 'Seville', 'Valencia', 'Granada',
+  'Ibiza', 'Marbella', 'San Sebastian', 'Bilbao', 'Cadiz',
   // Portugal
-  'Faro', 'Lisbon',
+  'Faro', 'Lisbon', 'Porto', 'Madeira', 'Azores',
   // France
-  'Paris', 'Nice',
+  'Paris', 'Nice', 'Lyon', 'Marseille', 'Bordeaux', 'Toulouse', 'Strasbourg',
+  'Cannes', 'Monaco',
   // Netherlands
-  'Amsterdam',
+  'Amsterdam', 'Rotterdam', 'The Hague',
+  // Belgium
+  'Brussels', 'Bruges', 'Antwerp',
+  // Germany
+  'Berlin', 'Munich', 'Frankfurt', 'Hamburg', 'Cologne', 'Dusseldorf',
+  // Austria
+  'Vienna', 'Salzburg', 'Innsbruck',
+  // Switzerland
+  'Zurich', 'Geneva', 'Lucerne', 'Interlaken',
   // Italy
-  'Rome', 'Venice', 'Florence', 'Milan',
+  'Rome', 'Venice', 'Florence', 'Milan', 'Naples', 'Amalfi', 'Sorrento',
+  'Turin', 'Bologna', 'Verona', 'Sardinia', 'Sicily', 'Lake Como',
   // Greece
-  'Athens', 'Crete', 'Rhodes', 'Corfu', 'Santorini',
+  'Athens', 'Crete', 'Rhodes', 'Corfu', 'Santorini', 'Mykonos', 'Zakynthos',
+  'Thessaloniki', 'Kos', 'Kefalonia',
   // Croatia
-  'Dubrovnik', 'Split',
+  'Dubrovnik', 'Split', 'Zagreb', 'Zadar', 'Pula',
   // Turkey
-  'Antalya', 'Bodrum', 'Dalaman', 'Istanbul',
+  'Antalya', 'Bodrum', 'Dalaman', 'Istanbul', 'Fethiye', 'Marmaris', 'Izmir', 'Cappadocia',
+  // Scandinavia
+  'Copenhagen', 'Stockholm', 'Oslo', 'Helsinki', 'Reykjavik',
+  // Eastern Europe
+  'Prague', 'Budapest', 'Warsaw', 'Krakow', 'Bucharest', 'Sofia', 'Tallinn',
+  'Riga', 'Vilnius', 'Ljubljana',
+  // Cyprus & Malta
+  'Larnaca', 'Paphos', 'Limassol', 'Malta', 'Gozo',
   // Morocco
-  'Marrakech', 'Casablanca',
+  'Marrakech', 'Casablanca', 'Fez', 'Tangier', 'Agadir',
   // Egypt
-  'Sharm El Sheikh', 'Hurghada', 'Cairo',
+  'Sharm El Sheikh', 'Hurghada', 'Cairo', 'Luxor',
+  // Tunisia
+  'Tunis', 'Hammamet',
   // Indian Ocean
-  'Maldives', 'Mauritius', 'Seychelles', 'Zanzibar',
+  'Maldives', 'Mauritius', 'Seychelles', 'Zanzibar', 'Madagascar',
   // Pakistan
-  'Lahore', 'Islamabad', 'Karachi', 'Peshawar',
-  // India
-  'Mumbai', 'Delhi', 'Goa', 'Colombo',
+  'Lahore', 'Islamabad', 'Karachi', 'Peshawar', 'Faisalabad', 'Multan',
+  // India & Sri Lanka
+  'Mumbai', 'Delhi', 'Goa', 'Colombo', 'Jaipur', 'Bangalore', 'Chennai',
+  'Hyderabad', 'Kerala', 'Agra',
   // Middle East
-  'Dubai', 'Abu Dhabi', 'Doha', 'Amman', 'Beirut', 'Riyadh', 'Jeddah', 'Muscat', 'Kuwait City',
+  'Dubai', 'Abu Dhabi', 'Doha', 'Amman', 'Beirut', 'Riyadh', 'Jeddah',
+  'Muscat', 'Kuwait City', 'Bahrain', 'Sharjah', 'Medina', 'Aqaba',
   // Southeast Asia
   'Bangkok', 'Phuket', 'Bali', 'Singapore', 'Kuala Lumpur', 'Jakarta',
+  'Hanoi', 'Ho Chi Minh City', 'Chiang Mai', 'Manila', 'Koh Samui',
+  'Langkawi', 'Siem Reap', 'Phnom Penh',
   // East Asia
-  'Tokyo', 'Hong Kong', 'Shanghai', 'Beijing', 'Seoul',
+  'Tokyo', 'Hong Kong', 'Shanghai', 'Beijing', 'Seoul', 'Kyoto', 'Osaka',
+  'Taipei',
   // Oceania
-  'Sydney', 'Melbourne',
+  'Sydney', 'Melbourne', 'Auckland', 'Queenstown', 'Gold Coast', 'Perth',
+  'Brisbane', 'Fiji',
   // Africa
-  'Cape Town', 'Johannesburg', 'Nairobi', 'Lagos', 'Accra',
+  'Cape Town', 'Johannesburg', 'Nairobi', 'Lagos', 'Accra', 'Addis Ababa',
+  'Dar es Salaam', 'Dakar', 'Kigali', 'Victoria Falls',
+  // Caribbean
+  'Barbados', 'Jamaica', 'St Lucia', 'Punta Cana', 'Turks and Caicos',
+  'Antigua', 'Aruba', 'Trinidad',
   // Americas
   'New York', 'Los Angeles', 'Orlando', 'Cancun', 'Mexico City', 'Toronto',
-  'Buenos Aires', 'Lima', 'Bogota', 'Havana',
+  'Buenos Aires', 'Lima', 'Bogota', 'Havana', 'Miami', 'Las Vegas',
+  'San Francisco', 'Chicago', 'Boston', 'Washington DC', 'Vancouver',
+  'Montreal', 'Rio de Janeiro', 'Sao Paulo', 'Cartagena', 'Panama City',
+  'Playa del Carmen',
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════
