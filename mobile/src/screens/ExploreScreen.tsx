@@ -97,8 +97,8 @@ export default function ExploreScreen() {
     setError('');
 
     if (Platform.OS === 'web') {
-      // Use browser geolocation API
-      if (navigator.geolocation) {
+      // Use browser geolocation API with timeout
+      if (typeof navigator !== 'undefined' && navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -108,11 +108,13 @@ export default function ExploreScreen() {
             searchHotels(nearestCity);
           },
           () => {
-            // Fallback to London
+            // Permission denied or error — fallback to London
             setLocation({ lat: 51.5074, lng: -0.1278 });
             setCity('London');
+            setPermissionDenied(true);
             searchHotels('London');
-          }
+          },
+          { timeout: 5000, maximumAge: 300000 }
         );
       } else {
         setLocation({ lat: 51.5074, lng: -0.1278 });
@@ -153,6 +155,8 @@ export default function ExploreScreen() {
   };
 
   const searchHotels = async (searchCity: string) => {
+    setLoading(true);
+    setError('');
     try {
       const checkin = getDateStr(7);
       const checkout = getDateStr(10);
@@ -160,22 +164,28 @@ export default function ExploreScreen() {
         city: searchCity, checkin, checkout,
         adults: '2', children: '0', rooms: '1',
       });
-      const res = await fetch(`${API_BASE}${Endpoints.hotels}?${params}`);
+      const url = `${API_BASE}${Endpoints.hotels}?${params}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        setError(`Server error (${res.status}). Try a different city.`);
+        setHotels([]);
+        return;
+      }
       const json = await res.json();
       if (json.hotels && json.hotels.length > 0) {
         // Add approximate coordinates around city center
         const cityCoords = CITY_COORDS[searchCity] || { lat: 51.5074, lng: -0.1278 };
         const withCoords = json.hotels.map((h: NearbyHotel, i: number) => ({
           ...h,
-          lat: cityCoords.lat + (Math.random() - 0.5) * 0.04,
-          lng: cityCoords.lng + (Math.random() - 0.5) * 0.04,
+          lat: h.lat || cityCoords.lat + (Math.random() - 0.5) * 0.04,
+          lng: h.lng || cityCoords.lng + (Math.random() - 0.5) * 0.04,
         }));
         setHotels(withCoords);
       } else {
         setHotels([]);
       }
-    } catch {
-      setError('Could not load hotels. Try again.');
+    } catch (e: any) {
+      setError('Could not load hotels. Check your connection and try again.');
     } finally {
       setLoading(false);
     }
