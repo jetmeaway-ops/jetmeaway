@@ -8,23 +8,64 @@ const KV_TTL = 43200; // 12 hours
 
 /** City → ISO-3166 alpha-2 country code for LiteAPI lookups */
 const CITY_COUNTRY: Record<string, string> = {
+  // Spain
   'barcelona': 'ES', 'madrid': 'ES', 'malaga': 'ES', 'alicante': 'ES', 'palma': 'ES',
   'tenerife': 'ES', 'lanzarote': 'ES', 'fuerteventura': 'ES', 'gran canaria': 'ES',
+  'seville': 'ES', 'valencia': 'ES', 'ibiza': 'ES', 'marbella': 'ES',
+  // UK & Ireland
   'london': 'GB', 'edinburgh': 'GB', 'manchester': 'GB', 'glasgow': 'GB',
-  'liverpool': 'GB', 'birmingham': 'GB',
-  'paris': 'FR', 'nice': 'FR',
-  'rome': 'IT', 'venice': 'IT', 'florence': 'IT', 'milan': 'IT',
-  'lisbon': 'PT', 'faro': 'PT',
-  'amsterdam': 'NL', 'berlin': 'DE', 'munich': 'DE',
-  'athens': 'GR', 'santorini': 'GR', 'crete': 'GR', 'rhodes': 'GR', 'corfu': 'GR',
+  'liverpool': 'GB', 'birmingham': 'GB', 'bristol': 'GB', 'leeds': 'GB',
+  'belfast': 'GB', 'cardiff': 'GB', 'dublin': 'IE',
+  // France
+  'paris': 'FR', 'nice': 'FR', 'lyon': 'FR', 'marseille': 'FR',
+  // Italy
+  'rome': 'IT', 'venice': 'IT', 'florence': 'IT', 'milan': 'IT', 'naples': 'IT', 'amalfi': 'IT',
+  // Portugal
+  'lisbon': 'PT', 'faro': 'PT', 'porto': 'PT', 'madeira': 'PT',
+  // Central Europe
+  'amsterdam': 'NL', 'berlin': 'DE', 'munich': 'DE', 'hamburg': 'DE', 'frankfurt': 'DE',
+  'brussels': 'BE', 'antwerp': 'BE',
+  'zurich': 'CH', 'geneva': 'CH', 'lucerne': 'CH',
+  'vienna': 'AT', 'salzburg': 'AT',
+  'prague': 'CZ', 'budapest': 'HU', 'warsaw': 'PL', 'krakow': 'PL',
+  'copenhagen': 'DK', 'stockholm': 'SE', 'oslo': 'NO', 'helsinki': 'FI',
+  // Greece
+  'athens': 'GR', 'santorini': 'GR', 'crete': 'GR', 'rhodes': 'GR', 'corfu': 'GR', 'mykonos': 'GR',
+  // Turkey
   'istanbul': 'TR', 'antalya': 'TR', 'bodrum': 'TR', 'dalaman': 'TR',
+  // Balkans
   'dubrovnik': 'HR', 'split': 'HR',
-  'dubai': 'AE', 'cairo': 'EG', 'marrakech': 'MA',
-  'new york': 'US', 'los angeles': 'US', 'miami': 'US',
-  'tokyo': 'JP', 'bangkok': 'TH', 'phuket': 'TH', 'singapore': 'SG',
-  'bali': 'ID', 'maldives': 'MV',
-  'sydney': 'AU', 'cape town': 'ZA',
-  'cancun': 'MX',
+  // Middle East
+  'dubai': 'AE', 'abu dhabi': 'AE', 'doha': 'QA', 'muscat': 'OM',
+  // Africa
+  'cairo': 'EG', 'hurghada': 'EG', 'sharm el sheikh': 'EG',
+  'marrakech': 'MA', 'casablanca': 'MA', 'agadir': 'MA',
+  'cape town': 'ZA', 'johannesburg': 'ZA', 'durban': 'ZA',
+  'nairobi': 'KE', 'zanzibar': 'TZ', 'victoria falls': 'ZW',
+  'tunis': 'TN', 'hammamet': 'TN', 'sousse': 'TN',
+  // Asia
+  'tokyo': 'JP', 'osaka': 'JP', 'kyoto': 'JP',
+  'bangkok': 'TH', 'phuket': 'TH', 'chiang mai': 'TH', 'pattaya': 'TH',
+  'singapore': 'SG', 'kuala lumpur': 'MY',
+  'bali': 'ID', 'jakarta': 'ID',
+  'hong kong': 'HK', 'seoul': 'KR', 'taipei': 'TW',
+  'hanoi': 'VN', 'ho chi minh city': 'VN',
+  'mumbai': 'IN', 'delhi': 'IN', 'goa': 'IN',
+  'colombo': 'LK',
+  // Pakistan
+  'lahore': 'PK', 'islamabad': 'PK', 'karachi': 'PK',
+  // Americas
+  'new york': 'US', 'los angeles': 'US', 'miami': 'US', 'las vegas': 'US',
+  'orlando': 'US', 'san francisco': 'US', 'chicago': 'US', 'boston': 'US',
+  'toronto': 'CA', 'vancouver': 'CA', 'montreal': 'CA',
+  'cancun': 'MX', 'mexico city': 'MX', 'playa del carmen': 'MX',
+  'havana': 'CU', 'punta cana': 'DO', 'montego bay': 'JM',
+  'rio de janeiro': 'BR', 'sao paulo': 'BR', 'buenos aires': 'AR', 'lima': 'PE', 'bogota': 'CO',
+  // Oceania
+  'sydney': 'AU', 'melbourne': 'AU', 'gold coast': 'AU',
+  'auckland': 'NZ', 'queenstown': 'NZ',
+  // Islands
+  'maldives': 'MV', 'mauritius': 'MU', 'seychelles': 'SC',
 };
 
 /** Fetch LiteAPI bookable offers with a hard timeout so we never block the response */
