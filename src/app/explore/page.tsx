@@ -182,6 +182,119 @@ function DestinationPicker({ value, onChange }: { value: string; onChange: (v: s
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   TOUR TYPES & COMPONENTS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+type Tour = {
+  productCode: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  rating: number;
+  reviewCount: number;
+  fromPrice: number;
+  currency: string;
+  duration: string;
+  bookingUrl: string;
+  flags: string[];
+  freeCancellation: boolean;
+};
+
+function StarRating({ rating }: { rating: number }) {
+  const full = Math.floor(rating);
+  const half = rating - full >= 0.25;
+  const stars = [];
+  for (let i = 0; i < 5; i++) {
+    if (i < full) {
+      stars.push(<span key={i} className="text-amber-400">★</span>);
+    } else if (i === full && half) {
+      stars.push(<span key={i} className="text-amber-400">★</span>);
+    } else {
+      stars.push(<span key={i} className="text-gray-300">★</span>);
+    }
+  }
+  return <span className="text-[.75rem] inline-flex">{stars}</span>;
+}
+
+function TourCard({ tour }: { tour: Tour }) {
+  const likelyToSellOut = tour.flags.includes('LIKELY_TO_SELL_OUT');
+  const currencySymbol = tour.currency === 'GBP' ? '£' : tour.currency === 'USD' ? '$' : tour.currency === 'EUR' ? '€' : tour.currency;
+
+  return (
+    <a
+      href={redirectUrl(tour.bookingUrl, 'Viator', tour.title, 'explore')}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden hover:shadow-lg transition-all flex flex-col"
+    >
+      {/* Image */}
+      <div className="relative h-44 overflow-hidden bg-gray-100 flex-shrink-0">
+        {tour.imageUrl ? (
+          <img
+            src={tour.imageUrl}
+            alt={tour.title}
+            loading="lazy"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-[#B0B8CC] text-3xl">🎫</div>
+        )}
+        {/* Badges */}
+        <div className="absolute top-2 left-2 flex flex-col gap-1.5">
+          {tour.freeCancellation && (
+            <span className="bg-emerald-500 text-white text-[.58rem] font-bold px-2 py-0.5 rounded-full shadow">
+              Free cancellation
+            </span>
+          )}
+          {likelyToSellOut && (
+            <span className="bg-red-500 text-white text-[.58rem] font-bold px-2 py-0.5 rounded-full shadow">
+              Likely to sell out
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-4 flex-1 flex flex-col">
+        <h3 className="font-poppins font-bold text-[.85rem] text-[#1A1D2B] mb-1.5 line-clamp-2 leading-snug">
+          {tour.title}
+        </h3>
+
+        {/* Rating + reviews */}
+        {tour.reviewCount > 0 && (
+          <div className="flex items-center gap-1.5 mb-2">
+            <StarRating rating={tour.rating} />
+            <span className="text-[.7rem] font-semibold text-[#5C6378]">
+              {tour.rating.toFixed(1)} ({tour.reviewCount.toLocaleString()})
+            </span>
+          </div>
+        )}
+
+        {/* Duration */}
+        {tour.duration && (
+          <p className="text-[.7rem] text-[#8E95A9] font-semibold mb-2">
+            ⏱ {tour.duration}
+          </p>
+        )}
+
+        {/* Price */}
+        <div className="mt-auto pt-2 border-t border-[#F1F3F7] flex items-end justify-between">
+          <div>
+            <span className="text-[.6rem] text-[#8E95A9] font-semibold block">From</span>
+            <span className="font-poppins font-black text-[1.15rem] text-[#1A1D2B]">
+              {currencySymbol}{tour.fromPrice.toFixed(2)}
+            </span>
+          </div>
+          <span className="text-[.7rem] font-bold text-teal-600 group-hover:text-teal-700 transition-colors">
+            View deal →
+          </span>
+        </div>
+      </div>
+    </a>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    MAIN PAGE
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -189,6 +302,9 @@ function ExploreContent() {
   const [destination, setDestination] = useState('');
   const [searched, setSearched] = useState(false);
   const [searchedDest, setSearchedDest] = useState('');
+  const [tours, setTours] = useState<Tour[]>([]);
+  const [toursLoading, setToursLoading] = useState(false);
+  const [toursError, setToursError] = useState('');
 
   // Read URL params
   useEffect(() => {
@@ -200,6 +316,28 @@ function ExploreContent() {
       setSearched(true);
     }
   }, []);
+
+  // Fetch Viator tours when destination changes
+  useEffect(() => {
+    if (!searchedDest) return;
+    setToursLoading(true);
+    setToursError('');
+    setTours([]);
+    fetch(`/api/tours?destination=${encodeURIComponent(searchedDest)}`)
+      .then((res) => {
+        if (!res.ok) throw new Error('API error');
+        return res.json();
+      })
+      .then((data) => {
+        setTours(data.tours || []);
+      })
+      .catch(() => {
+        setToursError('Could not load live tours. Browse providers below instead.');
+      })
+      .finally(() => {
+        setToursLoading(false);
+      });
+  }, [searchedDest]);
 
   const handleSearch = () => {
     if (!destination) return;
@@ -238,10 +376,49 @@ function ExploreContent() {
       {/* Results */}
       {searched && (
         <>
+          {/* Live Viator Tours */}
+          <section className="max-w-[1000px] mx-auto px-5 pt-8 pb-6">
+            <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-1">
+              Top tours & activities in {searchedDest}
+            </h2>
+            <p className="text-[.78rem] text-[#8E95A9] font-semibold mb-5">
+              Live results from Viator — click any card to book
+            </p>
+
+            {toursLoading && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden animate-pulse">
+                    <div className="h-44 bg-gray-200" />
+                    <div className="p-4 space-y-2">
+                      <div className="h-4 bg-gray-200 rounded w-3/4" />
+                      <div className="h-3 bg-gray-200 rounded w-1/2" />
+                      <div className="h-3 bg-gray-200 rounded w-1/3" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {toursError && (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6">
+                <p className="text-[.82rem] text-amber-700 font-semibold">{toursError}</p>
+              </div>
+            )}
+
+            {!toursLoading && tours.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                {tours.map((tour) => (
+                  <TourCard key={tour.productCode} tour={tour} />
+                ))}
+              </div>
+            )}
+          </section>
+
           {/* Provider cards */}
-          <section className="max-w-[900px] mx-auto px-5 pt-8 pb-6">
+          <section className="max-w-[900px] mx-auto px-5 pt-4 pb-6">
             <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-2">
-              Search {searchedDest} on 5 providers
+              Compare on other providers for {searchedDest}
             </h2>
             <p className="text-[.78rem] text-[#8E95A9] font-semibold mb-5">
               Each provider has different activities and prices — compare them all
