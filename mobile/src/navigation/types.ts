@@ -4,5 +4,6 @@ export type RootTabParamList = {
   Hotels: undefined;
   Packages: undefined;
   Cars: undefined;
+  Explore: undefined;
   More: undefined;
 };

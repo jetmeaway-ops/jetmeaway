@@ -9,6 +9,7 @@ import FlightsScreen from '../screens/FlightsScreen';
 import HotelsScreen from '../screens/HotelsScreen';
 import PackagesScreen from '../screens/PackagesScreen';
 import CarsScreen from '../screens/CarsScreen';
+import ExploreScreen from '../screens/ExploreScreen';
 import MoreScreen from '../screens/MoreScreen';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -19,6 +20,7 @@ const TAB_ICONS: Record<keyof RootTabParamList, string> = {
   Hotels: 'hotel',
   Packages: 'cube',
   Cars: 'car',
+  Explore: 'compass',
   More: 'ellipsis-h',
 };
 
@@ -51,6 +53,7 @@ export default function TabNavigator() {
       <Tab.Screen name="Hotels" component={HotelsScreen} />
       <Tab.Screen name="Packages" component={PackagesScreen} />
       <Tab.Screen name="Cars" component={CarsScreen} />
+      <Tab.Screen name="Explore" component={ExploreScreen} />
       <Tab.Screen name="More" component={MoreScreen} />
     </Tab.Navigator>
   );

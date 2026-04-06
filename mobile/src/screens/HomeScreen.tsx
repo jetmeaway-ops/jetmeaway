@@ -11,7 +11,7 @@ const CATEGORIES = [
   { name: 'Packages', icon: 'cube', color: '#7C3AED', tab: 'Packages' },
   { name: 'Car Hire', icon: 'car', color: '#059669', tab: 'Cars' },
   { name: 'eSIM', icon: 'sim-card', color: '#DC2626', tab: 'More' },
-  { name: 'Explore', icon: 'compass', color: '#0891B2', tab: 'More' },
+  { name: 'Explore', icon: 'compass', color: '#0891B2', tab: 'Explore' },
 ];
 
 function AnimatedCard({ index, children, onPress }: { index: number; children: React.ReactNode; onPress: () => void }) {
