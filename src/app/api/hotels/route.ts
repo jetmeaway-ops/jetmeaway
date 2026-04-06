@@ -68,6 +68,56 @@ const CITY_COUNTRY: Record<string, string> = {
   'maldives': 'MV', 'mauritius': 'MU', 'seychelles': 'SC',
 };
 
+/** Look up country code for a city. Checks the hardcoded map first, then KV cache,
+ *  and finally falls back to OpenStreetMap Nominatim geocoding. */
+async function resolveCountryCode(cityKey: string): Promise<string | null> {
+  // 1. Fast path: hardcoded map
+  const cached = CITY_COUNTRY[cityKey];
+  if (cached) return cached;
+
+  // 2. Check KV cache (previous geocode results, TTL 30 days)
+  const kvGeoKey = `geocode:cc:${cityKey}`;
+  try {
+    const kvCached = await kv.get<string>(kvGeoKey);
+    if (kvCached) return kvCached;
+  } catch { /* KV miss */ }
+
+  // 3. Nominatim geocoding fallback
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cityKey)}&format=json&limit=1&accept-language=en&addressdetails=1`;
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'JetMeAway/1.0 (jetmeaway.co.uk)',
+        'Accept': 'application/json',
+      },
+    });
+    if (!res.ok) {
+      console.warn('[geocode] Nominatim returned', res.status, 'for', cityKey);
+      return null;
+    }
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) {
+      console.warn('[geocode] No results from Nominatim for:', cityKey);
+      return null;
+    }
+    const cc = data[0]?.address?.country_code;
+    if (!cc) {
+      console.warn('[geocode] No country_code in Nominatim response for:', cityKey);
+      return null;
+    }
+    const countryCode = cc.toUpperCase();
+    console.log(`[geocode] Resolved ${cityKey} → ${countryCode} via Nominatim`);
+
+    // Cache in KV for 30 days so we don't hit Nominatim again
+    try { await kv.set(kvGeoKey, countryCode, { ex: 2592000 }); } catch { /* KV write fail */ }
+
+    return countryCode;
+  } catch (err) {
+    console.warn('[geocode] Nominatim fetch failed for', cityKey, err);
+    return null;
+  }
+}
+
 /** Fetch LiteAPI bookable offers with a hard timeout so we never block the response */
 async function fetchLiteApiHotels(
   cityKey: string,
@@ -82,9 +132,9 @@ async function fetchLiteApiHotels(
     console.warn('[liteapi] LITE_API_KEY not set — skipping hotel search');
     return [];
   }
-  const countryCode = CITY_COUNTRY[cityKey];
+  const countryCode = await resolveCountryCode(cityKey);
   if (!countryCode) {
-    console.warn('[liteapi] no country code mapping for city:', cityKey);
+    console.warn('[liteapi] could not resolve country code for city:', cityKey);
     return [];
   }
   const cityName = cityKey.charAt(0).toUpperCase() + cityKey.slice(1);

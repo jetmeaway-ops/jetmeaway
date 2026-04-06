@@ -6,7 +6,7 @@ export const runtime = 'edge';
 
 const DUFFEL_KEY = process.env.DUFFEL_TEST_TOKEN || process.env.DUFFEL_ACCESS_TOKEN || process.env.DUFFEL_API_KEY || '';
 const TP_TOKEN = 'f797fbb7074a15838d5536c10be6f7b5';
-const KV_TTL = 3600; // 1 hour cache (shorter — Duffel prices are live)
+const KV_TTL = 10800; // 3 hours cache for frequently-searched routes
 
 /* ═══════════════════════════════════════════════════════════════════════════
    AIRLINES LOOKUP
@@ -316,29 +316,45 @@ export async function GET(req: NextRequest) {
   } catch {}
 
   try {
-    // Try Duffel first (live prices), fall back to Travelpayouts
-    let flights: any[] = [];
-    let source = 'duffel';
+    // Run Duffel and Travelpayouts in PARALLEL for faster results
+    const duffelPromise: Promise<any[]> = DUFFEL_KEY
+      ? searchDuffel(origin, destination, depDate, retDate, adults, children, infants, cabinClass)
+          .then(offers => offers.length > 0 ? transformDuffelOffers(offers, paxCount) : [])
+          .catch(err => { console.error('Duffel search failed:', err); return []; })
+      : Promise.resolve([]);
 
-    if (DUFFEL_KEY) {
-      try {
-        const duffelOffers = await searchDuffel(origin, destination, depDate, retDate, adults, children, infants, cabinClass);
-        if (duffelOffers.length > 0) {
-          flights = transformDuffelOffers(duffelOffers, paxCount);
-        }
-      } catch (err) {
-        console.error('Duffel search failed, falling back to Travelpayouts:', err);
+    const tpPromise: Promise<any[]> = searchTravelpayouts(origin, destination, depDate, retDate, adults)
+      .catch(err => { console.error('Travelpayouts search failed:', err); return []; });
+
+    const [duffelFlights, tpFlights] = await Promise.all([duffelPromise, tpPromise]);
+
+    // Merge & deduplicate: prefer Duffel (live prices) over Travelpayouts for same flight
+    const seen = new Map<string, any>();
+    for (const f of duffelFlights) {
+      const key = f.flight_number
+        ? `${f.flight_number}-${(f.departure_at || '').slice(0, 10)}`
+        : `${f.airlineCode}-${(f.departure_at || '').slice(0, 10)}-${f.duration_to}`;
+      const existing = seen.get(key);
+      if (!existing || f.price < existing.price) {
+        seen.set(key, f);
+      }
+    }
+    for (const f of tpFlights) {
+      const key = f.flight_number
+        ? `${f.flight_number}-${(f.departure_at || '').slice(0, 10)}`
+        : `${f.airlineCode}-${(f.departure_at || '').slice(0, 10)}-${f.duration_to}`;
+      if (!seen.has(key)) {
+        seen.set(key, f);
       }
     }
 
-    // Fallback to Travelpayouts if Duffel returned nothing
-    if (flights.length === 0) {
-      flights = await searchTravelpayouts(origin, destination, depDate, retDate, adults);
-      source = 'travelpayouts';
-    }
-
-    // Sort by total price
+    const flights = Array.from(seen.values());
     flights.sort((a, b) => a.price - b.price);
+
+    // Determine primary source label
+    const source = duffelFlights.length > 0 && tpFlights.length > 0
+      ? 'duffel+travelpayouts'
+      : duffelFlights.length > 0 ? 'duffel' : 'travelpayouts';
 
     const result = {
       success: true,
@@ -357,7 +373,7 @@ export async function GET(req: NextRequest) {
     // Cache results
     try { await kv.set(kvKey, result, { ex: KV_TTL }); } catch {}
 
-    // Log search to user's history (non-blocking)
+    // Log search to user's history (fire-and-forget — don't await)
     logFlightSearch(sessionId, {
       origin,
       destination,
