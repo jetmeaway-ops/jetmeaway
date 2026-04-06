@@ -238,6 +238,46 @@ const PROVIDERS: Provider[] = [
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   CAR CATEGORIES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const CAR_CATEGORIES = [
+  { name: 'Mini', example: 'Fiat 500, VW Up', seats: 2, bags: 1, doors: 3, fromPrice: 8, img: 'https://images.unsplash.com/photo-1619767886558-efdc259cde1a?w=300&h=200&fit=crop' },
+  { name: 'Economy', example: 'Toyota Yaris, Ford Fiesta', seats: 4, bags: 1, doors: 5, fromPrice: 12, img: 'https://images.unsplash.com/photo-1609521263047-f8f205293f24?w=300&h=200&fit=crop' },
+  { name: 'Compact', example: 'VW Golf, Ford Focus', seats: 5, bags: 2, doors: 5, fromPrice: 18, img: 'https://images.unsplash.com/photo-1590362891991-f776e747a588?w=300&h=200&fit=crop' },
+  { name: 'Mid-size', example: 'Toyota Corolla, Skoda Octavia', seats: 5, bags: 3, doors: 5, fromPrice: 24, img: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0afa?w=300&h=200&fit=crop' },
+  { name: 'SUV', example: 'Nissan Qashqai, Hyundai Tucson', seats: 5, bags: 3, doors: 5, fromPrice: 30, img: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=300&h=200&fit=crop' },
+  { name: 'Premium', example: 'BMW 3 Series, Mercedes C-Class', seats: 5, bags: 3, doors: 5, fromPrice: 45, img: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=300&h=200&fit=crop' },
+  { name: 'People Carrier', example: 'VW Touran, Ford Galaxy', seats: 7, bags: 4, doors: 5, fromPrice: 35, img: 'https://images.unsplash.com/photo-1559416523-140ddc3d238c?w=300&h=200&fit=crop' },
+  { name: 'Convertible', example: 'BMW 2 Series, Audi A3', seats: 4, bags: 1, doors: 2, fromPrice: 50, img: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=300&h=200&fit=crop' },
+];
+
+const BUDGET_OPTIONS = [
+  { label: 'Any budget', max: Infinity },
+  { label: 'Under £15/day', max: 15 },
+  { label: 'Under £25/day', max: 25 },
+  { label: 'Under £35/day', max: 35 },
+  { label: 'Under £50/day', max: 50 },
+];
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SUPPLIER LOGOS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const SUPPLIER_LOGOS = [
+  { name: 'Hertz', color: '#FFD700', bg: '#000' },
+  { name: 'Europcar', color: '#fff', bg: '#00843D' },
+  { name: 'Avis', color: '#fff', bg: '#D4002A' },
+  { name: 'Budget', color: '#fff', bg: '#F26522' },
+  { name: 'Enterprise', color: '#fff', bg: '#007A53' },
+  { name: 'Sixt', color: '#000', bg: '#FF6600' },
+  { name: 'Alamo', color: '#fff', bg: '#003087' },
+  { name: 'Dollar', color: '#fff', bg: '#E31937' },
+  { name: 'Thrifty', color: '#fff', bg: '#0066B3' },
+  { name: 'National', color: '#fff', bg: '#006747' },
+];
+
+/* ═══════════════════════════════════════════════════════════════════════════
    COMPARISON TABLE
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -278,6 +318,8 @@ function CarsContent() {
   const [pickupTime, setPickupTime] = useState('10:00');
   const [dropoffTime, setDropoffTime] = useState('10:00');
   const [driverAge, setDriverAge] = useState('30');
+  const [budget, setBudget] = useState(Infinity);
+  const [sortBy, setSortBy] = useState<'price-asc' | 'price-desc' | 'seats'>('price-asc');
 
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -340,6 +382,14 @@ function CarsContent() {
   const ageGroup = parseInt(driverAge) < 25 ? 'young' : parseInt(driverAge) > 65 ? 'senior' : 'standard';
   const city = extractCity(searchedLoc);
   const iata = extractIATA(searchedLoc);
+
+  const filteredCars = CAR_CATEGORIES
+    .filter(c => c.fromPrice <= budget)
+    .sort((a, b) => {
+      if (sortBy === 'price-asc') return a.fromPrice - b.fromPrice;
+      if (sortBy === 'price-desc') return b.fromPrice - a.fromPrice;
+      return b.seats - a.seats;
+    });
 
   return (
     <>
@@ -406,6 +456,19 @@ function CarsContent() {
             </div>
           </div>
 
+          {/* Budget filter */}
+          <div className="mb-4">
+            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Daily Budget</label>
+            <div className="flex flex-wrap gap-1.5">
+              {BUDGET_OPTIONS.map(opt => (
+                <button key={opt.label} type="button" onClick={() => setBudget(opt.max)}
+                  className={`px-3 py-1.5 rounded-lg text-[.72rem] font-bold transition-all ${budget === opt.max ? 'bg-emerald-500 text-white shadow-sm' : 'bg-[#F1F3F7] text-[#5C6378] hover:bg-emerald-50'}`}>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <button onClick={handleSearch}
             className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(16,185,129,0.3)]">
             Search Car Rentals →
@@ -421,63 +484,116 @@ function CarsContent() {
       {searched && (
         <div ref={resultsRef}>
           {/* Search summary */}
-          <section className="max-w-[900px] mx-auto px-5 pt-8 pb-4">
-            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-2xl px-6 py-4">
-              <h2 className="font-poppins font-black text-[1.15rem] text-[#1A1D2B]">
-                Car hire in {city} — {pickupDate} to {dropoffDate}{days ? ` (${days} day${days !== 1 ? 's' : ''})` : ''}
-              </h2>
-              <p className="text-[.75rem] text-[#5C6378] font-semibold mt-1">Compare prices across 5 providers below</p>
+          <section className="max-w-[1000px] mx-auto px-5 pt-8 pb-4">
+            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-2xl px-6 py-4 flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <h2 className="font-poppins font-black text-[1.15rem] text-[#1A1D2B]">
+                  Car hire in {city} — {pickupDate} to {dropoffDate}{days ? ` (${days} day${days !== 1 ? 's' : ''})` : ''}
+                </h2>
+                <p className="text-[.75rem] text-[#5C6378] font-semibold mt-1">{filteredCars.length} car types available · Compare across 6 providers</p>
+              </div>
+              <select value={sortBy} onChange={e => setSortBy(e.target.value as 'price-asc' | 'price-desc' | 'seats')}
+                className="px-3 py-2 rounded-lg border border-[#E8ECF4] bg-white text-[.78rem] font-semibold text-[#1A1D2B] outline-none focus:border-emerald-500">
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+                <option value="seats">Most Seats</option>
+              </select>
             </div>
           </section>
 
-          {/* Provider cards */}
-          <section className="max-w-[900px] mx-auto px-5 pb-6">
-            <div className="space-y-4">
-              {PROVIDERS.map((p) => {
-                const url = p.buildUrl(searchedLoc, pickupDate, dropoffDate, pickupTime, dropoffTime, driverAge);
+          {/* Supplier banner */}
+          <section className="max-w-[1000px] mx-auto px-5 pb-4">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+              <span className="text-[.65rem] font-bold text-[#8E95A9] uppercase tracking-wider whitespace-nowrap mr-1">Suppliers include:</span>
+              {SUPPLIER_LOGOS.map(s => (
+                <span key={s.name} className="flex-shrink-0 px-2.5 py-1 rounded-md text-[.62rem] font-black uppercase tracking-wide"
+                  style={{ backgroundColor: s.bg, color: s.color }}>
+                  {s.name}
+                </span>
+              ))}
+            </div>
+          </section>
+
+          {/* Car category cards */}
+          <section className="max-w-[1000px] mx-auto px-5 pb-6">
+            <div className="space-y-3">
+              {filteredCars.length > 0 ? filteredCars.map((car) => {
+                const totalEst = days ? car.fromPrice * days : car.fromPrice;
                 return (
-                  <div key={p.name}
-                    className="bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden hover:shadow-lg transition-all"
-                    style={{ borderLeftWidth: '4px', borderLeftColor: p.color }}>
-                    <div className="p-6">
-                      {/* Header */}
-                      <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
-                        <div>
-                          <h3 className="font-poppins font-black text-[1.15rem] text-[#1A1D2B] mb-1">{p.name}</h3>
-                          <p className="text-[.8rem] text-[#5C6378] font-semibold">{p.tagline}</p>
-                        </div>
-                        <a href={redirectUrl(url, p.name, city, 'cars')} target="_blank" rel="noopener noreferrer"
-                          className="flex-shrink-0 px-6 py-3 rounded-xl font-poppins font-black text-[.85rem] text-white transition-all hover:opacity-90 shadow-md"
-                          style={{ backgroundColor: p.color }}>
-                          Search {p.name} →
-                        </a>
+                  <div key={car.name} className="bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden hover:shadow-md transition-all">
+                    <div className="grid grid-cols-1 md:grid-cols-[220px_1fr_auto] gap-0">
+                      {/* Car image */}
+                      <div className="relative h-44 md:h-full min-h-[160px] bg-gradient-to-br from-gray-50 to-gray-100">
+                        <img src={car.img} alt={car.name} loading="lazy"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const el = e.target as HTMLImageElement;
+                            el.style.display = 'none';
+                            el.parentElement!.innerHTML = '<div class="flex items-center justify-center h-full"><span class="text-4xl">🚗</span></div>';
+                          }} />
+                        <span className="absolute top-3 left-3 text-[.6rem] font-black uppercase tracking-[1px] bg-emerald-500 text-white px-2.5 py-1 rounded-full">{car.name}</span>
                       </div>
 
-                      {/* Selling points */}
-                      <div className="flex flex-wrap gap-3 mb-3">
-                        {p.selling.map(s => (
-                          <span key={s} className="flex items-center gap-1.5 text-[.75rem] font-semibold text-[#1A1D2B] rounded-full px-3 py-1.5"
-                            style={{ backgroundColor: p.bgColor }}>
-                            <span className="text-emerald-500">✓</span> {s}
+                      {/* Car info */}
+                      <div className="p-5 flex flex-col justify-center">
+                        <h3 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-0.5">{car.name}</h3>
+                        <p className="text-[.78rem] text-[#8E95A9] font-semibold mb-3">{car.example}</p>
+                        <div className="flex flex-wrap gap-3 mb-3">
+                          <span className="flex items-center gap-1 text-[.72rem] font-semibold text-[#5C6378]">
+                            <i className="fa-solid fa-user text-[.65rem] text-emerald-500" /> {car.seats} seats
                           </span>
-                        ))}
+                          <span className="flex items-center gap-1 text-[.72rem] font-semibold text-[#5C6378]">
+                            <i className="fa-solid fa-suitcase text-[.65rem] text-emerald-500" /> {car.bags} bag{car.bags !== 1 ? 's' : ''}
+                          </span>
+                          <span className="flex items-center gap-1 text-[.72rem] font-semibold text-[#5C6378]">
+                            <i className="fa-solid fa-door-open text-[.65rem] text-emerald-500" /> {car.doors} doors
+                          </span>
+                          <span className="flex items-center gap-1 text-[.72rem] font-semibold text-[#5C6378]">
+                            <i className="fa-solid fa-snowflake text-[.65rem] text-emerald-500" /> A/C
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <span className="text-[.66rem] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">Free cancellation</span>
+                          <span className="text-[.66rem] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md">Pay now or later</span>
+                        </div>
                       </div>
 
-                      {/* Extra note */}
-                      {p.extra && (
-                        <div className="mt-2 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-100">
-                          <p className="text-[.72rem] font-semibold text-amber-800">💡 {p.extra}</p>
+                      {/* Price + View Deal */}
+                      <div className="p-5 flex flex-col items-end justify-center gap-2 border-t md:border-t-0 md:border-l border-[#F1F3F7] min-w-[180px]">
+                        <div className="text-right">
+                          <div className="text-[.65rem] text-[#8E95A9] font-semibold">estimated from</div>
+                          <div className="font-poppins font-black text-[1.6rem] text-[#1A1D2B] leading-none">£{car.fromPrice}<span className="text-[.7rem] font-semibold text-[#8E95A9]">/day</span></div>
+                          {days && days > 1 && (
+                            <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">~£{totalEst} total for {days} day{days !== 1 ? 's' : ''}</div>
+                          )}
                         </div>
-                      )}
+                        <div className="flex flex-col gap-1.5 w-full">
+                          {PROVIDERS.map((p) => {
+                            const url = p.buildUrl(searchedLoc, pickupDate, dropoffDate, pickupTime, dropoffTime, driverAge);
+                            return (
+                              <a key={p.name} href={redirectUrl(url, p.name, city, 'cars')} target="_blank" rel="noopener noreferrer"
+                                className="text-white font-poppins font-bold text-[.68rem] px-3 py-2 rounded-lg transition-all text-center whitespace-nowrap hover:opacity-90"
+                                style={{ backgroundColor: p.color }}>
+                                {p.name} →
+                              </a>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );
-              })}
+              }) : (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
+                  <p className="text-[.85rem] font-bold text-amber-800 mb-2">No cars match your budget filter</p>
+                  <button type="button" onClick={() => setBudget(Infinity)} className="text-[.78rem] font-bold text-emerald-600 hover:underline">Clear budget filter</button>
+                </div>
+              )}
             </div>
           </section>
 
           {/* Smart recommendation */}
-          <section className="max-w-[900px] mx-auto px-5 pb-6">
+          <section className="max-w-[1000px] mx-auto px-5 pb-6">
             <div className="bg-gradient-to-r from-emerald-50 to-cyan-50 border border-emerald-200 rounded-2xl p-6">
               <h3 className="font-poppins font-black text-[.95rem] text-[#1A1D2B] mb-2">💡 Our Recommendation</h3>
               {ageGroup === 'young' && (
@@ -499,7 +615,7 @@ function CarsContent() {
           </section>
 
           {/* Cross-sell */}
-          <section className="max-w-[900px] mx-auto px-5 pb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <section className="max-w-[1000px] mx-auto px-5 pb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-[#F8FAFC] border border-[#E8ECF4] rounded-2xl p-6">
               <span className="text-2xl mb-2 block">✈️</span>
               <h3 className="font-poppins font-black text-[1rem] text-[#1A1D2B] mb-1">Flights to {city}</h3>
@@ -521,7 +637,7 @@ function CarsContent() {
           </section>
 
           {/* Comparison table */}
-          <section className="max-w-[900px] mx-auto px-5 pb-8">
+          <section className="max-w-[1000px] mx-auto px-5 pb-8">
             <div className="bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden">
               <div className="px-6 py-4 border-b border-[#E8ECF4] bg-[#F8FAFC]">
                 <h3 className="font-poppins font-black text-[1rem] text-[#1A1D2B]">How Our Providers Compare</h3>
