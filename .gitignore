@@ -43,5 +43,12 @@ next-env.d.ts
 .vercel
 .env*.local
 
+# Expo / React Native
+mobile/node_modules/
+mobile/.expo/
+mobile/dist/
+mobile/android/
+mobile/ios/
+
 # Claude Code local session state
 .claude/

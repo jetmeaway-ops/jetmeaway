@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "JetMeAway",
+    "slug": "jetmeaway",
+    "version": "1.0.0",
+    "scheme": "jetmeaway",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#0066FF"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "uk.co.jetmeaway.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#0066FF"
+      },
+      "package": "uk.co.jetmeaway.app"
+    },
+    "web": {},
+    "primaryColor": "#0066FF",
+    "plugins": [
+      "expo-asset"
+    ]
+  }
+}
