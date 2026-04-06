@@ -2,6 +2,7 @@ export const runtime = 'edge';
 
 import './globals.css';
 import { Poppins } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/next';
 import ScoutChat from '@/components/ScoutChat';
 
 const poppins = Poppins({
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         {children}
         <ScoutChat />
+        <Analytics />
       </body>
     </html>
   );
