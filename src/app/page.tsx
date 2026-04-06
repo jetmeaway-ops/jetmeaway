@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import FlightSearch from './search';
 import DiscoverPopup from '@/components/DiscoverPopup';
+import PhoneMockup from '@/components/PhoneMockup';
 
 const jsonLd = [
   {
@@ -107,29 +108,56 @@ export default function Home() {
         </div>
       </section>
 
-      {/* APP PROMO */}
+      {/* APP PROMO — 3D Phone Mockup */}
       <section className="max-w-[1100px] mx-auto px-6 pb-10">
-        <div className="bg-[#F8FAFC] border border-[#F1F3F7] rounded-3xl p-12 md:p-14 relative overflow-hidden">
-          <div className="absolute -bottom-20 -right-20 w-[300px] h-[300px] bg-[#E8F0FE] rounded-full opacity-50"></div>
-          <div className="relative z-[1] max-w-[420px]">
-            <span className="inline-block bg-white text-[#0066FF] text-[.62rem] font-black py-1.5 px-3.5 rounded-full uppercase tracking-[2px] shadow-sm border border-[#F1F3F7] mb-4">Coming Soon</span>
-            <h2 className="font-poppins text-[1.8rem] font-black text-[#1A1D2B] leading-tight tracking-tight mb-3">
-              Your AI Concierge,<br/><em className="text-[#0066FF] italic">In Your Pocket.</em>
-            </h2>
-            <p className="text-[.88rem] text-[#5C6378] leading-relaxed font-semibold mb-5">
-              The Jetmeaway mobile app is coming. Get real-time price-drop alerts, manage trips offline, and unlock mobile-only deals.
-            </p>
-            <div className="flex gap-2.5 flex-wrap opacity-30 grayscale">
-              <div className="flex items-center gap-2.5 bg-[#0F1119] text-white py-2.5 px-4.5 rounded-xl">
-                <i className="fa-brands fa-apple text-xl"></i>
-                <div><span className="block text-[.52rem] uppercase text-white/50 tracking-wider">Coming soon on</span><span className="font-poppins font-extrabold text-[.88rem]">App Store</span></div>
+        <div className="bg-gradient-to-br from-[#F8FAFC] to-[#EEF2FF] border border-[#E8ECF4] rounded-3xl p-10 md:p-14 relative overflow-hidden">
+          <div className="absolute -bottom-32 -right-32 w-[400px] h-[400px] bg-[#0066FF]/5 rounded-full"></div>
+          <div className="absolute top-10 right-[30%] w-[200px] h-[200px] bg-[#7C3AED]/5 rounded-full blur-2xl"></div>
+
+          <div className="relative z-[1] flex flex-col md:flex-row items-center gap-10 md:gap-16">
+            {/* Text side */}
+            <div className="flex-1 text-center md:text-left">
+              <span className="inline-block bg-white text-[#0066FF] text-[.62rem] font-black py-1.5 px-3.5 rounded-full uppercase tracking-[2px] shadow-sm border border-[#E8ECF4] mb-4">Coming Soon</span>
+              <h2 className="font-poppins text-[1.8rem] md:text-[2.2rem] font-black text-[#1A1D2B] leading-tight tracking-tight mb-3">
+                Your AI Concierge,<br/><em className="text-[#0066FF] italic">In Your Pocket.</em>
+              </h2>
+              <p className="text-[.88rem] text-[#5C6378] leading-relaxed font-semibold mb-5">
+                The JetMeAway mobile app is coming. Get real-time price-drop alerts, manage trips offline, and unlock mobile-only deals.
+              </p>
+
+              {/* Feature highlights */}
+              <div className="flex flex-col gap-2.5 mb-6">
+                {[
+                  { icon: 'fa-bell', text: 'Price-drop alerts in real time' },
+                  { icon: 'fa-bolt', text: 'Compare 20+ providers instantly' },
+                  { icon: 'fa-plane-departure', text: 'Flights, hotels, cars & more' },
+                ].map((f) => (
+                  <div key={f.text} className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-[#0066FF]/10 flex items-center justify-center flex-shrink-0">
+                      <i className={`fa-solid ${f.icon} text-[10px] text-[#0066FF]`} />
+                    </div>
+                    <span className="text-[.82rem] font-semibold text-[#1A1D2B]">{f.text}</span>
+                  </div>
+                ))}
               </div>
-              <div className="flex items-center gap-2.5 bg-[#0F1119] text-white py-2.5 px-4.5 rounded-xl">
-                <i className="fa-brands fa-google-play text-xl"></i>
-                <div><span className="block text-[.52rem] uppercase text-white/50 tracking-wider">Coming soon on</span><span className="font-poppins font-extrabold text-[.88rem]">Google Play</span></div>
+
+              <div className="flex gap-2.5 flex-wrap justify-center md:justify-start opacity-30 grayscale">
+                <div className="flex items-center gap-2.5 bg-[#0F1119] text-white py-2.5 px-4.5 rounded-xl">
+                  <i className="fa-brands fa-apple text-xl"></i>
+                  <div><span className="block text-[.52rem] uppercase text-white/50 tracking-wider">Coming soon on</span><span className="font-poppins font-extrabold text-[.88rem]">App Store</span></div>
+                </div>
+                <div className="flex items-center gap-2.5 bg-[#0F1119] text-white py-2.5 px-4.5 rounded-xl">
+                  <i className="fa-brands fa-google-play text-xl"></i>
+                  <div><span className="block text-[.52rem] uppercase text-white/50 tracking-wider">Coming soon on</span><span className="font-poppins font-extrabold text-[.88rem]">Google Play</span></div>
+                </div>
               </div>
+              <p className="text-[.7rem] text-[#8E95A9] italic mt-3">Target Launch: Summer 2026</p>
             </div>
-            <p className="text-[.7rem] text-[#8E95A9] italic mt-3">Target Launch: Summer 2026</p>
+
+            {/* 3D Phone */}
+            <div className="flex-shrink-0 hidden md:block">
+              <PhoneMockup />
+            </div>
           </div>
         </div>
       </section>

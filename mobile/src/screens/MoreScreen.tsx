@@ -74,10 +74,30 @@ export default function MoreScreen() {
             <FontAwesome5 name="chevron-right" size={12} color={Colors.secondary} />
           </TouchableOpacity>
         ))}
+
+        <View style={styles.divider} />
+
+        {/* Quick Links */}
+        {[
+          { name: 'About JetMeAway', icon: 'info-circle', color: Colors.primary, url: 'https://jetmeaway.co.uk/about' },
+          { name: 'Privacy Policy', icon: 'lock', color: '#8E95A9', url: 'https://jetmeaway.co.uk/privacy' },
+          { name: 'Terms of Service', icon: 'file-contract', color: '#8E95A9', url: 'https://jetmeaway.co.uk/terms' },
+          { name: 'Contact Us', icon: 'envelope', color: '#059669', url: 'https://jetmeaway.co.uk/contact' },
+        ].map(item => (
+          <TouchableOpacity key={item.name} style={styles.linkRow} activeOpacity={0.7}
+            onPress={() => Linking.openURL(item.url)}>
+            <FontAwesome5 name={item.icon} size={14} color={item.color} style={{ width: 24 }} />
+            <Text style={styles.linkText}>{item.name}</Text>
+            <FontAwesome5 name="external-link-alt" size={10} color={Colors.secondary} />
+          </TouchableOpacity>
+        ))}
+
         <TouchableOpacity style={styles.websiteBtn} activeOpacity={0.8} onPress={() => Linking.openURL('https://jetmeaway.co.uk')}>
           <FontAwesome5 name="globe" size={14} color={Colors.primary} />
           <Text style={styles.websiteBtnText}>Visit jetmeaway.co.uk</Text>
         </TouchableOpacity>
+
+        <Text style={styles.versionText}>JetMeAway v1.0.0 · Made in the UK</Text>
       </ScrollView>
     );
   }
@@ -258,4 +278,11 @@ const styles = StyleSheet.create({
   providerDot: { width: 10, height: 10, borderRadius: 5, marginRight: 12 },
   providerName: { fontFamily: 'Poppins_600SemiBold', fontSize: 15, color: Colors.dark },
   providerDesc: { fontFamily: 'Poppins_400Regular', fontSize: 12, color: Colors.secondary, marginTop: 2 },
+  divider: { height: 1, backgroundColor: Colors.border, marginVertical: 16 },
+  linkRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: Colors.border + '40',
+  },
+  linkText: { fontFamily: 'Poppins_600SemiBold', fontSize: 14, color: Colors.dark, flex: 1 },
+  versionText: { fontFamily: 'Poppins_400Regular', fontSize: 11, color: Colors.secondary, textAlign: 'center', marginTop: 20 },
 });
