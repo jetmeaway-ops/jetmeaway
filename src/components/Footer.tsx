@@ -36,6 +36,10 @@ export default function Footer() {
           <div className="text-[.55rem] uppercase tracking-[2.5px] font-extrabold text-white/20 mb-1.5">Affiliate Disclosure</div>
           <p className="text-[.68rem] text-white/[.12] leading-relaxed font-semibold">Jetmeaway participates in the Expedia Affiliate Program (Partnerize), Travelpayouts Network, and works with GetYourGuide, Viator, Klook, Tiqets, Airalo, Yesim, Ekta Traveling, Economy Bookings, Localrent, Qeeq, GetRentaCar, KiwiTaxi, Welcome Pickups, GetTransfer, AirHelp, Compensair, WeGoTrip, Aviasales, and Trip.com. We may receive compensation when you book through our links at no additional cost to you.</p>
         </div>
+        <div className="max-w-[800px] mb-7">
+          <div className="text-[.55rem] uppercase tracking-[2.5px] font-extrabold text-white/20 mb-1.5">Booking Terms</div>
+          <p className="text-[.68rem] text-white/[.12] leading-relaxed font-semibold">JetMeAway acts as a booking agent only. Your contract for each travel service is directly with the respective supplier (e.g. Airline or Hotel). Bookings for separate travel services on this website do not constitute a &quot;Package Holiday&quot; or a &quot;Linked Travel Arrangement&quot; under the UK Package Travel Regulations 2018 unless explicitly stated.</p>
+        </div>
         <div className="flex justify-between items-center flex-wrap gap-3">
           <p className="text-[.6rem] text-white/10">© 2026 Jetmeaway (jetmeaway.co.uk). All rights reserved.</p>
           <div className="flex gap-4 opacity-[.12] hover:opacity-30 transition-opacity">

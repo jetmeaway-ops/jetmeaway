@@ -1004,6 +1004,14 @@ function FlightsContent() {
             </section>
           )}
 
+          {/* ATOL / flight-only notice */}
+          <section className="max-w-[1000px] mx-auto px-5 pb-2">
+            <p className="text-[.62rem] text-[#8E95A9] font-semibold leading-relaxed">
+              <i className="fa-solid fa-circle-info text-[.55rem] mr-1" />
+              Important: This flight-only booking is sold by JetMeAway as an agent for the airline. Your flight is not protected under the ATOL scheme. Many airlines provide their own financial protection; please check your airline&apos;s terms for details. We recommend comprehensive travel insurance.
+            </p>
+          </section>
+
           {/* Section 2: Sidebar filters + Result cards */}
           {flights.length > 0 ? (
             <section className="max-w-[1240px] mx-auto px-5 pb-6">
