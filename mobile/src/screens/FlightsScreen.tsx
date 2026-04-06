@@ -3,6 +3,7 @@ import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, Activi
 import { FontAwesome5 } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
 import { API_BASE, Endpoints } from '../constants/api';
+import DateInput from '../components/DateInput';
 
 /* ── Airport data ── */
 const UK_AIRPORTS = [
@@ -57,6 +58,10 @@ export default function FlightsScreen() {
   const [departure, setDeparture] = useState('');
   const [returnDate, setReturnDate] = useState('');
   const [tripType, setTripType] = useState<'return' | 'oneway'>('return');
+  const [adults, setAdults] = useState(1);
+  const [children, setChildren] = useState(0);
+  const [infants, setInfants] = useState(0);
+  const [cabin, setCabin] = useState('economy');
   const [loading, setLoading] = useState(false);
   const [flights, setFlights] = useState<Flight[] | null>(null);
   const [error, setError] = useState('');
@@ -86,7 +91,7 @@ export default function FlightsScreen() {
     try {
       const params = new URLSearchParams({
         origin: fromCode, destination: toCode, departure,
-        adults: '1', cabin: 'economy',
+        adults: String(adults), children: String(children), infants: String(infants), cabin,
       });
       if (tripType === 'return' && returnDate) params.set('return', returnDate);
 
@@ -174,28 +179,69 @@ export default function FlightsScreen() {
       {/* Dates */}
       <View style={styles.dateRow}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.label}>DEPARTURE</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={Colors.secondary}
-            value={departure}
-            onChangeText={setDeparture}
-          />
+          <DateInput label="DEPARTURE" value={departure} onChange={setDeparture} />
         </View>
         {tripType === 'return' && (
           <View style={{ flex: 1 }}>
-            <Text style={styles.label}>RETURN</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={Colors.secondary}
-              value={returnDate}
-              onChangeText={setReturnDate}
-            />
+            <DateInput label="RETURN" value={returnDate} onChange={setReturnDate} />
           </View>
         )}
       </View>
+
+      {/* Passengers */}
+      <View style={styles.passengerRow}>
+        <View style={styles.passengerItem}>
+          <Text style={styles.label}>ADULTS</Text>
+          <View style={styles.stepper}>
+            <TouchableOpacity onPress={() => setAdults(Math.max(1, adults - 1))} style={styles.stepBtn}>
+              <Text style={styles.stepText}>−</Text>
+            </TouchableOpacity>
+            <Text style={styles.stepValue}>{adults}</Text>
+            <TouchableOpacity onPress={() => setAdults(Math.min(9, adults + 1))} style={styles.stepBtn}>
+              <Text style={styles.stepText}>+</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        <View style={styles.passengerItem}>
+          <Text style={styles.label}>CHILDREN</Text>
+          <View style={styles.stepper}>
+            <TouchableOpacity onPress={() => setChildren(Math.max(0, children - 1))} style={styles.stepBtn}>
+              <Text style={styles.stepText}>−</Text>
+            </TouchableOpacity>
+            <Text style={styles.stepValue}>{children}</Text>
+            <TouchableOpacity onPress={() => setChildren(Math.min(6, children + 1))} style={styles.stepBtn}>
+              <Text style={styles.stepText}>+</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        <View style={styles.passengerItem}>
+          <Text style={styles.label}>INFANTS</Text>
+          <View style={styles.stepper}>
+            <TouchableOpacity onPress={() => setInfants(Math.max(0, infants - 1))} style={styles.stepBtn}>
+              <Text style={styles.stepText}>−</Text>
+            </TouchableOpacity>
+            <Text style={styles.stepValue}>{infants}</Text>
+            <TouchableOpacity onPress={() => setInfants(Math.min(adults, infants + 1))} style={styles.stepBtn}>
+              <Text style={styles.stepText}>+</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+
+      {/* Cabin class */}
+      <Text style={styles.label}>CABIN CLASS</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+        <View style={styles.cabinRow}>
+          {['economy', 'premium_economy', 'business', 'first'].map(c => (
+            <TouchableOpacity key={c} style={[styles.cabinPill, cabin === c && styles.cabinPillActive]}
+              onPress={() => setCabin(c)}>
+              <Text style={[styles.cabinText, cabin === c && styles.cabinTextActive]}>
+                {c === 'premium_economy' ? 'Premium' : c.charAt(0).toUpperCase() + c.slice(1)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -286,6 +332,20 @@ const styles = StyleSheet.create({
   dropdownText: { fontFamily: 'Poppins_400Regular', fontSize: 14, color: Colors.dark },
   dropdownCode: { color: Colors.secondary },
   dateRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+  passengerRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+  passengerItem: { flex: 1 },
+  stepper: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: Colors.white, borderRadius: 12, borderWidth: 1, borderColor: Colors.border,
+  },
+  stepBtn: { paddingHorizontal: 14, paddingVertical: 10 },
+  stepText: { fontFamily: 'Poppins_700Bold', fontSize: 18, color: Colors.primary },
+  stepValue: { fontFamily: 'Poppins_700Bold', fontSize: 16, color: Colors.dark, paddingHorizontal: 8 },
+  cabinRow: { flexDirection: 'row', gap: 8 },
+  cabinPill: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: Colors.border },
+  cabinPillActive: { borderColor: Colors.primary, backgroundColor: Colors.primary + '15' },
+  cabinText: { fontFamily: 'Poppins_600SemiBold', fontSize: 12, color: Colors.secondary },
+  cabinTextActive: { color: Colors.primary },
   error: { fontFamily: 'Poppins_600SemiBold', fontSize: 13, color: Colors.red, textAlign: 'center', marginBottom: 8 },
   searchBtn: {
     flexDirection: 'row', backgroundColor: Colors.primary, borderRadius: 14, paddingVertical: 16,
