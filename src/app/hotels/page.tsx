@@ -544,6 +544,8 @@ function HotelsContent() {
     if (h.totalPrice) qp.set('price', String(h.totalPrice));
     else qp.set('price', String(h.pricePerNight * Math.max(1, nights)));
     if (h.currency) qp.set('currency', h.currency);
+    if (typeof h.refundable === 'boolean') qp.set('refundable', h.refundable ? '1' : '0');
+    if (h.boardType) qp.set('board', h.boardType);
     return `/hotels/${encodeURIComponent(String(h.id))}?${qp.toString()}`;
   };
 
@@ -771,6 +773,15 @@ function HotelsContent() {
                           )}
                           {nights > 0 && (
                             <p className="text-[.72rem] text-[#5C6378] font-semibold">{nights} night{nights !== 1 ? 's' : ''} · {adults} guest{adults !== 1 ? 's' : ''}</p>
+                          )}
+                          {h.bookable && typeof h.refundable === 'boolean' && (
+                            <span className={`inline-flex items-center gap-1 mt-1.5 text-[.68rem] font-bold ${h.refundable ? 'text-green-600' : 'text-red-500'}`}>
+                              <i className={`fa-solid ${h.refundable ? 'fa-circle-check' : 'fa-circle-xmark'} text-[.6rem]`} />
+                              {h.refundable ? 'Free cancellation' : 'Non-refundable'}
+                            </span>
+                          )}
+                          {h.boardType && (
+                            <span className="text-[.66rem] text-[#8E95A9] font-semibold mt-0.5">{h.boardType}</span>
                           )}
                           <p className="text-[.7rem] text-orange-600 font-bold mt-2">View details →</p>
                         </a>

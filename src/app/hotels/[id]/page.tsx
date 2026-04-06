@@ -54,6 +54,9 @@ export default function HotelDetailPage() {
   const price = sp?.get('price') || '';
   const currency = sp?.get('currency') || 'GBP';
   const city = sp?.get('city') || '';
+  const refundableParam = sp?.get('refundable');
+  const refundable = refundableParam === '1' ? true : refundableParam === '0' ? false : null;
+  const boardType = sp?.get('board') || '';
 
   useEffect(() => {
     let cancelled = false;
@@ -238,6 +241,24 @@ export default function HotelDetailPage() {
               </div>
               {rooms !== '1' && <div className="flex justify-between"><span>Rooms</span><strong className="text-[#1A1D2B]">{rooms}</strong></div>}
             </div>
+
+            {/* Refundable / Board type badges */}
+            {(refundable !== null || boardType) && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {refundable !== null && (
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[.75rem] font-bold ${refundable ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-600'}`}>
+                    <i className={`fa-solid ${refundable ? 'fa-circle-check' : 'fa-circle-xmark'} text-[.65rem]`} />
+                    {refundable ? 'Free cancellation' : 'Non-refundable'}
+                  </span>
+                )}
+                {boardType && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[.75rem] font-bold bg-blue-50 border border-blue-200 text-blue-700">
+                    <i className="fa-solid fa-utensils text-[.65rem]" />
+                    {boardType}
+                  </span>
+                )}
+              </div>
+            )}
 
             {offerId ? (
               <button
