@@ -441,6 +441,7 @@ function HotelsContent() {
   const [childrenAges, setChildrenAges] = useState<number[]>([]);
   const [rooms, setRooms] = useState(1);
   const [minStars, setMinStars] = useState(0);
+  const [boardFilter, setBoardFilter] = useState('any');
 
   const [loading, setLoading] = useState(false);
   const [hotels, setHotels] = useState<HotelResult[] | null>(null);
@@ -558,7 +559,15 @@ function HotelsContent() {
     return 2 * R * Math.asin(Math.sqrt(a));
   };
 
-  const sortedHotels = hotels ? [...hotels].sort((a, b) => {
+  const filteredHotels = hotels ? hotels.filter(h => {
+    if (boardFilter === 'any') return true;
+    if (!h.boardType) return false;
+    const bt = h.boardType.toLowerCase();
+    if (boardFilter === 'breakfast') return bt.includes('breakfast');
+    return bt.includes(boardFilter);
+  }) : null;
+
+  const sortedHotels = filteredHotels ? [...filteredHotels].sort((a, b) => {
     if (sortBy === 'price-asc') return a.pricePerNight - b.pricePerNight;
     if (sortBy === 'price-desc') return b.pricePerNight - a.pricePerNight;
     if (sortBy === 'distance' && cityCentre) {
@@ -639,10 +648,28 @@ function HotelsContent() {
             </div>
           </div>
 
-          {/* Star filter */}
+          {/* Star filter + Board type */}
           <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
             <label className="text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9]">Hotel class</label>
             <StarFilter value={minStars} onChange={setMinStars} />
+          </div>
+          <div className="mb-4">
+            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Board type</label>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { label: 'Any', value: 'any' },
+                { label: 'Room Only', value: 'room only' },
+                { label: 'Breakfast', value: 'breakfast' },
+                { label: 'Half Board', value: 'half board' },
+                { label: 'Full Board', value: 'full board' },
+                { label: 'All Inclusive', value: 'all inclusive' },
+              ].map(opt => (
+                <button key={opt.value} type="button" onClick={() => setBoardFilter(opt.value)}
+                  className={`px-3 py-1.5 rounded-lg text-[.72rem] font-bold transition-all ${boardFilter === opt.value ? 'bg-orange-500 text-white shadow-sm' : 'bg-[#F1F3F7] text-[#5C6378] hover:bg-orange-50'}`}>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <button onClick={handleSearch} disabled={loading}
