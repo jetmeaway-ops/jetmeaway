@@ -150,26 +150,32 @@ function LoadingState({ loc }: { loc: string }) {
    AFFILIATE LINK BUILDERS
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const TP_WRAP = 'https://tp.media/r?marker=714449&trs=512633';
+const TP_CAR = (campaignId: number, p: number, innerUrl: string) =>
+  `https://tp.media/r?campaign_id=${campaignId}&marker=714449&p=${p}&trs=512633&u=${encodeURIComponent(innerUrl)}`;
 
 function buildEconomyBookingsUrl(loc: string, pickup: string, dropoff: string, pickupTime: string, dropoffTime: string, age: string) {
   const inner = `https://www.economybookings.com/search?location=${encodeURIComponent(loc)}&pick_up_date=${pickup}&drop_off_date=${dropoff}&pick_up_time=${pickupTime}&drop_off_time=${dropoffTime}&driver_age=${age}&currency=GBP`;
-  return `${TP_WRAP}&p=3882&u=${encodeURIComponent(inner)}`;
+  return TP_CAR(10, 2018, inner);
 }
 
 function buildLocalrentUrl(loc: string, pickup: string, dropoff: string) {
   const inner = `https://localrent.com/en/search?location=${encodeURIComponent(loc)}&date_from=${pickup}&date_to=${dropoff}&currency=GBP`;
-  return `${TP_WRAP}&p=7791&u=${encodeURIComponent(inner)}`;
+  return TP_CAR(87, 2043, inner);
 }
 
 function buildQeeqUrl(loc: string, pickup: string, dropoff: string, pickupTime: string, dropoffTime: string) {
   const inner = `https://www.qeeq.com/search?pickup=${encodeURIComponent(loc)}&pickup_date=${pickup}&dropoff_date=${dropoff}&pickup_time=${pickupTime}&dropoff_time=${dropoffTime}&currency=GBP`;
-  return `${TP_WRAP}&p=8048&u=${encodeURIComponent(inner)}`;
+  return TP_CAR(172, 4845, inner);
 }
 
 function buildGetRentaCarUrl(loc: string, pickup: string, dropoff: string) {
   const inner = `https://getrentacar.com/search?location=${encodeURIComponent(loc)}&from=${pickup}&to=${dropoff}&currency=GBP`;
-  return `${TP_WRAP}&p=9498&u=${encodeURIComponent(inner)}`;
+  return TP_CAR(222, 5996, inner);
+}
+
+function buildKlookUrl(loc: string) {
+  const inner = `https://www.klook.com/en-GB/cars/?query=${encodeURIComponent(loc)}`;
+  return TP_CAR(137, 4110, inner);
 }
 
 function buildExpediaUrl(loc: string, pickup: string, dropoff: string, pickupTime: string, dropoffTime: string) {
@@ -225,6 +231,14 @@ const PROVIDERS: Provider[] = [
     color: '#DC2626',
     bgColor: '#FEF2F2',
     buildUrl: (loc, pickup, dropoff) => buildGetRentaCarUrl(loc, pickup, dropoff),
+  },
+  {
+    name: 'Klook',
+    tagline: 'Popular in Asia & beyond — car hire, tours and activities',
+    selling: ['Best price guarantee', 'Instant confirmation', 'Easy cancellation'],
+    color: '#FF5722',
+    bgColor: '#FFF3E0',
+    buildUrl: (loc) => buildKlookUrl(loc),
   },
   {
     name: 'Expedia',
