@@ -272,14 +272,12 @@ function LoadingState({ dest }: { dest: string }) {
    AFFILIATE LINK BUILDERS
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const TP_WRAP = 'https://tp.media/r?marker=714449&trs=512633';
-
-function buildExpediaUrl(dest: string, _from: string, _depDate: string, _retDate: string, _adults: number) {
-  return `https://www.expedia.co.uk/lp/packages-destinations?destination=${encodeURIComponent(dest)}&affcid=clbU3QK`;
+function buildExpediaUrl(dest: string, from: string, depDate: string, retDate: string, adults: number) {
+  return `https://www.expedia.co.uk/Holidays/search?destination=${encodeURIComponent(dest)}&origin=${encodeURIComponent(from)}&d1=${depDate}&d2=${retDate}&r1=${adults}&affcid=clbU3QK`;
 }
 
 function buildTripUrl(dest: string, depDate: string, retDate: string, adults: number) {
-  return `https://www.trip.com/packages/list?from=&to=${encodeURIComponent(dest)}&startDate=${depDate}&endDate=${retDate}&adult=${adults}&Allianceid=8023009&SID=303363796&trip_sub3=D15021113`;
+  return `https://www.trip.com/packages/index?to=${encodeURIComponent(dest)}&startDate=${depDate}&endDate=${retDate}&adult=${adults}&locale=en-GB&curr=GBP&Allianceid=8023009&SID=303363796&trip_sub3=D15021113`;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
