@@ -194,8 +194,7 @@ function DestinationPicker({ value, onChange }: { value: string; onChange: (v: s
 
 /**
  * OccupancyPicker — adults, children, rooms in a single dropdown.
- * Caps: 6 adults, 4 children, 3 rooms. Group size > 6 or rooms > 1 will
- * suppress the Book Direct button on results and route to affiliate providers.
+ * Caps: 6 adults, 4 children, 3 rooms.
  */
 function OccupancyPicker({
   adults, children, rooms, onChange,
@@ -802,7 +801,7 @@ function HotelsContent() {
                             )}
                           </div>
                           <div className="flex flex-col gap-1.5 w-full">
-                            {h.bookable && h.offerId && rooms <= 1 && (adults + childCount) <= 6 && (
+                            {h.bookable && h.offerId && (
                               <BookDirectButton hotel={h} checkIn={checkin} checkOut={checkout} adults={adults} nights={nights} city={searchedDest} />
                             )}
                             <a href={redirectUrl(tripUrl, 'Trip.com', searchedDest, 'hotels')}
