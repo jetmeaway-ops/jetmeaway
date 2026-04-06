@@ -122,7 +122,7 @@ export default function HotelCheckoutPage() {
     return (
       <main className="max-w-[720px] mx-auto px-5 py-16">
         <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
-          <p className="font-[Poppins] font-bold text-red-700">{loadError}</p>
+          <p className="font-poppins font-bold text-red-700">{loadError}</p>
           <a href="/hotels" className="inline-block mt-4 text-sm font-bold text-[#0066FF] underline">← Back to hotels</a>
         </div>
       </main>
@@ -141,12 +141,12 @@ export default function HotelCheckoutPage() {
   return (
     <main className="max-w-[860px] mx-auto px-5 py-10">
       <a href="/hotels" className="text-[.78rem] font-bold text-[#0066FF] hover:underline">← Back to search</a>
-      <h1 className="font-[Poppins] font-black text-[1.8rem] text-[#1A1D2B] mt-3 mb-1">Confirm your booking</h1>
+      <h1 className="font-poppins font-black text-[1.8rem] text-[#1A1D2B] mt-3 mb-1">Confirm your booking</h1>
       <p className="text-[.85rem] text-[#5C6378] font-semibold mb-6">Booking reference: <span className="font-mono">{booking.ref}</span></p>
 
       <div className="grid md:grid-cols-[1fr_320px] gap-6">
         <div className="bg-white border border-[#E8ECF4] rounded-2xl p-6">
-          <h2 className="font-[Poppins] font-black text-[1.1rem] text-[#1A1D2B] mb-3">Lead guest details</h2>
+          <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-3">Lead guest details</h2>
           <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 flex items-start gap-2.5">
             <i className="fa-solid fa-passport text-amber-600 text-sm mt-0.5" />
             <p className="text-[.78rem] text-amber-800 font-semibold leading-snug">
@@ -187,7 +187,7 @@ export default function HotelCheckoutPage() {
             type="button"
             onClick={handleBookAndSecure}
             disabled={!formOk || submitting}
-            className="w-full mt-6 bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-60 disabled:cursor-not-allowed text-white font-[Poppins] font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(0,102,255,0.3)] flex items-center justify-center gap-2"
+            className="w-full mt-6 bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-60 disabled:cursor-not-allowed text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(0,102,255,0.3)] flex items-center justify-center gap-2"
           >
             {submitting ? (
               <>
@@ -214,7 +214,7 @@ export default function HotelCheckoutPage() {
               className="w-full h-36 object-cover rounded-xl mb-3" />
           )}
           <StarRow count={booking.stars} />
-          <h3 className="font-[Poppins] font-black text-[1rem] text-[#1A1D2B] mb-1">{booking.hotelName}</h3>
+          <h3 className="font-poppins font-black text-[1rem] text-[#1A1D2B] mb-1">{booking.hotelName}</h3>
           {booking.city && <p className="text-[.75rem] text-[#8E95A9] font-semibold mb-3">📍 {booking.city}</p>}
           <div className="text-[.78rem] text-[#5C6378] font-semibold space-y-1 mb-4">
             <div>Check-in: <strong className="text-[#1A1D2B]">{booking.checkIn}</strong></div>
@@ -223,7 +223,7 @@ export default function HotelCheckoutPage() {
           </div>
           <div className="border-t border-[#E8ECF4] pt-3 flex items-center justify-between">
             <span className="text-[.8rem] font-bold text-[#5C6378]">Total</span>
-            <span className="font-[Poppins] font-black text-[1.3rem] text-[#1A1D2B]">
+            <span className="font-poppins font-black text-[1.3rem] text-[#1A1D2B]">
               {booking.currency === 'GBP' ? '£' : `${booking.currency} `}
               {booking.totalPrice.toFixed(2)}
             </span>

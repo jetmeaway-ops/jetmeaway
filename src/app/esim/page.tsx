@@ -52,7 +52,7 @@ function CountryPicker({ value, onChange, placeholder }: {
         <ul className="absolute z-50 w-full mt-1.5 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl overflow-hidden">
           {results.map(c => (
             <li key={c} onMouseDown={() => { onChange(c); setOpen(false); }}
-              className="px-4 py-3 hover:bg-indigo-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 font-[Poppins] font-semibold text-[.88rem] text-[#1A1D2B]">
+              className="px-4 py-3 hover:bg-indigo-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 font-poppins font-semibold text-[.88rem] text-[#1A1D2B]">
               {c}
             </li>
           ))}
@@ -225,7 +225,7 @@ export default function ESIMPage() {
       <section className="pt-36 pb-16 px-5 bg-[radial-gradient(ellipse_at_top,#E8F0FE_0%,#fff_55%,#F8FAFC_100%)] relative">
         <div className="max-w-[860px] mx-auto text-center mb-10">
           <span className="inline-block bg-indigo-50 text-indigo-600 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4">📱 eSIM Data Plans</span>
-          <h1 className="font-[Poppins] text-[2.6rem] md:text-[3.8rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
+          <h1 className="font-poppins text-[2.6rem] md:text-[3.8rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
             Stay Connected <em className="italic bg-gradient-to-br from-indigo-600 to-blue-600 bg-clip-text text-transparent">Anywhere</em>
           </h1>
           <p className="text-[1rem] text-[#8E95A9] font-semibold max-w-[520px] mx-auto">No roaming charges. No SIM swapping. Just scan a QR code and go — data from $4.50.</p>
@@ -235,7 +235,7 @@ export default function ESIMPage() {
         <div className="max-w-[860px] mx-auto mb-8 bg-indigo-50/50 border border-indigo-100/60 rounded-2xl p-5 flex gap-4 items-start">
           <div className="text-2xl">💡</div>
           <div>
-            <div className="font-[Poppins] font-black text-[.85rem] text-[#1A1D2B] mb-1">What is an eSIM?</div>
+            <div className="font-poppins font-black text-[.85rem] text-[#1A1D2B] mb-1">What is an eSIM?</div>
             <p className="text-[.78rem] text-[#5C6378] font-semibold leading-relaxed">An eSIM is a digital SIM you install on your phone without a physical card. Buy a local data plan online, scan the QR code, and you&apos;re connected — no queues at airport kiosks, no roaming bills.</p>
           </div>
         </div>
@@ -258,7 +258,7 @@ export default function ESIMPage() {
             </select>
           </div>
           <button onClick={handleSearch}
-            className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-[Poppins] font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(79,70,229,0.3)]">
+            className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(79,70,229,0.3)]">
             Compare eSIM Plans →
           </button>
           <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">Instant activation. Works on all eSIM-compatible iPhones & Android devices.</p>
@@ -270,7 +270,7 @@ export default function ESIMPage() {
         <section id="esim-results" className="max-w-[1100px] mx-auto px-5 py-10">
           <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
             <div>
-              <h2 className="font-[Poppins] font-black text-[1.3rem] text-[#1A1D2B]">
+              <h2 className="font-poppins font-black text-[1.3rem] text-[#1A1D2B]">
                 eSIM Plans for {country}
                 <span className="text-[#8E95A9] font-semibold text-[1rem]"> · {days} day{days !== 1 ? 's' : ''}</span>
               </h2>
@@ -289,7 +289,7 @@ export default function ESIMPage() {
                   {/* Icon area */}
                   <div className="relative w-full md:w-48 h-32 md:h-auto flex-shrink-0 bg-gradient-to-br from-[#EEF0FF] to-[#E8F0FE] flex flex-col items-center justify-center p-4">
                     <span className="text-4xl mb-1">{plan.logo}</span>
-                    <span className="font-[Poppins] font-black text-[.85rem] text-indigo-700">{plan.provider}</span>
+                    <span className="font-poppins font-black text-[.85rem] text-indigo-700">{plan.provider}</span>
                     {i === 0 && (
                       <span className="absolute top-3 left-3 text-[.6rem] font-black uppercase tracking-[1.5px] bg-indigo-600 text-white px-2.5 py-1 rounded-full shadow-md">Cheapest</span>
                     )}
@@ -299,7 +299,7 @@ export default function ESIMPage() {
                   <div className="flex-1 p-5 flex flex-col">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <h3 className="font-[Poppins] font-bold text-[1.05rem] text-[#1A1D2B]">{plan.data}</h3>
+                        <h3 className="font-poppins font-bold text-[1.05rem] text-[#1A1D2B]">{plan.data}</h3>
                         <span className="text-[.6rem] font-black uppercase tracking-[1px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600">{plan.badge}</span>
                         {plan.data === 'Unlimited' && (
                           <span className="text-[.6rem] font-black uppercase tracking-[1px] px-2 py-0.5 rounded-full bg-green-50 text-green-600">No Limits</span>
@@ -341,14 +341,14 @@ export default function ESIMPage() {
                       <div className="flex items-center justify-between flex-wrap gap-3">
                         <div>
                           <span className="text-[.62rem] text-[#8E95A9] font-semibold">estimated from</span>
-                          <div className="font-[Poppins] font-black text-[1.4rem] text-[#1A1D2B] leading-none">
+                          <div className="font-poppins font-black text-[1.4rem] text-[#1A1D2B] leading-none">
                             {plan.currency}{plan.price.toFixed(2)}
                           </div>
                           <span className="text-[.6rem] text-[#8E95A9] font-medium">{plan.data} · {plan.validity} · prices vary on provider site</span>
                         </div>
                         <a href={redirectUrl(PROVIDERS.find(p => p.name === plan.provider)?.getUrl(country) || '#', plan.provider, country, 'esim')}
                           target="_blank" rel="noopener"
-                          className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-[Poppins] font-bold text-[.8rem] px-5 py-2.5 rounded-xl transition-all shadow-[0_2px_10px_rgba(79,70,229,0.2)]">
+                          className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-poppins font-bold text-[.8rem] px-5 py-2.5 rounded-xl transition-all shadow-[0_2px_10px_rgba(79,70,229,0.2)]">
                           Get on {plan.provider} <span>→</span>
                         </a>
                       </div>
@@ -379,7 +379,7 @@ export default function ESIMPage() {
       {/* Compatibility */}
       <section className="max-w-[860px] mx-auto px-5 pb-16">
         <div className="bg-[#F8FAFC] border border-[#F1F3F7] rounded-3xl p-8">
-          <h3 className="font-[Poppins] font-black text-[1.05rem] text-[#1A1D2B] mb-4">Is My Phone eSIM Compatible?</h3>
+          <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">Is My Phone eSIM Compatible?</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
               ['iPhone', 'iPhone XS and newer (all models from 2018+). iPhone 14 onwards is eSIM-only in USA.'],
@@ -390,7 +390,7 @@ export default function ESIMPage() {
               <div key={title} className="flex gap-3">
                 <div className="w-1.5 flex-shrink-0 rounded-full bg-gradient-to-b from-indigo-500 to-blue-600 self-stretch" />
                 <div>
-                  <div className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B] mb-0.5">{title}</div>
+                  <div className="font-poppins font-bold text-[.85rem] text-[#1A1D2B] mb-0.5">{title}</div>
                   <p className="text-[.75rem] text-[#5C6378] font-semibold leading-relaxed">{body}</p>
                 </div>
               </div>

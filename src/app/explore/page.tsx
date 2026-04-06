@@ -171,7 +171,7 @@ function DestinationPicker({ value, onChange }: { value: string; onChange: (v: s
         <ul className="absolute z-50 w-full mt-1.5 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl overflow-auto max-h-64">
           {filtered.map(c => (
             <li key={c} onMouseDown={() => { onChange(c); setOpen(false); }}
-              className={`px-4 py-3 hover:bg-teal-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 font-[Poppins] font-semibold text-[.88rem] text-[#1A1D2B] ${value === c ? 'bg-teal-50' : ''}`}>
+              className={`px-4 py-3 hover:bg-teal-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 font-poppins font-semibold text-[.88rem] text-[#1A1D2B] ${value === c ? 'bg-teal-50' : ''}`}>
               🧭 {c}
             </li>
           ))}
@@ -218,7 +218,7 @@ function ExploreContent() {
       <section className="pt-36 pb-10 px-5 bg-[radial-gradient(ellipse_at_top,#F0FDF4_0%,#fff_55%,#F8FAFC_100%)]">
         <div className="max-w-[860px] mx-auto text-center mb-8">
           <span className="inline-block bg-teal-50 text-teal-600 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4">🧭 Explore</span>
-          <h1 className="font-[Poppins] text-[2.4rem] md:text-[3.6rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
+          <h1 className="font-poppins text-[2.4rem] md:text-[3.6rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
             Things To <em className="italic bg-gradient-to-br from-teal-500 to-emerald-600 bg-clip-text text-transparent">Do</em>
           </h1>
           <p className="text-[1rem] text-[#8E95A9] font-semibold max-w-[520px] mx-auto">Compare activities, tours & experiences from 5 trusted providers.</p>
@@ -229,7 +229,7 @@ function ExploreContent() {
             <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Destination</label>
             <DestinationPicker value={destination} onChange={setDestination} />
           </div>
-          <button onClick={handleSearch} className="w-full bg-teal-500 hover:bg-teal-600 text-white font-[Poppins] font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(20,184,166,0.3)]">
+          <button onClick={handleSearch} className="w-full bg-teal-500 hover:bg-teal-600 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(20,184,166,0.3)]">
             Explore Activities →
           </button>
         </div>
@@ -240,7 +240,7 @@ function ExploreContent() {
         <>
           {/* Provider cards */}
           <section className="max-w-[900px] mx-auto px-5 pt-8 pb-6">
-            <h2 className="font-[Poppins] font-black text-[1.1rem] text-[#1A1D2B] mb-2">
+            <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-2">
               Search {searchedDest} on 5 providers
             </h2>
             <p className="text-[.78rem] text-[#8E95A9] font-semibold mb-5">
@@ -256,7 +256,7 @@ function ExploreContent() {
                         <div className="flex items-center gap-3 mb-2">
                           <span className="text-2xl">{p.logo}</span>
                           <div>
-                            <h3 className="font-[Poppins] font-black text-[1rem] text-[#1A1D2B]">{p.name}</h3>
+                            <h3 className="font-poppins font-black text-[1rem] text-[#1A1D2B]">{p.name}</h3>
                             <p className="text-[.72rem] text-[#8E95A9] font-semibold">{p.tagline}</p>
                           </div>
                         </div>
@@ -269,7 +269,7 @@ function ExploreContent() {
                         </div>
                       </div>
                       <a href={redirectUrl(url, p.name, searchedDest, 'explore')}
-                        className="bg-teal-500 hover:bg-teal-600 text-white font-[Poppins] font-bold text-[.82rem] px-6 py-3 rounded-xl transition-all whitespace-nowrap shadow-sm">
+                        className="bg-teal-500 hover:bg-teal-600 text-white font-poppins font-bold text-[.82rem] px-6 py-3 rounded-xl transition-all whitespace-nowrap shadow-sm">
                         Search {p.name} →
                       </a>
                     </div>
@@ -282,7 +282,7 @@ function ExploreContent() {
           {/* Curated experiences (if available) */}
           {experiences.length > 0 && (
             <section className="max-w-[900px] mx-auto px-5 pb-6">
-              <h2 className="font-[Poppins] font-black text-[1.1rem] text-[#1A1D2B] mb-4">
+              <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-4">
                 Top experiences in {searchedDest}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -294,16 +294,16 @@ function ExploreContent() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1">
                           <span className="text-[.6rem] font-black uppercase tracking-[1.5px] text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full">{exp.type}</span>
-                          <h3 className="font-[Poppins] font-bold text-[.88rem] text-[#1A1D2B] mt-2 mb-1">{exp.name}</h3>
+                          <h3 className="font-poppins font-bold text-[.88rem] text-[#1A1D2B] mt-2 mb-1">{exp.name}</h3>
                           <p className="text-[.72rem] text-[#8E95A9] font-semibold">via {exp.provider}</p>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <div className="font-[Poppins] font-black text-[1.2rem] text-[#1A1D2B]">£{exp.from}</div>
+                          <div className="font-poppins font-black text-[1.2rem] text-[#1A1D2B]">£{exp.from}</div>
                           <div className="text-[.6rem] text-[#8E95A9] font-semibold">from</div>
                         </div>
                       </div>
                       <a href={redirectUrl(url, exp.provider, searchedDest, 'explore')}
-                        className="mt-3 block w-full text-center bg-teal-50 hover:bg-teal-100 text-teal-700 font-[Poppins] font-bold text-[.75rem] py-2.5 rounded-xl transition-all border border-teal-200">
+                        className="mt-3 block w-full text-center bg-teal-50 hover:bg-teal-100 text-teal-700 font-poppins font-bold text-[.75rem] py-2.5 rounded-xl transition-all border border-teal-200">
                         View on {exp.provider} →
                       </a>
                     </div>
@@ -317,28 +317,28 @@ function ExploreContent() {
           <section className="max-w-[900px] mx-auto px-5 pb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-5">
               <span className="text-2xl mb-2 block">✈</span>
-              <h3 className="font-[Poppins] font-black text-[.9rem] text-[#1A1D2B] mb-1">Flights to {searchedDest}</h3>
+              <h3 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">Flights to {searchedDest}</h3>
               <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">Compare across 5 providers.</p>
               <a href={`/flights?to=${encodeURIComponent(searchedDest)}`}
-                className="inline-block px-4 py-2 rounded-xl border-2 border-[#0066FF] text-[#0066FF] font-[Poppins] font-bold text-[.75rem] hover:bg-blue-50 transition-colors">
+                className="inline-block px-4 py-2 rounded-xl border-2 border-[#0066FF] text-[#0066FF] font-poppins font-bold text-[.75rem] hover:bg-blue-50 transition-colors">
                 Compare Flights →
               </a>
             </div>
             <div className="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-100 rounded-2xl p-5">
               <span className="text-2xl mb-2 block">🏨</span>
-              <h3 className="font-[Poppins] font-black text-[.9rem] text-[#1A1D2B] mb-1">Hotels in {searchedDest}</h3>
+              <h3 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">Hotels in {searchedDest}</h3>
               <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">Find and compare the best rates.</p>
               <a href={`/hotels?destination=${encodeURIComponent(searchedDest)}`}
-                className="inline-block px-4 py-2 rounded-xl border-2 border-orange-500 text-orange-500 font-[Poppins] font-bold text-[.75rem] hover:bg-orange-50 transition-colors">
+                className="inline-block px-4 py-2 rounded-xl border-2 border-orange-500 text-orange-500 font-poppins font-bold text-[.75rem] hover:bg-orange-50 transition-colors">
                 Compare Hotels →
               </a>
             </div>
             <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-100 rounded-2xl p-5">
               <span className="text-2xl mb-2 block">📦</span>
-              <h3 className="font-[Poppins] font-black text-[.9rem] text-[#1A1D2B] mb-1">Package to {searchedDest}</h3>
+              <h3 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">Package to {searchedDest}</h3>
               <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">Flight + hotel bundles.</p>
               <a href={`/packages?dest=${encodeURIComponent(searchedDest)}`}
-                className="inline-block px-4 py-2 rounded-xl border-2 border-purple-500 text-purple-500 font-[Poppins] font-bold text-[.75rem] hover:bg-purple-50 transition-colors">
+                className="inline-block px-4 py-2 rounded-xl border-2 border-purple-500 text-purple-500 font-poppins font-bold text-[.75rem] hover:bg-purple-50 transition-colors">
                 View Packages →
               </a>
             </div>
@@ -349,7 +349,7 @@ function ExploreContent() {
       {/* Popular destinations (when not searched) */}
       {!searched && (
         <section className="max-w-[1000px] mx-auto px-5 py-8">
-          <h2 className="font-[Poppins] font-black text-[1.1rem] text-[#1A1D2B] mb-4">Popular Destinations for Activities</h2>
+          <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-4">Popular Destinations for Activities</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {POPULAR.map(d => (
               <button key={d.name} onClick={() => { setDestination(d.name); setSearchedDest(d.name); setSearched(true); }}
@@ -357,7 +357,7 @@ function ExploreContent() {
                 <img src={d.photo} alt={d.name} loading="lazy" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <div className="font-[Poppins] font-black text-white text-[.95rem]">{d.name}</div>
+                  <div className="font-poppins font-black text-white text-[.95rem]">{d.name}</div>
                   <div className="text-[.65rem] text-white/70 font-semibold">{d.count.toLocaleString()}+ activities</div>
                 </div>
               </button>
@@ -369,7 +369,7 @@ function ExploreContent() {
       {/* Tips */}
       <section className="max-w-[860px] mx-auto px-5 pb-16">
         <div className="bg-[#F8FAFC] border border-[#F1F3F7] rounded-3xl p-8">
-          <h3 className="font-[Poppins] font-black text-[1.05rem] text-[#1A1D2B] mb-4">Tips for Booking Activities</h3>
+          <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">Tips for Booking Activities</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
               ['Book skip-the-line tickets', 'Popular attractions sell out fast. Skip-the-line tickets save hours of waiting.'],
@@ -380,7 +380,7 @@ function ExploreContent() {
               <div key={title} className="flex gap-3">
                 <div className="w-1.5 flex-shrink-0 rounded-full bg-gradient-to-b from-teal-400 to-emerald-500 self-stretch" />
                 <div>
-                  <div className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B] mb-0.5">{title}</div>
+                  <div className="font-poppins font-bold text-[.85rem] text-[#1A1D2B] mb-0.5">{title}</div>
                   <p className="text-[.75rem] text-[#5C6378] font-semibold leading-relaxed">{body}</p>
                 </div>
               </div>

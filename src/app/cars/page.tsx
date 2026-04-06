@@ -98,7 +98,7 @@ function LocationPicker({ value, onChange, placeholder }: {
         <ul className="absolute z-50 w-full mt-1.5 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl overflow-auto max-h-64">
           {results.map(l => (
             <li key={l} onMouseDown={() => { onChange(l); setOpen(false); }}
-              className={`px-4 py-3 hover:bg-emerald-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 font-[Poppins] font-semibold text-[.85rem] text-[#1A1D2B] ${value === l ? 'bg-emerald-50' : ''}`}>
+              className={`px-4 py-3 hover:bg-emerald-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 font-poppins font-semibold text-[.85rem] text-[#1A1D2B] ${value === l ? 'bg-emerald-50' : ''}`}>
               {l.includes('Airport') ? '✈️ ' : '🏙️ '}{l}
             </li>
           ))}
@@ -349,7 +349,7 @@ function CarsContent() {
       <section className="pt-36 pb-16 px-5 bg-[radial-gradient(ellipse_at_top,#E8F8EE_0%,#fff_55%,#F8FAFC_100%)]">
         <div className="max-w-[860px] mx-auto text-center mb-10">
           <span className="inline-block bg-emerald-50 text-emerald-600 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4">🚗 Car Rental Comparison</span>
-          <h1 className="font-[Poppins] text-[2.6rem] md:text-[3.8rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
+          <h1 className="font-poppins text-[2.6rem] md:text-[3.8rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
             Hire a Car <em className="italic bg-gradient-to-br from-emerald-500 to-teal-500 bg-clip-text text-transparent">Anywhere</em>
           </h1>
           <p className="text-[1rem] text-[#8E95A9] font-semibold max-w-[520px] mx-auto">Compare 5 trusted car rental providers — real prices, no hidden fees.</p>
@@ -407,7 +407,7 @@ function CarsContent() {
           </div>
 
           <button onClick={handleSearch}
-            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-[Poppins] font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(16,185,129,0.3)]">
+            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(16,185,129,0.3)]">
             Search Car Rentals →
           </button>
           <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">Free comparison · Prices shown here · Click any provider to book on their site</p>
@@ -423,7 +423,7 @@ function CarsContent() {
           {/* Search summary */}
           <section className="max-w-[900px] mx-auto px-5 pt-8 pb-4">
             <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-2xl px-6 py-4">
-              <h2 className="font-[Poppins] font-black text-[1.15rem] text-[#1A1D2B]">
+              <h2 className="font-poppins font-black text-[1.15rem] text-[#1A1D2B]">
                 Car hire in {city} — {pickupDate} to {dropoffDate}{days ? ` (${days} day${days !== 1 ? 's' : ''})` : ''}
               </h2>
               <p className="text-[.75rem] text-[#5C6378] font-semibold mt-1">Compare prices across 5 providers below</p>
@@ -443,11 +443,11 @@ function CarsContent() {
                       {/* Header */}
                       <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
                         <div>
-                          <h3 className="font-[Poppins] font-black text-[1.15rem] text-[#1A1D2B] mb-1">{p.name}</h3>
+                          <h3 className="font-poppins font-black text-[1.15rem] text-[#1A1D2B] mb-1">{p.name}</h3>
                           <p className="text-[.8rem] text-[#5C6378] font-semibold">{p.tagline}</p>
                         </div>
                         <a href={redirectUrl(url, p.name, city, 'cars')} target="_blank" rel="noopener noreferrer"
-                          className="flex-shrink-0 px-6 py-3 rounded-xl font-[Poppins] font-black text-[.85rem] text-white transition-all hover:opacity-90 shadow-md"
+                          className="flex-shrink-0 px-6 py-3 rounded-xl font-poppins font-black text-[.85rem] text-white transition-all hover:opacity-90 shadow-md"
                           style={{ backgroundColor: p.color }}>
                           Search {p.name} →
                         </a>
@@ -479,7 +479,7 @@ function CarsContent() {
           {/* Smart recommendation */}
           <section className="max-w-[900px] mx-auto px-5 pb-6">
             <div className="bg-gradient-to-r from-emerald-50 to-cyan-50 border border-emerald-200 rounded-2xl p-6">
-              <h3 className="font-[Poppins] font-black text-[.95rem] text-[#1A1D2B] mb-2">💡 Our Recommendation</h3>
+              <h3 className="font-poppins font-black text-[.95rem] text-[#1A1D2B] mb-2">💡 Our Recommendation</h3>
               {ageGroup === 'young' && (
                 <p className="text-[.82rem] text-[#5C6378] font-semibold leading-relaxed">
                   <strong className="text-[#1A1D2B]">Young driver?</strong> We recommend <strong>Economy Bookings</strong> and <strong>Qeeq</strong> — they typically have the lowest young driver surcharges, saving you £5-15/day compared to booking direct.
@@ -502,19 +502,19 @@ function CarsContent() {
           <section className="max-w-[900px] mx-auto px-5 pb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-[#F8FAFC] border border-[#E8ECF4] rounded-2xl p-6">
               <span className="text-2xl mb-2 block">✈️</span>
-              <h3 className="font-[Poppins] font-black text-[1rem] text-[#1A1D2B] mb-1">Flights to {city}</h3>
+              <h3 className="font-poppins font-black text-[1rem] text-[#1A1D2B] mb-1">Flights to {city}</h3>
               <p className="text-[.78rem] text-[#5C6378] font-semibold mb-3">Still need flights? Compare across our providers.</p>
               <a href={`/flights?to=${iata || encodeURIComponent(city)}`}
-                className="inline-block px-5 py-2.5 rounded-xl border-2 border-[#0066FF] text-[#0066FF] font-[Poppins] font-bold text-[.8rem] hover:bg-blue-50 transition-colors">
+                className="inline-block px-5 py-2.5 rounded-xl border-2 border-[#0066FF] text-[#0066FF] font-poppins font-bold text-[.8rem] hover:bg-blue-50 transition-colors">
                 Compare Flights →
               </a>
             </div>
             <div className="bg-[#F8FAFC] border border-[#E8ECF4] rounded-2xl p-6">
               <span className="text-2xl mb-2 block">🏨</span>
-              <h3 className="font-[Poppins] font-black text-[1rem] text-[#1A1D2B] mb-1">Hotels in {city}</h3>
+              <h3 className="font-poppins font-black text-[1rem] text-[#1A1D2B] mb-1">Hotels in {city}</h3>
               <p className="text-[.78rem] text-[#5C6378] font-semibold mb-3">Find your hotel too.</p>
               <a href={`/hotels?destination=${encodeURIComponent(city)}`}
-                className="inline-block px-5 py-2.5 rounded-xl border-2 border-orange-500 text-orange-500 font-[Poppins] font-bold text-[.8rem] hover:bg-orange-50 transition-colors">
+                className="inline-block px-5 py-2.5 rounded-xl border-2 border-orange-500 text-orange-500 font-poppins font-bold text-[.8rem] hover:bg-orange-50 transition-colors">
                 Compare Hotels →
               </a>
             </div>
@@ -524,7 +524,7 @@ function CarsContent() {
           <section className="max-w-[900px] mx-auto px-5 pb-8">
             <div className="bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden">
               <div className="px-6 py-4 border-b border-[#E8ECF4] bg-[#F8FAFC]">
-                <h3 className="font-[Poppins] font-black text-[1rem] text-[#1A1D2B]">How Our Providers Compare</h3>
+                <h3 className="font-poppins font-black text-[1rem] text-[#1A1D2B]">How Our Providers Compare</h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-[.75rem]">
@@ -556,7 +556,7 @@ function CarsContent() {
       {/* ── Tips section (always visible) ── */}
       <section className="max-w-[860px] mx-auto px-5 pb-16">
         <div className="bg-[#F8FAFC] border border-[#F1F3F7] rounded-3xl p-8">
-          <h3 className="font-[Poppins] font-black text-[1.05rem] text-[#1A1D2B] mb-4">Tips for Cheaper Car Rentals</h3>
+          <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">Tips for Cheaper Car Rentals</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
               ['Book early, pick up off-airport', 'Off-airport depots are 20-40% cheaper. Take a taxi from arrivals — still worth it.'],
@@ -567,7 +567,7 @@ function CarsContent() {
               <div key={title} className="flex gap-3">
                 <div className="w-1.5 flex-shrink-0 rounded-full bg-gradient-to-b from-emerald-500 to-teal-500 self-stretch" />
                 <div>
-                  <div className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B] mb-0.5">{title}</div>
+                  <div className="font-poppins font-bold text-[.85rem] text-[#1A1D2B] mb-0.5">{title}</div>
                   <p className="text-[.75rem] text-[#5C6378] font-semibold leading-relaxed">{body}</p>
                 </div>
               </div>

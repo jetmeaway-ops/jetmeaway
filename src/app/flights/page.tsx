@@ -398,7 +398,7 @@ function AutocompleteFrom({ value, onChange, initialCode }: {
               onMouseDown={() => { setQ(`${a.name} (${a.code})`); setChosen(a); onChange(a.code, a.city); setOpen(false); }}
               className={`flex items-center gap-3 px-4 py-3 hover:bg-blue-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 ${chosen?.code === a.code ? 'bg-blue-50' : ''}`}>
               <span className="font-black text-[.75rem] text-[#0066FF] w-10 flex-shrink-0 bg-blue-50 px-1.5 py-0.5 rounded text-center">{a.code}</span>
-              <span className="font-[Poppins] font-bold text-[.83rem] text-[#1A1D2B]">{a.name}</span>
+              <span className="font-poppins font-bold text-[.83rem] text-[#1A1D2B]">{a.name}</span>
             </li>
           ))}
         </ul>
@@ -463,7 +463,7 @@ function AutocompleteTo({ value, onChange, initialCode }: {
               className={`flex items-center gap-3 px-4 py-3 hover:bg-blue-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 ${chosen?.code === d.code ? 'bg-blue-50' : ''}`}>
               <span className="text-xl">{d.flag}</span>
               <div className="flex-1">
-                <span className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B]">{d.city}</span>
+                <span className="font-poppins font-bold text-[.85rem] text-[#1A1D2B]">{d.city}</span>
                 <span className="text-[.72rem] text-[#8E95A9] ml-1.5">{d.country}</span>
               </div>
               <span className="font-mono text-[.68rem] font-bold text-[#8E95A9]">{d.code}</span>
@@ -482,13 +482,13 @@ function PaxRow({ label: lbl, sub, val, min, max, onDec, onInc }: {
   return (
     <div className="flex items-center justify-between py-3 border-b border-[#F1F3F7] last:border-0">
       <div>
-        <div className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B]">{lbl}</div>
+        <div className="font-poppins font-bold text-[.85rem] text-[#1A1D2B]">{lbl}</div>
         <div className="text-[.7rem] text-[#8E95A9] font-medium">{sub}</div>
       </div>
       <div className="flex items-center gap-3">
         <button type="button" onClick={onDec} disabled={val <= min}
           className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-[#0066FF] hover:text-[#0066FF] transition-all disabled:opacity-30">−</button>
-        <span className="font-[Poppins] font-black text-[.95rem] text-[#1A1D2B] w-5 text-center">{val}</span>
+        <span className="font-poppins font-black text-[.95rem] text-[#1A1D2B] w-5 text-center">{val}</span>
         <button type="button" onClick={onInc} disabled={val >= max}
           className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-[#0066FF] hover:text-[#0066FF] transition-all disabled:opacity-30">+</button>
       </div>
@@ -531,7 +531,7 @@ function PassengerPicker({ adults, children, infants, onChange }: {
           <PaxRow label="Infants" sub="Under 2" val={infants} min={0} max={adults}
             onDec={() => onChange(adults, children, infants - 1)} onInc={() => onChange(adults, children, infants + 1)} />
           <button type="button" onClick={() => setOpen(false)}
-            className="w-full mt-3 bg-[#0066FF] hover:bg-[#0052CC] text-white font-[Poppins] font-bold text-[.8rem] py-2.5 rounded-xl transition-colors">
+            className="w-full mt-3 bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.8rem] py-2.5 rounded-xl transition-colors">
             Done
           </button>
         </div>
@@ -626,7 +626,7 @@ function PriceCalendar({ origin, dest, depDate }: { origin: string; dest: string
 
   return (
     <div className="bg-white border border-[#E8ECF4] rounded-2xl p-6">
-      <h3 className="font-[Poppins] font-black text-[1rem] text-[#1A1D2B] mb-1">Best Days to Fly {origin} → {dest}</h3>
+      <h3 className="font-poppins font-black text-[1rem] text-[#1A1D2B] mb-1">Best Days to Fly {origin} → {dest}</h3>
       <p className="text-[.72rem] text-[#8E95A9] font-semibold mb-4">
         <span className="inline-block w-2.5 h-2.5 rounded-sm bg-[#10b981] mr-1 align-middle" /> Cheap
         <span className="inline-block w-2.5 h-2.5 rounded-sm bg-[#f59e0b] mx-1 ml-3 align-middle" /> Medium
@@ -898,7 +898,7 @@ function FlightsContent() {
       <section className="pt-36 pb-10 px-5 bg-[radial-gradient(ellipse_at_top,#E8F0FE_0%,#fff_55%,#F8FAFC_100%)]">
         <div className="max-w-[860px] mx-auto text-center mb-8">
           <span className="inline-block bg-blue-50 text-[#0066FF] text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4">✈ Flight Comparison</span>
-          <h1 className="font-[Poppins] text-[2.4rem] md:text-[3.6rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
+          <h1 className="font-poppins text-[2.4rem] md:text-[3.6rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
             Find the <em className="italic bg-gradient-to-br from-[#0066FF] to-[#4F46E5] bg-clip-text text-transparent">Cheapest</em> Flights
           </h1>
           <p className="text-[1rem] text-[#8E95A9] font-semibold max-w-[520px] mx-auto">Compare 5 providers in seconds — real prices shown right here.</p>
@@ -962,7 +962,7 @@ function FlightsContent() {
           </div>
 
           <button onClick={handleSearch} disabled={loading}
-            className="w-full bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-60 text-white font-[Poppins] font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(0,102,255,0.3)]">
+            className="w-full bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-60 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(0,102,255,0.3)]">
             {loading ? 'Searching…' : 'Search 5 Providers →'}
           </button>
           <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">Free comparison · Results shown here · Click any deal to book on the provider site</p>
@@ -978,7 +978,7 @@ function FlightsContent() {
           <div className="bg-red-50 border border-red-100 rounded-2xl p-5 text-center">
             <p className="text-[.85rem] font-bold text-red-600 mb-3">{apiError}</p>
             <button onClick={handleSearch}
-              className="bg-[#0066FF] hover:bg-[#0052CC] text-white font-[Poppins] font-bold text-[.82rem] px-6 py-2.5 rounded-xl transition-all">
+              className="bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.82rem] px-6 py-2.5 rounded-xl transition-all">
               Try Again
             </button>
           </div>
@@ -994,7 +994,7 @@ function FlightsContent() {
               <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div className="flex items-center gap-3">
                   <span className="text-xl">🏷</span>
-                  <span className="font-[Poppins] font-black text-[1rem] text-[#1A1D2B]">
+                  <span className="font-poppins font-black text-[1rem] text-[#1A1D2B]">
                     Cheapest found: <span className="text-green-600">£{cheapest.price}</span> with {cheapest.airline}
                     {cheapest.transfers === 0 && <span className="text-green-600"> (direct)</span>}
                   </span>
@@ -1011,7 +1011,7 @@ function FlightsContent() {
               <div className="md:hidden mb-4 flex items-center justify-between gap-3">
                 <button
                   onClick={() => setFiltersOpenMobile(v => !v)}
-                  className="flex items-center gap-2 bg-white border border-[#E8ECF4] hover:border-[#0066FF] text-[#1A1D2B] font-[Poppins] font-bold text-[.78rem] px-4 py-2 rounded-full shadow-sm transition-all"
+                  className="flex items-center gap-2 bg-white border border-[#E8ECF4] hover:border-[#0066FF] text-[#1A1D2B] font-poppins font-bold text-[.78rem] px-4 py-2 rounded-full shadow-sm transition-all"
                 >
                   <span>⚙</span> Filters & Sort
                   {filtersActive && <span className="w-1.5 h-1.5 rounded-full bg-[#0066FF]" />}
@@ -1025,7 +1025,7 @@ function FlightsContent() {
                 {/* ─── Sidebar ─── */}
                 <aside className={`${filtersOpenMobile ? 'block' : 'hidden'} md:block md:sticky md:top-24 self-start bg-white border border-[#E8ECF4] rounded-2xl p-5 h-fit`}>
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-[Poppins] font-black text-[.95rem] text-[#1A1D2B]">Filters</h3>
+                    <h3 className="font-poppins font-black text-[.95rem] text-[#1A1D2B]">Filters</h3>
                     {filtersActive && (
                       <button onClick={clearAllFilters} className="text-[.7rem] font-bold text-[#0066FF] hover:underline">
                         Clear all
@@ -1035,7 +1035,7 @@ function FlightsContent() {
 
                   {/* Sort by */}
                   <div className="mb-5">
-                    <h4 className="font-[Poppins] font-black text-[.78rem] text-[#1A1D2B] mb-2 uppercase tracking-wide">Sort by</h4>
+                    <h4 className="font-poppins font-black text-[.78rem] text-[#1A1D2B] mb-2 uppercase tracking-wide">Sort by</h4>
                     <div className="space-y-1.5">
                       {([
                         { v: 'price-asc', l: 'Least expensive' },
@@ -1053,7 +1053,7 @@ function FlightsContent() {
 
                   {/* Stops */}
                   <div className="mb-5">
-                    <h4 className="font-[Poppins] font-black text-[.78rem] text-[#1A1D2B] mb-2 uppercase tracking-wide">Stops</h4>
+                    <h4 className="font-poppins font-black text-[.78rem] text-[#1A1D2B] mb-2 uppercase tracking-wide">Stops</h4>
                     <div className="space-y-1.5">
                       {([
                         { v: 'direct', l: 'Direct only' },
@@ -1072,7 +1072,7 @@ function FlightsContent() {
                   {/* Airlines */}
                   {availableAirlines.length > 0 && (
                     <div className="mb-5">
-                      <h4 className="font-[Poppins] font-black text-[.78rem] text-[#1A1D2B] mb-2 uppercase tracking-wide">Airlines</h4>
+                      <h4 className="font-poppins font-black text-[.78rem] text-[#1A1D2B] mb-2 uppercase tracking-wide">Airlines</h4>
                       <div className="space-y-1.5">
                         {availableAirlines.map(a => (
                           <label key={a} className="flex items-center gap-2 cursor-pointer text-[.78rem] text-[#5C6378] font-semibold">
@@ -1093,7 +1093,7 @@ function FlightsContent() {
 
                   {/* Flight number */}
                   <div className="mb-5">
-                    <h4 className="font-[Poppins] font-black text-[.78rem] text-[#1A1D2B] mb-2 uppercase tracking-wide">Flight number</h4>
+                    <h4 className="font-poppins font-black text-[.78rem] text-[#1A1D2B] mb-2 uppercase tracking-wide">Flight number</h4>
                     <input
                       type="text"
                       value={flightNumFilter}
@@ -1106,7 +1106,7 @@ function FlightsContent() {
                   {/* Take-off time */}
                   <div className="mb-5">
                     <div className="flex items-center justify-between mb-1">
-                      <h4 className="font-[Poppins] font-black text-[.78rem] text-[#1A1D2B] uppercase tracking-wide">Take-off</h4>
+                      <h4 className="font-poppins font-black text-[.78rem] text-[#1A1D2B] uppercase tracking-wide">Take-off</h4>
                       <span className="text-[.65rem] text-[#8E95A9] font-bold">
                         {takeoffMin === 0 && takeoffMax === 1439 ? 'at any time' : `${minsToLabel(takeoffMin)} – ${minsToLabel(takeoffMax)}`}
                       </span>
@@ -1127,7 +1127,7 @@ function FlightsContent() {
                   {/* Landing time */}
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <h4 className="font-[Poppins] font-black text-[.78rem] text-[#1A1D2B] uppercase tracking-wide">Landing</h4>
+                      <h4 className="font-poppins font-black text-[.78rem] text-[#1A1D2B] uppercase tracking-wide">Landing</h4>
                       <span className="text-[.65rem] text-[#8E95A9] font-bold">
                         {landingMin === 0 && landingMax === 1439 ? 'at any time' : `${minsToLabel(landingMin)} – ${minsToLabel(landingMax)}`}
                       </span>
@@ -1149,7 +1149,7 @@ function FlightsContent() {
                 {/* ─── Results ─── */}
                 <div>
                   <div className="hidden md:flex items-center justify-between mb-3">
-                    <h3 className="font-[Poppins] font-black text-[.9rem] text-[#1A1D2B]">
+                    <h3 className="font-poppins font-black text-[.9rem] text-[#1A1D2B]">
                       {visibleFlights.length} of {flights.length} flights
                     </h3>
                   </div>
@@ -1157,7 +1157,7 @@ function FlightsContent() {
                   {visibleFlights.length === 0 ? (
                     <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
                       <span className="text-3xl mb-3 block">🔎</span>
-                      <p className="font-[Poppins] font-bold text-[.95rem] text-[#1A1D2B] mb-2">No flights match your filters.</p>
+                      <p className="font-poppins font-bold text-[.95rem] text-[#1A1D2B] mb-2">No flights match your filters.</p>
                       <button onClick={clearAllFilters} className="text-[.78rem] text-[#0066FF] font-bold hover:underline">
                         Clear all filters
                       </button>
@@ -1185,7 +1185,7 @@ function FlightsContent() {
                               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).parentElement!.innerHTML = '<span class="text-lg">✈</span>'; }} />
                           </div>
                           <div>
-                            <div className="font-[Poppins] font-bold text-[.88rem] text-[#1A1D2B] flex items-center gap-2">
+                            <div className="font-poppins font-bold text-[.88rem] text-[#1A1D2B] flex items-center gap-2">
                               {f.airline}
                               {isCheapest && <span className="text-[.55rem] font-black uppercase tracking-[1.5px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">Cheapest</span>}
                             </div>
@@ -1196,7 +1196,7 @@ function FlightsContent() {
                         {/* Flight info */}
                         <div className="flex items-center gap-3">
                           <div className="text-center min-w-[50px]">
-                            <div className="font-[Poppins] font-black text-[1.05rem] text-[#1A1D2B]">{depTime}</div>
+                            <div className="font-poppins font-black text-[1.05rem] text-[#1A1D2B]">{depTime}</div>
                             <div className="text-[.62rem] text-[#8E95A9] font-semibold">{originCode}</div>
                           </div>
                           <div className="flex-1 flex flex-col items-center gap-0.5 min-w-[80px]">
@@ -1211,7 +1211,7 @@ function FlightsContent() {
                             </span>
                           </div>
                           <div className="text-center min-w-[50px]">
-                            <div className="font-[Poppins] font-black text-[1.05rem] text-[#1A1D2B]">{arrTime}</div>
+                            <div className="font-poppins font-black text-[1.05rem] text-[#1A1D2B]">{arrTime}</div>
                             <div className="text-[.62rem] text-[#8E95A9] font-semibold">{destCode}</div>
                           </div>
                         </div>
@@ -1219,7 +1219,7 @@ function FlightsContent() {
                         {/* Price + View Deal */}
                         <div className="flex items-center gap-4 md:flex-col md:items-end md:gap-2">
                           <div className="text-right">
-                            <div className="font-[Poppins] font-black text-[1.5rem] text-[#1A1D2B] leading-none">{f.currency}{f.price}</div>
+                            <div className="font-poppins font-black text-[1.5rem] text-[#1A1D2B] leading-none">{f.currency}{f.price}</div>
                             <div className="text-[.6rem] text-[#8E95A9] font-semibold">
                               {isDuffel ? 'total price, per person' : `per person, ${f.return_at ? 'return' : 'one-way'}`}
                             </div>
@@ -1229,12 +1229,12 @@ function FlightsContent() {
                           </div>
                           {isDuffel && f.offer_id ? (
                             <a href={`/checkout/${f.offer_id}`}
-                              className="bg-green-600 hover:bg-green-700 text-white font-[Poppins] font-bold text-[.78rem] px-5 py-2.5 rounded-xl transition-all shadow-[0_4px_12px_rgba(22,163,74,0.2)] whitespace-nowrap">
+                              className="bg-green-600 hover:bg-green-700 text-white font-poppins font-bold text-[.78rem] px-5 py-2.5 rounded-xl transition-all shadow-[0_4px_12px_rgba(22,163,74,0.2)] whitespace-nowrap">
                               Book Now →
                             </a>
                           ) : (
                             <a href={redirectUrl(viewDealUrl, 'Aviasales', destCity || destCode, 'flights')}
-                              className="bg-[#0066FF] hover:bg-[#0052CC] text-white font-[Poppins] font-bold text-[.78rem] px-5 py-2.5 rounded-xl transition-all shadow-[0_4px_12px_rgba(0,102,255,0.2)] whitespace-nowrap">
+                              className="bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.78rem] px-5 py-2.5 rounded-xl transition-all shadow-[0_4px_12px_rgba(0,102,255,0.2)] whitespace-nowrap">
                               View Deal →
                             </a>
                           )}
@@ -1262,7 +1262,7 @@ function FlightsContent() {
             <section className="max-w-[860px] mx-auto px-5 py-8">
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
                 <span className="text-3xl mb-3 block">🔎</span>
-                <p className="font-[Poppins] font-bold text-[.95rem] text-[#1A1D2B] mb-2">
+                <p className="font-poppins font-bold text-[.95rem] text-[#1A1D2B] mb-2">
                   No flights found for this route and date.
                 </p>
                 <p className="text-[.78rem] text-[#8E95A9] font-semibold">
@@ -1274,14 +1274,14 @@ function FlightsContent() {
 
           {/* Section 3: Provider Comparison Strip */}
           <section className="max-w-[1000px] mx-auto px-5 pb-8">
-            <h3 className="font-[Poppins] font-black text-[1.05rem] text-[#1A1D2B] mb-4">Compare This Route Across All Providers</h3>
+            <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">Compare This Route Across All Providers</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
               {PROVIDERS.map(p => {
                 const url = p.getUrl(originCode, destCode, depDate, effectiveRet, adults, originCity, destCity);
                 return (
                   <div key={p.name} className="bg-white border border-[#E8ECF4] rounded-xl p-4 flex flex-col items-center text-center hover:border-blue-300 hover:shadow-md transition-all">
                     <div className="w-10 h-10 rounded-lg bg-[#F8FAFC] border border-[#E8ECF4] flex items-center justify-center text-xl mb-2">{p.logo}</div>
-                    <div className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B] mb-1">{p.name}</div>
+                    <div className="font-poppins font-bold text-[.85rem] text-[#1A1D2B] mb-1">{p.name}</div>
                     {cheapest && (
                       <div className="text-[.75rem] font-bold text-green-600 mb-2">From £{cheapest.price}</div>
                     )}
@@ -1289,7 +1289,7 @@ function FlightsContent() {
                       <div className="text-[.72rem] font-semibold text-[#8E95A9] mb-2">Check Price</div>
                     )}
                     <a href={redirectUrl(url, p.name, destCity || destCode, 'flights')}
-                      className="w-full bg-[#0066FF] hover:bg-[#0052CC] text-white font-[Poppins] font-bold text-[.72rem] py-2 rounded-lg transition-all">
+                      className="w-full bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.72rem] py-2 rounded-lg transition-all">
                       Search {p.name} →
                     </a>
                   </div>
@@ -1304,10 +1304,10 @@ function FlightsContent() {
               {/* Hotels */}
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-5">
                 <span className="text-2xl mb-2 block">🏨</span>
-                <h4 className="font-[Poppins] font-black text-[.9rem] text-[#1A1D2B] mb-1">Hotels in {destCity || destCode}</h4>
+                <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">Hotels in {destCity || destCode}</h4>
                 <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">Found your flight? Now find your hotel.</p>
                 <a href={`/hotels?destination=${encodeURIComponent(destCity || destCode)}${depDate ? `&checkin=${depDate}` : ''}${retDate ? `&checkout=${retDate}` : ''}`}
-                  className="inline-block bg-white hover:bg-blue-50 text-[#0066FF] font-[Poppins] font-bold text-[.75rem] px-4 py-2 rounded-lg border border-blue-200 transition-all">
+                  className="inline-block bg-white hover:bg-blue-50 text-[#0066FF] font-poppins font-bold text-[.75rem] px-4 py-2 rounded-lg border border-blue-200 transition-all">
                   Compare Hotels →
                 </a>
               </div>
@@ -1315,10 +1315,10 @@ function FlightsContent() {
               {/* Car Hire */}
               <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100 rounded-2xl p-5">
                 <span className="text-2xl mb-2 block">🚗</span>
-                <h4 className="font-[Poppins] font-black text-[.9rem] text-[#1A1D2B] mb-1">Car Hire at {destCity || destCode}</h4>
+                <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">Car Hire at {destCity || destCode}</h4>
                 <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">Need wheels when you land?</p>
                 <a href={`/cars?location=${encodeURIComponent(destCity || destCode)}`}
-                  className="inline-block bg-white hover:bg-amber-50 text-amber-600 font-[Poppins] font-bold text-[.75rem] px-4 py-2 rounded-lg border border-amber-200 transition-all">
+                  className="inline-block bg-white hover:bg-amber-50 text-amber-600 font-poppins font-bold text-[.75rem] px-4 py-2 rounded-lg border border-amber-200 transition-all">
                   Compare Car Hire →
                 </a>
               </div>
@@ -1326,10 +1326,10 @@ function FlightsContent() {
               {/* Packages */}
               <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-100 rounded-2xl p-5">
                 <span className="text-2xl mb-2 block">📦</span>
-                <h4 className="font-[Poppins] font-black text-[.9rem] text-[#1A1D2B] mb-1">Complete Package Deal</h4>
+                <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">Complete Package Deal</h4>
                 <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">Save up to 30% by booking flight + hotel together.</p>
                 <a href={`/packages?from=${originCode}&to=${destCode}&depart=${depDate}&return=${retDate}`}
-                  className="inline-block bg-white hover:bg-purple-50 text-purple-600 font-[Poppins] font-bold text-[.75rem] px-4 py-2 rounded-lg border border-purple-200 transition-all">
+                  className="inline-block bg-white hover:bg-purple-50 text-purple-600 font-poppins font-bold text-[.75rem] px-4 py-2 rounded-lg border border-purple-200 transition-all">
                   View Packages →
                 </a>
               </div>
@@ -1346,7 +1346,7 @@ function FlightsContent() {
       {/* ── Tips ── */}
       <section className="max-w-[860px] mx-auto px-5 pb-16">
         <div className="bg-[#F8FAFC] border border-[#F1F3F7] rounded-3xl p-8">
-          <h3 className="font-[Poppins] font-black text-[1.05rem] text-[#1A1D2B] mb-4">Tips for Finding Cheaper Flights</h3>
+          <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">Tips for Finding Cheaper Flights</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
               ['Book 6–8 weeks ahead', 'The sweet spot for short-haul. Long-haul is best 3–6 months out.'],
@@ -1357,7 +1357,7 @@ function FlightsContent() {
               <div key={title} className="flex gap-3">
                 <div className="w-1.5 flex-shrink-0 rounded-full bg-gradient-to-b from-[#0066FF] to-[#4F46E5] self-stretch" />
                 <div>
-                  <div className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B] mb-0.5">{title}</div>
+                  <div className="font-poppins font-bold text-[.85rem] text-[#1A1D2B] mb-0.5">{title}</div>
                   <p className="text-[.75rem] text-[#5C6378] font-semibold leading-relaxed">{body}</p>
                 </div>
               </div>

@@ -249,7 +249,7 @@ export default function DiscoverPopup() {
             <div className="inline-block bg-blue-50 text-[#0066FF] text-[.6rem] font-black uppercase tracking-[2.5px] px-3 py-1.5 rounded-full mb-4">
               Your personal trip planner
             </div>
-            <h2 className="font-[Poppins] font-black text-[2rem] sm:text-[2.2rem] text-[#1A1D2B] leading-tight mb-3">
+            <h2 className="font-poppins font-black text-[2rem] sm:text-[2.2rem] text-[#1A1D2B] leading-tight mb-3">
               Where shall we<br />
               <em className="italic bg-gradient-to-br from-[#0066FF] to-[#4F46E5] bg-clip-text text-transparent">take you?</em>
             </h2>
@@ -259,7 +259,7 @@ export default function DiscoverPopup() {
 
             <button
               onClick={() => goStep('destination')}
-              className="w-full bg-gradient-to-r from-[#0066FF] to-[#4F46E5] hover:brightness-110 text-white font-[Poppins] font-black text-[1.05rem] py-4 rounded-2xl transition-all shadow-[0_8px_28px_rgba(0,102,255,0.35)] mb-4"
+              className="w-full bg-gradient-to-r from-[#0066FF] to-[#4F46E5] hover:brightness-110 text-white font-poppins font-black text-[1.05rem] py-4 rounded-2xl transition-all shadow-[0_8px_28px_rgba(0,102,255,0.35)] mb-4"
             >
               Let's go! 🚀
             </button>
@@ -273,7 +273,7 @@ export default function DiscoverPopup() {
         {step === 'destination' && (
           <div className="p-6 pt-8 pb-8">
             <p className="text-[.62rem] font-black uppercase tracking-[2.5px] text-[#0066FF] mb-1">Step 1 of 3</p>
-            <h2 className="font-[Poppins] font-black text-[1.6rem] text-[#1A1D2B] mb-1">Where to? 🌍</h2>
+            <h2 className="font-poppins font-black text-[1.6rem] text-[#1A1D2B] mb-1">Where to? 🌍</h2>
             <p className="text-[.82rem] text-[#8E95A9] font-semibold mb-5">Type a city, country, or let us surprise you</p>
 
             <div className="relative mb-4">
@@ -285,7 +285,7 @@ export default function DiscoverPopup() {
                 onKeyDown={e => e.key === 'Enter' && dest && goStep('dates')}
                 onBlur={() => setTimeout(() => setShowSugg(false), 150)}
                 placeholder="e.g. Dubai, Antalya, Barcelona..."
-                className="w-full px-5 py-4 rounded-2xl border-2 border-[#E8ECF4] focus:border-[#0066FF] outline-none font-[Poppins] font-semibold text-[1rem] text-[#1A1D2B] placeholder:text-[#C0C8D8] transition-colors"
+                className="w-full px-5 py-4 rounded-2xl border-2 border-[#E8ECF4] focus:border-[#0066FF] outline-none font-poppins font-semibold text-[1rem] text-[#1A1D2B] placeholder:text-[#C0C8D8] transition-colors"
               />
               {showSugg && suggestions.length > 0 && (
                 <ul className="absolute z-50 w-full mt-2 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl overflow-hidden">
@@ -298,7 +298,7 @@ export default function DiscoverPopup() {
                     >
                       <span className="text-2xl">{d.flag}</span>
                       <div>
-                        <div className="font-[Poppins] font-bold text-[.92rem] text-[#1A1D2B]">{d.city}</div>
+                        <div className="font-poppins font-bold text-[.92rem] text-[#1A1D2B]">{d.city}</div>
                         <div className="text-[.72rem] text-[#8E95A9]">{d.country} · {d.season}</div>
                       </div>
                     </li>
@@ -311,7 +311,7 @@ export default function DiscoverPopup() {
             {dest && (
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-100 rounded-2xl p-5 mb-5">
                 <div className="text-3xl mb-2">{dest.flag}</div>
-                <div className="font-[Poppins] font-black text-[1.15rem] text-[#1A1D2B] mb-1.5">{dest.reaction}</div>
+                <div className="font-poppins font-black text-[1.15rem] text-[#1A1D2B] mb-1.5">{dest.reaction}</div>
                 <p className="text-[.84rem] text-[#5C6378] font-semibold leading-relaxed mb-3">{dest.message}</p>
                 <span className="inline-block text-[.65rem] font-black uppercase tracking-[1.5px] bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full">{dest.season}</span>
               </div>
@@ -344,7 +344,7 @@ export default function DiscoverPopup() {
             <button
               onClick={() => dest && goStep('dates')}
               disabled={!dest}
-              className="w-full bg-gradient-to-r from-[#0066FF] to-[#4F46E5] hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed text-white font-[Poppins] font-black text-[1rem] py-4 rounded-2xl transition-all shadow-[0_4px_20px_rgba(0,102,255,0.25)]"
+              className="w-full bg-gradient-to-r from-[#0066FF] to-[#4F46E5] hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed text-white font-poppins font-black text-[1rem] py-4 rounded-2xl transition-all shadow-[0_4px_20px_rgba(0,102,255,0.25)]"
             >
               Next — Pick your dates →
             </button>
@@ -355,7 +355,7 @@ export default function DiscoverPopup() {
         {step === 'dates' && dest && (
           <div className="p-6 pt-8 pb-8">
             <p className="text-[.62rem] font-black uppercase tracking-[2.5px] text-[#0066FF] mb-1">Step 2 of 3</p>
-            <h2 className="font-[Poppins] font-black text-[1.6rem] text-[#1A1D2B] mb-0.5">
+            <h2 className="font-poppins font-black text-[1.6rem] text-[#1A1D2B] mb-0.5">
               {dest.flag} When are you going?
             </h2>
             <p className="text-[.82rem] text-[#8E95A9] font-semibold mb-5">Pick your travel dates</p>
@@ -368,7 +368,7 @@ export default function DiscoverPopup() {
                   value={depDate}
                   min={today}
                   onChange={e => setDepDate(e.target.value)}
-                  className="w-full px-4 py-3.5 rounded-xl border-2 border-[#E8ECF4] focus:border-[#0066FF] outline-none font-[Poppins] font-semibold text-[.88rem] text-[#1A1D2B] transition-colors"
+                  className="w-full px-4 py-3.5 rounded-xl border-2 border-[#E8ECF4] focus:border-[#0066FF] outline-none font-poppins font-semibold text-[.88rem] text-[#1A1D2B] transition-colors"
                 />
               </div>
               <div>
@@ -378,7 +378,7 @@ export default function DiscoverPopup() {
                   value={retDate}
                   min={depDate || today}
                   onChange={e => setRetDate(e.target.value)}
-                  className="w-full px-4 py-3.5 rounded-xl border-2 border-[#E8ECF4] focus:border-[#0066FF] outline-none font-[Poppins] font-semibold text-[.88rem] text-[#1A1D2B] transition-colors"
+                  className="w-full px-4 py-3.5 rounded-xl border-2 border-[#E8ECF4] focus:border-[#0066FF] outline-none font-poppins font-semibold text-[.88rem] text-[#1A1D2B] transition-colors"
                 />
               </div>
             </div>
@@ -386,7 +386,7 @@ export default function DiscoverPopup() {
             {/* Countdown card */}
             {countdown && countdown > 0 && (
               <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-100 rounded-2xl p-5 mb-5 text-center">
-                <div className="font-[Poppins] font-black text-[3rem] leading-none text-[#1A1D2B] mb-1">{countdown}</div>
+                <div className="font-poppins font-black text-[3rem] leading-none text-[#1A1D2B] mb-1">{countdown}</div>
                 <div className="text-[.85rem] font-black text-emerald-700 mb-1">days until {dest.city}!</div>
                 <p className="text-[.75rem] text-[#8E95A9] font-semibold">
                   {countdown < 14 ? '🎒 Almost time! Get packing!' :
@@ -400,14 +400,14 @@ export default function DiscoverPopup() {
             <div className="flex gap-3">
               <button
                 onClick={() => goStep('destination')}
-                className="px-5 py-3.5 rounded-2xl border-2 border-[#E8ECF4] hover:border-[#0066FF] text-[#5C6378] font-[Poppins] font-bold text-[.9rem] transition-all"
+                className="px-5 py-3.5 rounded-2xl border-2 border-[#E8ECF4] hover:border-[#0066FF] text-[#5C6378] font-poppins font-bold text-[.9rem] transition-all"
               >
                 ← Back
               </button>
               <button
                 onClick={() => depDate && goStep('passengers')}
                 disabled={!depDate}
-                className="flex-1 bg-gradient-to-r from-[#0066FF] to-[#4F46E5] hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed text-white font-[Poppins] font-black text-[1rem] py-3.5 rounded-2xl transition-all shadow-[0_4px_20px_rgba(0,102,255,0.25)]"
+                className="flex-1 bg-gradient-to-r from-[#0066FF] to-[#4F46E5] hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed text-white font-poppins font-black text-[1rem] py-3.5 rounded-2xl transition-all shadow-[0_4px_20px_rgba(0,102,255,0.25)]"
               >
                 Next — Who's coming? →
               </button>
@@ -419,7 +419,7 @@ export default function DiscoverPopup() {
         {step === 'passengers' && dest && (
           <div className="p-6 pt-8 pb-8">
             <p className="text-[.62rem] font-black uppercase tracking-[2.5px] text-[#0066FF] mb-1">Step 3 of 3</p>
-            <h2 className="font-[Poppins] font-black text-[1.6rem] text-[#1A1D2B] mb-0.5">
+            <h2 className="font-poppins font-black text-[1.6rem] text-[#1A1D2B] mb-0.5">
               Who's joining you? 👥
             </h2>
             <p className="text-[.82rem] text-[#8E95A9] font-semibold mb-6">
@@ -434,7 +434,7 @@ export default function DiscoverPopup() {
             ].map(({ label, sub, val, min, set }) => (
               <div key={label} className="flex items-center justify-between py-4 border-b border-[#F8FAFC] last:border-0">
                 <div>
-                  <div className="font-[Poppins] font-bold text-[.95rem] text-[#1A1D2B]">{label}</div>
+                  <div className="font-poppins font-bold text-[.95rem] text-[#1A1D2B]">{label}</div>
                   <div className="text-[.72rem] text-[#8E95A9] font-medium">{sub}</div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -444,7 +444,7 @@ export default function DiscoverPopup() {
                     disabled={val <= min}
                     className="w-11 h-11 rounded-full border-2 border-[#E8ECF4] hover:border-[#0066FF] hover:text-[#0066FF] flex items-center justify-center font-bold text-xl text-[#5C6378] transition-all disabled:opacity-30"
                   >−</button>
-                  <span className="font-[Poppins] font-black text-[1.1rem] text-[#1A1D2B] w-6 text-center">{val}</span>
+                  <span className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] w-6 text-center">{val}</span>
                   <button
                     type="button"
                     onClick={() => set(val + 1)}
@@ -457,13 +457,13 @@ export default function DiscoverPopup() {
             <div className="mt-6 flex gap-3">
               <button
                 onClick={() => goStep('dates')}
-                className="px-5 py-3.5 rounded-2xl border-2 border-[#E8ECF4] hover:border-[#0066FF] text-[#5C6378] font-[Poppins] font-bold text-[.9rem] transition-all"
+                className="px-5 py-3.5 rounded-2xl border-2 border-[#E8ECF4] hover:border-[#0066FF] text-[#5C6378] font-poppins font-bold text-[.9rem] transition-all"
               >
                 ← Back
               </button>
               <button
                 onClick={() => goStep('results')}
-                className="flex-1 bg-gradient-to-r from-orange-500 to-rose-500 hover:brightness-110 text-white font-[Poppins] font-black text-[1rem] py-3.5 rounded-2xl transition-all shadow-[0_4px_20px_rgba(249,115,22,0.3)]"
+                className="flex-1 bg-gradient-to-r from-orange-500 to-rose-500 hover:brightness-110 text-white font-poppins font-black text-[1rem] py-3.5 rounded-2xl transition-all shadow-[0_4px_20px_rgba(249,115,22,0.3)]"
               >
                 Find me the best deals! 🔍
               </button>
@@ -477,7 +477,7 @@ export default function DiscoverPopup() {
             {/* Hero banner */}
             <div className="bg-gradient-to-br from-[#0066FF] to-[#4F46E5] px-6 pt-8 pb-6 text-white">
               <div className="text-4xl mb-2">{dest.flag}</div>
-              <h2 className="font-[Poppins] font-black text-[1.5rem] sm:text-[1.7rem] leading-tight mb-1">
+              <h2 className="font-poppins font-black text-[1.5rem] sm:text-[1.7rem] leading-tight mb-1">
                 Your {dest.city} trip!
               </h2>
               <p className="text-[.8rem] text-white/70 font-semibold">
@@ -493,7 +493,7 @@ export default function DiscoverPopup() {
                 <button
                   key={t}
                   onClick={() => setPanel(i)}
-                  className={`flex-shrink-0 pb-3 pt-4 px-4 text-[.82rem] font-[Poppins] font-extrabold border-b-2 transition-all whitespace-nowrap ${panel === i ? 'border-[#0066FF] text-[#0066FF]' : 'border-transparent text-[#8E95A9] hover:text-[#1A1D2B]'}`}
+                  className={`flex-shrink-0 pb-3 pt-4 px-4 text-[.82rem] font-poppins font-extrabold border-b-2 transition-all whitespace-nowrap ${panel === i ? 'border-[#0066FF] text-[#0066FF]' : 'border-transparent text-[#8E95A9] hover:text-[#1A1D2B]'}`}
                 >
                   {t}
                 </button>
@@ -519,7 +519,7 @@ export default function DiscoverPopup() {
                       >
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${p.color}`}>{p.icon}</div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-[Poppins] font-bold text-[.88rem] text-[#1A1D2B]">{p.name}</div>
+                          <div className="font-poppins font-bold text-[.88rem] text-[#1A1D2B]">{p.name}</div>
                           <div className="text-[.7rem] text-[#8E95A9] truncate">{p.desc}</div>
                         </div>
                         <span className="text-[#0066FF] font-bold text-[.8rem] group-hover:translate-x-0.5 transition-transform flex-shrink-0">→</span>
@@ -528,7 +528,7 @@ export default function DiscoverPopup() {
                   </div>
                   <button
                     onClick={() => { close(); window.location.href = flightsUrl; }}
-                    className="block w-full text-center bg-gradient-to-r from-[#0066FF] to-[#4F46E5] hover:brightness-110 text-white font-[Poppins] font-black text-[.95rem] py-4 rounded-2xl transition-all shadow-[0_4px_16px_rgba(0,102,255,0.25)]"
+                    className="block w-full text-center bg-gradient-to-r from-[#0066FF] to-[#4F46E5] hover:brightness-110 text-white font-poppins font-black text-[.95rem] py-4 rounded-2xl transition-all shadow-[0_4px_16px_rgba(0,102,255,0.25)]"
                   >
                     See all flights to {dest.city} →
                   </button>
@@ -552,7 +552,7 @@ export default function DiscoverPopup() {
                       >
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${p.color}`}>{p.icon}</div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-[Poppins] font-bold text-[.88rem] text-[#1A1D2B]">{p.name}</div>
+                          <div className="font-poppins font-bold text-[.88rem] text-[#1A1D2B]">{p.name}</div>
                           <div className="text-[.7rem] text-[#8E95A9] truncate">{p.desc}</div>
                         </div>
                         <span className="text-orange-500 font-bold text-[.8rem] group-hover:translate-x-0.5 transition-transform flex-shrink-0">→</span>
@@ -561,7 +561,7 @@ export default function DiscoverPopup() {
                   </div>
                   <button
                     onClick={() => { close(); window.location.href = hotelsUrl; }}
-                    className="block w-full text-center bg-gradient-to-r from-orange-500 to-rose-500 hover:brightness-110 text-white font-[Poppins] font-black text-[.95rem] py-4 rounded-2xl transition-all shadow-[0_4px_16px_rgba(249,115,22,0.25)]"
+                    className="block w-full text-center bg-gradient-to-r from-orange-500 to-rose-500 hover:brightness-110 text-white font-poppins font-black text-[.95rem] py-4 rounded-2xl transition-all shadow-[0_4px_16px_rgba(249,115,22,0.25)]"
                   >
                     Find hotels in {dest.city} →
                   </button>
@@ -597,7 +597,7 @@ export default function DiscoverPopup() {
           <div className="bg-[#0F1119] text-white rounded-2xl px-5 py-4 flex items-center gap-3 shadow-2xl animate-slide-up">
             <span className="text-2xl">📱</span>
             <div className="flex-1">
-              <div className="font-[Poppins] font-bold text-[.9rem]">Don't pay roaming in {dest.country}!</div>
+              <div className="font-poppins font-bold text-[.9rem]">Don't pay roaming in {dest.country}!</div>
               <div className="text-[.7rem] text-white/60">eSIM plans from £3 — stay connected anywhere</div>
             </div>
             <button onClick={() => { close(); window.location.href = '/esim'; }} className="bg-[#0066FF] text-white font-bold text-[.72rem] px-3.5 py-1.5 rounded-lg whitespace-nowrap flex-shrink-0">
@@ -613,7 +613,7 @@ export default function DiscoverPopup() {
           <div className="bg-[#0F1119] text-white rounded-2xl px-5 py-4 flex items-center gap-3 shadow-2xl animate-slide-up">
             <span className="text-2xl">🚗</span>
             <div className="flex-1">
-              <div className="font-[Poppins] font-bold text-[.9rem]">Explore {dest.city} your way</div>
+              <div className="font-poppins font-bold text-[.9rem]">Explore {dest.city} your way</div>
               <div className="text-[.7rem] text-white/60">Car hire from £15/day — compare top providers</div>
             </div>
             <button onClick={() => { close(); window.location.href = carsUrl; }} className="bg-gradient-to-r from-orange-500 to-rose-500 text-white font-bold text-[.72rem] px-3.5 py-1.5 rounded-lg whitespace-nowrap flex-shrink-0">
@@ -629,7 +629,7 @@ export default function DiscoverPopup() {
 function LocalSection({ title, items, accent }: { title: string; items: string[]; accent?: boolean }) {
   return (
     <div className={`rounded-2xl p-4 ${accent ? 'bg-amber-50 border border-amber-100' : 'bg-[#F8FAFC] border border-[#F1F3F7]'}`}>
-      <h4 className="font-[Poppins] font-black text-[.85rem] text-[#1A1D2B] mb-3">{title}</h4>
+      <h4 className="font-poppins font-black text-[.85rem] text-[#1A1D2B] mb-3">{title}</h4>
       <ul className="space-y-2">
         {items.map((item, i) => (
           <li key={i} className="flex items-start gap-2.5 text-[.8rem] text-[#5C6378] font-semibold">

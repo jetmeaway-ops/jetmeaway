@@ -75,7 +75,7 @@ export default function ScoutChat() {
       >
         {/* Name tag — visible when closed, hides on open */}
         {!open && (
-          <span className="hidden sm:flex items-center bg-white text-[#1A1D2B] font-[Poppins] font-extrabold text-[.72rem] px-3 py-1.5 rounded-full shadow-[0_6px_18px_rgba(0,0,0,0.1)] border border-[#E8ECF4]">
+          <span className="hidden sm:flex items-center bg-white text-[#1A1D2B] font-poppins font-extrabold text-[.72rem] px-3 py-1.5 rounded-full shadow-[0_6px_18px_rgba(0,0,0,0.1)] border border-[#E8ECF4]">
             Ask Scout
           </span>
         )}
@@ -104,7 +104,7 @@ export default function ScoutChat() {
               <i className="fa-solid fa-compass"></i>
             </div>
             <div>
-              <p className="font-[Poppins] font-extrabold text-[.95rem] leading-tight">Scout</p>
+              <p className="font-poppins font-extrabold text-[.95rem] leading-tight">Scout</p>
               <p className="text-[.7rem] text-white/80 leading-tight">Your travel assistant</p>
             </div>
           </div>

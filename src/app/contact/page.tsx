@@ -23,7 +23,7 @@ export default function Contact() {
     <>
       <Header />
       <section className="pt-36 pb-10 px-5 text-center">
-        <h1 className="font-[Poppins] text-[2.4rem] font-black tracking-tight mb-2.5">📩 <span className="text-[#0066FF]">Contact</span> Us</h1>
+        <h1 className="font-poppins text-[2.4rem] font-black tracking-tight mb-2.5">📩 <span className="text-[#0066FF]">Contact</span> Us</h1>
         <p className="text-[.95rem] text-[#8E95A9] max-w-[500px] mx-auto">Got a question, feedback, or need help? We&apos;d love to hear from you.</p>
       </section>
 
@@ -42,19 +42,19 @@ export default function Contact() {
           <div className="bg-white border border-[#F1F3F7] rounded-3xl p-7">
             {!sent ? (
               <>
-                <h3 className="font-[Poppins] font-bold text-[1rem] text-[#0066FF] mb-4">Send a Message</h3>
+                <h3 className="font-poppins font-bold text-[1rem] text-[#0066FF] mb-4">Send a Message</h3>
                 <div className="space-y-3">
                   <div><label className="block text-[.58rem] font-bold uppercase tracking-[1.5px] text-[#8E95A9] mb-1">Your Name</label><input id="cf-name" type="text" placeholder="John Smith" className="w-full p-3 bg-[#F8FAFC] border border-[#E4E8F0] rounded-lg text-[.88rem] text-[#1A1D2B] outline-none focus:border-[#0066FF]" /></div>
                   <div><label className="block text-[.58rem] font-bold uppercase tracking-[1.5px] text-[#8E95A9] mb-1">Email</label><input id="cf-email" type="email" placeholder="your@email.com" className="w-full p-3 bg-[#F8FAFC] border border-[#E4E8F0] rounded-lg text-[.88rem] text-[#1A1D2B] outline-none focus:border-[#0066FF]" /></div>
                   <div><label className="block text-[.58rem] font-bold uppercase tracking-[1.5px] text-[#8E95A9] mb-1">Subject</label><select id="cf-subject" className="w-full p-3 bg-[#F8FAFC] border border-[#E4E8F0] rounded-lg text-[.88rem] text-[#1A1D2B] outline-none"><option>General Enquiry</option><option>Feedback</option><option>Report a Problem</option><option>Partnership</option></select></div>
                   <div><label className="block text-[.58rem] font-bold uppercase tracking-[1.5px] text-[#8E95A9] mb-1">Message</label><textarea id="cf-msg" placeholder="How can we help?" className="w-full p-3 bg-[#F8FAFC] border border-[#E4E8F0] rounded-lg text-[.88rem] text-[#1A1D2B] outline-none focus:border-[#0066FF] min-h-[120px] resize-y" /></div>
-                  <button onClick={sendForm} className="w-full py-3.5 bg-[#0066FF] hover:bg-[#0052CC] text-white font-[Poppins] font-bold text-[.92rem] rounded-xl transition-all">Send Message</button>
+                  <button onClick={sendForm} className="w-full py-3.5 bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.92rem] rounded-xl transition-all">Send Message</button>
                 </div>
               </>
             ) : (
               <div className="text-center py-6">
                 <div className="text-[2.5rem] mb-2">✅</div>
-                <h3 className="font-[Poppins] font-bold text-[1rem] text-[#0066FF] mb-1.5">Message Sent!</h3>
+                <h3 className="font-poppins font-bold text-[1rem] text-[#0066FF] mb-1.5">Message Sent!</h3>
                 <p className="text-[.82rem] text-[#8E95A9]">Thank you. We&apos;ll get back to you soon.</p>
               </div>
             )}
@@ -63,7 +63,7 @@ export default function Contact() {
 
         {/* FAQ */}
         <div className="bg-white border border-[#F1F3F7] rounded-3xl p-7 mt-4">
-          <h2 className="font-[Poppins] font-bold text-[1rem] text-[#0066FF] mb-4">❓ FAQ</h2>
+          <h2 className="font-poppins font-bold text-[1rem] text-[#0066FF] mb-4">❓ FAQ</h2>
           <div className="space-y-3.5">
             <FAQ q="Is Jetmeaway free?" a="Yes, 100% free. We earn commission from partners when you book, but this never affects your price." />
             <FAQ q="Can I book through Jetmeaway?" a="We're a comparison site. When you find a deal, we redirect you to the provider to complete the booking." />

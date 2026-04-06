@@ -149,13 +149,13 @@ function FlightSummary({ offer, compact }: { offer: OfferData; compact?: boolean
           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
         />
         <div>
-          <div className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B]">{offer.airline}</div>
+          <div className="font-poppins font-bold text-[.85rem] text-[#1A1D2B]">{offer.airline}</div>
           {!compact && <div className="text-[.65rem] text-[#8E95A9] font-semibold">{offer.cabinClass}</div>}
         </div>
       </div>
       <div className="flex items-center gap-4 text-[.78rem]">
         <div>
-          <div className="font-[Poppins] font-black text-[#1A1D2B]">{fmtTime(offer.departureAt)}</div>
+          <div className="font-poppins font-black text-[#1A1D2B]">{fmtTime(offer.departureAt)}</div>
           <div className="text-[.65rem] text-[#8E95A9] font-semibold">{offer.origin}</div>
         </div>
         <div className="flex-1 flex flex-col items-center gap-0.5">
@@ -166,7 +166,7 @@ function FlightSummary({ offer, compact }: { offer: OfferData; compact?: boolean
           </span>
         </div>
         <div>
-          <div className="font-[Poppins] font-black text-[#1A1D2B]">{fmtTime(offer.arrivalAt)}</div>
+          <div className="font-poppins font-black text-[#1A1D2B]">{fmtTime(offer.arrivalAt)}</div>
           <div className="text-[.65rem] text-[#8E95A9] font-semibold">{offer.destination}</div>
         </div>
       </div>
@@ -174,7 +174,7 @@ function FlightSummary({ offer, compact }: { offer: OfferData; compact?: boolean
       {offer.hasReturn && (
         <div className="border-t border-[#F1F3F7] mt-3 pt-3 flex items-center gap-4 text-[.78rem]">
           <div>
-            <div className="font-[Poppins] font-black text-[#1A1D2B]">{fmtTime(offer.returnDepartureAt)}</div>
+            <div className="font-poppins font-black text-[#1A1D2B]">{fmtTime(offer.returnDepartureAt)}</div>
             <div className="text-[.65rem] text-[#8E95A9] font-semibold">{offer.destination}</div>
           </div>
           <div className="flex-1 flex flex-col items-center gap-0.5">
@@ -185,7 +185,7 @@ function FlightSummary({ offer, compact }: { offer: OfferData; compact?: boolean
             </span>
           </div>
           <div>
-            <div className="font-[Poppins] font-black text-[#1A1D2B]">{fmtTime(offer.returnArrivalAt)}</div>
+            <div className="font-poppins font-black text-[#1A1D2B]">{fmtTime(offer.returnArrivalAt)}</div>
             <div className="text-[.65rem] text-[#8E95A9] font-semibold">{offer.origin}</div>
           </div>
           <div className="text-[.65rem] text-[#8E95A9] font-semibold">{fmtDate(offer.returnDepartureAt)}</div>
@@ -264,7 +264,7 @@ function PriceSidebar({
     <div className="hidden lg:block">
       <div className="sticky top-28 space-y-4">
         <div className="bg-white border border-[#E8ECF4] rounded-2xl p-5 shadow-[0_2px_16px_rgba(0,102,255,0.06)]">
-          <h3 className="font-[Poppins] font-black text-[.85rem] text-[#1A1D2B] mb-4">Price Summary</h3>
+          <h3 className="font-poppins font-black text-[.85rem] text-[#1A1D2B] mb-4">Price Summary</h3>
 
           <div className="space-y-2.5 text-[.78rem]">
             <div className="flex justify-between">
@@ -276,8 +276,8 @@ function PriceSidebar({
               <span className="font-bold text-[#1A1D2B]">£{MARKUP_GBP.toFixed(2)}</span>
             </div>
             <div className="border-t border-[#F1F3F7] pt-2.5 flex justify-between">
-              <span className="font-[Poppins] font-black text-[#1A1D2B]">Per person</span>
-              <span className="font-[Poppins] font-black text-green-600 text-[1.1rem]">{offer.pricing.display}</span>
+              <span className="font-poppins font-black text-[#1A1D2B]">Per person</span>
+              <span className="font-poppins font-black text-green-600 text-[1.1rem]">{offer.pricing.display}</span>
             </div>
             {offer.passengerCount > 1 && (
               <div className="flex justify-between text-[.72rem]">
@@ -313,7 +313,7 @@ function PriceSidebar({
               <button
                 onClick={onCta}
                 disabled={ctaDisabled}
-                className="w-full mt-5 bg-[#0066FF] hover:bg-[#0052CC] disabled:bg-[#0066FF]/50 text-white font-[Poppins] font-bold text-[.85rem] px-6 py-3 rounded-xl transition-all shadow-[0_4px_16px_rgba(0,102,255,0.2)]"
+                className="w-full mt-5 bg-[#0066FF] hover:bg-[#0052CC] disabled:bg-[#0066FF]/50 text-white font-poppins font-bold text-[.85rem] px-6 py-3 rounded-xl transition-all shadow-[0_4px_16px_rgba(0,102,255,0.2)]"
               >
                 {ctaLabel || 'Continue to Payment →'}
               </button>
@@ -576,11 +576,11 @@ export default function CheckoutPage() {
         <div className="max-w-[860px] mx-auto px-5 pt-36 pb-16">
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8 text-center">
             <span className="text-3xl mb-3 block">⏰</span>
-            <h2 className="font-[Poppins] font-black text-[1.1rem] text-[#1A1D2B] mb-2">Offer Expired</h2>
+            <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-2">Offer Expired</h2>
             <p className="text-[.82rem] text-[#5C6378] font-semibold mb-5">{error}</p>
             <a
               href="/flights"
-              className="inline-block bg-[#0066FF] hover:bg-[#0052CC] text-white font-[Poppins] font-bold text-[.82rem] px-6 py-2.5 rounded-xl transition-all"
+              className="inline-block bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.82rem] px-6 py-2.5 rounded-xl transition-all"
             >
               Search Again →
             </a>
@@ -594,14 +594,14 @@ export default function CheckoutPage() {
           {/* Success banner */}
           <div className="bg-gradient-to-br from-green-600 to-emerald-500 rounded-3xl p-8 text-center mb-6 shadow-[0_8px_32px_rgba(22,163,74,0.25)]">
             <div className="text-5xl mb-3">✓</div>
-            <h1 className="font-[Poppins] font-black text-[1.6rem] text-white mb-1">Booking Confirmed!</h1>
+            <h1 className="font-poppins font-black text-[1.6rem] text-white mb-1">Booking Confirmed!</h1>
             <p className="text-[.82rem] text-white/80 font-semibold">Your e-ticket will be sent by the airline shortly.</p>
           </div>
 
           {/* Booking reference */}
           <div className="bg-white border border-[#E8ECF4] rounded-2xl p-6 mb-4 text-center">
             <div className="text-[.62rem] font-black uppercase tracking-[2px] text-[#8E95A9] mb-1">Booking Reference</div>
-            <div className="font-[Poppins] font-black text-[1.5rem] text-[#1A1D2B] tracking-[2px]">
+            <div className="font-poppins font-black text-[1.5rem] text-[#1A1D2B] tracking-[2px]">
               {confirmation.bookingReference}
             </div>
           </div>
@@ -618,7 +618,7 @@ export default function CheckoutPage() {
               <span className="text-[.78rem] text-[#5C6378] font-semibold">
                 {offer.passengerCount > 1 ? `${offer.passengerCount} passengers` : '1 passenger'}
               </span>
-              <span className="font-[Poppins] font-black text-[1.3rem] text-green-600">
+              <span className="font-poppins font-black text-[1.3rem] text-green-600">
                 £{confirmation.totalAll.toFixed(2)}
               </span>
             </div>
@@ -655,13 +655,13 @@ export default function CheckoutPage() {
           <div className="flex flex-col sm:flex-row gap-3">
             <a
               href="/flights"
-              className="flex-1 text-center bg-[#0066FF] hover:bg-[#0052CC] text-white font-[Poppins] font-bold text-[.82rem] px-6 py-3 rounded-xl transition-all"
+              className="flex-1 text-center bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.82rem] px-6 py-3 rounded-xl transition-all"
             >
               Search More Flights
             </a>
             <a
               href="/"
-              className="flex-1 text-center bg-white border border-[#E8ECF4] hover:border-[#0066FF] text-[#1A1D2B] font-[Poppins] font-bold text-[.82rem] px-6 py-3 rounded-xl transition-all"
+              className="flex-1 text-center bg-white border border-[#E8ECF4] hover:border-[#0066FF] text-[#1A1D2B] font-poppins font-bold text-[.82rem] px-6 py-3 rounded-xl transition-all"
             >
               Back to Home
             </a>
@@ -689,7 +689,7 @@ export default function CheckoutPage() {
               {/* ═══ STEP 1: Passenger Details ═══ */}
               {step === 'passengers' && (
                 <>
-                  <h1 className="font-[Poppins] font-black text-[1.5rem] text-[#1A1D2B] mb-1">
+                  <h1 className="font-poppins font-black text-[1.5rem] text-[#1A1D2B] mb-1">
                     Who&apos;s flying?
                   </h1>
                   <p className="text-[.8rem] text-[#5C6378] font-semibold mb-2">
@@ -712,7 +712,7 @@ export default function CheckoutPage() {
                     return (
                       <div key={idx} className="bg-white border border-[#E8ECF4] rounded-2xl p-5">
                         <div className="flex items-center justify-between mb-4">
-                          <h3 className="font-[Poppins] font-black text-[.92rem] text-[#1A1D2B]">
+                          <h3 className="font-poppins font-black text-[.92rem] text-[#1A1D2B]">
                             {isLead ? 'Lead Passenger' : `Passenger ${idx + 1}`}
                           </h3>
                           <span className="text-[.6rem] font-black uppercase tracking-[1.5px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">
@@ -834,7 +834,7 @@ export default function CheckoutPage() {
                     <button
                       onClick={handleContinueToPayment}
                       disabled={paymentLoading}
-                      className="w-full bg-[#0066FF] hover:bg-[#0052CC] disabled:bg-[#0066FF]/50 text-white font-[Poppins] font-bold text-[.88rem] px-6 py-3.5 rounded-xl transition-all shadow-[0_4px_16px_rgba(0,102,255,0.2)]"
+                      className="w-full bg-[#0066FF] hover:bg-[#0052CC] disabled:bg-[#0066FF]/50 text-white font-poppins font-bold text-[.88rem] px-6 py-3.5 rounded-xl transition-all shadow-[0_4px_16px_rgba(0,102,255,0.2)]"
                     >
                       {paymentLoading ? 'Loading payment...' : 'Continue to Payment →'}
                     </button>
@@ -851,7 +851,7 @@ export default function CheckoutPage() {
               {(step === 'payment' || step === 'processing') && (
                 <div ref={paymentSectionRef}>
                   <div className="flex items-center justify-between mb-4">
-                    <h1 className="font-[Poppins] font-black text-[1.5rem] text-[#1A1D2B]">
+                    <h1 className="font-poppins font-black text-[1.5rem] text-[#1A1D2B]">
                       Payment
                     </h1>
                     <button
@@ -884,7 +884,7 @@ export default function CheckoutPage() {
                   {step === 'processing' && (
                     <div className="bg-white border border-[#E8ECF4] rounded-2xl p-8 text-center">
                       <div className="animate-spin w-10 h-10 border-4 border-[#0066FF] border-t-transparent rounded-full mx-auto mb-4" />
-                      <h3 className="font-[Poppins] font-black text-[1rem] text-[#1A1D2B] mb-1">
+                      <h3 className="font-poppins font-black text-[1rem] text-[#1A1D2B] mb-1">
                         Booking your flight...
                       </h3>
                       <p className="text-[.78rem] text-[#5C6378] font-semibold">
@@ -920,7 +920,7 @@ export default function CheckoutPage() {
                     <div className="bg-white border border-[#E8ECF4] rounded-2xl p-6 shadow-[0_2px_16px_rgba(0,102,255,0.06)]">
                       <div className="flex items-center gap-2 mb-5">
                         <span className="text-lg">💳</span>
-                        <h3 className="font-[Poppins] font-black text-[.92rem] text-[#1A1D2B]">
+                        <h3 className="font-poppins font-black text-[.92rem] text-[#1A1D2B]">
                           Card Details
                         </h3>
                       </div>
@@ -950,7 +950,7 @@ export default function CheckoutPage() {
                   <div className="lg:hidden mt-5 bg-[#F8FAFC] border border-[#F1F3F7] rounded-2xl p-4">
                     <div className="flex justify-between items-baseline">
                       <span className="text-[.78rem] text-[#5C6378] font-semibold">Total to pay</span>
-                      <span className="font-[Poppins] font-black text-[1.1rem] text-green-600">£{offer.totalForAll.toFixed(2)}</span>
+                      <span className="font-poppins font-black text-[1.1rem] text-green-600">£{offer.totalForAll.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>

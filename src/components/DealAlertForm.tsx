@@ -52,7 +52,7 @@ export default function DealAlertForm() {
         <button
           onClick={handleJoin}
           disabled={saving}
-          className="bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-60 text-white border-none py-3 px-4 font-[Poppins] text-[.7rem] font-bold cursor-pointer transition-colors">
+          className="bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-60 text-white border-none py-3 px-4 font-poppins text-[.7rem] font-bold cursor-pointer transition-colors">
           {saving ? '...' : 'Join'}
         </button>
       </div>

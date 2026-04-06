@@ -201,7 +201,7 @@ export default function FlightSearch() {
           <button onClick={() => setShowOriginPicker(!showOriginPicker)}
             className="flex items-center gap-2 px-3 py-2 rounded-xl border border-[#E8ECF4] hover:border-[#0066FF] transition-colors w-full text-left">
             <span className="text-sm">🛫</span>
-            <span className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B]">{origin.name}</span>
+            <span className="font-poppins font-bold text-[.85rem] text-[#1A1D2B]">{origin.name}</span>
             <span className="text-[.72rem] text-[#8E95A9] font-semibold">({origin.code})</span>
             <span className="ml-auto text-[.65rem] text-[#0066FF] font-bold">Change</span>
           </button>
@@ -211,7 +211,7 @@ export default function FlightSearch() {
                 <li key={ap.code} onMouseDown={() => changeOrigin(ap)}
                   className={`flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 cursor-pointer border-b border-[#F8FAFC] last:border-0 transition-colors ${ap.code === origin.code ? 'bg-blue-50' : ''}`}>
                   <span className="font-mono text-[.75rem] font-bold text-[#0066FF] w-8">{ap.code}</span>
-                  <span className="font-[Poppins] font-semibold text-[.82rem] text-[#1A1D2B]">{ap.name}</span>
+                  <span className="font-poppins font-semibold text-[.82rem] text-[#1A1D2B]">{ap.name}</span>
                 </li>
               ))}
             </ul>
@@ -225,7 +225,7 @@ export default function FlightSearch() {
             onChange={e => handleInput(e.target.value)}
             onFocus={() => { if (query.trim()) handleInput(query); }}
             placeholder="Type a city or country..."
-            className="w-full px-4 py-4 rounded-2xl border-2 border-[#E8ECF4] focus:border-[#0066FF] outline-none font-[Poppins] font-semibold text-[1rem] text-[#1A1D2B] placeholder:text-[#C0C8D8] transition-colors" />
+            className="w-full px-4 py-4 rounded-2xl border-2 border-[#E8ECF4] focus:border-[#0066FF] outline-none font-poppins font-semibold text-[1rem] text-[#1A1D2B] placeholder:text-[#C0C8D8] transition-colors" />
 
           {showSugg && suggestions.length > 0 && (
             <ul className="absolute z-50 w-full mt-2 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl overflow-hidden">
@@ -234,7 +234,7 @@ export default function FlightSearch() {
                   className="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-[#F8FAFC] last:border-0 transition-colors">
                   <span className="text-2xl">{d.flag}</span>
                   <div className="flex-1 text-left">
-                    <div className="font-[Poppins] font-bold text-[.9rem] text-[#1A1D2B]">{d.city}</div>
+                    <div className="font-poppins font-bold text-[.9rem] text-[#1A1D2B]">{d.city}</div>
                     <div className="text-[.72rem] text-[#8E95A9]">{d.country}</div>
                   </div>
                   <span className="font-mono text-[.68rem] font-bold text-[#8E95A9]">{d.code}</span>

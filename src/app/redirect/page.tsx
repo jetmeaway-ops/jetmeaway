@@ -182,7 +182,7 @@ export default function RedirectPage() {
               </div>
             </div>
 
-            <h1 className="font-[Poppins] font-black text-[1.3rem] text-[#1A1D2B] mb-2">
+            <h1 className="font-poppins font-black text-[1.3rem] text-[#1A1D2B] mb-2">
               Taking you to {provider}
             </h1>
             <p className="text-[.85rem] text-[#5C6378] font-semibold mb-6">
@@ -214,7 +214,7 @@ export default function RedirectPage() {
 
           {/* Cross-sell cards */}
           <div className="space-y-3 mb-6">
-            <h2 className="font-[Poppins] font-black text-[.85rem] text-[#1A1D2B] px-1">
+            <h2 className="font-poppins font-black text-[.85rem] text-[#1A1D2B] px-1">
               Complete your trip
             </h2>
             {crossSells.map(sell => (
@@ -226,7 +226,7 @@ export default function RedirectPage() {
                 <div className="flex items-center gap-4">
                   <span className="text-2xl flex-shrink-0">{sell.icon}</span>
                   <div className="flex-1 min-w-0">
-                    <div className="font-[Poppins] font-bold text-[.88rem] text-[#1A1D2B] mb-0.5">{sell.title}</div>
+                    <div className="font-poppins font-bold text-[.88rem] text-[#1A1D2B] mb-0.5">{sell.title}</div>
                     <div className="text-[.72rem] text-[#5C6378] font-semibold">{sell.desc}</div>
                   </div>
                   <span className="text-[#0066FF] font-bold text-[.75rem] group-hover:translate-x-0.5 transition-transform flex-shrink-0 whitespace-nowrap">
@@ -243,7 +243,7 @@ export default function RedirectPage() {
               <div className="flex items-center gap-3 mb-3">
                 <span className="text-xl">🔔</span>
                 <div>
-                  <div className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B]">
+                  <div className="font-poppins font-bold text-[.85rem] text-[#1A1D2B]">
                     {dest ? `Get price alerts for ${dest}` : 'Get deal alerts'}
                   </div>
                   <div className="text-[.7rem] text-[#8E95A9] font-semibold">
@@ -263,7 +263,7 @@ export default function RedirectPage() {
                 />
                 <button
                   onClick={handleSaveEmail}
-                  className="bg-[#0066FF] hover:bg-[#0052CC] text-white font-[Poppins] font-bold text-[.78rem] px-5 py-2.5 rounded-xl transition-all flex-shrink-0"
+                  className="bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.78rem] px-5 py-2.5 rounded-xl transition-all flex-shrink-0"
                 >
                   Alert Me
                 </button>
@@ -272,7 +272,7 @@ export default function RedirectPage() {
           ) : (
             <div className="bg-green-50 border border-green-200 rounded-2xl p-5 text-center">
               <span className="text-xl">✅</span>
-              <p className="font-[Poppins] font-bold text-[.85rem] text-green-700 mt-1">You&apos;re all set! We&apos;ll email you when prices drop.</p>
+              <p className="font-poppins font-bold text-[.85rem] text-green-700 mt-1">You&apos;re all set! We&apos;ll email you when prices drop.</p>
             </div>
           )}
 

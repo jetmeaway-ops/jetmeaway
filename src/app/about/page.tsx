@@ -13,7 +13,7 @@ export default function About() {
     <>
       <Header />
       <section className="pt-36 pb-10 px-5 text-center">
-        <h1 className="font-[Poppins] text-[2.4rem] font-black tracking-tight mb-2.5">About <span className="text-[#0066FF]">Jetmeaway</span></h1>
+        <h1 className="font-poppins text-[2.4rem] font-black tracking-tight mb-2.5">About <span className="text-[#0066FF]">Jetmeaway</span></h1>
         <p className="text-[.95rem] text-[#8E95A9] max-w-[500px] mx-auto">We&apos;re on a mission to help every traveller find the best deal — without searching dozens of sites.</p>
       </section>
 
@@ -50,7 +50,7 @@ export default function About() {
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="bg-white border border-[#F1F3F7] rounded-3xl p-8">
-      <h2 className="font-[Poppins] text-[1.05rem] font-bold text-[#0066FF] mb-2.5 flex items-center gap-2">{title}</h2>
+      <h2 className="font-poppins text-[1.05rem] font-bold text-[#0066FF] mb-2.5 flex items-center gap-2">{title}</h2>
       <div className="text-[.88rem] text-[#5C6378] leading-relaxed space-y-2.5">{children}</div>
     </div>
   );
@@ -60,7 +60,7 @@ function Value({ icon, name, desc }: { icon: string; name: string; desc: string 
   return (
     <div className="text-center p-5 bg-[#F8FAFC] border border-[#F1F3F7] rounded-xl">
       <div className="text-[1.8rem] mb-2">{icon}</div>
-      <div className="font-[Poppins] font-bold text-[.82rem] text-[#1A1D2B] mb-1">{name}</div>
+      <div className="font-poppins font-bold text-[.82rem] text-[#1A1D2B] mb-1">{name}</div>
       <div className="text-[.72rem] text-[#8E95A9] leading-snug">{desc}</div>
     </div>
   );

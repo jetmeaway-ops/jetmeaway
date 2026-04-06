@@ -1,7 +1,15 @@
 export const runtime = 'edge';
 
 import './globals.css';
+import { Poppins } from 'next/font/google';
 import ScoutChat from '@/components/ScoutChat';
+
+const poppins = Poppins({
+  weight: ['400', '600', '700', '800', '900'],
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--next-poppins',
+});
 
 export const metadata = {
   title: 'JetMeAway | Compare Flights, Hotels, Car Hire & Holidays — UK Travel Comparison',
@@ -26,17 +34,16 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={poppins.variable}>
       <head>
+        {/* Preconnect to Font Awesome CDN for faster icon loading */}
+        <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossOrigin="anonymous" />
         <link
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
           crossOrigin="anonymous"
         />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&display=swap"
-          rel="stylesheet"
-        />
+        {/* Poppins is self-hosted via next/font — no Google Fonts request needed */}
       </head>
       <body>
         {children}

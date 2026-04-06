@@ -11,7 +11,7 @@ export default function Footer() {
             <p className="text-[.75rem] text-white/25 leading-relaxed font-semibold">Your AI-powered travel scout. Compare flights, hotels, packages &amp; more from 21 trusted providers.</p>
           </div>
           <div>
-            <h4 className="font-[Poppins] text-[.62rem] font-extrabold uppercase tracking-[2.5px] text-white mb-4">Compare</h4>
+            <h4 className="font-poppins text-[.62rem] font-extrabold uppercase tracking-[2.5px] text-white mb-4">Compare</h4>
             <Link href="/flights" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">✈ Flights</Link>
             <Link href="/hotels" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">🏨 Hotels</Link>
             <Link href="/packages" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">📦 Packages</Link>
@@ -20,14 +20,14 @@ export default function Footer() {
             <Link href="/esim" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">📱 eSIM Plans</Link>
           </div>
           <div>
-            <h4 className="font-[Poppins] text-[.62rem] font-extrabold uppercase tracking-[2.5px] text-white mb-4">Company</h4>
+            <h4 className="font-poppins text-[.62rem] font-extrabold uppercase tracking-[2.5px] text-white mb-4">Company</h4>
             <Link href="/about" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">About</Link>
             <Link href="/privacy" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">Privacy Policy</Link>
             <Link href="/terms" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">Terms of Service</Link>
             <Link href="/contact" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">Contact Us</Link>
           </div>
           <div>
-            <h4 className="font-[Poppins] text-[.62rem] font-extrabold uppercase tracking-[2.5px] text-white mb-4">Deal Alerts</h4>
+            <h4 className="font-poppins text-[.62rem] font-extrabold uppercase tracking-[2.5px] text-white mb-4">Deal Alerts</h4>
             <DealAlertForm />
           </div>
         </div>
@@ -40,7 +40,7 @@ export default function Footer() {
           <p className="text-[.6rem] text-white/10">© 2026 Jetmeaway (jetmeaway.co.uk). All rights reserved.</p>
           <div className="flex gap-4 opacity-[.12] hover:opacity-30 transition-opacity">
             {['Expedia','Trip.com','Aviasales','GetYourGuide','Klook','Airalo'].map(p => (
-              <span key={p} className="font-[Poppins] font-extrabold text-[.65rem] text-white uppercase tracking-wider">{p}</span>
+              <span key={p} className="font-poppins font-extrabold text-[.65rem] text-white uppercase tracking-wider">{p}</span>
             ))}
           </div>
         </div>

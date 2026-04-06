@@ -175,7 +175,7 @@ function DestinationPicker({ value, onChange }: { value: string; onChange: (v: s
         <ul className="absolute z-50 w-full mt-1.5 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl overflow-auto max-h-64">
           {filtered.map(c => (
             <li key={c} onMouseDown={() => { onChange(c); setOpen(false); }}
-              className={`px-4 py-3 hover:bg-orange-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 font-[Poppins] font-semibold text-[.88rem] text-[#1A1D2B] ${value === c ? 'bg-orange-50' : ''}`}>
+              className={`px-4 py-3 hover:bg-orange-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 font-poppins font-semibold text-[.88rem] text-[#1A1D2B] ${value === c ? 'bg-orange-50' : ''}`}>
               {c}
             </li>
           ))}
@@ -209,11 +209,11 @@ function OccupancyPicker({
 
   const Row = ({ label, value, min, max, onSet }: { label: string; value: number; min: number; max: number; onSet: (v: number) => void }) => (
     <div className="flex items-center justify-between py-2">
-      <span className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B]">{label}</span>
+      <span className="font-poppins font-bold text-[.85rem] text-[#1A1D2B]">{label}</span>
       <div className="flex items-center gap-3">
         <button type="button" onClick={() => onSet(Math.max(min, value - 1))}
           className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-orange-400 transition-all disabled:opacity-30" disabled={value <= min}>−</button>
-        <span className="font-[Poppins] font-black text-[.95rem] text-[#1A1D2B] w-5 text-center">{value}</span>
+        <span className="font-poppins font-black text-[.95rem] text-[#1A1D2B] w-5 text-center">{value}</span>
         <button type="button" onClick={() => onSet(Math.min(max, value + 1))}
           className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-orange-400 transition-all disabled:opacity-30" disabled={value >= max}>+</button>
       </div>
@@ -238,7 +238,7 @@ function OccupancyPicker({
           <Row label="Rooms" value={rooms} min={1} max={3}
             onSet={(v) => onChange({ adults, children, rooms: v })} />
           <button type="button" onClick={() => setOpen(false)}
-            className="w-full mt-3 bg-orange-500 hover:bg-orange-600 text-white font-[Poppins] font-bold text-[.8rem] py-2 rounded-xl transition-colors">
+            className="w-full mt-3 bg-orange-500 hover:bg-orange-600 text-white font-poppins font-bold text-[.8rem] py-2 rounded-xl transition-colors">
             Done
           </button>
         </div>
@@ -262,7 +262,7 @@ function StarFilter({ value, onChange }: { value: number; onChange: (v: number) 
     <div className="flex items-center gap-1.5 flex-wrap">
       {options.map(o => (
         <button key={o.value} type="button" onClick={() => onChange(o.value)}
-          className={`px-3 py-1.5 rounded-full text-[.72rem] font-[Poppins] font-bold border transition-all ${value === o.value ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-[#5C6378] border-[#E8ECF4] hover:border-orange-400'}`}>
+          className={`px-3 py-1.5 rounded-full text-[.72rem] font-poppins font-bold border transition-all ${value === o.value ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-[#5C6378] border-[#E8ECF4] hover:border-orange-400'}`}>
           {o.label}
         </button>
       ))}
@@ -329,7 +329,7 @@ function BookDirectButton({
         type="button"
         onClick={onClick}
         disabled={busy}
-        className="bg-gradient-to-r from-[#0066FF] to-[#4C8BFF] hover:from-[#0052CC] hover:to-[#3B7AEE] disabled:opacity-60 disabled:cursor-not-allowed text-white font-[Poppins] font-black text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap shadow-[0_2px_10px_rgba(0,102,255,0.25)]"
+        className="bg-gradient-to-r from-[#0066FF] to-[#4C8BFF] hover:from-[#0052CC] hover:to-[#3B7AEE] disabled:opacity-60 disabled:cursor-not-allowed text-white font-poppins font-black text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap shadow-[0_2px_10px_rgba(0,102,255,0.25)]"
       >
         {busy ? 'Loading…' : <><i className="fa-solid fa-lock mr-1" /> Book Direct →</>}
       </button>
@@ -557,7 +557,7 @@ function HotelsContent() {
       <section className="pt-36 pb-10 px-5 bg-[radial-gradient(ellipse_at_top,#FFF7ED_0%,#fff_55%,#F8FAFC_100%)]">
         <div className="max-w-[860px] mx-auto text-center mb-8">
           <span className="inline-block bg-orange-50 text-orange-500 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4">🏨 Hotel Comparison</span>
-          <h1 className="font-[Poppins] text-[2.4rem] md:text-[3.6rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
+          <h1 className="font-poppins text-[2.4rem] md:text-[3.6rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
             Find the <em className="italic bg-gradient-to-br from-orange-400 to-amber-600 bg-clip-text text-transparent">Best</em> Hotels
           </h1>
           <p className="text-[1rem] text-[#8E95A9] font-semibold max-w-[520px] mx-auto">Compare trusted hotel providers — real prices shown right here.</p>
@@ -602,7 +602,7 @@ function HotelsContent() {
           </div>
 
           <button onClick={handleSearch} disabled={loading}
-            className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-[Poppins] font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(245,158,11,0.3)]">
+            className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(245,158,11,0.3)]">
             {loading ? 'Searching…' : 'Search Hotels →'}
           </button>
           <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">Free comparison · Prices shown here · Click any hotel to book on the provider</p>
@@ -618,7 +618,7 @@ function HotelsContent() {
           <div className="bg-red-50 border border-red-100 rounded-2xl p-5 text-center">
             <p className="text-[.85rem] font-bold text-red-600 mb-3">{apiError}</p>
             <button onClick={handleSearch}
-              className="bg-orange-500 hover:bg-orange-600 text-white font-[Poppins] font-bold text-[.82rem] px-6 py-2.5 rounded-xl transition-all">
+              className="bg-orange-500 hover:bg-orange-600 text-white font-poppins font-bold text-[.82rem] px-6 py-2.5 rounded-xl transition-all">
               Try Again
             </button>
           </div>
@@ -634,7 +634,7 @@ function HotelsContent() {
               <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-2xl px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div className="flex items-center gap-3">
                   <span className="text-xl">🏷</span>
-                  <span className="font-[Poppins] font-black text-[1rem] text-[#1A1D2B]">
+                  <span className="font-poppins font-black text-[1rem] text-[#1A1D2B]">
                     {hotels!.length} hotel{hotels!.length !== 1 ? 's' : ''} found in {searchedDest} from <span className="text-orange-600">£{cheapest.pricePerNight}/night</span>
                   </span>
                 </div>
@@ -652,7 +652,7 @@ function HotelsContent() {
                   <button
                     type="button"
                     onClick={() => setViewMode('list')}
-                    className={`px-4 py-2 rounded-lg text-[.78rem] font-[Poppins] font-bold transition-all flex items-center gap-1.5 ${viewMode === 'list' ? 'bg-white text-[#1A1D2B] shadow-sm' : 'text-[#5C6378]'}`}
+                    className={`px-4 py-2 rounded-lg text-[.78rem] font-poppins font-bold transition-all flex items-center gap-1.5 ${viewMode === 'list' ? 'bg-white text-[#1A1D2B] shadow-sm' : 'text-[#5C6378]'}`}
                   >
                     <i className="fa-solid fa-list text-[.72rem]" /> List
                   </button>
@@ -660,7 +660,7 @@ function HotelsContent() {
                     type="button"
                     onClick={() => setViewMode('map')}
                     disabled={geoHotels.length === 0}
-                    className={`px-4 py-2 rounded-lg text-[.78rem] font-[Poppins] font-bold transition-all flex items-center gap-1.5 ${viewMode === 'map' ? 'bg-white text-[#1A1D2B] shadow-sm' : 'text-[#5C6378]'} disabled:opacity-50 disabled:cursor-not-allowed`}
+                    className={`px-4 py-2 rounded-lg text-[.78rem] font-poppins font-bold transition-all flex items-center gap-1.5 ${viewMode === 'map' ? 'bg-white text-[#1A1D2B] shadow-sm' : 'text-[#5C6378]'} disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     <i className="fa-solid fa-map-location-dot text-[.72rem]" /> Map
                   </button>
@@ -767,7 +767,7 @@ function HotelsContent() {
                           <div className="mb-1">
                             <Stars count={h.stars} />
                           </div>
-                          <h3 className="font-[Poppins] font-black text-[1.05rem] text-[#1A1D2B] mb-1 group-hover:text-orange-600">{h.name}</h3>
+                          <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-1 group-hover:text-orange-600">{h.name}</h3>
                           {h.district && (
                             <p className="text-[.75rem] text-[#8E95A9] font-semibold mb-2">📍 {h.district}</p>
                           )}
@@ -789,7 +789,7 @@ function HotelsContent() {
                         {/* Price + Actions */}
                         <div className="p-5 flex flex-col items-end justify-center gap-2 border-t md:border-t-0 md:border-l border-[#F1F3F7]">
                           <div className="text-right">
-                            <div className="font-[Poppins] font-black text-[1.5rem] text-[#1A1D2B] leading-none">£{h.pricePerNight}<span className="text-[.7rem] font-semibold text-[#8E95A9]">/night</span></div>
+                            <div className="font-poppins font-black text-[1.5rem] text-[#1A1D2B] leading-none">£{h.pricePerNight}<span className="text-[.7rem] font-semibold text-[#8E95A9]">/night</span></div>
                             {nights > 0 && (
                               <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">£{totalPrice} total for {nights} night{nights !== 1 ? 's' : ''}</div>
                             )}
@@ -799,15 +799,15 @@ function HotelsContent() {
                               <BookDirectButton hotel={h} checkIn={checkin} checkOut={checkout} adults={adults} nights={nights} city={searchedDest} />
                             )}
                             <a href={redirectUrl(tripUrl, 'Trip.com', searchedDest, 'hotels')}
-                              className="bg-[#287DFA] hover:bg-[#1A6AE0] text-white font-[Poppins] font-bold text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap">
+                              className="bg-[#287DFA] hover:bg-[#1A6AE0] text-white font-poppins font-bold text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap">
                               Trip.com →
                             </a>
                             <a href={redirectUrl(expediaUrl, 'Expedia', searchedDest, 'hotels')}
-                              className="bg-[#1B2B65] hover:bg-[#142050] text-white font-[Poppins] font-bold text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap">
+                              className="bg-[#1B2B65] hover:bg-[#142050] text-white font-poppins font-bold text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap">
                               Expedia →
                             </a>
                             <a href={redirectUrl(klookUrl, 'Klook', searchedDest, 'hotels')}
-                              className="bg-orange-500 hover:bg-orange-600 text-white font-[Poppins] font-bold text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap">
+                              className="bg-orange-500 hover:bg-orange-600 text-white font-poppins font-bold text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap">
                               Klook →
                             </a>
                           </div>
@@ -837,7 +837,7 @@ function HotelsContent() {
             <section className="max-w-[860px] mx-auto px-5 py-8">
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
                 <span className="text-3xl mb-3 block">🔎</span>
-                <p className="font-[Poppins] font-bold text-[.95rem] text-[#1A1D2B] mb-2">
+                <p className="font-poppins font-bold text-[.95rem] text-[#1A1D2B] mb-2">
                   We couldn&apos;t find cached hotel prices for {searchedDest}.
                 </p>
                 <p className="text-[.78rem] text-[#8E95A9] font-semibold">
@@ -849,21 +849,21 @@ function HotelsContent() {
 
           {/* Section 3: Provider Comparison Strip */}
           <section className="max-w-[1000px] mx-auto px-5 pb-8">
-            <h3 className="font-[Poppins] font-black text-[1.05rem] text-[#1A1D2B] mb-4">Also Compare on These Providers</h3>
+            <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">Also Compare on These Providers</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {PROVIDERS.map(p => {
                 const url = p.getUrl(searchedDest, checkin, checkout, adults);
                 return (
                   <div key={p.name} className="bg-white border border-[#E8ECF4] rounded-xl p-4 flex flex-col items-center text-center hover:border-orange-300 hover:shadow-md transition-all">
                     <div className="w-10 h-10 rounded-lg bg-[#F8FAFC] border border-[#E8ECF4] flex items-center justify-center text-xl mb-2">{p.logo}</div>
-                    <div className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B] mb-1">{p.name}</div>
+                    <div className="font-poppins font-bold text-[.85rem] text-[#1A1D2B] mb-1">{p.name}</div>
                     {cheapest ? (
                       <div className="text-[.75rem] font-bold text-orange-600 mb-2">From £{cheapest.pricePerNight}/night</div>
                     ) : (
                       <div className="text-[.72rem] font-semibold text-[#8E95A9] mb-2">Check Price</div>
                     )}
                     <a href={redirectUrl(url, p.name, searchedDest, 'hotels')}
-                      className="w-full bg-orange-500 hover:bg-orange-600 text-white font-[Poppins] font-bold text-[.72rem] py-2 rounded-lg transition-all">
+                      className="w-full bg-orange-500 hover:bg-orange-600 text-white font-poppins font-bold text-[.72rem] py-2 rounded-lg transition-all">
                       Search {p.name} →
                     </a>
                   </div>
@@ -878,10 +878,10 @@ function HotelsContent() {
               {/* Flights */}
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-5">
                 <span className="text-2xl mb-2 block">✈</span>
-                <h4 className="font-[Poppins] font-black text-[.9rem] text-[#1A1D2B] mb-1">Flights to {searchedDest}</h4>
+                <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">Flights to {searchedDest}</h4>
                 <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">Need a flight too? Compare across our providers.</p>
                 <a href={`/flights?to=${encodeURIComponent(searchedDest)}`}
-                  className="inline-block bg-white hover:bg-blue-50 text-[#0066FF] font-[Poppins] font-bold text-[.75rem] px-4 py-2 rounded-lg border border-blue-200 transition-all">
+                  className="inline-block bg-white hover:bg-blue-50 text-[#0066FF] font-poppins font-bold text-[.75rem] px-4 py-2 rounded-lg border border-blue-200 transition-all">
                   Compare Flights →
                 </a>
               </div>
@@ -889,10 +889,10 @@ function HotelsContent() {
               {/* Car Hire */}
               <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100 rounded-2xl p-5">
                 <span className="text-2xl mb-2 block">🚗</span>
-                <h4 className="font-[Poppins] font-black text-[.9rem] text-[#1A1D2B] mb-1">Car Hire in {searchedDest}</h4>
+                <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">Car Hire in {searchedDest}</h4>
                 <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">Explore {searchedDest} on your own terms.</p>
                 <a href={`/cars?location=${encodeURIComponent(searchedDest)}`}
-                  className="inline-block bg-white hover:bg-amber-50 text-amber-600 font-[Poppins] font-bold text-[.75rem] px-4 py-2 rounded-lg border border-amber-200 transition-all">
+                  className="inline-block bg-white hover:bg-amber-50 text-amber-600 font-poppins font-bold text-[.75rem] px-4 py-2 rounded-lg border border-amber-200 transition-all">
                   Compare Car Hire →
                 </a>
               </div>
@@ -904,7 +904,7 @@ function HotelsContent() {
       {/* ── Tips ── */}
       <section className="max-w-[860px] mx-auto px-5 pb-16">
         <div className="bg-[#F8FAFC] border border-[#F1F3F7] rounded-3xl p-8">
-          <h3 className="font-[Poppins] font-black text-[1.05rem] text-[#1A1D2B] mb-4">Tips for Finding Cheaper Hotels</h3>
+          <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">Tips for Finding Cheaper Hotels</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
               ['Book 2–3 weeks ahead', 'Last-minute deals exist, but the best prices are typically 2–3 weeks before travel.'],
@@ -915,7 +915,7 @@ function HotelsContent() {
               <div key={title} className="flex gap-3">
                 <div className="w-1.5 flex-shrink-0 rounded-full bg-gradient-to-b from-orange-400 to-amber-500 self-stretch" />
                 <div>
-                  <div className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B] mb-0.5">{title}</div>
+                  <div className="font-poppins font-bold text-[.85rem] text-[#1A1D2B] mb-0.5">{title}</div>
                   <p className="text-[.75rem] text-[#5C6378] font-semibold leading-relaxed">{body}</p>
                 </div>
               </div>

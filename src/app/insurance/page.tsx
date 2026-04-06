@@ -80,7 +80,7 @@ export default function InsurancePage() {
       <section className="pt-36 pb-16 px-5 bg-[radial-gradient(ellipse_at_top,#E8F8EE_0%,#fff_55%,#F8FAFC_100%)] relative">
         <div className="max-w-[860px] mx-auto text-center mb-10">
           <span className="inline-block bg-green-50 text-green-600 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4">🛡 Travel Insurance</span>
-          <h1 className="font-[Poppins] text-[2.6rem] md:text-[3.8rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
+          <h1 className="font-poppins text-[2.6rem] md:text-[3.8rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
             Travel <em className="italic bg-gradient-to-br from-green-500 to-teal-600 bg-clip-text text-transparent">Protected</em>
           </h1>
           <p className="text-[1rem] text-[#8E95A9] font-semibold max-w-[520px] mx-auto">Medical cover, cancellation, luggage & flight compensation — compare the right policy for your trip.</p>
@@ -95,7 +95,7 @@ export default function InsurancePage() {
                 <button key={ct.id} onClick={() => setCoverType(ct.id)}
                   className={`p-3 rounded-xl border-2 text-left transition-all ${coverType === ct.id ? 'border-green-500 bg-green-50' : 'border-[#E8ECF4] bg-[#F8FAFC] hover:border-green-200'}`}>
                   <div className="text-lg mb-1">{ct.icon}</div>
-                  <div className={`font-[Poppins] font-bold text-[.78rem] ${coverType === ct.id ? 'text-green-700' : 'text-[#1A1D2B]'}`}>{ct.label}</div>
+                  <div className={`font-poppins font-bold text-[.78rem] ${coverType === ct.id ? 'text-green-700' : 'text-[#1A1D2B]'}`}>{ct.label}</div>
                   <div className="text-[.65rem] text-[#8E95A9] font-semibold">{ct.desc}</div>
                 </button>
               ))}
@@ -137,7 +137,7 @@ export default function InsurancePage() {
             </div>
           </div>
           <button onClick={openAll}
-            className="w-full bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white font-[Poppins] font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(16,185,129,0.3)]">
+            className="w-full bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(16,185,129,0.3)]">
             Compare {PROVIDERS.length} Insurance Providers →
           </button>
           <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">Prices from £3/day. Opens all providers so you can compare quotes.</p>
@@ -146,14 +146,14 @@ export default function InsurancePage() {
 
       <section className="max-w-[1100px] mx-auto px-5 pb-16">
         <p className="text-[.65rem] font-extrabold uppercase tracking-[3px] text-[#8E95A9] mb-1.5">All Providers</p>
-        <h2 className="font-[Poppins] text-[1.4rem] font-black text-[#1A1D2B] mb-6">6 Travel Insurance & Compensation Providers</h2>
+        <h2 className="font-poppins text-[1.4rem] font-black text-[#1A1D2B] mb-6">6 Travel Insurance & Compensation Providers</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {PROVIDERS.map(p => (
             <a key={p.name} href={redirectUrl(p.url, p.name, destination || 'your trip', 'insurance')} target="_blank" rel="noopener"
               className="block p-5 bg-white border border-[#F1F3F7] rounded-2xl hover:border-green-200 hover:shadow-md transition-all group">
               <div className="text-2xl mb-3">{p.logo}</div>
               <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                <span className="font-[Poppins] font-extrabold text-[.92rem] text-[#1A1D2B]">{p.name}</span>
+                <span className="font-poppins font-extrabold text-[.92rem] text-[#1A1D2B]">{p.name}</span>
                 <span className="text-[.58rem] font-black uppercase tracking-[1.5px] px-2 py-0.5 rounded-full bg-green-50 text-green-600">{p.badge}</span>
               </div>
               <p className="text-[.75rem] text-[#5C6378] font-semibold leading-relaxed mb-3">{p.desc}</p>
@@ -166,7 +166,7 @@ export default function InsurancePage() {
       {/* What's covered */}
       <section className="max-w-[860px] mx-auto px-5 pb-16">
         <div className="bg-[#F8FAFC] border border-[#F1F3F7] rounded-3xl p-8">
-          <h3 className="font-[Poppins] font-black text-[1.05rem] text-[#1A1D2B] mb-5">What Good Travel Insurance Covers</h3>
+          <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-5">What Good Travel Insurance Covers</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
               ['Emergency Medical', 'Hospital stays, treatment & medical repatriation — essential for USA/Caribbean.'],
@@ -179,7 +179,7 @@ export default function InsurancePage() {
               <div key={title} className="flex gap-3 bg-white border border-[#F1F3F7] rounded-xl p-3.5">
                 <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-1.5" />
                 <div>
-                  <div className="font-[Poppins] font-bold text-[.82rem] text-[#1A1D2B] mb-0.5">{title}</div>
+                  <div className="font-poppins font-bold text-[.82rem] text-[#1A1D2B] mb-0.5">{title}</div>
                   <p className="text-[.72rem] text-[#5C6378] font-semibold leading-relaxed">{body}</p>
                 </div>
               </div>

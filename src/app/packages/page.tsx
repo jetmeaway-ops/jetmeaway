@@ -100,7 +100,7 @@ function DestinationPicker({ value, onChange }: { value: string; onChange: (v: s
         <ul className="absolute z-50 w-full mt-1.5 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl overflow-auto max-h-64">
           {filtered.map(c => (
             <li key={c} onMouseDown={() => { onChange(c); setOpen(false); }}
-              className={`px-4 py-3 hover:bg-purple-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 font-[Poppins] font-semibold text-[.88rem] text-[#1A1D2B] ${value === c ? 'bg-purple-50' : ''}`}>
+              className={`px-4 py-3 hover:bg-purple-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 font-poppins font-semibold text-[.88rem] text-[#1A1D2B] ${value === c ? 'bg-purple-50' : ''}`}>
               {c}
             </li>
           ))}
@@ -135,7 +135,7 @@ function FromPicker({ value, onChange }: { value: string; onChange: (v: string) 
         <ul className="absolute z-50 w-full mt-1.5 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl overflow-auto max-h-64">
           {filtered.map(a => (
             <li key={a.code} onMouseDown={() => { onChange(`${a.name} (${a.code})`); setOpen(false); }}
-              className="px-4 py-3 hover:bg-purple-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 font-[Poppins] font-semibold text-[.85rem] text-[#1A1D2B]">
+              className="px-4 py-3 hover:bg-purple-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 font-poppins font-semibold text-[.85rem] text-[#1A1D2B]">
               ✈️ {a.name} <span className="text-[#8E95A9] text-[.75rem]">({a.code})</span>
             </li>
           ))}
@@ -189,18 +189,18 @@ function PkgGuestPicker({ adults, children: ch, childrenAges, onChange }: {
       {open && (
         <div className="absolute z-50 w-80 mt-1.5 right-0 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl p-4">
           <div className="flex items-center justify-between py-3 border-b border-[#F1F3F7]">
-            <div><div className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B]">Adults</div><div className="text-[.7rem] text-[#8E95A9]">Age 16+</div></div>
+            <div><div className="font-poppins font-bold text-[.85rem] text-[#1A1D2B]">Adults</div><div className="text-[.7rem] text-[#8E95A9]">Age 16+</div></div>
             <div className="flex items-center gap-3">
               <button type="button" onClick={() => setAdults(adults - 1)} disabled={adults <= 1} className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-purple-500 transition-all disabled:opacity-30">−</button>
-              <span className="font-[Poppins] font-black text-[.95rem] text-[#1A1D2B] w-5 text-center">{adults}</span>
+              <span className="font-poppins font-black text-[.95rem] text-[#1A1D2B] w-5 text-center">{adults}</span>
               <button type="button" onClick={() => setAdults(adults + 1)} disabled={adults >= 10} className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-purple-500 transition-all disabled:opacity-30">+</button>
             </div>
           </div>
           <div className="flex items-center justify-between py-3 border-b border-[#F1F3F7]">
-            <div><div className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B]">Children</div><div className="text-[.7rem] text-[#8E95A9]">Age 0–15</div></div>
+            <div><div className="font-poppins font-bold text-[.85rem] text-[#1A1D2B]">Children</div><div className="text-[.7rem] text-[#8E95A9]">Age 0–15</div></div>
             <div className="flex items-center gap-3">
               <button type="button" onClick={() => setChildren(ch - 1)} disabled={ch <= 0} className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-purple-500 transition-all disabled:opacity-30">−</button>
-              <span className="font-[Poppins] font-black text-[.95rem] text-[#1A1D2B] w-5 text-center">{ch}</span>
+              <span className="font-poppins font-black text-[.95rem] text-[#1A1D2B] w-5 text-center">{ch}</span>
               <button type="button" onClick={() => setChildren(ch + 1)} disabled={ch >= 6} className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-purple-500 transition-all disabled:opacity-30">+</button>
             </div>
           </div>
@@ -223,7 +223,7 @@ function PkgGuestPicker({ adults, children: ch, childrenAges, onChange }: {
             </div>
           )}
           <button type="button" onClick={() => setOpen(false)}
-            className="w-full mt-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-[Poppins] font-bold text-[.8rem] py-2.5 rounded-xl transition-colors">Done</button>
+            className="w-full mt-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-poppins font-bold text-[.8rem] py-2.5 rounded-xl transition-colors">Done</button>
         </div>
       )}
     </div>
@@ -450,7 +450,7 @@ function PackagesContent() {
       <section className="pt-36 pb-10 px-5 bg-[radial-gradient(ellipse_at_top,#F0E8FF_0%,#fff_55%,#F8FAFC_100%)]">
         <div className="max-w-[860px] mx-auto text-center mb-8">
           <span className="inline-block bg-purple-50 text-purple-600 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4">📦 Holiday Packages</span>
-          <h1 className="font-[Poppins] text-[2.4rem] md:text-[3.6rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
+          <h1 className="font-poppins text-[2.4rem] md:text-[3.6rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
             Complete <em className="italic bg-gradient-to-br from-purple-500 to-indigo-600 bg-clip-text text-transparent">Holiday</em> Packages
           </h1>
           <p className="text-[1rem] text-[#8E95A9] font-semibold max-w-[520px] mx-auto">Flight + hotel bundles — compare prices across 2 package providers.</p>
@@ -508,7 +508,7 @@ function PackagesContent() {
             </div>
           </div>
           <button onClick={handleSearch}
-            className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-[Poppins] font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(124,58,237,0.3)]">
+            className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(124,58,237,0.3)]">
             Search Packages →
           </button>
           <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">ATOL-protected options included · Book direct with providers</p>
@@ -526,7 +526,7 @@ function PackagesContent() {
           {hasPartialData && (
             <section className="max-w-[900px] mx-auto px-5 pt-8 pb-4">
               <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-2xl p-6">
-                <h2 className="font-[Poppins] font-black text-[1.1rem] text-[#1A1D2B] mb-4">
+                <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-4">
                   Estimated Package Price: {searchedFrom ? searchedFrom.replace(/\s*\(.*\)$/, '') : 'UK'} → {searchedDest}
                 </h2>
                 <div className="space-y-2.5 mb-4">
@@ -534,7 +534,7 @@ function PackagesContent() {
                     <div className="flex items-center justify-between">
                       <span className="text-[.85rem] text-[#5C6378] font-semibold">✈️ Cheapest flight found</span>
                       <div className="text-right">
-                        <span className="font-[Poppins] font-black text-[1rem] text-[#1A1D2B]">£{cheapestFlight}</span>
+                        <span className="font-poppins font-black text-[1rem] text-[#1A1D2B]">£{cheapestFlight}</span>
                         <span className="text-[.65rem] text-[#8E95A9] font-medium ml-1">return per person</span>
                         <div className="text-[.6rem] text-[#8E95A9]">(via Aviasales data{flightAirline ? ` · ${flightAirline}` : ''})</div>
                       </div>
@@ -545,21 +545,21 @@ function PackagesContent() {
                       <div className="flex items-center justify-between">
                         <span className="text-[.85rem] text-[#5C6378] font-semibold">🏨 Cheapest hotel found</span>
                         <div className="text-right">
-                          <span className="font-[Poppins] font-black text-[1rem] text-[#1A1D2B]">£{cheapestHotel}</span>
+                          <span className="font-poppins font-black text-[1rem] text-[#1A1D2B]">£{cheapestHotel}</span>
                           <span className="text-[.65rem] text-[#8E95A9] font-medium ml-1">/night</span>
                           <div className="text-[.6rem] text-[#8E95A9]">(indicative price)</div>
                         </div>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-[.85rem] text-[#5C6378] font-semibold">📅 {nights} night{nights !== 1 ? 's' : ''}</span>
-                        <span className="font-[Poppins] font-black text-[1rem] text-[#1A1D2B]">£{hotelTotal}</span>
+                        <span className="font-poppins font-black text-[1rem] text-[#1A1D2B]">£{hotelTotal}</span>
                       </div>
                     </>
                   )}
                   {estimatedTotal !== null && (
                     <div className="flex items-center justify-between pt-3 border-t border-purple-200">
                       <span className="text-[.95rem] text-[#1A1D2B] font-black">💰 Estimated total from</span>
-                      <span className="font-[Poppins] font-black text-[1.4rem] text-purple-600">£{estimatedTotal}<span className="text-[.7rem] font-semibold text-[#8E95A9] ml-1">per person</span></span>
+                      <span className="font-poppins font-black text-[1.4rem] text-purple-600">£{estimatedTotal}<span className="text-[.7rem] font-semibold text-[#8E95A9] ml-1">per person</span></span>
                     </div>
                   )}
                   {!estimatedTotal && (
@@ -599,11 +599,11 @@ function PackagesContent() {
                 <div className="p-6">
                   <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
                     <div>
-                      <h3 className="font-[Poppins] font-black text-[1.2rem] text-[#1A1D2B] mb-1">Expedia Packages</h3>
+                      <h3 className="font-poppins font-black text-[1.2rem] text-[#1A1D2B] mb-1">Expedia Packages</h3>
                       <p className="text-[.82rem] text-[#5C6378] font-semibold">Flight + Hotel bundles with price guarantee</p>
                     </div>
                     <a href={redirectUrl(buildExpediaUrl(searchedDest, searchedFrom, depDate, effectiveReturn, adults), 'Expedia', searchedDest, 'packages')}
-                      className="flex-shrink-0 px-6 py-3 rounded-xl font-[Poppins] font-black text-[.85rem] text-white bg-[#1B2B65] hover:bg-[#142050] transition-all shadow-md">
+                      className="flex-shrink-0 px-6 py-3 rounded-xl font-poppins font-black text-[.85rem] text-white bg-[#1B2B65] hover:bg-[#142050] transition-all shadow-md">
                       Search Expedia Packages →
                     </a>
                   </div>
@@ -628,11 +628,11 @@ function PackagesContent() {
                 <div className="p-6">
                   <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
                     <div>
-                      <h3 className="font-[Poppins] font-black text-[1.2rem] text-[#1A1D2B] mb-1">Trip.com Packages</h3>
+                      <h3 className="font-poppins font-black text-[1.2rem] text-[#1A1D2B] mb-1">Trip.com Packages</h3>
                       <p className="text-[.82rem] text-[#5C6378] font-semibold">Flight + Hotel deals from a global travel leader</p>
                     </div>
                     <a href={redirectUrl(buildTripUrl(searchedDest, depDate, effectiveReturn, adults), 'Trip.com', searchedDest, 'packages')}
-                      className="flex-shrink-0 px-6 py-3 rounded-xl font-[Poppins] font-black text-[.85rem] text-white bg-[#287DFA] hover:bg-[#1A6AE0] transition-all shadow-md">
+                      className="flex-shrink-0 px-6 py-3 rounded-xl font-poppins font-black text-[.85rem] text-white bg-[#287DFA] hover:bg-[#1A6AE0] transition-all shadow-md">
                       Search Trip.com Packages →
                     </a>
                   </div>
@@ -656,39 +656,39 @@ function PackagesContent() {
           {/* Section 3 — DIY Package Builder */}
           <section className="max-w-[900px] mx-auto px-5 pb-6">
             <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 rounded-2xl p-6">
-              <h3 className="font-[Poppins] font-black text-[1.05rem] text-[#1A1D2B] mb-2">Build Your Own Package & Save</h3>
+              <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-2">Build Your Own Package & Save</h3>
               <p className="text-[.8rem] text-[#5C6378] font-semibold mb-5">Sometimes booking flights and hotels separately gives you more flexibility and better prices. Use our tools to build your own package:</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white rounded-xl p-5 border border-[#E8ECF4]">
                   <span className="text-2xl mb-2 block">✈️</span>
-                  <h4 className="font-[Poppins] font-black text-[.9rem] text-[#1A1D2B] mb-1">Find Flights</h4>
+                  <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">Find Flights</h4>
                   <p className="text-[.72rem] text-[#5C6378] font-semibold mb-3">
                     {searchedFrom ? searchedFrom.replace(/\s*\(.*\)$/, '') : 'UK'} → {searchedDest}{cheapestFlight ? ` from £${cheapestFlight}` : ''}
                   </p>
                   <a href={`/flights?${searchedFrom ? `from=${encodeURIComponent(searchedFrom)}` : ''}${destIata ? `&to=${destIata}` : `&destCity=${encodeURIComponent(searchedDest)}`}&departure=${depDate}${effectiveReturn ? `&return=${effectiveReturn}` : ''}`}
-                    className="inline-block px-4 py-2 rounded-xl border-2 border-[#0066FF] text-[#0066FF] font-[Poppins] font-bold text-[.75rem] hover:bg-blue-50 transition-colors">
+                    className="inline-block px-4 py-2 rounded-xl border-2 border-[#0066FF] text-[#0066FF] font-poppins font-bold text-[.75rem] hover:bg-blue-50 transition-colors">
                     Compare Flights →
                   </a>
                 </div>
                 <div className="bg-white rounded-xl p-5 border border-[#E8ECF4]">
                   <span className="text-2xl mb-2 block">🏨</span>
-                  <h4 className="font-[Poppins] font-black text-[.9rem] text-[#1A1D2B] mb-1">Find Hotels</h4>
+                  <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">Find Hotels</h4>
                   <p className="text-[.72rem] text-[#5C6378] font-semibold mb-3">
                     Hotels in {searchedDest}{cheapestHotel ? ` from £${cheapestHotel}/night` : ''}
                   </p>
                   <a href={`/hotels?destination=${encodeURIComponent(searchedDest)}&checkin=${depDate}&checkout=${effectiveReturn}`}
-                    className="inline-block px-4 py-2 rounded-xl border-2 border-orange-500 text-orange-500 font-[Poppins] font-bold text-[.75rem] hover:bg-orange-50 transition-colors">
+                    className="inline-block px-4 py-2 rounded-xl border-2 border-orange-500 text-orange-500 font-poppins font-bold text-[.75rem] hover:bg-orange-50 transition-colors">
                     Compare Hotels →
                   </a>
                 </div>
                 <div className="bg-white rounded-xl p-5 border border-[#E8ECF4]">
                   <span className="text-2xl mb-2 block">🚗</span>
-                  <h4 className="font-[Poppins] font-black text-[.9rem] text-[#1A1D2B] mb-1">Add Car Hire</h4>
+                  <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">Add Car Hire</h4>
                   <p className="text-[.72rem] text-[#5C6378] font-semibold mb-3">
                     Car hire in {searchedDest} from your arrival
                   </p>
                   <a href={`/cars?location=${encodeURIComponent(searchedDest)}&pickup=${depDate}&dropoff=${effectiveReturn}`}
-                    className="inline-block px-4 py-2 rounded-xl border-2 border-emerald-500 text-emerald-500 font-[Poppins] font-bold text-[.75rem] hover:bg-emerald-50 transition-colors">
+                    className="inline-block px-4 py-2 rounded-xl border-2 border-emerald-500 text-emerald-500 font-poppins font-bold text-[.75rem] hover:bg-emerald-50 transition-colors">
                     Compare Car Hire →
                   </a>
                 </div>
@@ -698,7 +698,7 @@ function PackagesContent() {
 
           {/* Section 4 — Popular Destinations */}
           <section className="max-w-[900px] mx-auto px-5 pb-8">
-            <h3 className="font-[Poppins] font-black text-[1.05rem] text-[#1A1D2B] mb-4">Popular Package Destinations</h3>
+            <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">Popular Package Destinations</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {POPULAR_DESTS.map(d => (
                 <a key={d.name} href={`/packages?dest=${encodeURIComponent(d.name)}&departure=${depDate || today}&return=${effectiveReturn || ''}`}
@@ -708,7 +708,7 @@ function PackagesContent() {
                     onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                   <div className="absolute bottom-0 left-0 right-0 p-3">
-                    <div className="font-[Poppins] font-black text-white text-[.9rem]">{d.name} {d.flag}</div>
+                    <div className="font-poppins font-black text-white text-[.9rem]">{d.name} {d.flag}</div>
                     <div className="text-[.68rem] text-white/80 font-semibold">Packages from £{d.est}pp</div>
                   </div>
                 </a>
@@ -721,7 +721,7 @@ function PackagesContent() {
       {/* ── Tips (always visible) ── */}
       <section className="max-w-[860px] mx-auto px-5 pb-16">
         <div className="bg-[#F8FAFC] border border-[#F1F3F7] rounded-3xl p-8">
-          <h3 className="font-[Poppins] font-black text-[1.05rem] text-[#1A1D2B] mb-4">Tips for Finding the Best Package Holiday</h3>
+          <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">Tips for Finding the Best Package Holiday</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
               ['Bundle beats building separately', 'Flight + hotel packages are typically 15–30% cheaper than booking each individually.'],
@@ -732,7 +732,7 @@ function PackagesContent() {
               <div key={title} className="flex gap-3">
                 <div className="w-1.5 flex-shrink-0 rounded-full bg-gradient-to-b from-purple-500 to-indigo-600 self-stretch" />
                 <div>
-                  <div className="font-[Poppins] font-bold text-[.85rem] text-[#1A1D2B] mb-0.5">{title}</div>
+                  <div className="font-poppins font-bold text-[.85rem] text-[#1A1D2B] mb-0.5">{title}</div>
                   <p className="text-[.75rem] text-[#5C6378] font-semibold leading-relaxed">{body}</p>
                 </div>
               </div>

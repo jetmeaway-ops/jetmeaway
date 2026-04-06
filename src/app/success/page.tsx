@@ -189,7 +189,7 @@ export default async function SuccessPage({
     return (
       <main className="max-w-[680px] mx-auto px-5 py-16">
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
-          <p className="font-[Poppins] font-bold text-amber-800">Missing session id. Were you redirected here from Stripe?</p>
+          <p className="font-poppins font-bold text-amber-800">Missing session id. Were you redirected here from Stripe?</p>
           <a href="/hotels" className="inline-block mt-4 text-sm font-bold text-[#0066FF] underline">← Back to hotels</a>
         </div>
       </main>
@@ -204,7 +204,7 @@ export default async function SuccessPage({
     return (
       <main className="max-w-[680px] mx-auto px-5 py-16">
         <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
-          <h1 className="font-[Poppins] font-black text-[1.3rem] text-red-700 mb-2">We couldn&apos;t finalise your booking</h1>
+          <h1 className="font-poppins font-black text-[1.3rem] text-red-700 mb-2">We couldn&apos;t finalise your booking</h1>
           <p className="text-[.85rem] text-red-700 font-semibold">{message}</p>
           <p className="text-[.78rem] text-[#5C6378] mt-3">Your card was charged — please email <a className="underline" href="mailto:waqar@jetmeaway.co.uk">waqar@jetmeaway.co.uk</a> with this session id: <span className="font-mono">{sessionId}</span></p>
         </div>
@@ -224,7 +224,7 @@ export default async function SuccessPage({
                 <i className="fa-solid fa-rotate-left text-green-600 text-xl" />
               </div>
               <div>
-                <h1 className="font-[Poppins] font-black text-[1.4rem] text-[#1A1D2B] leading-tight">Booking cancelled — card refunded</h1>
+                <h1 className="font-poppins font-black text-[1.4rem] text-[#1A1D2B] leading-tight">Booking cancelled — card refunded</h1>
                 <p className="text-[.82rem] text-[#5C6378] font-semibold">Your card has been automatically refunded in full.</p>
               </div>
             </div>
@@ -238,8 +238,8 @@ export default async function SuccessPage({
             </p>
             <p className="text-[.72rem] text-[#8E95A9] font-semibold mt-2">Reason: {result.error}</p>
             <div className="mt-5 flex gap-3">
-              <a href="/hotels" className="flex-1 text-center bg-orange-500 hover:bg-orange-600 text-white font-[Poppins] font-black text-[.85rem] py-3 rounded-xl transition-all">Search again</a>
-              <a href="/" className="flex-1 text-center bg-white border border-[#E8ECF4] hover:border-[#0066FF] text-[#1A1D2B] font-[Poppins] font-black text-[.85rem] py-3 rounded-xl transition-all">Back to home</a>
+              <a href="/hotels" className="flex-1 text-center bg-orange-500 hover:bg-orange-600 text-white font-poppins font-black text-[.85rem] py-3 rounded-xl transition-all">Search again</a>
+              <a href="/" className="flex-1 text-center bg-white border border-[#E8ECF4] hover:border-[#0066FF] text-[#1A1D2B] font-poppins font-black text-[.85rem] py-3 rounded-xl transition-all">Back to home</a>
             </div>
           </div>
         </main>
@@ -248,7 +248,7 @@ export default async function SuccessPage({
     return (
       <main className="max-w-[680px] mx-auto px-5 py-16">
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6">
-          <h1 className="font-[Poppins] font-black text-[1.3rem] text-amber-800 mb-2">Payment received — booking needs attention</h1>
+          <h1 className="font-poppins font-black text-[1.3rem] text-amber-800 mb-2">Payment received — booking needs attention</h1>
           <p className="text-[.85rem] text-amber-800 font-semibold mb-2">{result.error}</p>
           {result.booking && (
             <p className="text-[.78rem] text-[#5C6378]">Reference: <span className="font-mono font-bold">{result.booking.ref}</span></p>
@@ -271,7 +271,7 @@ export default async function SuccessPage({
             <i className="fa-solid fa-check text-green-600 text-xl" />
           </div>
           <div>
-            <h1 className="font-[Poppins] font-black text-[1.6rem] text-[#1A1D2B] leading-tight">Booking confirmed</h1>
+            <h1 className="font-poppins font-black text-[1.6rem] text-[#1A1D2B] leading-tight">Booking confirmed</h1>
             <p className="text-[.82rem] text-[#5C6378] font-semibold">A confirmation email is on its way to <strong>{b.guest?.email}</strong>.</p>
           </div>
         </div>
@@ -325,10 +325,10 @@ export default async function SuccessPage({
         </div>
 
         <div className="mt-6 flex gap-3">
-          <a href="/hotels" className="flex-1 text-center bg-[#0066FF] hover:bg-[#0052CC] text-white font-[Poppins] font-black text-[.85rem] py-3 rounded-xl transition-all">
+          <a href="/hotels" className="flex-1 text-center bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-black text-[.85rem] py-3 rounded-xl transition-all">
             Search more hotels
           </a>
-          <a href="/" className="flex-1 text-center bg-white border border-[#E8ECF4] hover:border-[#0066FF] text-[#1A1D2B] font-[Poppins] font-black text-[.85rem] py-3 rounded-xl transition-all">
+          <a href="/" className="flex-1 text-center bg-white border border-[#E8ECF4] hover:border-[#0066FF] text-[#1A1D2B] font-poppins font-black text-[.85rem] py-3 rounded-xl transition-all">
             Back to home
           </a>
         </div>
