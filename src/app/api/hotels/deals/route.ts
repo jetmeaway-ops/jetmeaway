@@ -39,6 +39,7 @@ const KV_TTL = 21600; // 6 hours
    ═══════════════════════════════════════════════════════════════════════════ */
 
 export type DealHotel = {
+  id: string;
   name: string;
   stars: number;
   pricePerNight: number;
@@ -120,6 +121,7 @@ export async function GET() {
           const sorted = [...hotels].sort((a, b) => a.price - b.price);
 
           const mapHotel = (h: typeof sorted[0]): DealHotel => ({
+            id: h.hotelId,
             name: h.hotelName,
             stars: h.stars || 0,
             pricePerNight: Math.round(h.pricePerNight || h.price / 4),

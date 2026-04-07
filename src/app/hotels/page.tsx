@@ -136,6 +136,7 @@ type BoardOption = {
 };
 
 type DealHotel = {
+  id: string;
   name: string;
   stars: number;
   pricePerNight: number;
@@ -917,16 +918,13 @@ function HotelsContent() {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {deals.filter(d => d.cheapestPrice !== null).map((deal) => {
                 const hotel = deal.budgetHotel;
+                const dealHref = hotel?.id
+                  ? `/hotels/${encodeURIComponent(hotel.id)}?checkin=${deal.checkin}&checkout=${deal.checkout}&adults=2&children=0&rooms=1&city=${encodeURIComponent(deal.city)}&price=${hotel.totalPrice}&currency=GBP${hotel.boardType ? `&board=${encodeURIComponent(hotel.boardType)}` : ''}${hotel.refundable ? '&refundable=1' : '&refundable=0'}`
+                  : `/hotels?destination=${encodeURIComponent(deal.city)}&checkin=${deal.checkin}&checkout=${deal.checkout}`;
                 return (
-                  <button
+                  <a
                     key={deal.city}
-                    type="button"
-                    onClick={() => {
-                      setDestination(deal.city);
-                      setCheckin(deal.checkin);
-                      setCheckout(deal.checkout);
-                      setTimeout(() => handleSearch(), 100);
-                    }}
+                    href={dealHref}
                     className="group bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden hover:shadow-[0_8px_30px_rgba(245,158,11,0.12)] hover:border-orange-200 transition-all text-left"
                   >
                     {/* Photo */}
@@ -993,11 +991,11 @@ function HotelsContent() {
                           <span className="text-[.65rem] text-[#8E95A9] font-semibold">/night</span>
                         </div>
                         <span className="text-orange-500 text-[.68rem] font-bold group-hover:translate-x-0.5 transition-transform">
-                          Search →
+                          View →
                         </span>
                       </div>
                     </div>
-                  </button>
+                  </a>
                 );
               })}
             </div>
@@ -1023,18 +1021,14 @@ function HotelsContent() {
                     {h.name} {h.stars > 0 && `· ${'★'.repeat(h.stars)}`} {h.boardType && `· ${h.boardType}`} — from <strong className="text-orange-600">£{Math.round(h.pricePerNight)}/night</strong> for 4 nights
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDestination(bestDeal.city);
-                    setCheckin(bestDeal.checkin);
-                    setCheckout(bestDeal.checkout);
-                    setTimeout(() => handleSearch(), 100);
-                  }}
+                <a
+                  href={h.id
+                    ? `/hotels/${encodeURIComponent(h.id)}?checkin=${bestDeal.checkin}&checkout=${bestDeal.checkout}&adults=2&children=0&rooms=1&city=${encodeURIComponent(bestDeal.city)}&price=${h.totalPrice}&currency=GBP${h.boardType ? `&board=${encodeURIComponent(h.boardType)}` : ''}${h.refundable ? '&refundable=1' : '&refundable=0'}`
+                    : `/hotels?destination=${encodeURIComponent(bestDeal.city)}&checkin=${bestDeal.checkin}&checkout=${bestDeal.checkout}`}
                   className="flex-shrink-0 bg-orange-500 hover:bg-orange-600 text-white font-poppins font-black text-[.85rem] px-6 py-3 rounded-xl transition-all shadow-[0_4px_20px_rgba(245,158,11,0.3)]"
                 >
                   View Deal →
-                </button>
+                </a>
               </div>
             );
           })()}

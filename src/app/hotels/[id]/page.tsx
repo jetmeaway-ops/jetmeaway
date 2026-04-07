@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { redirectUrl } from '@/lib/redirect';
 
 interface HotelDetails {
   id: string;
@@ -20,6 +21,22 @@ interface HotelDetails {
   amenities: string[];
   checkInTime: string | null;
   checkOutTime: string | null;
+}
+
+interface SimilarHotel {
+  id: number | string;
+  name: string;
+  stars: number;
+  pricePerNight: number;
+  district: string | null;
+  bookable?: boolean;
+  source?: string;
+  thumbnail?: string | null;
+  boardType?: string | null;
+  refundable?: boolean;
+  offerId?: string | null;
+  totalPrice?: number;
+  currency?: string;
 }
 
 function Stars({ count }: { count: number | null }) {
@@ -43,6 +60,8 @@ export default function HotelDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [activePhoto, setActivePhoto] = useState(0);
   const [startingBooking, setStartingBooking] = useState(false);
+  const [similarHotels, setSimilarHotels] = useState<SimilarHotel[]>([]);
+  const [similarLoading, setSimilarLoading] = useState(false);
 
   // Search context passed from /hotels results (for the Book button)
   const offerId = sp?.get('offerId') || '';
@@ -75,6 +94,34 @@ export default function HotelDetailPage() {
     })();
     return () => { cancelled = true; };
   }, [id]);
+
+  // Fetch similar hotels in the same city
+  useEffect(() => {
+    if (!city || !checkin || !checkout) return;
+    setSimilarLoading(true);
+    const params = new URLSearchParams({
+      city,
+      checkin,
+      checkout,
+      adults,
+      children,
+      rooms,
+      stars: '0',
+    });
+    fetch(`/api/hotels?${params}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.hotels) {
+          // Filter out the current hotel and take up to 6
+          const others = (data.hotels as SimilarHotel[])
+            .filter(h => String(h.id) !== id && String(h.id) !== `la_${id}` && `la_${String(h.id)}` !== id)
+            .slice(0, 6);
+          setSimilarHotels(others);
+        }
+        setSimilarLoading(false);
+      })
+      .catch(() => setSimilarLoading(false));
+  }, [city, checkin, checkout, adults, children, rooms, id]);
 
   const handleBook = async () => {
     if (!offerId || !hotel) return;
@@ -287,6 +334,86 @@ export default function HotelDetailPage() {
             <p className="text-[.65rem] text-[#8E95A9] font-semibold text-center mt-2">Secure checkout · Free cancellation on most rates</p>
           </aside>
         </div>
+
+        {/* ── Similar Hotels ── */}
+        {(similarLoading || similarHotels.length > 0) && (
+          <section className="mt-10">
+            <h2 className="font-poppins font-black text-[1.3rem] text-[#1A1D2B] mb-5">
+              More Hotels in {city || 'this area'}
+            </h2>
+
+            {similarLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden animate-pulse">
+                    <div className="h-40 bg-[#F1F3F7]" />
+                    <div className="p-4 space-y-2">
+                      <div className="h-4 w-2/3 bg-[#F1F3F7] rounded" />
+                      <div className="h-3 w-1/2 bg-[#F1F3F7] rounded" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {similarHotels.map((sh) => {
+                  const similarHref = `/hotels/${encodeURIComponent(String(sh.id))}?checkin=${checkin}&checkout=${checkout}&adults=${adults}&children=${children}&rooms=${rooms}&city=${encodeURIComponent(city)}${sh.totalPrice ? `&price=${sh.totalPrice}` : `&price=${sh.pricePerNight * numNights}`}&currency=${sh.currency || 'GBP'}${sh.offerId ? `&offerId=${sh.offerId}` : ''}${sh.boardType ? `&board=${encodeURIComponent(sh.boardType)}` : ''}${typeof sh.refundable === 'boolean' ? `&refundable=${sh.refundable ? '1' : '0'}` : ''}`;
+
+                  return (
+                    <a
+                      key={sh.id}
+                      href={similarHref}
+                      className="group bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden hover:shadow-[0_8px_30px_rgba(0,102,255,0.08)] hover:border-blue-200 transition-all"
+                    >
+                      {/* Photo */}
+                      <div className="relative h-40 overflow-hidden bg-gradient-to-br from-orange-100 to-amber-50">
+                        {sh.thumbnail ? (
+                          <img
+                            src={sh.thumbnail}
+                            alt={sh.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            loading="lazy"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-4xl">🛏</div>
+                        )}
+                      </div>
+
+                      {/* Details */}
+                      <div className="p-4">
+                        <div className="flex items-center gap-1 mb-1">
+                          {sh.stars > 0 && Array.from({ length: Math.min(5, sh.stars) }).map((_, i) => (
+                            <i key={i} className="fa-solid fa-star text-amber-400 text-[.6rem]" />
+                          ))}
+                        </div>
+                        <h3 className="font-poppins font-bold text-[.88rem] text-[#1A1D2B] truncate mb-1">{sh.name}</h3>
+                        {sh.district && (
+                          <p className="text-[.7rem] text-[#8E95A9] font-semibold mb-2 truncate">📍 {sh.district}</p>
+                        )}
+                        {sh.boardType && (
+                          <span className="text-[.6rem] text-purple-600 font-bold">{sh.boardType}</span>
+                        )}
+                        <div className="flex items-end justify-between mt-2">
+                          <div>
+                            <span className="text-[.6rem] text-[#8E95A9] font-semibold">from </span>
+                            <span className="font-poppins font-black text-[1.2rem] text-[#1A1D2B] leading-none">
+                              £{Math.round(sh.pricePerNight)}
+                            </span>
+                            <span className="text-[.6rem] text-[#8E95A9] font-semibold">/night</span>
+                          </div>
+                          <span className="text-[#0066FF] text-[.68rem] font-bold group-hover:translate-x-0.5 transition-transform">
+                            View →
+                          </span>
+                        </div>
+                      </div>
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        )}
       </main>
       <Footer />
     </>
