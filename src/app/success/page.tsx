@@ -1,65 +1,96 @@
 import { kv } from '@vercel/kv';
-import Stripe from 'stripe';
-import { completeBooking } from '@/lib/liteapi';
+import { bookWithTransactionId, completeBooking } from '@/lib/liteapi';
 import type { PendingBooking } from '@/app/api/hotels/start-booking/route';
 import type { PendingGuest } from '@/app/api/hotels/pending/[ref]/guest/route';
 
-// LiteAPI prebook+book can take 15–25s in sandbox. Stripe retrieve + KV are
-// quick. Give the whole flow 60s before Vercel pulls the plug.
+// LiteAPI prebook+book can take 15–25s. Give the whole flow 60s.
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
 /**
- * /success?session_id=...
+ * /success — Post-payment finalisation page.
  *
- * Post-payment finalisation page. Runs on Node (default) because the Stripe
- * SDK is not Edge-compatible. Flow:
- *   1. Retrieve Stripe Checkout Session via session_id
- *   2. Read booking_reference from session metadata
- *   3. Look up the pending-booking KV record
- *   4. If still pending + we have guest details, call LiteAPI completeBooking()
- *      with Stripe PaymentIntent ID as clientReference
- *   5. Update KV to state='confirmed' so refreshes are idempotent
- *   6. Render the confirmation
+ * Two flows arrive here:
+ *
+ * 1. **Payment SDK** (new): ?ref=JMA-H-XXX&prebookId=...&transactionId=...
+ *    Customer paid via LiteAPI's embedded payment form. We call /rates/book
+ *    with TRANSACTION_ID method to confirm.
+ *
+ * 2. **Stripe** (legacy): ?session_id=...
+ *    Old Stripe flow kept for backward compat with any in-flight bookings.
  */
-
-const STRIPE_API_VERSION = '2026-03-25.dahlia' as const;
-
-function stripeClient(): Stripe {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) throw new Error('STRIPE_SECRET_KEY is not set');
-  return new Stripe(key, { apiVersion: STRIPE_API_VERSION, typescript: true });
-}
 
 interface StoredBooking extends PendingBooking {
   guest?: PendingGuest;
-  refundId?: string;
-  refundStatus?: string;
+  prebookId?: string;
+  transactionId?: string;
 }
 
-/**
- * Issue a full refund on a Stripe PaymentIntent. Safe to call multiple times —
- * Stripe rejects duplicate refunds and we catch and log. Returns the refund id
- * on success or null if refund failed.
- */
-async function autoRefund(stripe: Stripe, paymentIntentId: string | undefined, reason: string): Promise<{ id: string; status: string } | null> {
-  if (!paymentIntentId) return null;
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAYMENT SDK FLOW
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+async function finalisePaymentSdk(
+  ref: string,
+  prebookId: string,
+  transactionId: string,
+): Promise<{
+  ok: boolean;
+  error?: string;
+  booking?: StoredBooking;
+}> {
+  const record = await kv.get<StoredBooking>(`pending-booking:${ref}`);
+  if (!record) {
+    return { ok: false, error: 'Booking record not found or expired' };
+  }
+
+  // Idempotency: already confirmed
+  if (record.state === 'confirmed' && record.liteapiBookingId) {
+    return { ok: true, booking: record };
+  }
+
+  if (!record.guest) {
+    await kv.set(`pending-booking:${ref}`, { ...record, state: 'failed', error: 'Guest details missing' }, { ex: 24 * 60 * 60 });
+    return { ok: false, error: 'Guest details were missing. Please contact waqar@jetmeaway.co.uk with your reference.', booking: record };
+  }
+
   try {
-    const refund = await stripe.refunds.create({
-      payment_intent: paymentIntentId,
-      reason: 'requested_by_customer',
-      metadata: { auto_refund_reason: reason.slice(0, 500) },
+    const booking = await bookWithTransactionId({
+      prebookId,
+      transactionId,
+      guest: {
+        firstName: record.guest.firstName,
+        lastName: record.guest.lastName,
+        email: record.guest.email,
+        phone: record.guest.phone,
+        nationality: record.guest.nationality,
+      },
+      clientReference: ref,
     });
-    console.log(`[/success] auto-refund ${refund.id} (${refund.status}) for ${paymentIntentId} — ${reason}`);
-    return { id: refund.id, status: refund.status || 'unknown' };
+
+    const updated: StoredBooking = {
+      ...record,
+      state: 'confirmed',
+      liteapiBookingId: booking.bookingId,
+      liteapiStatus: booking.status,
+      liteapiConfirmationCode: booking.hotelConfirmationCode ?? null,
+    };
+    await kv.set(`pending-booking:${ref}`, updated, { ex: 30 * 24 * 60 * 60 });
+    return { ok: true, booking: updated };
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[/success] auto-refund failed for ${paymentIntentId}:`, msg);
-    return null;
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('[/success] bookWithTransactionId failed', message);
+    const updated: StoredBooking = { ...record, state: 'failed', error: message };
+    await kv.set(`pending-booking:${ref}`, updated, { ex: 24 * 60 * 60 });
+    return { ok: false, error: message, booking: updated };
   }
 }
 
-async function finalise(sessionId: string): Promise<{
+/* ═══════════════════════════════════════════════════════════════════════════
+   STRIPE LEGACY FLOW
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+async function finaliseStripe(sessionId: string): Promise<{
   ok: boolean;
   error?: string;
   booking?: StoredBooking;
@@ -68,7 +99,12 @@ async function finalise(sessionId: string): Promise<{
   refunded?: boolean;
   refundStatus?: string;
 }> {
-  const stripe = stripeClient();
+  // Dynamic import — Stripe SDK is only needed for legacy flow
+  const Stripe = (await import('stripe')).default;
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) return { ok: false, error: 'Stripe is not configured' };
+
+  const stripe = new Stripe(key, { apiVersion: '2026-03-25.dahlia' as any, typescript: true });
   const session = await stripe.checkout.sessions.retrieve(sessionId, {
     expand: ['payment_intent'],
   });
@@ -78,127 +114,92 @@ async function finalise(sessionId: string): Promise<{
   }
 
   const ref = (session.metadata?.booking_reference || '').trim();
-  if (!ref) {
-    return { ok: false, error: 'Missing booking reference in session metadata' };
-  }
+  if (!ref) return { ok: false, error: 'Missing booking reference in session metadata' };
 
   const record = await kv.get<StoredBooking>(`pending-booking:${ref}`);
-  if (!record) {
-    return { ok: false, error: 'Booking record not found or expired' };
-  }
+  if (!record) return { ok: false, error: 'Booking record not found or expired' };
 
   const paymentIntentId = typeof session.payment_intent === 'string'
     ? session.payment_intent
     : session.payment_intent?.id;
-
   const paidAmount = (session.amount_total ?? 0) / 100;
   const paidCurrency = (session.currency || 'gbp').toUpperCase();
 
-  // Idempotency: if already confirmed, just return it.
   if (record.state === 'confirmed' && record.liteapiBookingId) {
     return { ok: true, booking: record, paidAmount, paidCurrency };
   }
 
   if (!record.guest) {
-    // Mark as paid, auto-refund the customer, then surface the refund.
-    const refund = await autoRefund(stripe, paymentIntentId, 'Guest details missing on finalise');
-    const updated: StoredBooking = {
-      ...record,
-      state: refund ? 'failed' : 'paid',
-      stripeSessionId: session.id,
-      stripePaymentIntentId: paymentIntentId || undefined,
-      refundId: refund?.id,
-      refundStatus: refund?.status,
-      error: 'Guest details missing',
-    };
+    const refund = paymentIntentId ? await safeRefund(stripe, paymentIntentId, 'Guest details missing') : null;
+    const updated: StoredBooking = { ...record, state: 'failed', error: 'Guest details missing' };
     await kv.set(`pending-booking:${ref}`, updated, { ex: 24 * 60 * 60 });
-    return {
-      ok: false,
-      error: 'Guest details were missing, so the booking was cancelled and your card has been automatically refunded.',
-      booking: updated,
-      paidAmount,
-      paidCurrency,
-      refunded: !!refund,
-      refundStatus: refund?.status,
-    };
+    return { ok: false, error: 'Guest details were missing — card refunded.', booking: updated, paidAmount, paidCurrency, refunded: !!refund, refundStatus: refund?.status };
   }
 
-  // Call LiteAPI
   try {
     const booking = await completeBooking({
       offerId: record.offerId,
-      guest: {
-        firstName: record.guest.firstName,
-        lastName: record.guest.lastName,
-        email: record.guest.email,
-        phone: record.guest.phone,
-        nationality: record.guest.nationality,
-      },
+      guest: { firstName: record.guest.firstName, lastName: record.guest.lastName, email: record.guest.email, phone: record.guest.phone, nationality: record.guest.nationality },
       stripePaymentIntentId: paymentIntentId,
     });
-
-    const updated: StoredBooking = {
-      ...record,
-      state: 'confirmed',
-      stripeSessionId: session.id,
-      stripePaymentIntentId: paymentIntentId || undefined,
-      liteapiBookingId: booking.bookingId,
-      liteapiStatus: booking.status,
-      liteapiConfirmationCode: booking.hotelConfirmationCode ?? null,
-    };
-    // Keep confirmed bookings in KV for 30 days
+    const updated: StoredBooking = { ...record, state: 'confirmed', liteapiBookingId: booking.bookingId, liteapiStatus: booking.status, liteapiConfirmationCode: booking.hotelConfirmationCode ?? null };
     await kv.set(`pending-booking:${ref}`, updated, { ex: 30 * 24 * 60 * 60 });
     return { ok: true, booking: updated, paidAmount, paidCurrency };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error('[/success] completeBooking failed', message);
-    // LiteAPI refused to book — auto-refund the customer immediately so
-    // they don't get stuck waiting for a support email.
-    const refund = await autoRefund(stripe, paymentIntentId, `LiteAPI book failed: ${message}`);
-    const updated: StoredBooking = {
-      ...record,
-      state: 'failed',
-      stripeSessionId: session.id,
-      stripePaymentIntentId: paymentIntentId || undefined,
-      refundId: refund?.id,
-      refundStatus: refund?.status,
-      error: message,
-    };
+    const refund = paymentIntentId ? await safeRefund(stripe, paymentIntentId, `LiteAPI book failed: ${message}`) : null;
+    const updated: StoredBooking = { ...record, state: 'failed', error: message };
     await kv.set(`pending-booking:${ref}`, updated, { ex: 24 * 60 * 60 });
-    return {
-      ok: false,
-      error: message,
-      booking: updated,
-      paidAmount,
-      paidCurrency,
-      refunded: !!refund,
-      refundStatus: refund?.status,
-    };
+    return { ok: false, error: message, booking: updated, paidAmount, paidCurrency, refunded: !!refund, refundStatus: refund?.status };
   }
 }
+
+async function safeRefund(stripe: any, paymentIntentId: string, reason: string) {
+  try {
+    const refund = await stripe.refunds.create({ payment_intent: paymentIntentId, reason: 'requested_by_customer', metadata: { auto_refund_reason: reason.slice(0, 500) } });
+    console.log(`[/success] auto-refund ${refund.id} (${refund.status}) for ${paymentIntentId}`);
+    return { id: refund.id, status: refund.status || 'unknown' };
+  } catch (err: unknown) {
+    console.error('[/success] auto-refund failed:', err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAGE
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 export default async function SuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ session_id?: string }>;
+  searchParams: Promise<{ session_id?: string; ref?: string; prebookId?: string; transactionId?: string }>;
 }) {
   const sp = await searchParams;
-  const sessionId = sp?.session_id || '';
 
-  if (!sessionId) {
+  // Determine which flow
+  const isPaymentSdk = !!(sp.ref && sp.prebookId && sp.transactionId);
+  const isStripe = !!sp.session_id;
+
+  if (!isPaymentSdk && !isStripe) {
     return (
       <main className="max-w-[680px] mx-auto px-5 py-16">
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
-          <p className="font-poppins font-bold text-amber-800">Missing session id. Were you redirected here from Stripe?</p>
+          <p className="font-poppins font-bold text-amber-800">Missing booking parameters. Were you redirected here correctly?</p>
           <a href="/hotels" className="inline-block mt-4 text-sm font-bold text-[#0066FF] underline">← Back to hotels</a>
         </div>
       </main>
     );
   }
 
-  let result: Awaited<ReturnType<typeof finalise>>;
+  let result: { ok: boolean; error?: string; booking?: StoredBooking; paidAmount?: number; paidCurrency?: string; refunded?: boolean; refundStatus?: string };
+
   try {
-    result = await finalise(sessionId);
+    if (isPaymentSdk) {
+      result = await finalisePaymentSdk(sp.ref!, sp.prebookId!, sp.transactionId!);
+    } else {
+      result = await finaliseStripe(sp.session_id!);
+    }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return (
@@ -206,15 +207,15 @@ export default async function SuccessPage({
         <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
           <h1 className="font-poppins font-black text-[1.3rem] text-red-700 mb-2">We couldn&apos;t finalise your booking</h1>
           <p className="text-[.85rem] text-red-700 font-semibold">{message}</p>
-          <p className="text-[.78rem] text-[#5C6378] mt-3">Your card was charged — please email <a className="underline" href="mailto:waqar@jetmeaway.co.uk">waqar@jetmeaway.co.uk</a> with this session id: <span className="font-mono">{sessionId}</span></p>
+          <p className="text-[.78rem] text-[#5C6378] mt-3">Please email <a className="underline" href="mailto:waqar@jetmeaway.co.uk">waqar@jetmeaway.co.uk</a> with your reference.</p>
         </div>
       </main>
     );
   }
 
+  // ── FAILURE ──
   if (!result.ok) {
-    // Auto-refunded: show a green success-style card so the customer knows
-    // their money is coming back, not red/amber which implies action required.
+    // Stripe refunded
     if (result.refunded) {
       return (
         <main className="max-w-[680px] mx-auto px-5 py-16">
@@ -234,7 +235,7 @@ export default async function SuccessPage({
               {result.refundStatus && <div className="flex justify-between"><span>Refund status</span><strong className="text-[#1A1D2B]">{result.refundStatus}</strong></div>}
             </div>
             <p className="text-[.78rem] text-[#5C6378] font-semibold mt-4">
-              We couldn&apos;t secure the hotel at the price you paid, so we automatically cancelled the charge. Refunds typically appear on your statement within 5–10 business days.
+              We couldn&apos;t secure the hotel at the price you paid, so we automatically cancelled the charge. Refunds typically appear within 5–10 business days.
             </p>
             <p className="text-[.72rem] text-[#8E95A9] font-semibold mt-2">Reason: {result.error}</p>
             <div className="mt-5 flex gap-3">
@@ -245,22 +246,29 @@ export default async function SuccessPage({
         </main>
       );
     }
+
+    // Payment SDK failure (no refund needed — LiteAPI handles it)
     return (
       <main className="max-w-[680px] mx-auto px-5 py-16">
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6">
-          <h1 className="font-poppins font-black text-[1.3rem] text-amber-800 mb-2">Payment received — booking needs attention</h1>
+          <h1 className="font-poppins font-black text-[1.3rem] text-amber-800 mb-2">Booking needs attention</h1>
           <p className="text-[.85rem] text-amber-800 font-semibold mb-2">{result.error}</p>
           {result.booking && (
             <p className="text-[.78rem] text-[#5C6378]">Reference: <span className="font-mono font-bold">{result.booking.ref}</span></p>
           )}
           <p className="text-[.78rem] text-[#5C6378] mt-3">
-            Please email <a className="underline" href="mailto:waqar@jetmeaway.co.uk">waqar@jetmeaway.co.uk</a> and we&apos;ll sort this out within minutes.
+            Your payment was processed by our hotel partner. If the booking couldn&apos;t be confirmed, any charge will be automatically reversed. Please email <a className="underline" href="mailto:waqar@jetmeaway.co.uk">waqar@jetmeaway.co.uk</a> if you need help.
           </p>
+          <div className="mt-5 flex gap-3">
+            <a href="/hotels" className="flex-1 text-center bg-orange-500 hover:bg-orange-600 text-white font-poppins font-black text-[.85rem] py-3 rounded-xl transition-all">Search again</a>
+            <a href="/" className="flex-1 text-center bg-white border border-[#E8ECF4] hover:border-[#0066FF] text-[#1A1D2B] font-poppins font-black text-[.85rem] py-3 rounded-xl transition-all">Back to home</a>
+          </div>
         </div>
       </main>
     );
   }
 
+  // ── SUCCESS ──
   const b = result.booking!;
 
   return (
@@ -305,8 +313,8 @@ export default async function SuccessPage({
           <div className="flex justify-between text-[.85rem] pt-2 border-t border-[#E8ECF4]">
             <span className="text-[#5C6378] font-semibold">Total paid</span>
             <strong className="text-[#1A1D2B]">
-              {result.paidCurrency === 'GBP' ? '£' : `${result.paidCurrency} `}
-              {(result.paidAmount ?? b.totalPrice).toFixed(2)}
+              {(b.currency || 'GBP') === 'GBP' ? '£' : `${b.currency} `}
+              {b.totalPrice.toFixed(2)}
             </strong>
           </div>
         </div>

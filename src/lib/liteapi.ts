@@ -501,20 +501,142 @@ export async function getHotelDetails(hotelId: string): Promise<HotelDetails | n
 }
 
 /* ───────────────────────────────────────────────────────────────────────── */
-/*  BOOKING — completeBooking                                                */
+/*  PREBOOK — Payment SDK flow                                               */
+/* ───────────────────────────────────────────────────────────────────────── */
+
+export interface PrebookResult {
+  prebookId: string;
+  secretKey: string;
+  transactionId: string;
+  price: number;
+  currency: string;
+  checkin: string;
+  checkout: string;
+}
+
+/**
+ * Prebook with LiteAPI Payment SDK enabled. Returns the secretKey and
+ * transactionId needed to render LiteAPI's embedded payment form on the
+ * client. The customer pays LiteAPI directly — we never touch their card.
+ */
+export async function prebookWithPaymentSdk(offerId: string): Promise<PrebookResult> {
+  if (!offerId) throw new Error('offerId is required');
+
+  const prebook = await liteFetch<{
+    data: {
+      prebookId: string;
+      offerId: string;
+      price: number;
+      currency: string;
+      secretKey?: string;
+      transactionId?: string;
+      checkin: string;
+      checkout: string;
+    };
+  }>('/rates/prebook', {
+    method: 'POST',
+    body: JSON.stringify({ offerId, usePaymentSdk: true }),
+  });
+
+  const d = prebook.data;
+  if (!d?.prebookId) throw new Error('LiteAPI prebook did not return a prebookId');
+  if (!d.secretKey || !d.transactionId) {
+    throw new Error('LiteAPI prebook did not return Payment SDK credentials (secretKey/transactionId)');
+  }
+
+  return {
+    prebookId: d.prebookId,
+    secretKey: d.secretKey,
+    transactionId: d.transactionId,
+    price: d.price,
+    currency: d.currency,
+    checkin: d.checkin,
+    checkout: d.checkout,
+  };
+}
+
+/* ───────────────────────────────────────────────────────────────────────── */
+/*  BOOKING — bookWithTransactionId (Payment SDK)                            */
 /* ───────────────────────────────────────────────────────────────────────── */
 
 /**
- * Complete a hotel booking against LiteAPI using the merchant / pre-paid model.
- *
- * Payment flow:
- *   1. Customer pays us on jetmeaway.co.uk via Stripe (never leaves the site)
- *   2. We pass the Stripe PaymentIntent ID to LiteAPI as `transactionId`,
- *      LiteAPI settles against our merchant wallet, customer is confirmed.
- *
- * Two-step sequence required by LiteAPI v3:
- *   a) POST /rates/prebook  → returns prebookId and the final locked price
- *   b) POST /rates/book     → confirms the booking using prebookId
+ * Confirm a booking after the customer has paid via the LiteAPI Payment SDK.
+ * Uses the TRANSACTION_ID payment method with the transactionId from prebook.
+ */
+export async function bookWithTransactionId(params: {
+  prebookId: string;
+  transactionId: string;
+  guest: Guest;
+  clientReference?: string;
+}): Promise<BookingResult> {
+  const { prebookId, transactionId, guest, clientReference } = params;
+
+  if (!prebookId) throw new Error('prebookId is required');
+  if (!transactionId) throw new Error('transactionId is required');
+  if (!guest?.firstName || !guest?.lastName || !guest?.email) {
+    throw new Error('guest.firstName, lastName and email are required');
+  }
+
+  const bookBody = {
+    prebookId,
+    ...(clientReference ? { clientReference } : {}),
+    holder: {
+      firstName: guest.firstName,
+      lastName: guest.lastName,
+      email: guest.email,
+    },
+    guests: [
+      {
+        occupancyNumber: 1,
+        firstName: guest.firstName,
+        lastName: guest.lastName,
+        email: guest.email,
+        nationality: guest.nationality || 'GB',
+        ...(guest.phone ? { phone: guest.phone } : {}),
+      },
+    ],
+    payment: { method: 'TRANSACTION', transactionId },
+  };
+
+  const booking = await liteFetch<{
+    data: {
+      bookingId: string;
+      status: string;
+      supplierBookingId?: string;
+      hotelConfirmationCode?: string;
+      currency?: string;
+      price?: number;
+      checkin: string;
+      checkout: string;
+      hotel?: { name?: string };
+    };
+  }>('/rates/book', {
+    method: 'POST',
+    body: JSON.stringify(bookBody),
+  });
+
+  const b = booking.data;
+  return {
+    bookingId: b.bookingId,
+    status: b.status,
+    supplierReference: b.supplierBookingId ?? null,
+    hotelConfirmationCode: b.hotelConfirmationCode ?? null,
+    currency: b.currency || 'GBP',
+    totalPrice: b.price ?? 0,
+    checkIn: b.checkin,
+    checkOut: b.checkout,
+    raw: b,
+  };
+}
+
+/* ───────────────────────────────────────────────────────────────────────── */
+/*  BOOKING — completeBooking (legacy Stripe/ACC_CREDIT_CARD flow)           */
+/* ───────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Legacy booking flow using ACC_CREDIT_CARD. Kept for backward compatibility
+ * with any in-flight Stripe bookings. New bookings use the Payment SDK flow
+ * (prebookWithPaymentSdk → bookWithTransactionId).
  */
 export async function completeBooking(
   params: CompleteBookingParams,
@@ -526,7 +648,6 @@ export async function completeBooking(
     throw new Error('guest.firstName, lastName and email are required');
   }
 
-  // a) Prebook — locks price and gives us a prebookId
   const prebook = await liteFetch<{
     data: {
       prebookId: string;
@@ -547,10 +668,6 @@ export async function completeBooking(
     throw new Error('LiteAPI prebook did not return a prebookId');
   }
 
-  // b) Book — ACC_CREDIT_CARD settlement. The customer has already paid us via
-  // Stripe on jetmeaway.co.uk; LiteAPI charges our account credit card for
-  // the net hotel cost. We keep the margin. The Stripe PaymentIntent ID,
-  // if provided, is stored as `clientReference` for reconciliation.
   const bookBody = {
     prebookId: prebookData.prebookId,
     ...(stripePaymentIntentId ? { clientReference: stripePaymentIntentId } : {}),

@@ -39,7 +39,10 @@ export interface PendingBooking {
   thumbnail: string | null;
   state: 'pending' | 'paid' | 'confirmed' | 'failed';
   createdAt: number;
-  // Populated after Stripe checkout
+  // Populated after prebook (Payment SDK flow)
+  prebookId?: string;
+  transactionId?: string;
+  // Populated after Stripe checkout (legacy flow)
   stripeSessionId?: string;
   stripePaymentIntentId?: string;
   // Populated after LiteAPI book
