@@ -67,6 +67,9 @@ export async function POST(req: NextRequest) {
       secretKey: result.secretKey,
       price: result.price,
       currency: result.currency,
+      priceDifferencePercent: result.priceDifferencePercent,
+      cancellationChanged: result.cancellationChanged,
+      boardChanged: result.boardChanged,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Prebook failed';

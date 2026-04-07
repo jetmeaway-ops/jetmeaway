@@ -512,6 +512,12 @@ export interface PrebookResult {
   currency: string;
   checkin: string;
   checkout: string;
+  /** 0 = same price; >0 = rate went up by this % since search */
+  priceDifferencePercent: number;
+  /** true if cancellation policy changed since search */
+  cancellationChanged: boolean;
+  /** true if board/meal plan changed since search */
+  boardChanged: boolean;
 }
 
 /**
@@ -532,6 +538,9 @@ export async function prebookWithPaymentSdk(offerId: string): Promise<PrebookRes
       transactionId?: string;
       checkin: string;
       checkout: string;
+      priceDifferencePercent?: number;
+      cancellationChanged?: boolean;
+      boardChanged?: boolean;
     };
   }>('/rates/prebook', {
     method: 'POST',
@@ -552,6 +561,9 @@ export async function prebookWithPaymentSdk(offerId: string): Promise<PrebookRes
     currency: d.currency,
     checkin: d.checkin,
     checkout: d.checkout,
+    priceDifferencePercent: d.priceDifferencePercent ?? 0,
+    cancellationChanged: d.cancellationChanged ?? false,
+    boardChanged: d.boardChanged ?? false,
   };
 }
 

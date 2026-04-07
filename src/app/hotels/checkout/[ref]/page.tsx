@@ -50,6 +50,8 @@ export default function HotelCheckoutPage() {
   // Payment SDK state
   const [prebookId, setPrebookId] = useState<string | null>(null);
   const [transactionId, setTransactionId] = useState<string | null>(null);
+  const [confirmedPrice, setConfirmedPrice] = useState<number | null>(null);
+  const [prebookWarnings, setPrebookWarnings] = useState<string[]>([]);
   const paymentContainerRef = useRef<HTMLDivElement>(null);
   const sdkLoadedRef = useRef(false);
 
@@ -148,6 +150,20 @@ export default function HotelCheckoutPage() {
 
       setPrebookId(prebookData.prebookId);
       setTransactionId(prebookData.transactionId);
+      if (prebookData.price) setConfirmedPrice(prebookData.price);
+
+      // Check for rate changes since search
+      const warnings: string[] = [];
+      if (prebookData.priceDifferencePercent && prebookData.priceDifferencePercent !== 0) {
+        warnings.push(`Price has changed by ${prebookData.priceDifferencePercent}% since your search`);
+      }
+      if (prebookData.cancellationChanged) {
+        warnings.push('Cancellation policy has changed since your search');
+      }
+      if (prebookData.boardChanged) {
+        warnings.push('Board/meal plan has changed since your search');
+      }
+      setPrebookWarnings(warnings);
 
       // 3) Load and init the LiteAPI Payment SDK
       initPaymentSdk(prebookData.secretKey);
@@ -258,6 +274,22 @@ export default function HotelCheckoutPage() {
               <p className="text-[.78rem] text-[#5C6378] font-semibold mb-4">
                 Enter your card details below. Payment is processed securely by our hotel booking partner.
               </p>
+              {prebookWarnings.length > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 flex items-start gap-2.5">
+                  <i className="fa-solid fa-triangle-exclamation text-amber-600 text-sm mt-0.5" />
+                  <div className="text-[.78rem] text-amber-800 font-semibold leading-snug">
+                    {prebookWarnings.map((w, i) => <p key={i}>{w}</p>)}
+                  </div>
+                </div>
+              )}
+              {confirmedPrice && confirmedPrice !== booking.totalPrice && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-4 flex items-start gap-2.5">
+                  <i className="fa-solid fa-info-circle text-blue-600 text-sm mt-0.5" />
+                  <p className="text-[.78rem] text-blue-800 font-semibold leading-snug">
+                    Confirmed price: <strong>{booking.currency === 'GBP' ? '£' : `${booking.currency} `}{confirmedPrice.toFixed(2)}</strong>
+                  </p>
+                </div>
+              )}
               <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-4 flex items-start gap-2.5">
                 <i className="fa-solid fa-shield-halved text-green-600 text-sm mt-0.5" />
                 <p className="text-[.78rem] text-green-800 font-semibold leading-snug">
