@@ -98,18 +98,19 @@ export default function HotelCheckoutPage() {
 
       const returnUrl = `${window.location.origin}/success?ref=${encodeURIComponent(ref)}&prebookId=${encodeURIComponent(pbId)}&transactionId=${encodeURIComponent(txId)}`;
 
-      LiteAPIPayment.init(secretKey, '#liteapi-payment-form', {
-        returnUrl,
-        appearance: {
-          theme: 'stripe',
-          variables: {
-            colorPrimary: '#0066FF',
-            fontFamily: 'Poppins, system-ui, sans-serif',
-            borderRadius: '12px',
-          },
-        },
-      });
-      setStep('payment');
+      try {
+        const payment = new LiteAPIPayment({
+          secretKey,
+          targetElement: '#liteapi-payment-form',
+          returnUrl,
+        });
+        payment.handlePayment();
+        setStep('payment');
+      } catch (err) {
+        console.error('[LiteAPIPayment] init failed:', err);
+        setStepError('Failed to initialize payment form. Please refresh and try again.');
+        setStep('error');
+      }
     };
     script.onerror = () => {
       setStepError('Failed to load payment form. Please refresh and try again.');
