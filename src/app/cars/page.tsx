@@ -153,29 +153,25 @@ function LoadingState({ loc }: { loc: string }) {
 const TP_CAR = (campaignId: number, p: number, innerUrl: string) =>
   `https://tp.media/r?campaign_id=${campaignId}&marker=714449&p=${p}&trs=512633&u=${encodeURIComponent(innerUrl)}`;
 
-function buildEconomyBookingsUrl(loc: string, pickup: string, dropoff: string, pickupTime: string, dropoffTime: string, age: string) {
-  const inner = `https://www.economybookings.com/search?location=${encodeURIComponent(loc)}&pick_up_date=${pickup}&drop_off_date=${dropoff}&pick_up_time=${pickupTime}&drop_off_time=${dropoffTime}&driver_age=${age}&currency=GBP`;
-  return TP_CAR(10, 2018, inner);
+function buildEconomyBookingsUrl() {
+  return TP_CAR(10, 2018, 'https://www.economybookings.com');
 }
 
-function buildLocalrentUrl(loc: string, pickup: string, dropoff: string) {
-  const inner = `https://localrent.com/en/search?location=${encodeURIComponent(loc)}&date_from=${pickup}&date_to=${dropoff}&currency=GBP`;
-  return TP_CAR(87, 2043, inner);
+function buildLocalrentUrl() {
+  return TP_CAR(87, 2043, 'https://localrent.com/en');
 }
 
-function buildQeeqUrl(loc: string, pickup: string, dropoff: string, pickupTime: string, dropoffTime: string) {
-  const inner = `https://www.qeeq.com/search?pickup=${encodeURIComponent(loc)}&pickup_date=${pickup}&dropoff_date=${dropoff}&pickup_time=${pickupTime}&dropoff_time=${dropoffTime}&currency=GBP`;
-  return TP_CAR(172, 4845, inner);
+function buildQeeqUrl() {
+  return TP_CAR(172, 4845, 'https://www.qeeq.com');
 }
 
 function buildGetRentaCarUrl(loc: string, pickup: string, dropoff: string) {
-  const inner = `https://getrentacar.com/search?location=${encodeURIComponent(loc)}&from=${pickup}&to=${dropoff}&currency=GBP`;
+  const inner = `https://getrentacar.com/en-US/car-rental/search?currency=GBP&from=${pickup}&to=${dropoff}&location=${encodeURIComponent(loc)}`;
   return TP_CAR(222, 5996, inner);
 }
 
-function buildKlookUrl(loc: string) {
-  const inner = `https://www.klook.com/en-GB/cars/?query=${encodeURIComponent(loc)}`;
-  return TP_CAR(137, 4110, inner);
+function buildKlookUrl() {
+  return TP_CAR(137, 4110, 'https://www.klook.com/en-GB/car-rentals/');
 }
 
 function buildExpediaUrl(loc: string, pickup: string, dropoff: string, pickupTime: string, dropoffTime: string) {
@@ -204,8 +200,7 @@ const PROVIDERS: Provider[] = [
     extra: 'Under 25? Economy Bookings has lower young driver surcharges than most providers',
     color: '#2563EB',
     bgColor: '#EFF6FF',
-    buildUrl: (loc, pickup, dropoff, pickupTime, dropoffTime, age) =>
-      buildEconomyBookingsUrl(loc, pickup, dropoff, pickupTime, dropoffTime, age),
+    buildUrl: () => buildEconomyBookingsUrl(),
   },
   {
     name: 'Localrent',
@@ -213,7 +208,7 @@ const PROVIDERS: Provider[] = [
     selling: ['Direct from local owners', 'Full insurance included', 'No deposit on many cars'],
     color: '#059669',
     bgColor: '#ECFDF5',
-    buildUrl: (loc, pickup, dropoff) => buildLocalrentUrl(loc, pickup, dropoff),
+    buildUrl: () => buildLocalrentUrl(),
   },
   {
     name: 'Qeeq',
@@ -221,8 +216,7 @@ const PROVIDERS: Provider[] = [
     selling: ['Price match guarantee', 'Free cancellation', 'No credit card fees'],
     color: '#7C3AED',
     bgColor: '#F5F3FF',
-    buildUrl: (loc, pickup, dropoff, pickupTime, dropoffTime) =>
-      buildQeeqUrl(loc, pickup, dropoff, pickupTime, dropoffTime),
+    buildUrl: () => buildQeeqUrl(),
   },
   {
     name: 'GetRentaCar',
@@ -238,7 +232,7 @@ const PROVIDERS: Provider[] = [
     selling: ['Best price guarantee', 'Instant confirmation', 'Easy cancellation'],
     color: '#FF5722',
     bgColor: '#FFF3E0',
-    buildUrl: (loc) => buildKlookUrl(loc),
+    buildUrl: () => buildKlookUrl(),
   },
   {
     name: 'Expedia',

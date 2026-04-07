@@ -273,7 +273,7 @@ function LoadingState({ dest }: { dest: string }) {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function buildExpediaUrl(dest: string, from: string, depDate: string, retDate: string, adults: number) {
-  return `https://www.expedia.co.uk/Holidays/search?destination=${encodeURIComponent(dest)}&origin=${encodeURIComponent(from)}&d1=${depDate}&d2=${retDate}&r1=${adults}&affcid=clbU3QK`;
+  return `https://www.expedia.co.uk/go/package/search/FlightHotel/${depDate}/${retDate}?FromAirport=${encodeURIComponent(from)}&Destination=${encodeURIComponent(dest)}&NumRoom=1&NumAdult=${adults}&affcid=clbU3QK`;
 }
 
 function buildTripUrl(dest: string, depDate: string, retDate: string, adults: number) {
