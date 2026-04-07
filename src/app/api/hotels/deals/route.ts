@@ -31,7 +31,7 @@ const HOT_DESTINATIONS: { city: string; country: string; flag: string; photo: st
   { city: 'Lisbon',     country: 'PT', flag: '🇵🇹', photo: 'https://images.unsplash.com/photo-1585208798174-6cedd86e019a?w=480&h=320&fit=crop', tag: 'City Break' },
 ];
 
-const KV_KEY = 'hotel_deals:v2';
+const KV_KEY = 'hotel_deals:v3';
 const KV_TTL = 21600; // 6 hours
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -40,6 +40,7 @@ const KV_TTL = 21600; // 6 hours
 
 export type DealHotel = {
   id: string;
+  offerId: string | null;
   name: string;
   stars: number;
   pricePerNight: number;
@@ -122,6 +123,7 @@ export async function GET() {
 
           const mapHotel = (h: typeof sorted[0]): DealHotel => ({
             id: h.hotelId,
+            offerId: h.offerId || null,
             name: h.hotelName,
             stars: h.stars || 0,
             pricePerNight: Math.round(h.pricePerNight || h.price / 4),
