@@ -3,7 +3,8 @@ import { kv } from '@vercel/kv';
 import { prebookWithPaymentSdk } from '@/lib/liteapi';
 import type { PendingBooking } from '../start-booking/route';
 
-export const runtime = 'edge';
+// Node runtime — LiteAPI prebook can take 15-25s, Edge times out too early
+export const maxDuration = 60;
 
 /**
  * POST /api/hotels/prebook

@@ -4,7 +4,8 @@ import { bookWithTransactionId } from '@/lib/liteapi';
 import type { PendingBooking } from '../start-booking/route';
 import type { PendingGuest } from '../pending/[ref]/guest/route';
 
-export const runtime = 'edge';
+// Node runtime — LiteAPI book can take 15-25s, Edge times out too early
+export const maxDuration = 60;
 
 /**
  * POST /api/hotels/book
