@@ -80,7 +80,7 @@ export default function HotelCheckoutPage() {
     phone.trim().length >= 6;
 
   // Initialize LiteAPI Payment SDK once we have the secretKey
-  const initPaymentSdk = useCallback((secretKey: string) => {
+  const initPaymentSdk = useCallback((secretKey: string, pbId: string, txId: string) => {
     if (sdkLoadedRef.current) return;
     sdkLoadedRef.current = true;
 
@@ -96,7 +96,7 @@ export default function HotelCheckoutPage() {
         return;
       }
 
-      const returnUrl = `${window.location.origin}/success?ref=${encodeURIComponent(ref)}&prebookId=${encodeURIComponent(prebookId || '')}&transactionId=${encodeURIComponent(transactionId || '')}`;
+      const returnUrl = `${window.location.origin}/success?ref=${encodeURIComponent(ref)}&prebookId=${encodeURIComponent(pbId)}&transactionId=${encodeURIComponent(txId)}`;
 
       LiteAPIPayment.init(secretKey, '#liteapi-payment-form', {
         returnUrl,
@@ -116,7 +116,7 @@ export default function HotelCheckoutPage() {
       setStep('error');
     };
     document.head.appendChild(script);
-  }, [ref, prebookId, transactionId]);
+  }, [ref]);
 
   const handleContinueToPayment = async () => {
     if (!booking || !formOk) return;
@@ -166,7 +166,7 @@ export default function HotelCheckoutPage() {
       setPrebookWarnings(warnings);
 
       // 3) Load and init the LiteAPI Payment SDK
-      initPaymentSdk(prebookData.secretKey);
+      initPaymentSdk(prebookData.secretKey, prebookData.prebookId, prebookData.transactionId);
     } catch (e: unknown) {
       setStepError(e instanceof Error ? e.message : 'Unexpected error');
       setStep('guest');
