@@ -135,6 +135,32 @@ type BoardOption = {
   refundable: boolean;
 };
 
+type DealHotel = {
+  name: string;
+  stars: number;
+  pricePerNight: number;
+  totalPrice: number;
+  thumbnail: string | null;
+  boardType: string | null;
+  refundable: boolean;
+  district: string | null;
+};
+
+type DealDestination = {
+  city: string;
+  country: string;
+  flag: string;
+  photo: string;
+  tag?: string;
+  cheapestPrice: number | null;
+  topHotel: DealHotel | null;
+  budgetHotel: DealHotel | null;
+  premiumHotel: DealHotel | null;
+  hotelCount: number;
+  checkin: string;
+  checkout: string;
+};
+
 type HotelResult = {
   id: number | string;
   name: string;
@@ -623,6 +649,17 @@ function HotelsContent() {
   // Scout sidebar state
   const [scoutHotel, setScoutHotel] = useState<{ name: string; lat: number; lng: number } | null>(null);
 
+  // Hot deals state
+  const [deals, setDeals] = useState<DealDestination[] | null>(null);
+  const [dealsLoading, setDealsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/hotels/deals')
+      .then(r => r.json())
+      .then(d => { setDeals(d.deals || []); setDealsLoading(false); })
+      .catch(() => setDealsLoading(false));
+  }, []);
+
   const resultsRef = useRef<HTMLDivElement>(null);
 
   // Read URL params
@@ -848,6 +885,161 @@ function HotelsContent() {
           <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">Free comparison · Prices shown here · Click any hotel to book on the provider</p>
         </div>
       </section>
+
+      {/* ── Hot Deals ── */}
+      {!searched && !loading && (
+        <section className="max-w-[1100px] mx-auto px-5 pt-10 pb-4">
+          {/* Section header */}
+          <div className="text-center mb-8">
+            <span className="inline-block bg-red-50 text-red-500 text-[.62rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-3">Hot Hotel Deals</span>
+            <h2 className="font-poppins font-black text-[1.8rem] md:text-[2.4rem] text-[#1A1D2B] leading-tight mb-2">
+              Trending Destinations
+            </h2>
+            <p className="text-[.88rem] text-[#8E95A9] font-semibold max-w-[480px] mx-auto">
+              Real prices from top hotels — updated every few hours
+            </p>
+          </div>
+
+          {/* Deals grid */}
+          {dealsLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden animate-pulse">
+                  <div className="h-36 bg-[#F1F3F7]" />
+                  <div className="p-4 space-y-2">
+                    <div className="h-4 w-2/3 bg-[#F1F3F7] rounded" />
+                    <div className="h-3 w-1/2 bg-[#F1F3F7] rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : deals && deals.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {deals.filter(d => d.cheapestPrice !== null).map((deal) => {
+                const hotel = deal.budgetHotel;
+                return (
+                  <button
+                    key={deal.city}
+                    type="button"
+                    onClick={() => {
+                      setDestination(deal.city);
+                      setCheckin(deal.checkin);
+                      setCheckout(deal.checkout);
+                      setTimeout(() => handleSearch(), 100);
+                    }}
+                    className="group bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden hover:shadow-[0_8px_30px_rgba(245,158,11,0.12)] hover:border-orange-200 transition-all text-left"
+                  >
+                    {/* Photo */}
+                    <div className="relative h-36 overflow-hidden">
+                      <img
+                        src={deal.photo}
+                        alt={deal.city}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                      />
+                      {/* Gradient overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+
+                      {/* Tag badge */}
+                      {deal.tag && (
+                        <span className={`absolute top-2.5 left-2.5 text-[.58rem] font-black uppercase tracking-wider px-2 py-1 rounded-lg ${
+                          deal.tag === 'Trending' ? 'bg-red-500 text-white' :
+                          deal.tag === 'Budget Gem' ? 'bg-emerald-500 text-white' :
+                          deal.tag === 'All Inclusive' ? 'bg-purple-500 text-white' :
+                          deal.tag === 'Family Fav' ? 'bg-blue-500 text-white' :
+                          deal.tag === 'City Break' ? 'bg-amber-500 text-white' :
+                          deal.tag === 'Culture' ? 'bg-indigo-500 text-white' :
+                          deal.tag === 'Paradise' ? 'bg-teal-500 text-white' :
+                          'bg-orange-500 text-white'
+                        }`}>
+                          {deal.tag}
+                        </span>
+                      )}
+
+                      {/* City name on photo */}
+                      <div className="absolute bottom-2.5 left-3">
+                        <span className="text-white font-poppins font-black text-[1.05rem] drop-shadow-lg">
+                          {deal.flag} {deal.city}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Details */}
+                    <div className="p-3.5">
+                      {hotel ? (
+                        <>
+                          <p className="text-[.72rem] text-[#5C6378] font-semibold truncate mb-1">
+                            {hotel.name}
+                          </p>
+                          <div className="flex items-center gap-1 mb-2">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <span key={i} className={`text-[.6rem] ${i < hotel.stars ? 'text-amber-400' : 'text-[#E8ECF4]'}`}>★</span>
+                            ))}
+                            {hotel.boardType && (
+                              <span className="text-[.58rem] text-purple-600 font-bold ml-1">{hotel.boardType}</span>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-[.72rem] text-[#8E95A9] font-semibold mb-2">{deal.hotelCount} hotels available</p>
+                      )}
+
+                      <div className="flex items-end justify-between">
+                        <div>
+                          <span className="text-[.6rem] text-[#8E95A9] font-semibold">from</span>
+                          <span className="font-poppins font-black text-[1.3rem] text-[#1A1D2B] leading-none ml-1">
+                            £{Math.round(deal.cheapestPrice!)}
+                          </span>
+                          <span className="text-[.65rem] text-[#8E95A9] font-semibold">/night</span>
+                        </div>
+                        <span className="text-orange-500 text-[.68rem] font-bold group-hover:translate-x-0.5 transition-transform">
+                          Search →
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+
+          {/* Featured deal highlight */}
+          {deals && deals.length > 0 && (() => {
+            const bestDeal = deals.filter(d => d.cheapestPrice !== null).sort((a, b) => (a.cheapestPrice || Infinity) - (b.cheapestPrice || Infinity))[0];
+            if (!bestDeal || !bestDeal.budgetHotel) return null;
+            const h = bestDeal.budgetHotel;
+            return (
+              <div className="mt-8 bg-gradient-to-r from-orange-50 via-amber-50 to-orange-50 border border-orange-200 rounded-2xl p-6 flex flex-col md:flex-row items-center gap-6">
+                <div className="flex-shrink-0">
+                  <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-orange-500 rounded-2xl flex items-center justify-center text-3xl shadow-lg">
+                    🔥
+                  </div>
+                </div>
+                <div className="flex-1 text-center md:text-left">
+                  <h3 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-1">
+                    Deal of the Day — {bestDeal.flag} {bestDeal.city}
+                  </h3>
+                  <p className="text-[.82rem] text-[#5C6378] font-semibold">
+                    {h.name} {h.stars > 0 && `· ${'★'.repeat(h.stars)}`} {h.boardType && `· ${h.boardType}`} — from <strong className="text-orange-600">£{Math.round(h.pricePerNight)}/night</strong> for 4 nights
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDestination(bestDeal.city);
+                    setCheckin(bestDeal.checkin);
+                    setCheckout(bestDeal.checkout);
+                    setTimeout(() => handleSearch(), 100);
+                  }}
+                  className="flex-shrink-0 bg-orange-500 hover:bg-orange-600 text-white font-poppins font-black text-[.85rem] px-6 py-3 rounded-xl transition-all shadow-[0_4px_20px_rgba(245,158,11,0.3)]"
+                >
+                  View Deal →
+                </button>
+              </div>
+            );
+          })()}
+        </section>
+      )}
 
       {/* ── Loading ── */}
       {loading && <LoadingState dest={destination} />}
