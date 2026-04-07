@@ -547,11 +547,10 @@ export async function completeBooking(
     throw new Error('LiteAPI prebook did not return a prebookId');
   }
 
-  // b) Book — merchant wallet settlement. The customer has already paid us via
-  // Stripe on jetmeaway.co.uk; we settle the booking against our pre-funded
-  // LiteAPI merchant wallet using `payment.method = "WALLET"`. The Stripe
-  // PaymentIntent ID, if provided, is stored as `clientReference` for
-  // reconciliation between our Stripe dashboard and LiteAPI bookings.
+  // b) Book — ACC_CREDIT_CARD settlement. The customer has already paid us via
+  // Stripe on jetmeaway.co.uk; LiteAPI charges our account credit card for
+  // the net hotel cost. We keep the margin. The Stripe PaymentIntent ID,
+  // if provided, is stored as `clientReference` for reconciliation.
   const bookBody = {
     prebookId: prebookData.prebookId,
     ...(stripePaymentIntentId ? { clientReference: stripePaymentIntentId } : {}),
@@ -570,7 +569,7 @@ export async function completeBooking(
         ...(guest.phone ? { phone: guest.phone } : {}),
       },
     ],
-    payment: { method: 'WALLET' },
+    payment: { method: 'ACC_CREDIT_CARD' },
   };
 
   const booking = await liteFetch<{
