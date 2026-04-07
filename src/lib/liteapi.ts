@@ -528,6 +528,7 @@ export interface PrebookResult {
 export async function prebookWithPaymentSdk(offerId: string): Promise<PrebookResult> {
   if (!offerId) throw new Error('offerId is required');
 
+  // LiteAPI prebook with Payment SDK can take 25-40s — use a generous timeout
   const prebook = await liteFetch<{
     data: {
       prebookId: string;
@@ -545,7 +546,7 @@ export async function prebookWithPaymentSdk(offerId: string): Promise<PrebookRes
   }>('/rates/prebook', {
     method: 'POST',
     body: JSON.stringify({ offerId, usePaymentSdk: true }),
-  });
+  }, 50_000); // 50s timeout — Payment SDK prebook is slow
 
   const d = prebook.data;
   if (!d?.prebookId) throw new Error('LiteAPI prebook did not return a prebookId');
@@ -625,7 +626,7 @@ export async function bookWithTransactionId(params: {
   }>('/rates/book', {
     method: 'POST',
     body: JSON.stringify(bookBody),
-  });
+  }, 50_000); // 50s timeout — book can be slow
 
   const b = booking.data;
   return {

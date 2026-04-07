@@ -263,7 +263,7 @@ export default function HotelCheckoutPage() {
             <div className="text-center py-10">
               <div className="inline-block w-8 h-8 border-4 border-[#E8ECF4] border-t-[#0066FF] rounded-full animate-spin" />
               <p className="mt-4 text-sm font-semibold text-[#5C6378]">Locking your rate…</p>
-              <p className="mt-1 text-[.75rem] text-[#8E95A9]">This takes a few seconds</p>
+              <p className="mt-1 text-[.75rem] text-[#8E95A9]">This can take up to 30 seconds</p>
             </div>
           )}
 
