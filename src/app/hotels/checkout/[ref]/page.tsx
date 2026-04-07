@@ -100,9 +100,12 @@ export default function HotelCheckoutPage() {
 
       try {
         const payment = new LiteAPIPayment({
+          publicKey: 'live',
           secretKey,
           targetElement: '#liteapi-payment-form',
           returnUrl,
+          appearance: { theme: 'flat' },
+          options: { business: { name: 'JetMeAway' } },
         });
         payment.handlePayment();
         setStep('payment');
