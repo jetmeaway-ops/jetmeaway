@@ -31,7 +31,7 @@ const HOT_DESTINATIONS: { city: string; country: string; flag: string; photo: st
   { city: 'Lisbon',     country: 'PT', flag: '🇵🇹', photo: 'https://images.unsplash.com/photo-1585208798174-6cedd86e019a?w=480&h=320&fit=crop', tag: 'City Break' },
 ];
 
-const KV_KEY = 'hotel_deals:v3';
+const KV_KEY = 'hotel_deals:v4';
 const KV_TTL = 21600; // 6 hours
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -118,8 +118,23 @@ export async function GET() {
             };
           }
 
+          // Only include bookable hotels (with offerId for Book Direct)
+          const bookable = hotels.filter((h) => h.offerId);
+          if (bookable.length === 0) {
+            return {
+              ...dest,
+              cheapestPrice: null,
+              topHotel: null,
+              budgetHotel: null,
+              premiumHotel: null,
+              hotelCount: 0,
+              checkin,
+              checkout,
+            };
+          }
+
           // Sort by price
-          const sorted = [...hotels].sort((a, b) => a.price - b.price);
+          const sorted = [...bookable].sort((a, b) => a.price - b.price);
 
           const mapHotel = (h: typeof sorted[0]): DealHotel => ({
             id: h.hotelId,
@@ -151,7 +166,7 @@ export async function GET() {
             topHotel: mapHotel(topHotel),
             budgetHotel: mapHotel(budgetHotel),
             premiumHotel: premiumHotel !== budgetHotel ? mapHotel(premiumHotel) : null,
-            hotelCount: hotels.length,
+            hotelCount: bookable.length,
             checkin,
             checkout,
           };
