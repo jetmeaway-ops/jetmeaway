@@ -31,7 +31,7 @@ const HOT_DESTINATIONS: { city: string; country: string; flag: string; photo: st
   { city: 'Lisbon',     country: 'PT', flag: '🇵🇹', photo: 'https://images.unsplash.com/photo-1585208798174-6cedd86e019a?w=480&h=320&fit=crop', tag: 'City Break' },
 ];
 
-const KV_KEY = 'hotel_deals:v1';
+const KV_KEY = 'hotel_deals:v2';
 const KV_TTL = 21600; // 6 hours
 
 /* ═══════════════════════════════════════════════════════════════════════════
