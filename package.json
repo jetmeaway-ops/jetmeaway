@@ -12,6 +12,7 @@
     "@duffel/components": "^3.13.1",
     "@vercel/analytics": "^2.0.1",
     "@vercel/kv": "^3.0.0",
+    "docx": "^9.6.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.7.0",
     "next": "16.2.2",

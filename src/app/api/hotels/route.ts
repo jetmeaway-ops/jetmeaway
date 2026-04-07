@@ -64,6 +64,10 @@ const CITY_COUNTRY: Record<string, string> = {
   // Oceania
   'sydney': 'AU', 'melbourne': 'AU', 'gold coast': 'AU',
   'auckland': 'NZ', 'queenstown': 'NZ',
+  // Caucasus & Central Asia
+  'baku': 'AZ', 'yerevan': 'AM', 'tbilisi': 'GE',
+  'ashgabat': 'TM', 'tashkent': 'UZ', 'almaty': 'KZ', 'astana': 'KZ',
+  'bishkek': 'KG', 'dushanbe': 'TJ',
   // Islands
   'maldives': 'MV', 'mauritius': 'MU', 'seychelles': 'SC',
 };

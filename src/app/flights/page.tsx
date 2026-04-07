@@ -229,6 +229,16 @@ const DESTINATIONS = [
   { code: 'LIM', city: 'Lima', country: 'Peru', flag: '🇵🇪' },
   { code: 'BOG', city: 'Bogota', country: 'Colombia', flag: '🇨🇴' },
   { code: 'CTG', city: 'Cartagena', country: 'Colombia', flag: '🇨🇴' },
+  // Caucasus & Central Asia
+  { code: 'GYD', city: 'Baku', country: 'Azerbaijan', flag: '🇦🇿' },
+  { code: 'EVN', city: 'Yerevan', country: 'Armenia', flag: '🇦🇲' },
+  { code: 'TBS', city: 'Tbilisi', country: 'Georgia', flag: '🇬🇪' },
+  { code: 'ASB', city: 'Ashgabat', country: 'Turkmenistan', flag: '🇹🇲' },
+  { code: 'TAS', city: 'Tashkent', country: 'Uzbekistan', flag: '🇺🇿' },
+  { code: 'ALA', city: 'Almaty', country: 'Kazakhstan', flag: '🇰🇿' },
+  { code: 'NQZ', city: 'Astana', country: 'Kazakhstan', flag: '🇰🇿' },
+  { code: 'FRU', city: 'Bishkek', country: 'Kyrgyzstan', flag: '🇰🇬' },
+  { code: 'DYU', city: 'Dushanbe', country: 'Tajikistan', flag: '🇹🇯' },
 ];
 
 type UKAirport = typeof UK_AIRPORTS[number];
@@ -286,12 +296,6 @@ function buildExpediaUrl(o: string, d: string, dep: string, ret: string | null, 
   return u;
 }
 
-function buildKiwiUrl(o: string, d: string, dep: string, ret: string | null, adults: number, fromCity: string, toCity: string): string {
-  const fC = fromCity.toLowerCase().replace(/\s+/g, '-');
-  const tC = toCity.toLowerCase().replace(/\s+/g, '-');
-  const path = ret ? `${fC}/${tC}/${dep}/${ret}` : `${fC}/${tC}/${dep}/no-return`;
-  return `https://tp.media/r?marker=714449&trs=512633&p=7054&u=${encodeURIComponent(`https://www.kiwi.com/en/search/results/${path}/${adults}adults`)}`;
-}
 
 type ProviderInfo = {
   name: string;
@@ -304,7 +308,6 @@ const PROVIDERS: ProviderInfo[] = [
   { name: 'Trip.com', logo: '🗺', getUrl: (o, d, dep, ret, a) => buildTripUrl(o, d, dep, ret, a) },
   { name: 'Skyscanner', logo: '🔍', getUrl: (o, d, dep, ret, a) => buildSkyscannerUrl(o, d, dep, ret, a) },
   { name: 'Expedia', logo: '🌍', getUrl: (o, d, dep, ret, a) => buildExpediaUrl(o, d, dep, ret, a) },
-  { name: 'Kiwi.com', logo: '🥝', getUrl: (o, d, dep, ret, a, fc, tc) => buildKiwiUrl(o, d, dep, ret, a, fc, tc) },
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -537,6 +540,91 @@ function PassengerPicker({ adults, children, infants, onChange }: {
         </div>
       )}
     </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   HOT FLIGHT DEALS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+type HotDeal = {
+  dest: string; city: string; country: string; flag: string;
+  price: number; airline: string; airlineCode: string;
+  departureDate: string; transfers: number; duration: number;
+};
+
+function HotDeals({ onSelect }: { onSelect: (destCode: string, destCity: string) => void }) {
+  const [deals, setDeals] = useState<HotDeal[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/flights/deals')
+      .then(r => r.json())
+      .then(d => { setDeals(d.deals || []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <section className="max-w-[1100px] mx-auto px-5 py-8">
+        <h2 className="font-poppins font-black text-[1.2rem] text-[#1A1D2B] mb-4">
+          <span className="text-[#0066FF]">🔥</span> Hot Flight Deals from London
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="bg-white border border-[#E8ECF4] rounded-xl p-4 animate-pulse">
+              <div className="h-4 w-24 bg-[#F1F3F7] rounded mb-3" />
+              <div className="h-6 w-16 bg-[#F1F3F7] rounded mb-2" />
+              <div className="h-3 w-32 bg-[#F1F3F7] rounded" />
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (deals.length === 0) return null;
+
+  return (
+    <section className="max-w-[1100px] mx-auto px-5 py-8">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <h2 className="font-poppins font-black text-[1.2rem] text-[#1A1D2B]">
+          <span className="text-[#0066FF]">🔥</span> Hot Flight Deals from London
+        </h2>
+        <span className="text-[.68rem] text-[#8E95A9] font-semibold">Live prices · Updated every 6 hours · Click to search</span>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        {deals.map(deal => {
+          const depDate = deal.departureDate ? new Date(deal.departureDate) : null;
+          const dateStr = depDate ? depDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '';
+          const stops = deal.transfers === 0 ? 'Direct' : deal.transfers === 1 ? '1 stop' : `${deal.transfers} stops`;
+          const durH = Math.floor((deal.duration || 0) / 60);
+          const durM = (deal.duration || 0) % 60;
+          const durStr = deal.duration ? `${durH}h${durM > 0 ? ` ${durM}m` : ''}` : '';
+          const logo = `https://pics.avs.io/60/60/${deal.airlineCode}.png`;
+
+          return (
+            <button key={deal.dest} onClick={() => onSelect(deal.dest, deal.city)}
+              className="bg-white border border-[#E8ECF4] rounded-xl p-4 text-left hover:border-[#0066FF] hover:shadow-md transition-all group cursor-pointer">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[.78rem] font-poppins font-black text-[#1A1D2B] group-hover:text-[#0066FF] transition-colors">
+                  {deal.flag} {deal.city}
+                </span>
+                <img src={logo} alt={deal.airline} className="w-5 h-5 object-contain opacity-70"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              </div>
+              <div className="font-poppins font-black text-[1.4rem] text-[#0066FF] leading-none mb-1.5">
+                £{deal.price}
+              </div>
+              <div className="text-[.62rem] text-[#8E95A9] font-semibold space-y-0.5">
+                <div>{deal.airline} · {stops}{durStr ? ` · ${durStr}` : ''}</div>
+                {dateStr && <div>from {dateStr} · one-way pp</div>}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -969,6 +1057,16 @@ function FlightsContent() {
         </div>
       </section>
 
+      {/* ── Hot Flight Deals (shown before search) ── */}
+      {!searched && !loading && (
+        <HotDeals onSelect={(code, city) => {
+          setDestCode(code);
+          setDestCity(city);
+          // Scroll to search form
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }} />
+      )}
+
       {/* ── Loading State ── */}
       {loading && <LoadingState origin={originCode} dest={destCode} />}
 
@@ -1224,7 +1322,7 @@ function FlightsContent() {
                           </div>
                         </div>
 
-                        {/* Price + View Deal */}
+                        {/* Price */}
                         <div className="flex items-center gap-4 md:flex-col md:items-end md:gap-2">
                           <div className="text-right">
                             <div className="font-poppins font-black text-[1.5rem] text-[#1A1D2B] leading-none">{f.currency}{f.price}</div>
@@ -1235,17 +1333,6 @@ function FlightsContent() {
                               <div className="text-[.55rem] text-green-600 font-bold mt-0.5">✓ Live price incl. taxes</div>
                             )}
                           </div>
-                          {isDuffel && f.offer_id ? (
-                            <a href={`/checkout/${f.offer_id}`}
-                              className="bg-green-600 hover:bg-green-700 text-white font-poppins font-bold text-[.78rem] px-5 py-2.5 rounded-xl transition-all shadow-[0_4px_12px_rgba(22,163,74,0.2)] whitespace-nowrap">
-                              Book Now →
-                            </a>
-                          ) : (
-                            <a href={redirectUrl(viewDealUrl, 'Aviasales', destCity || destCode, 'flights')}
-                              className="bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.78rem] px-5 py-2.5 rounded-xl transition-all shadow-[0_4px_12px_rgba(0,102,255,0.2)] whitespace-nowrap">
-                              View Deal →
-                            </a>
-                          )}
                         </div>
                       </div>
 
@@ -1257,6 +1344,31 @@ function FlightsContent() {
                           <span>({fmtDuration(f.duration_back)}, {f.transfers === 0 ? 'Direct' : f.stops})</span>
                         </div>
                       )}
+
+                      {/* Provider comparison buttons */}
+                      <div className="border-t border-[#F1F3F7] px-5 py-3 bg-[#FAFBFD]">
+                        <div className="text-[.62rem] text-[#8E95A9] font-bold uppercase tracking-[1px] mb-2">Compare prices across providers</div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+                          {isDuffel && f.offer_id ? (
+                            <a href={`/checkout/${f.offer_id}`}
+                              className="flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 text-white font-poppins font-bold text-[.7rem] py-2 px-3 rounded-lg transition-all shadow-sm whitespace-nowrap col-span-2 sm:col-span-3 lg:col-span-5">
+                              ✓ Book Now — {f.currency}{f.price} →
+                            </a>
+                          ) : (
+                            PROVIDERS.map((p, pi) => {
+                              const provUrl = p.getUrl(originCode, destCode, depDate, effectiveRet, adults, originCity, destCity);
+                              return (
+                                <a key={p.name} href={redirectUrl(provUrl, p.name, destCity || destCode, 'flights')}
+                                  target="_blank" rel="noopener noreferrer"
+                                  className={`flex items-center justify-center gap-1.5 font-poppins font-bold text-[.7rem] py-2 px-3 rounded-lg transition-all shadow-sm whitespace-nowrap ${pi === 0 ? 'bg-[#0066FF] hover:bg-[#0052CC] text-white' : 'bg-white border border-[#E8ECF4] text-[#1A1D2B] hover:border-[#0066FF] hover:text-[#0066FF]'}`}>
+                                  <span>{p.logo}</span>
+                                  <span>{p.name} →</span>
+                                </a>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
                     </div>
                   );
                 })}

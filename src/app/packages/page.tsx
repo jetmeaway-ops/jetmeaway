@@ -26,6 +26,9 @@ const DESTINATIONS = [
   'Doha', 'Reykjavik', 'Dublin',
   // Pakistan
   'Lahore', 'Islamabad', 'Karachi',
+  // Caucasus & Central Asia
+  'Baku', 'Yerevan', 'Tbilisi', 'Ashgabat', 'Tashkent',
+  'Almaty', 'Astana', 'Bishkek', 'Dushanbe',
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -69,6 +72,9 @@ const DEST_IATA: Record<string, string> = {
   'lahore': 'LHE', 'islamabad': 'ISB', 'karachi': 'KHI',
   'lima': 'LIM', 'buenos aires': 'EZE', 'rio de janeiro': 'GIG',
   'johannesburg': 'JNB',
+  // Caucasus & Central Asia
+  'baku': 'GYD', 'yerevan': 'EVN', 'tbilisi': 'TBS', 'ashgabat': 'ASB',
+  'tashkent': 'TAS', 'almaty': 'ALA', 'astana': 'NQZ', 'bishkek': 'FRU', 'dushanbe': 'DYU',
 };
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -276,8 +282,38 @@ function buildExpediaUrl(dest: string, from: string, depDate: string, retDate: s
   return `https://www.expedia.co.uk/go/package/search/FlightHotel/${depDate}/${retDate}?FromAirport=${encodeURIComponent(from)}&Destination=${encodeURIComponent(dest)}&NumRoom=1&NumAdult=${adults}&affcid=clbU3QK`;
 }
 
-function buildTripUrl(dest: string, depDate: string, retDate: string, adults: number) {
-  return `https://www.trip.com/packages/index?to=${encodeURIComponent(dest)}&startDate=${depDate}&endDate=${retDate}&adult=${adults}&locale=en-GB&curr=GBP&Allianceid=8023009&SID=303363796&trip_sub3=D15021113`;
+/* Trip.com uses city-level codes, not airport IATA codes */
+const TRIP_CITY_CODE: Record<string, string> = {
+  'LHR': 'LON', 'LGW': 'LON', 'STN': 'LON', 'LTN': 'LON', 'LCY': 'LON', 'SEN': 'LON',
+  'MAN': 'MAN', 'BHX': 'BHX', 'EDI': 'EDI', 'GLA': 'GLA', 'BRS': 'BRS', 'LBA': 'LBA',
+  'LPL': 'LPL', 'NCL': 'NCL', 'EMA': 'EMA', 'BFS': 'BFS', 'ABZ': 'ABZ', 'SOU': 'SOU',
+  'CWL': 'CWL', 'BOH': 'BOH',
+  'BCN': 'BCN', 'MAD': 'MAD', 'AGP': 'AGP', 'TFS': 'TCI', 'ACE': 'ACE', 'FUE': 'FUE',
+  'LPA': 'LPA', 'PMI': 'PMI', 'ALC': 'ALC', 'FAO': 'FAO', 'LIS': 'LIS',
+  'CDG': 'PAR', 'NCE': 'NCE', 'AMS': 'AMS', 'FCO': 'ROM', 'VCE': 'VCE', 'FLR': 'FLR',
+  'MXP': 'MIL', 'ATH': 'ATH', 'HER': 'HER', 'RHO': 'RHO', 'CFU': 'CFU', 'JTR': 'JTR',
+  'DBV': 'DBV', 'SPU': 'SPU', 'AYT': 'AYT', 'BJV': 'BJV', 'DLM': 'DLM', 'IST': 'IST',
+  'DXB': 'DXB', 'RAK': 'RAK', 'CAI': 'CAI',
+  'JFK': 'NYC', 'LAX': 'LAX', 'MIA': 'MIA', 'LAS': 'LAS', 'MCO': 'ORL', 'SFO': 'SFO',
+  'CUN': 'CUN', 'PUJ': 'PUJ', 'NRT': 'TYO', 'BKK': 'BKK', 'SIN': 'SIN', 'DPS': 'DPS',
+  'HKT': 'HKT', 'MLE': 'MLE', 'SYD': 'SYD', 'MEL': 'MEL', 'CPT': 'CPT', 'JNB': 'JNB',
+  'YYZ': 'YTO', 'YVR': 'YVR', 'HKG': 'HKG', 'ICN': 'SEL', 'KUL': 'KUL',
+  'VIE': 'VIE', 'PRG': 'PRG', 'BUD': 'BUD', 'CPH': 'CPH', 'ARN': 'STO',
+  'DOH': 'DOH', 'KEF': 'REK', 'DUB': 'DUB',
+  'LHE': 'LHE', 'ISB': 'ISB', 'KHI': 'KHI',
+  'LIM': 'LIM', 'EZE': 'BUE', 'GIG': 'RIO',
+  // Caucasus & Central Asia
+  'GYD': 'BAK', 'EVN': 'EVN', 'TBS': 'TBS', 'ASB': 'ASB',
+  'TAS': 'TAS', 'ALA': 'ALA', 'NQZ': 'NQZ', 'FRU': 'FRU', 'DYU': 'DYU',
+};
+
+function buildTripUrl(dest: string, fromAirport: string, depDate: string, retDate: string, adults: number) {
+  const destIata = DEST_IATA[dest.toLowerCase()] || '';
+  const destCity = TRIP_CITY_CODE[destIata] || destIata;
+  const fromMatch = fromAirport.match(/\(([A-Z]{3})\)/);
+  const fromIata = fromMatch ? fromMatch[1] : '';
+  const fromCity = TRIP_CITY_CODE[fromIata] || fromIata || 'LON';
+  return `https://www.trip.com/packages/list?sourceFrom=IBUBundle_home&dCityCode=${fromCity}&aCityCode=${destCity}&adult=${adults}&tripType=RT&startDate=${depDate}&endDate=${retDate}&locale=en-GB&curr=GBP&Allianceid=8023009&SID=303363796&trip_sub3=D15021113`;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -629,7 +665,7 @@ function PackagesContent() {
                       <h3 className="font-poppins font-black text-[1.2rem] text-[#1A1D2B] mb-1">Trip.com Packages</h3>
                       <p className="text-[.82rem] text-[#5C6378] font-semibold">Flight + Hotel deals from a global travel leader</p>
                     </div>
-                    <a href={redirectUrl(buildTripUrl(searchedDest, depDate, effectiveReturn, adults), 'Trip.com', searchedDest, 'packages')}
+                    <a href={redirectUrl(buildTripUrl(searchedDest, searchedFrom, depDate, effectiveReturn, adults), 'Trip.com', searchedDest, 'packages')}
                       className="flex-shrink-0 px-6 py-3 rounded-xl font-poppins font-black text-[.85rem] text-white bg-[#287DFA] hover:bg-[#1A6AE0] transition-all shadow-md">
                       Search Trip.com Packages →
                     </a>

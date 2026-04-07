@@ -13,14 +13,14 @@ const COUNTRIES = [
   'Cyprus', 'Czech Republic', 'Denmark', 'Dominican Republic', 'Ecuador', 'Egypt', 'Estonia',
   'Ethiopia', 'Fiji', 'Finland', 'France', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Guatemala',
   'Honduras', 'Hong Kong', 'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland',
-  'Israel', 'Italy', 'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kuwait', 'Laos',
+  'Israel', 'Italy', 'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kuwait', 'Kyrgyzstan', 'Laos',
   'Latvia', 'Lebanon', 'Lithuania', 'Luxembourg', 'Macau', 'Madagascar', 'Malaysia', 'Maldives',
   'Malta', 'Mauritius', 'Mexico', 'Moldova', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique',
   'Myanmar', 'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Nigeria', 'North Macedonia',
   'Norway', 'Oman', 'Pakistan', 'Panama', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal',
   'Qatar', 'Romania', 'Russia', 'Rwanda', 'Saudi Arabia', 'Senegal', 'Serbia', 'Singapore',
   'Slovakia', 'Slovenia', 'South Africa', 'South Korea', 'Spain', 'Sri Lanka', 'Sweden',
-  'Switzerland', 'Taiwan', 'Tanzania', 'Thailand', 'Tunisia', 'Turkey', 'UAE', 'Uganda', 'Ukraine',
+  'Switzerland', 'Tajikistan', 'Taiwan', 'Tanzania', 'Thailand', 'Tunisia', 'Turkey', 'Turkmenistan', 'UAE', 'Uganda', 'Ukraine',
   'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan', 'Vietnam', 'Zambia', 'Zimbabwe',
 ];
 
@@ -68,13 +68,15 @@ const PROVIDERS = [
     name: 'Airalo',
     logo: '📡',
     badge: 'Most Popular',
-    getUrl: () => `https://airalo.tpk.lu/MzK1zzie`,
+    getUrl: (country: string) =>
+      `https://www.airalo.com/${country.toLowerCase().replace(/ /g, '-')}?ref=jetmeaway`,
   },
   {
     name: 'Yesim',
     logo: '✅',
     badge: 'Unlimited Plans',
-    getUrl: () => `https://yesim.tpk.lu/jSzl98ZQ`,
+    getUrl: (country: string) =>
+      `https://www.yesim.app/esim-${country.toLowerCase().replace(/ /g, '-')}/`,
   },
   {
     name: 'Holafly',
@@ -126,8 +128,8 @@ function getPlansForCountry(country: string, days: number): CuratedPlan[] {
 
   // Region detection for pricing
   let region: 'europe' | 'asia' | 'africa' | 'americas' | 'middleeast' | 'global' = 'global';
-  if (['united kingdom', 'france', 'germany', 'spain', 'italy', 'portugal', 'netherlands', 'belgium', 'austria', 'switzerland', 'greece', 'turkey', 'croatia', 'czech republic', 'poland', 'hungary', 'romania', 'sweden', 'norway', 'denmark', 'finland', 'ireland', 'iceland', 'cyprus', 'malta', 'albania', 'bosnia', 'serbia', 'montenegro', 'north macedonia', 'slovakia', 'slovenia', 'bulgaria', 'latvia', 'lithuania', 'estonia', 'luxembourg', 'moldova', 'ukraine', 'georgia'].some(k => c.includes(k))) region = 'europe';
-  else if (['japan', 'south korea', 'china', 'thailand', 'vietnam', 'indonesia', 'malaysia', 'philippines', 'singapore', 'cambodia', 'laos', 'myanmar', 'india', 'sri lanka', 'bangladesh', 'nepal', 'pakistan', 'taiwan', 'hong kong', 'macau', 'brunei', 'mongolia', 'australia', 'new zealand', 'fiji', 'maldives'].some(k => c.includes(k))) region = 'asia';
+  if (['united kingdom', 'france', 'germany', 'spain', 'italy', 'portugal', 'netherlands', 'belgium', 'austria', 'switzerland', 'greece', 'turkey', 'croatia', 'czech republic', 'poland', 'hungary', 'romania', 'sweden', 'norway', 'denmark', 'finland', 'ireland', 'iceland', 'cyprus', 'malta', 'albania', 'bosnia', 'serbia', 'montenegro', 'north macedonia', 'slovakia', 'slovenia', 'bulgaria', 'latvia', 'lithuania', 'estonia', 'luxembourg', 'moldova', 'ukraine', 'georgia', 'armenia', 'azerbaijan'].some(k => c.includes(k))) region = 'europe';
+  else if (['japan', 'south korea', 'china', 'thailand', 'vietnam', 'indonesia', 'malaysia', 'philippines', 'singapore', 'cambodia', 'laos', 'myanmar', 'india', 'sri lanka', 'bangladesh', 'nepal', 'pakistan', 'taiwan', 'hong kong', 'macau', 'brunei', 'mongolia', 'kazakhstan', 'uzbekistan', 'kyrgyzstan', 'tajikistan', 'turkmenistan', 'australia', 'new zealand', 'fiji', 'maldives'].some(k => c.includes(k))) region = 'asia';
   else if (['morocco', 'egypt', 'south africa', 'kenya', 'tanzania', 'nigeria', 'ghana', 'senegal', 'ethiopia', 'uganda', 'rwanda', 'cameroon', 'mozambique', 'madagascar', 'tunisia', 'zambia', 'zimbabwe', 'mauritius'].some(k => c.includes(k))) region = 'africa';
   else if (['united states', 'canada', 'mexico', 'brazil', 'argentina', 'chile', 'colombia', 'peru', 'costa rica', 'panama', 'cuba', 'jamaica', 'dominican republic', 'ecuador', 'bolivia', 'paraguay', 'uruguay', 'guatemala', 'honduras', 'nicaragua'].some(k => c.includes(k))) region = 'americas';
   else if (['uae', 'saudi arabia', 'qatar', 'bahrain', 'oman', 'kuwait', 'jordan', 'lebanon', 'israel', 'iraq', 'iran'].some(k => c.includes(k))) region = 'middleeast';
@@ -197,16 +199,34 @@ function getPlansForCountry(country: string, days: number): CuratedPlan[] {
 
 export default function ESIMPage() {
   const [country, setCountry] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [duration, setDuration] = useState('7');
   const [searched, setSearched] = useState(false);
   const [plans, setPlans] = useState<CuratedPlan[]>([]);
+
+  /* Auto-calc duration from dates */
+  useEffect(() => {
+    if (startDate && endDate) {
+      const diff = Math.max(1, Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000));
+      if (diff <= 3) setDuration('3');
+      else if (diff <= 7) setDuration('7');
+      else if (diff <= 14) setDuration('14');
+      else if (diff <= 30) setDuration('30');
+      else setDuration('90');
+    }
+  }, [startDate, endDate]);
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     const c = p.get('country');
     const d = p.get('duration');
+    const sd = p.get('start');
+    const ed = p.get('end');
     if (c) setCountry(c);
     if (d) setDuration(d);
+    if (sd) setStartDate(sd);
+    if (ed) setEndDate(ed);
   }, []);
 
   function handleSearch() {
@@ -246,8 +266,20 @@ export default function ESIMPage() {
             <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Destination Country</label>
             <CountryPicker value={country} onChange={setCountry} placeholder="Where are you travelling? — e.g. Morocco, Thailand, USA" />
           </div>
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Travel From</label>
+              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+                className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-indigo-500 focus:bg-white transition-all" />
+            </div>
+            <div>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Travel Until</label>
+              <input type="date" value={endDate} min={startDate || undefined} onChange={e => setEndDate(e.target.value)}
+                className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-indigo-500 focus:bg-white transition-all" />
+            </div>
+          </div>
           <div className="mb-4">
-            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Trip Duration</label>
+            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Trip Duration {startDate && endDate ? '(auto-calculated)' : ''}</label>
             <select value={duration} onChange={e => setDuration(e.target.value)}
               className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-indigo-500 focus:bg-white transition-all">
               <option value="3">3 days (city break)</option>

@@ -52,3 +52,5 @@ mobile/ios/
 
 # Claude Code local session state
 .claude/
+
+.env*.local

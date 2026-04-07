@@ -96,6 +96,9 @@ const DESTINATIONS = [
   'San Francisco', 'Chicago', 'Boston', 'Washington DC', 'Vancouver',
   'Montreal', 'Rio de Janeiro', 'Sao Paulo', 'Cartagena', 'Panama City',
   'Playa del Carmen',
+  // Caucasus & Central Asia
+  'Baku', 'Yerevan', 'Tbilisi', 'Ashgabat', 'Tashkent',
+  'Almaty', 'Astana', 'Bishkek', 'Dushanbe',
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════
