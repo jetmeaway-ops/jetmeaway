@@ -147,6 +147,138 @@ async function sendHotelConfirmationEmail(booking: StoredBooking) {
   }
 }
 
+const OWNER_EMAIL = 'waqar@jetmeaway.co.uk';
+
+async function sendOwnerSuccessEmail(booking: StoredBooking) {
+  const RESEND_KEY = process.env.RESEND_API_KEY;
+  if (!RESEND_KEY) return;
+  const currency = (booking.currency || 'GBP') === 'GBP' ? '£' : `${booking.currency} `;
+  const html = `
+<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#F8FAFC;font-family:'Helvetica Neue',Arial,sans-serif;">
+<div style="max-width:600px;margin:0 auto;padding:32px 20px;">
+  <div style="background:linear-gradient(135deg,#059669,#10B981);border-radius:16px;padding:24px;text-align:center;margin-bottom:24px;">
+    <h2 style="font-size:20px;font-weight:800;color:#fff;margin:0;">New Booking Confirmed</h2>
+  </div>
+  <div style="background:#fff;border:1px solid #E8ECF4;border-radius:16px;padding:20px;margin-bottom:16px;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#5C6378;">
+      <tr><td style="padding:6px 0;">Reference</td><td style="padding:6px 0;font-weight:700;color:#1A1D2B;text-align:right;">${booking.ref}</td></tr>
+      <tr><td style="padding:6px 0;">Hotel</td><td style="padding:6px 0;font-weight:700;color:#1A1D2B;text-align:right;">${booking.hotelName}</td></tr>
+      <tr><td style="padding:6px 0;">Guest</td><td style="padding:6px 0;font-weight:700;color:#1A1D2B;text-align:right;">${booking.guest?.firstName || ''} ${booking.guest?.lastName || ''}</td></tr>
+      <tr><td style="padding:6px 0;">Email</td><td style="padding:6px 0;font-weight:700;color:#1A1D2B;text-align:right;">${booking.guest?.email || 'N/A'}</td></tr>
+      <tr><td style="padding:6px 0;">Check-in</td><td style="padding:6px 0;font-weight:700;color:#1A1D2B;text-align:right;">${booking.checkIn}</td></tr>
+      <tr><td style="padding:6px 0;">Check-out</td><td style="padding:6px 0;font-weight:700;color:#1A1D2B;text-align:right;">${booking.checkOut}</td></tr>
+      <tr><td style="padding:6px 0;">Guests</td><td style="padding:6px 0;font-weight:700;color:#1A1D2B;text-align:right;">${booking.adults} · ${booking.nights} night${booking.nights !== 1 ? 's' : ''}</td></tr>
+      <tr><td colspan="2" style="border-top:2px solid #E8ECF4;padding:8px 0 0;"></td></tr>
+      <tr><td style="font-size:16px;font-weight:800;color:#1A1D2B;">Total</td><td style="font-size:20px;font-weight:800;color:#059669;text-align:right;">${currency}${booking.totalPrice.toFixed(2)}</td></tr>
+    </table>
+    ${booking.liteapiBookingId ? `<p style="font-size:12px;color:#8E95A9;margin:12px 0 0;">LiteAPI ID: ${booking.liteapiBookingId}</p>` : ''}
+    ${booking.liteapiConfirmationCode ? `<p style="font-size:12px;color:#8E95A9;margin:4px 0 0;">Hotel confirmation: ${booking.liteapiConfirmationCode}</p>` : ''}
+  </div>
+</div></body></html>`;
+  try {
+    const { Resend } = await import('resend');
+    const resend = new Resend(RESEND_KEY);
+    await resend.emails.send({
+      from: 'JetMeAway <bookings@jetmeaway.co.uk>',
+      to: OWNER_EMAIL,
+      subject: `New Booking — ${booking.hotelName} — ${currency}${booking.totalPrice.toFixed(2)} [${booking.ref}]`,
+      html,
+    });
+  } catch (err) { console.error('[/success] Owner success email failed:', err); }
+}
+
+async function sendFailureEmails(booking: StoredBooking, error: string) {
+  const RESEND_KEY = process.env.RESEND_API_KEY;
+  if (!RESEND_KEY) return;
+  const currency = (booking.currency || 'GBP') === 'GBP' ? '£' : `${booking.currency} `;
+
+  const customerHtml = `
+<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#F8FAFC;font-family:'Helvetica Neue',Arial,sans-serif;">
+<div style="max-width:600px;margin:0 auto;padding:32px 20px;">
+  <div style="text-align:center;margin-bottom:32px;">
+    <img src="https://jetmeaway.co.uk/jetmeaway-logo.png" alt="JetMeAway" width="160" style="display:inline-block;height:auto;max-width:160px;border:0;" />
+  </div>
+  <div style="background:linear-gradient(135deg,#DC2626,#EF4444);border-radius:16px;padding:24px;text-align:center;margin-bottom:24px;">
+    <h2 style="font-size:20px;font-weight:800;color:#fff;margin:0 0 4px;">Booking Could Not Be Confirmed</h2>
+    <p style="font-size:13px;color:rgba(255,255,255,0.85);margin:0;">We're sorry — we couldn't complete your hotel reservation</p>
+  </div>
+  <div style="background:#fff;border:1px solid #E8ECF4;border-radius:16px;padding:20px;margin-bottom:16px;">
+    <p style="font-size:11px;font-weight:700;color:#8E95A9;text-transform:uppercase;letter-spacing:2px;margin:0 0 4px;">Your Reference</p>
+    <p style="font-size:22px;font-weight:800;color:#1A1D2B;margin:0;letter-spacing:1px;">${booking.ref}</p>
+  </div>
+  <div style="background:#fff;border:1px solid #E8ECF4;border-radius:16px;padding:20px;margin-bottom:16px;">
+    <p style="font-size:16px;font-weight:800;color:#1A1D2B;margin:0 0 8px;">${booking.hotelName}</p>
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Check-in</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${booking.checkIn}</td></tr>
+      <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Check-out</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${booking.checkOut}</td></tr>
+    </table>
+  </div>
+  <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:16px;padding:20px;margin-bottom:16px;">
+    <p style="font-size:14px;font-weight:700;color:#991B1B;margin:0 0 8px;">What happens now?</p>
+    <ul style="font-size:13px;color:#5C6378;margin:0;padding:0 0 0 16px;">
+      <li style="margin-bottom:6px;">If any payment was taken, it will be <strong>automatically reversed</strong> by our hotel partner.</li>
+      <li style="margin-bottom:6px;">Refunds typically appear within <strong>5–10 business days</strong>.</li>
+      <li>You can <a href="https://jetmeaway.co.uk/hotels" style="color:#0066FF;font-weight:700;">search again</a> and try a different hotel or date.</li>
+    </ul>
+  </div>
+  <div style="text-align:center;padding:16px 0;border-top:1px solid #E8ECF4;">
+    <p style="font-size:12px;color:#8E95A9;margin:0 0 4px;">Need help? Contact us at <a href="mailto:waqar@jetmeaway.co.uk" style="color:#0066FF;">waqar@jetmeaway.co.uk</a></p>
+    <p style="font-size:11px;color:#B0B8CC;margin:0;">JETMEAWAY LTD (Company No: 17140522) &middot; 66 Paul Street, London</p>
+  </div>
+</div></body></html>`;
+
+  const ownerHtml = `
+<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#F8FAFC;font-family:'Helvetica Neue',Arial,sans-serif;">
+<div style="max-width:600px;margin:0 auto;padding:32px 20px;">
+  <div style="background:linear-gradient(135deg,#DC2626,#EF4444);border-radius:16px;padding:24px;text-align:center;margin-bottom:24px;">
+    <h2 style="font-size:20px;font-weight:800;color:#fff;margin:0;">FAILED Booking — Action Required</h2>
+  </div>
+  <div style="background:#fff;border:1px solid #E8ECF4;border-radius:16px;padding:20px;margin-bottom:16px;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#5C6378;">
+      <tr><td style="padding:6px 0;">Reference</td><td style="padding:6px 0;font-weight:700;color:#1A1D2B;text-align:right;">${booking.ref}</td></tr>
+      <tr><td style="padding:6px 0;">Hotel</td><td style="padding:6px 0;font-weight:700;color:#1A1D2B;text-align:right;">${booking.hotelName}</td></tr>
+      <tr><td style="padding:6px 0;">Guest</td><td style="padding:6px 0;font-weight:700;color:#1A1D2B;text-align:right;">${booking.guest?.firstName || ''} ${booking.guest?.lastName || ''}</td></tr>
+      <tr><td style="padding:6px 0;">Email</td><td style="padding:6px 0;font-weight:700;color:#1A1D2B;text-align:right;">${booking.guest?.email || 'N/A'}</td></tr>
+      <tr><td style="padding:6px 0;">Phone</td><td style="padding:6px 0;font-weight:700;color:#1A1D2B;text-align:right;">${booking.guest?.phone || 'N/A'}</td></tr>
+      <tr><td style="padding:6px 0;">Check-in</td><td style="padding:6px 0;font-weight:700;color:#1A1D2B;text-align:right;">${booking.checkIn}</td></tr>
+      <tr><td style="padding:6px 0;">Check-out</td><td style="padding:6px 0;font-weight:700;color:#1A1D2B;text-align:right;">${booking.checkOut}</td></tr>
+      <tr><td style="padding:6px 0;">Amount</td><td style="padding:6px 0;font-weight:700;color:#DC2626;text-align:right;">${currency}${booking.totalPrice.toFixed(2)}</td></tr>
+    </table>
+  </div>
+  <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:16px;padding:20px;margin-bottom:16px;">
+    <p style="font-size:11px;font-weight:700;color:#991B1B;text-transform:uppercase;letter-spacing:2px;margin:0 0 8px;">Error</p>
+    <p style="font-size:13px;color:#991B1B;margin:0;font-family:monospace;word-break:break-all;">${error}</p>
+  </div>
+  <p style="font-size:13px;color:#5C6378;">Payment was likely taken by LiteAPI Payment SDK. Check your LiteAPI dashboard and contact the customer if the charge is not auto-reversed.</p>
+</div></body></html>`;
+
+  try {
+    const { Resend } = await import('resend');
+    const resend = new Resend(RESEND_KEY);
+    const sends: Promise<unknown>[] = [
+      resend.emails.send({
+        from: 'JetMeAway <bookings@jetmeaway.co.uk>',
+        to: OWNER_EMAIL,
+        subject: `FAILED Booking — ${booking.hotelName} — ${booking.ref}`,
+        html: ownerHtml,
+      }),
+    ];
+    if (booking.guest?.email) {
+      sends.push(resend.emails.send({
+        from: 'JetMeAway <bookings@jetmeaway.co.uk>',
+        to: booking.guest.email,
+        subject: `Hotel Booking Update — ${booking.hotelName} | JetMeAway`,
+        html: customerHtml,
+      }));
+    }
+    await Promise.all(sends);
+    console.log(`[/success] Failure emails sent for ${booking.ref}`);
+  } catch (err) { console.error('[/success] Failure email failed:', err); }
+}
+
 /**
  * /success — Post-payment finalisation page.
  *
@@ -355,6 +487,11 @@ export default async function SuccessPage({
 
   // ── FAILURE ──
   if (!result.ok) {
+    // Send failure emails to customer + owner
+    if (result.booking) {
+      sendFailureEmails(result.booking, result.error || 'Unknown error').catch(() => {});
+    }
+
     // Stripe refunded
     if (result.refunded) {
       return (
@@ -411,8 +548,9 @@ export default async function SuccessPage({
   // ── SUCCESS — send confirmation email with neighbourhood guide ──
   const b = result.booking!;
 
-  // Fire-and-forget: send email in the background (don't block page render)
+  // Fire-and-forget: send emails in the background (don't block page render)
   sendHotelConfirmationEmail(b).catch(() => {});
+  sendOwnerSuccessEmail(b).catch(() => {});
 
   return (
     <main className="max-w-[760px] mx-auto px-5 py-12">
