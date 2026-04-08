@@ -292,9 +292,9 @@ function OccupancyPicker({
       </button>
       {open && (
         <div className="absolute z-50 w-64 mt-1.5 right-0 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl p-4">
-          <Row label="Adults" value={adults} min={1} max={6}
+          <Row label="Adults" value={adults} min={1} max={10}
             onSet={(v) => onChange({ adults: v, children, rooms, childrenAges })} />
-          <Row label="Children" sublabel="Age 0–17" value={children} min={0} max={4}
+          <Row label="Children" sublabel="Age 0–17" value={children} min={0} max={5}
             onSet={(v) => setChildren(v)} />
           {children > 0 && (
             <div className="py-2 border-t border-[#F1F3F7]">
@@ -314,7 +314,7 @@ function OccupancyPicker({
               </div>
             </div>
           )}
-          <Row label="Rooms" value={rooms} min={1} max={3}
+          <Row label="Rooms" value={rooms} min={1} max={5}
             onSet={(v) => onChange({ adults, children, rooms: v, childrenAges })} />
           <button type="button" onClick={() => setOpen(false)}
             className="w-full mt-3 bg-orange-500 hover:bg-orange-600 text-white font-poppins font-bold text-[.8rem] py-2 rounded-xl transition-colors">
@@ -682,9 +682,9 @@ function HotelsContent() {
     if (dest) setDestination(dest);
     if (cin) setCheckin(cin);
     if (cout) setCheckout(cout);
-    if (a) setAdults(Math.min(6, Math.max(1, parseInt(a))));
-    if (c) setChildCount(Math.min(4, Math.max(0, parseInt(c))));
-    if (r) setRooms(Math.min(3, Math.max(1, parseInt(r))));
+    if (a) setAdults(Math.min(10, Math.max(1, parseInt(a))));
+    if (c) setChildCount(Math.min(5, Math.max(0, parseInt(c))));
+    if (r) setRooms(Math.min(5, Math.max(1, parseInt(r))));
     if (s) setMinStars(Math.min(5, Math.max(0, parseInt(s))));
   }, []);
 
