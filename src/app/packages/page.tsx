@@ -313,7 +313,8 @@ function buildTripUrl(dest: string, fromAirport: string, depDate: string, retDat
   const fromMatch = fromAirport.match(/\(([A-Z]{3})\)/);
   const fromIata = fromMatch ? fromMatch[1] : '';
   const fromCity = TRIP_CITY_CODE[fromIata] || fromIata || 'LON';
-  return `https://www.trip.com/packages/list?sourceFrom=IBUBundle_home&dCityCode=${fromCity}&aCityCode=${destCity}&adult=${adults}&tripType=RT&startDate=${depDate}&endDate=${retDate}&locale=en-GB&curr=GBP&Allianceid=8023009&SID=303363796&trip_sub3=D15021113`;
+  const destName = dest.charAt(0).toUpperCase() + dest.slice(1).toLowerCase();
+  return `https://www.trip.com/packages/list?adult=${adults}&child=0&infants=0&aCityCode=${destCity}&dCityCode=${fromCity}&tripWay=round-trip&classType=ys&dDate=${depDate}&rDate=${retDate}&room=1&sourceFrom=IBUdefault&destinationName=${encodeURIComponent(destName)}&isOversea=true&locale=en-GB&curr=GBP&Allianceid=8023009&SID=303363796&trip_sub3=D15021113`;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
