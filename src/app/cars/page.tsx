@@ -169,23 +169,39 @@ function cleanLoc(loc: string) { return loc.replace(/\s*\([A-Z]{3}\)\s*$/, '').t
 function locIata(loc: string) { return loc.match(/\(([A-Z]{3})\)/)?.[1] || ''; }
 
 function buildEconomyBookingsUrl(loc: string, pickup: string, dropoff: string, pickupTime: string, dropoffTime: string, age: string) {
-  const inner = `https://www.economybookings.com/en/search?pickup=${encodeURIComponent(cleanLoc(loc))}&dateFrom=${pickup}T${pickupTime}&dateTo=${dropoff}T${dropoffTime}&currency=GBP&driverAge=${age || '30'}`;
+  // EconomyBookings uses /car-rental/ path with IATA code or city slug
+  const iata = locIata(loc);
+  const city = cleanLoc(loc).replace(/ Airport$/i, '').replace(/ City Centre$/i, '');
+  const citySlug = city.toLowerCase().replace(/\s+/g, '-');
+  const inner = iata
+    ? `https://www.economybookings.com/en/car-rental/${encodeURIComponent(citySlug)}/${iata.toLowerCase()}?pick_up_date=${pickup}&drop_off_date=${dropoff}&pick_up_time=${pickupTime}&drop_off_time=${dropoffTime}&driver_age=${age || '30'}&currency=GBP`
+    : `https://www.economybookings.com/en/car-rental?location=${encodeURIComponent(city)}&pick_up_date=${pickup}&drop_off_date=${dropoff}&pick_up_time=${pickupTime}&drop_off_time=${dropoffTime}&driver_age=${age || '30'}&currency=GBP`;
   return TP_CAR(10, 2018, inner);
 }
 
 function buildLocalrentUrl(loc: string, pickup: string, dropoff: string) {
-  const city = cleanLoc(loc).replace(/ Airport$/i, '').replace(/ City Centre$/i, '').toLowerCase();
-  const inner = `https://localrent.com/en/city/${encodeURIComponent(city)}?dateFrom=${pickup}&dateTo=${dropoff}&currency=GBP`;
+  // Localrent uses /en/city/slug/ path format with query params for dates
+  const city = cleanLoc(loc).replace(/ Airport$/i, '').replace(/ City Centre$/i, '');
+  const citySlug = city.toLowerCase().replace(/\s+/g, '-');
+  const inner = `https://localrent.com/en/city/${encodeURIComponent(citySlug)}/?currency=GBP&dateFrom=${pickup}&dateTo=${dropoff}`;
   return TP_CAR(87, 2043, inner);
 }
 
 function buildQeeqUrl(loc: string, pickup: string, dropoff: string, pickupTime: string, dropoffTime: string) {
-  const inner = `https://www.qeeq.com/car-rental?location=${encodeURIComponent(cleanLoc(loc))}&pick_up_date=${pickup}&drop_off_date=${dropoff}&pick_up_time=${pickupTime}&drop_off_time=${dropoffTime}&currency_code=GBP`;
+  // Qeeq uses /search/ path with location, dates as query params
+  const iata = locIata(loc);
+  const city = cleanLoc(loc).replace(/ Airport$/i, '').replace(/ City Centre$/i, '');
+  const inner = iata
+    ? `https://www.qeeq.com/search?location=${encodeURIComponent(city + ' Airport')}&pick_up_date=${pickup}&drop_off_date=${dropoff}&pick_up_time=${pickupTime}&drop_off_time=${dropoffTime}&currency_code=GBP`
+    : `https://www.qeeq.com/search?location=${encodeURIComponent(city)}&pick_up_date=${pickup}&drop_off_date=${dropoff}&pick_up_time=${pickupTime}&drop_off_time=${dropoffTime}&currency_code=GBP`;
   return TP_CAR(172, 4845, inner);
 }
 
 function buildGetRentaCarUrl(loc: string, pickup: string, dropoff: string) {
-  const inner = `https://getrentacar.com/en-US/car-rental/search?currency=GBP&from=${pickup}&to=${dropoff}&location=${encodeURIComponent(cleanLoc(loc))}`;
+  const iata = locIata(loc);
+  const city = cleanLoc(loc).replace(/ Airport$/i, '').replace(/ City Centre$/i, '');
+  const locationParam = iata ? `${city}+Airport` : city;
+  const inner = `https://getrentacar.com/en-US/car-rental/search?currency=GBP&from=${pickup}&to=${dropoff}&location=${encodeURIComponent(locationParam)}`;
   return TP_CAR(222, 5996, inner);
 }
 
@@ -196,7 +212,10 @@ function buildKlookUrl(loc: string, pickup: string, dropoff: string) {
 }
 
 function buildExpediaUrl(loc: string, pickup: string, dropoff: string, pickupTime: string, dropoffTime: string) {
-  return `https://www.expedia.co.uk/carsearch?locn=${encodeURIComponent(cleanLoc(loc))}&date1=${pickup}&date2=${dropoff}&time1=${pickupTime}&time2=${dropoffTime}&affcid=clbU3QK`;
+  // Expedia uses /carsearch path with locn param and 24h time format
+  const iata = locIata(loc);
+  const locParam = iata ? `${cleanLoc(loc)} (${iata})` : cleanLoc(loc);
+  return `https://www.expedia.co.uk/carsearch?locn=${encodeURIComponent(locParam)}&date1=${pickup}&date2=${dropoff}&time1=${pickupTime}&time2=${dropoffTime}&affcid=clbU3QK`;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
