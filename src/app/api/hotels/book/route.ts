@@ -57,6 +57,19 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Prevent double-booking: if already being processed, reject
+    if (record.state === 'booking') {
+      return NextResponse.json({ success: false, error: 'Booking is already being processed' }, { status: 409 });
+    }
+
+    // Verify transactionId matches what was stored during prebook
+    if (record.transactionId && record.transactionId !== transactionId) {
+      return NextResponse.json({ success: false, error: 'Transaction ID mismatch' }, { status: 400 });
+    }
+
+    // Mark as 'booking' to prevent concurrent requests
+    await kv.set(`pending-booking:${ref}`, { ...record, state: 'booking' }, { ex: 4 * 60 * 60 });
+
     if (!record.guest) {
       return NextResponse.json({ success: false, error: 'Guest details missing' }, { status: 400 });
     }

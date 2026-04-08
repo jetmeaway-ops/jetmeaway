@@ -28,6 +28,7 @@ async function fetchScoutData(lat: number, lng: number): Promise<ScoutData | nul
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ latitude: lat, longitude: lng, radius: 800 }),
+      signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return null;
     return await res.json();
@@ -313,13 +314,29 @@ async function finalisePaymentSdk(
 }> {
   const record = await kv.get<StoredBooking>(`pending-booking:${ref}`);
   if (!record) {
-    return { ok: false, error: 'Booking record not found or expired' };
+    return { ok: false, error: 'Booking record not found or expired. Please contact waqar@jetmeaway.co.uk with your reference.' };
   }
 
   // Idempotency: already confirmed
   if (record.state === 'confirmed' && record.liteapiBookingId) {
     return { ok: true, booking: record };
   }
+
+  // Verify transactionId/prebookId match what was stored during prebook
+  if (record.transactionId && record.transactionId !== transactionId) {
+    console.error(`[/success] transactionId mismatch: URL=${transactionId} KV=${record.transactionId}`);
+    return { ok: false, error: 'Transaction ID mismatch — this may be a stale payment link. Please contact waqar@jetmeaway.co.uk.', booking: record };
+  }
+  if (record.prebookId && record.prebookId !== prebookId) {
+    console.error(`[/success] prebookId mismatch: URL=${prebookId} KV=${record.prebookId}`);
+    return { ok: false, error: 'Prebook ID mismatch — this may be a stale payment link. Please contact waqar@jetmeaway.co.uk.', booking: record };
+  }
+
+  // Prevent double-confirm: mark as 'booking' state immediately
+  if (record.state === 'failed') {
+    return { ok: false, error: record.error || 'This booking has already failed. Please contact waqar@jetmeaway.co.uk.', booking: record };
+  }
+  await kv.set(`pending-booking:${ref}`, { ...record, state: 'paid' as const }, { ex: 4 * 60 * 60 });
 
   if (!record.guest) {
     await kv.set(`pending-booking:${ref}`, { ...record, state: 'failed', error: 'Guest details missing' }, { ex: 24 * 60 * 60 });

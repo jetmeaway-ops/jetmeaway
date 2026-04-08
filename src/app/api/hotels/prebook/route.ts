@@ -53,12 +53,13 @@ export async function POST(req: NextRequest) {
     const result = await prebookWithPaymentSdk(record.offerId);
 
     // Store prebookId and transactionId on the KV record for the book step
+    // 4h TTL — customer may take time to enter payment details
     await kv.set(`pending-booking:${ref}`, {
       ...record,
       prebookId: result.prebookId,
       transactionId: result.transactionId,
       state: 'pending',
-    }, { ex: 2 * 60 * 60 });
+    }, { ex: 4 * 60 * 60 });
 
     return NextResponse.json({
       success: true,

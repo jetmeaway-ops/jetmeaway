@@ -50,8 +50,8 @@ export async function POST(
       } as PendingGuest,
     };
 
-    // Preserve remaining TTL approximately by resetting to 2h (safe upper bound)
-    await kv.set(`pending-booking:${ref}`, updated, { ex: 2 * 60 * 60 });
+    // Preserve remaining TTL — 4h to cover slow checkouts
+    await kv.set(`pending-booking:${ref}`, updated, { ex: 4 * 60 * 60 });
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';

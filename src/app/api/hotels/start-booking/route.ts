@@ -39,7 +39,7 @@ export interface PendingBooking {
   thumbnail: string | null;
   lat?: number;
   lng?: number;
-  state: 'pending' | 'paid' | 'confirmed' | 'failed';
+  state: 'pending' | 'paid' | 'booking' | 'confirmed' | 'failed';
   createdAt: number;
   // Populated after prebook (Payment SDK flow)
   prebookId?: string;
@@ -54,7 +54,7 @@ export interface PendingBooking {
   error?: string;
 }
 
-const PENDING_TTL_SECONDS = 2 * 60 * 60; // 2h to complete checkout
+const PENDING_TTL_SECONDS = 4 * 60 * 60; // 4h to complete checkout
 
 function makeRef(): string {
   // JMA-H-XXXXXXXX (8 char alphanumeric, no confusable 0/O/1/I)
