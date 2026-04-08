@@ -330,7 +330,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
         }
 
         // DEBUG: log multi-room price structure
-        console.log(`[liteapi:rates] hotel=${entry.hotelId} offerId=${rt.offerId} totalArr=${JSON.stringify(totalArr)} suggestedArr=${JSON.stringify(suggestedArr)} offerRetailRate=${JSON.stringify(offerTotal)} price=${price} suggested=${suggested}`);
+        console.log(`[liteapi:rates] hotel=${entry.hotelId} roomType=${rt.offerId?.slice(0,20)} totalArr_length=${totalArr.length} totalArr=${JSON.stringify(totalArr)} suggestedArr_length=${suggestedArr.length} suggestedArr=${JSON.stringify(suggestedArr)} offerRetailRate=${JSON.stringify(offerTotal)} price=${price}`);
 
         const effectivePrice = suggested ?? price;
         const board = r.boardName || r.boardType || r.name || 'Room Only';
