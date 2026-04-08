@@ -219,7 +219,7 @@ function HomepageFooter() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <a href="/" className="flex items-center gap-2 mb-4">
-              <img src="/jetmeaway-logo.png" alt="JetMeAway" className="w-8 h-8" />
+              <img src="/jetmeaway-logo.png" alt="JetMeAway" className="w-8 h-8" style={{ mixBlendMode: 'lighten', borderRadius: 0 }} />
               <span className="font-poppins font-black text-white text-[1.1rem]">JetMeAway</span>
             </a>
             <p className="font-[var(--font-dm-sans)] text-white/50 text-[.78rem] leading-relaxed">

@@ -23,7 +23,7 @@ export default function Header() {
         <div className="max-w-[1200px] mx-auto flex justify-between items-center backdrop-blur-[20px] saturate-[1.8] bg-white/[.78] border border-white/30 rounded-3xl px-5 py-3 shadow-[0_32px_64px_-15px_rgba(0,0,0,0.1)]">
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
-            <img src="/jetmeaway-logo.png" alt="Jetmeaway" className="h-8" />
+            <img src="/jetmeaway-logo.png" alt="Jetmeaway" className="h-8" style={{ mixBlendMode: 'lighten', borderRadius: 0 }} />
           </Link>
 
           {/* Desktop category nav */}
