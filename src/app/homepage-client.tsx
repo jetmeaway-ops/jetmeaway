@@ -332,8 +332,8 @@ function HomepageFooter() {
             <p className="font-[var(--font-dm-sans)] text-white/50 text-[.78rem] leading-relaxed mb-3">
               UK&apos;s smart travel comparison engine. Real prices from 20+ providers, zero booking fees.
             </p>
-            <a href="mailto:waqar@jetmeaway.co.uk" className="font-[var(--font-dm-sans)] text-orange-400 hover:text-orange-300 text-[.78rem] font-medium transition-colors">
-              waqar@jetmeaway.co.uk
+            <a href="/contact" className="font-[var(--font-dm-sans)] text-orange-400 hover:text-orange-300 text-[.78rem] font-medium transition-colors">
+              Contact Us &rarr;
             </a>
           </div>
 

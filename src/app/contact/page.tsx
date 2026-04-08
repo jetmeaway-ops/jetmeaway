@@ -8,15 +8,28 @@ import Footer from '@/components/Footer';
 export default function Contact() {
   const [sent, setSent] = useState(false);
 
-  function sendForm() {
+  const [sending, setSending] = useState(false);
+
+  async function sendForm() {
     const name = (document.getElementById('cf-name') as HTMLInputElement)?.value?.trim();
     const email = (document.getElementById('cf-email') as HTMLInputElement)?.value?.trim();
     const msg = (document.getElementById('cf-msg') as HTMLTextAreaElement)?.value?.trim();
     const subject = (document.getElementById('cf-subject') as HTMLSelectElement)?.value;
     if (!name || !email || !msg) { alert('Please fill in all required fields.'); return; }
-    const body = `Name: ${name}\nEmail: ${email}\nSubject: ${subject}\n\nMessage:\n${msg}`;
-    window.location.href = `mailto:waqar@jetmeaway.co.uk?subject=${encodeURIComponent('[Jetmeaway] ' + subject)}&body=${encodeURIComponent(body)}`;
-    setSent(true);
+    setSending(true);
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, subject, message: msg }),
+      });
+      if (!res.ok) throw new Error('Failed to send');
+      setSent(true);
+    } catch {
+      alert('Something went wrong. Please try again.');
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
@@ -48,7 +61,7 @@ export default function Contact() {
                   <div><label className="block text-[.58rem] font-bold uppercase tracking-[1.5px] text-[#8E95A9] mb-1">Email</label><input id="cf-email" type="email" placeholder="your@email.com" className="w-full p-3 bg-[#F8FAFC] border border-[#E4E8F0] rounded-lg text-[.88rem] text-[#1A1D2B] outline-none focus:border-[#0066FF]" /></div>
                   <div><label className="block text-[.58rem] font-bold uppercase tracking-[1.5px] text-[#8E95A9] mb-1">Subject</label><select id="cf-subject" className="w-full p-3 bg-[#F8FAFC] border border-[#E4E8F0] rounded-lg text-[.88rem] text-[#1A1D2B] outline-none"><option>General Enquiry</option><option>Feedback</option><option>Report a Problem</option><option>Partnership</option></select></div>
                   <div><label className="block text-[.58rem] font-bold uppercase tracking-[1.5px] text-[#8E95A9] mb-1">Message</label><textarea id="cf-msg" placeholder="How can we help?" className="w-full p-3 bg-[#F8FAFC] border border-[#E4E8F0] rounded-lg text-[.88rem] text-[#1A1D2B] outline-none focus:border-[#0066FF] min-h-[120px] resize-y" /></div>
-                  <button onClick={sendForm} className="w-full py-3.5 bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.92rem] rounded-xl transition-all">Send Message</button>
+                  <button onClick={sendForm} disabled={sending} className="w-full py-3.5 bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-60 text-white font-poppins font-bold text-[.92rem] rounded-xl transition-all">{sending ? 'Sending...' : 'Send Message'}</button>
                 </div>
               </>
             ) : (
