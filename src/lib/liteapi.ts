@@ -608,7 +608,7 @@ export async function bookWithTransactionId(params: {
         ...(guest.phone ? { phone: guest.phone } : {}),
       },
     ],
-    payment: { method: 'TRANSACTION', transactionId },
+    payment: { method: 'TRANSACTION_ID', transactionId },
   };
 
   const booking = await liteFetch<{
