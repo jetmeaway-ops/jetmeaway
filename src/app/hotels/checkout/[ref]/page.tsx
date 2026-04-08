@@ -198,50 +198,53 @@ export default function HotelCheckoutPage() {
   }
 
   return (
-    <main className="max-w-[860px] mx-auto px-5 py-10">
+    <main className="max-w-[860px] mx-auto px-4 sm:px-5 py-6 sm:py-10">
       <a href="/hotels" className="text-[.78rem] font-bold text-[#0066FF] hover:underline">← Back to search</a>
-      <h1 className="font-poppins font-black text-[1.8rem] text-[#1A1D2B] mt-3 mb-1">Confirm your booking</h1>
-      <p className="text-[.85rem] text-[#5C6378] font-semibold mb-6">Booking reference: <span className="font-mono">{booking.ref}</span></p>
+      <h1 className="font-poppins font-black text-[1.4rem] sm:text-[1.8rem] text-[#1A1D2B] mt-3 mb-1">Confirm your booking</h1>
+      <p className="text-[.82rem] text-[#5C6378] font-semibold mb-5 sm:mb-6">Ref: <span className="font-mono">{booking.ref}</span></p>
 
-      <div className="grid md:grid-cols-[1fr_320px] gap-6">
-        <div className="bg-white border border-[#E8ECF4] rounded-2xl p-6">
+      <div className="grid md:grid-cols-[1fr_320px] gap-5 sm:gap-6">
+        <div className="bg-white border border-[#E8ECF4] rounded-2xl p-4 sm:p-6">
           {/* Step 1: Guest details form */}
           {step === 'guest' && (
             <>
-              <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-3">Lead guest details</h2>
-              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 flex items-start gap-2.5">
-                <i className="fa-solid fa-passport text-amber-600 text-sm mt-0.5" />
-                <p className="text-[.78rem] text-amber-800 font-semibold leading-snug">
-                  Enter all names exactly as they appear on your passport or ID to avoid boarding and check-in complications.
+              <h2 className="font-poppins font-black text-[1.05rem] sm:text-[1.1rem] text-[#1A1D2B] mb-3">Lead guest details</h2>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 mb-4 flex items-start gap-2">
+                <i className="fa-solid fa-passport text-amber-600 text-sm mt-0.5 flex-shrink-0" />
+                <p className="text-[.75rem] sm:text-[.78rem] text-amber-800 font-semibold leading-snug">
+                  Enter names exactly as they appear on your passport or ID.
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <label className="block">
                   <span className="text-[.7rem] font-bold text-[#5C6378] uppercase tracking-wide">First name</span>
                   <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)}
-                    className="w-full mt-1 px-3 py-2.5 rounded-lg border border-[#E8ECF4] text-[.88rem] font-semibold outline-none focus:border-[#0066FF]" />
+                    placeholder="As on passport"
+                    className="w-full mt-1 px-3 py-3 sm:py-2.5 rounded-lg border border-[#E8ECF4] bg-white text-[16px] sm:text-[.88rem] font-semibold text-[#1A1D2B] outline-none focus:border-[#0066FF] placeholder:text-[#B0B8CC] placeholder:font-normal" />
                 </label>
                 <label className="block">
                   <span className="text-[.7rem] font-bold text-[#5C6378] uppercase tracking-wide">Last name</span>
                   <input type="text" value={lastName} onChange={e => setLastName(e.target.value)}
-                    className="w-full mt-1 px-3 py-2.5 rounded-lg border border-[#E8ECF4] text-[.88rem] font-semibold outline-none focus:border-[#0066FF]" />
+                    placeholder="As on passport"
+                    className="w-full mt-1 px-3 py-3 sm:py-2.5 rounded-lg border border-[#E8ECF4] bg-white text-[16px] sm:text-[.88rem] font-semibold text-[#1A1D2B] outline-none focus:border-[#0066FF] placeholder:text-[#B0B8CC] placeholder:font-normal" />
                 </label>
-                <label className="block col-span-2">
+                <label className="block sm:col-span-2">
                   <span className="text-[.7rem] font-bold text-[#5C6378] uppercase tracking-wide">Email</span>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="w-full mt-1 px-3 py-2.5 rounded-lg border border-[#E8ECF4] text-[.88rem] font-semibold outline-none focus:border-[#0066FF]" />
+                    className="w-full mt-1 px-3 py-3 sm:py-2.5 rounded-lg border border-[#E8ECF4] bg-white text-[16px] sm:text-[.88rem] font-semibold text-[#1A1D2B] outline-none focus:border-[#0066FF] placeholder:text-[#B0B8CC] placeholder:font-normal" />
                 </label>
-                <label className="block col-span-2">
+                <label className="block sm:col-span-2">
                   <span className="text-[.7rem] font-bold text-[#5C6378] uppercase tracking-wide">Phone</span>
                   <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
-                    placeholder="+44…"
-                    className="w-full mt-1 px-3 py-2.5 rounded-lg border border-[#E8ECF4] text-[.88rem] font-semibold outline-none focus:border-[#0066FF]" />
+                    placeholder="+44 7911 123456"
+                    className="w-full mt-1 px-3 py-3 sm:py-2.5 rounded-lg border border-[#E8ECF4] bg-white text-[16px] sm:text-[.88rem] font-semibold text-[#1A1D2B] outline-none focus:border-[#0066FF] placeholder:text-[#B0B8CC] placeholder:font-normal" />
                 </label>
-                <label className="block col-span-2">
-                  <span className="text-[.7rem] font-bold text-[#5C6378] uppercase tracking-wide">Nationality (ISO-3166 alpha-2)</span>
+                <label className="block sm:col-span-2">
+                  <span className="text-[.7rem] font-bold text-[#5C6378] uppercase tracking-wide">Country code</span>
                   <input type="text" maxLength={2} value={nationality} onChange={e => setNationality(e.target.value.toUpperCase())}
-                    className="w-24 mt-1 px-3 py-2.5 rounded-lg border border-[#E8ECF4] text-[.88rem] font-semibold outline-none focus:border-[#0066FF] uppercase" />
+                    placeholder="GB"
+                    className="w-24 mt-1 px-3 py-3 sm:py-2.5 rounded-lg border border-[#E8ECF4] bg-white text-[16px] sm:text-[.88rem] font-semibold text-[#1A1D2B] outline-none focus:border-[#0066FF] uppercase placeholder:text-[#B0B8CC] placeholder:font-normal" />
                 </label>
               </div>
 
@@ -249,7 +252,7 @@ export default function HotelCheckoutPage() {
                 type="button"
                 onClick={handleContinueToPayment}
                 disabled={!formOk}
-                className="w-full mt-6 bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-60 disabled:cursor-not-allowed text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(0,102,255,0.3)] flex items-center justify-center gap-2"
+                className="w-full mt-5 sm:mt-6 bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-60 disabled:cursor-not-allowed text-white font-poppins font-black text-[.92rem] sm:text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(0,102,255,0.3)] flex items-center justify-center gap-2"
               >
                 <i className="fa-solid fa-credit-card text-[.85rem]" /> Continue to payment
               </button>
@@ -322,8 +325,8 @@ export default function HotelCheckoutPage() {
           )}
         </div>
 
-        {/* Booking summary sidebar */}
-        <aside className="bg-[#F8FAFC] border border-[#E8ECF4] rounded-2xl p-5 h-fit">
+        {/* Booking summary sidebar — shows first on mobile */}
+        <aside className="bg-[#F8FAFC] border border-[#E8ECF4] rounded-2xl p-4 sm:p-5 h-fit order-first md:order-last">
           {booking.thumbnail && (
             <img src={booking.thumbnail} alt={booking.hotelName}
               className="w-full h-36 object-cover rounded-xl mb-3" />
