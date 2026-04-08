@@ -537,12 +537,13 @@ function PassengerPicker({ adults, children, infants, onChange }: {
       </button>
       {open && (
         <div className="absolute z-50 w-72 mt-1.5 right-0 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl p-4">
-          <PaxRow label="Adults" sub="Age 12+" val={adults} min={1} max={9}
+          <PaxRow label="Adults" sub="Age 12+" val={adults} min={1} max={9 - children - infants}
             onDec={() => onChange(adults - 1, children, infants)} onInc={() => onChange(adults + 1, children, infants)} />
-          <PaxRow label="Children" sub="Age 2–11" val={children} min={0} max={8}
+          <PaxRow label="Children" sub="Age 2–11" val={children} min={0} max={9 - adults - infants}
             onDec={() => onChange(adults, children - 1, infants)} onInc={() => onChange(adults, children + 1, infants)} />
-          <PaxRow label="Infants" sub="Under 2" val={infants} min={0} max={adults}
+          <PaxRow label="Infants" sub="Under 2" val={infants} min={0} max={Math.min(adults, 9 - adults - children)}
             onDec={() => onChange(adults, children, infants - 1)} onInc={() => onChange(adults, children, infants + 1)} />
+          <p className="text-[.6rem] text-[#8E95A9] font-semibold mt-1">Max 9 passengers total</p>
           <button type="button" onClick={() => setOpen(false)}
             className="w-full mt-3 bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.8rem] py-2.5 rounded-xl transition-colors">
             Done

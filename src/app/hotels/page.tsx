@@ -234,7 +234,7 @@ function DestinationPicker({ value, onChange }: { value: string; onChange: (v: s
 
 /**
  * OccupancyPicker — adults, children, rooms in a single dropdown.
- * Caps: 6 adults, 4 children, 3 rooms.
+ * Caps: 9 guests total (adults + children), 5 rooms.
  */
 function OccupancyPicker({
   adults, children, rooms, childrenAges, onChange,
@@ -292,10 +292,11 @@ function OccupancyPicker({
       </button>
       {open && (
         <div className="absolute z-50 w-64 mt-1.5 right-0 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl p-4">
-          <Row label="Adults" value={adults} min={1} max={10}
+          <Row label="Adults" value={adults} min={1} max={9 - children}
             onSet={(v) => onChange({ adults: v, children, rooms, childrenAges })} />
-          <Row label="Children" sublabel="Age 0–17" value={children} min={0} max={5}
+          <Row label="Children" sublabel="Age 0–17" value={children} min={0} max={9 - adults}
             onSet={(v) => setChildren(v)} />
+          <p className="text-[.6rem] text-[#8E95A9] font-semibold">Max 9 guests total</p>
           {children > 0 && (
             <div className="py-2 border-t border-[#F1F3F7]">
               <p className="text-[.68rem] font-bold text-[#8E95A9] uppercase tracking-[1.5px] mb-2">Child ages</p>
