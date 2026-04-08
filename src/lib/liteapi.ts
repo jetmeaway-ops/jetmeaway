@@ -310,11 +310,28 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     for (const rt of entry.roomTypes || []) {
       if (!rt.offerId) continue;
       for (const r of rt.rates || []) {
-        // Sum ALL entries in total[] — multi-room bookings have one entry per room
+        // offerRetailRate on the roomType is the total across ALL rooms.
+        // retailRate.total on each rate is per-room. Prefer offerRetailRate.
+        const offerTotal = rt.offerRetailRate;
         const totalArr = r.retailRate?.total || [];
-        const price = totalArr.length > 0 ? totalArr.reduce((s, t) => s + (t.amount || 0), 0) : Infinity;
         const suggestedArr = r.retailRate?.suggestedSellingPrice || [];
-        const suggested = suggestedArr.length > 0 ? suggestedArr.reduce((s, t) => s + (t.amount || 0), 0) : undefined;
+
+        let price: number;
+        let suggested: number | undefined;
+
+        if (offerTotal && offerTotal.length > 0) {
+          // Use the roomType-level total (covers all rooms)
+          price = offerTotal.reduce((s, t) => s + (t.amount || 0), 0);
+          suggested = undefined; // offerRetailRate is already the selling price
+        } else {
+          // Fallback: sum rate-level entries
+          price = totalArr.length > 0 ? totalArr.reduce((s, t) => s + (t.amount || 0), 0) : Infinity;
+          suggested = suggestedArr.length > 0 ? suggestedArr.reduce((s, t) => s + (t.amount || 0), 0) : undefined;
+        }
+
+        // DEBUG: log multi-room price structure
+        console.log(`[liteapi:rates] hotel=${entry.hotelId} offerId=${rt.offerId} totalArr=${JSON.stringify(totalArr)} suggestedArr=${JSON.stringify(suggestedArr)} offerRetailRate=${JSON.stringify(offerTotal)} price=${price} suggested=${suggested}`);
+
         const effectivePrice = suggested ?? price;
         const board = r.boardName || r.boardType || r.name || 'Room Only';
         const isRefundable = r.cancellationPolicies?.refundableTag === 'RFN';
@@ -352,17 +369,47 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     // Sort board options by price
     allOptions.sort((a, b) => a.totalPrice - b.totalPrice);
 
-    // Sum ALL entries — multi-room bookings have one entry per room
+    // ── PRICE FIX: prefer offerRetailRate (covers ALL rooms) ──
+    // offerRetailRate lives on the roomType and is the total across all rooms
+    // in the booking. retailRate.total on each rate is per-room and will
+    // under-report for multi-room bookings. We must use offerRetailRate when
+    // available — this is what LiteAPI actually charges at prebook/book time.
+    const offerTotal = bestRoomType.offerRetailRate;
     const totalAll = bestRate.retailRate?.total || [];
-    const total = totalAll.length > 0 ? { amount: totalAll.reduce((s, t) => s + (t.amount || 0), 0), currency: totalAll[0].currency } : undefined;
     const suggestedAll = bestRate.retailRate?.suggestedSellingPrice || [];
-    const suggested = suggestedAll.length > 0 ? { amount: suggestedAll.reduce((s, t) => s + (t.amount || 0), 0), currency: suggestedAll[0].currency } : undefined;
+
+    let finalPrice: number;
+    let finalCurrency: string;
+
+    if (offerTotal && offerTotal.length > 0) {
+      // offerRetailRate is the authoritative multi-room total — use it directly
+      finalPrice = offerTotal.reduce((s, t) => s + (t.amount || 0), 0);
+      finalCurrency = offerTotal[0].currency || currency;
+    } else if (suggestedAll.length > 0) {
+      // Fallback: sum suggested selling price entries (one per room)
+      finalPrice = suggestedAll.reduce((s, t) => s + (t.amount || 0), 0);
+      finalCurrency = suggestedAll[0].currency || currency;
+    } else if (totalAll.length > 0) {
+      // Last resort: sum rate-level total entries
+      finalPrice = totalAll.reduce((s, t) => s + (t.amount || 0), 0);
+      finalCurrency = totalAll[0].currency || currency;
+    } else {
+      finalPrice = 0;
+      finalCurrency = currency;
+    }
+
     // Sum only taxes that aren't already included in `total`
     const extraTaxes = (bestRate.retailRate?.taxesAndFees || [])
       .filter((t) => t.included === false)
       .reduce((sum, t) => sum + (t.amount || 0), 0);
     const commissionArr = bestRate.commission || [];
     const commission = commissionArr.length > 0 ? commissionArr.reduce((s, c) => s + (c.amount || 0), 0) : null;
+
+    // For priceBeforeTax / pricePerNight, also prefer offerRetailRate
+    const priceBeforeTax = finalPrice > 0 ? finalPrice + extraTaxes : null;
+    const pricePerNight = finalPrice > 0 ? finalPrice / nights : null;
+
+    console.log(`[liteapi:offer] hotel=${entry.hotelId} offerId=${bestRoomType.offerId} offerRetailRate=${JSON.stringify(offerTotal)} rateTotals=${JSON.stringify(totalAll)} finalPrice=${finalPrice}`);
 
     // Prefer the expanded `hotel` object from /hotels/rates when present,
     // otherwise fall back to the directory we built from /data/hotels. This
@@ -387,12 +434,10 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       refundable: bestRate.cancellationPolicies?.refundableTag === 'RFN',
       cancellationDeadline:
         bestRate.cancellationPolicies?.cancelPolicyInfos?.[0]?.cancelTime || null,
-      currency: total?.currency || currency,
-      price: suggested?.amount ?? total?.amount ?? 0,
-      priceBeforeTax:
-        total?.amount != null ? total.amount + extraTaxes : null,
-      pricePerNight:
-        total?.amount != null ? total.amount / nights : null,
+      currency: finalCurrency,
+      price: Math.round(finalPrice * 100) / 100,
+      priceBeforeTax: priceBeforeTax != null ? Math.round(priceBeforeTax * 100) / 100 : null,
+      pricePerNight: pricePerNight != null ? Math.round(pricePerNight * 100) / 100 : null,
       commission,
       boardOptions: allOptions.length > 1 ? allOptions : undefined,
     });

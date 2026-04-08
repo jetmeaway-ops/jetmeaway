@@ -683,8 +683,8 @@ export async function GET(req: NextRequest) {
     : [];
   const roomsNum = Math.max(1, Math.min(5, parseInt(roomsParam) || 1));
   const minStars = Math.max(0, Math.min(5, parseInt(starsParam) || 0));
-  // Cache key v5 — bumped after multi-room price fix (sum retailRate.total[])
-  const kvKey = `hotels:v5:${cityKey}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
+  // Cache key v6 — bumped after offerRetailRate price fix
+  const kvKey = `hotels:v6:${cityKey}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
 
   // Check KV cache
   try {
