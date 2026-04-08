@@ -1,7 +1,7 @@
 export const runtime = 'edge';
 
 import './globals.css';
-import { Poppins } from 'next/font/google';
+import { Poppins, Playfair_Display, DM_Sans } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/react';
 import ScoutChat from '@/components/ScoutChat';
 
@@ -10,6 +10,20 @@ const poppins = Poppins({
   subsets: ['latin'],
   display: 'swap',
   variable: '--next-poppins',
+});
+
+const playfair = Playfair_Display({
+  weight: ['400', '700', '800', '900'],
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-playfair',
+});
+
+const dmSans = DM_Sans({
+  weight: ['400', '500', '600', '700'],
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-dm-sans',
 });
 
 export const metadata = {
@@ -35,7 +49,7 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={poppins.variable}>
+    <html lang="en" className={`${poppins.variable} ${playfair.variable} ${dmSans.variable}`}>
       <head>
         {/* Preconnect to Font Awesome CDN for faster icon loading */}
         <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossOrigin="anonymous" />
