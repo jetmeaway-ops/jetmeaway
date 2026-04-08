@@ -53,11 +53,14 @@ export async function POST(req: NextRequest) {
     const result = await prebookWithPaymentSdk(record.offerId);
 
     // Store prebookId and transactionId on the KV record for the book step
+    // Update totalPrice + currency to match the actual prebook price (may differ from search)
     // 4h TTL — customer may take time to enter payment details
     await kv.set(`pending-booking:${ref}`, {
       ...record,
       prebookId: result.prebookId,
       transactionId: result.transactionId,
+      totalPrice: result.price ?? record.totalPrice,
+      currency: result.currency ?? record.currency,
       state: 'pending',
     }, { ex: 4 * 60 * 60 });
 
