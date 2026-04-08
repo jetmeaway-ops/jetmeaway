@@ -3,9 +3,44 @@ import { kv } from '@vercel/kv';
 
 export const runtime = 'edge';
 
-// ── Category tag mappings ─────────────────────────────────────────────────────
-const TAG_CATEGORIES: Record<string, { category: string; type: string }> = {
+// ── Foursquare category → Scout category mapping ─────────────────────────────
+const FSQ_CATEGORY_MAP: Record<string, { category: string; type: string }> = {
   // wellness
+  '18021': { category: 'wellness', type: 'gym' },
+  '18023': { category: 'wellness', type: 'yoga' },
+  '18024': { category: 'wellness', type: 'swimming_pool' },
+  '11072': { category: 'wellness', type: 'spa' },
+  '18020': { category: 'wellness', type: 'fitness_centre' },
+  // family
+  '16032': { category: 'family', type: 'park' },
+  '16028': { category: 'family', type: 'playground' },
+  '10027': { category: 'family', type: 'zoo' },
+  '10024': { category: 'family', type: 'aquarium' },
+  '10025': { category: 'family', type: 'museum' },
+  '10039': { category: 'family', type: 'cinema' },
+  '16000': { category: 'family', type: 'theme_park' },
+  '12072': { category: 'family', type: 'library' },
+  // food
+  '13032': { category: 'food', type: 'cafe' },
+  '13065': { category: 'food', type: 'restaurant' },
+  '17069': { category: 'food', type: 'supermarket' },
+  '13002': { category: 'food', type: 'bakery' },
+  '13003': { category: 'food', type: 'pub' },
+  '17062': { category: 'food', type: 'convenience' },
+  // daily
+  '17028': { category: 'daily', type: 'pharmacy' },
+  '11045': { category: 'daily', type: 'bank' },
+  '11044': { category: 'daily', type: 'atm' },
+  '11058': { category: 'daily', type: 'post_office' },
+  '19042': { category: 'daily', type: 'station' },
+  '19047': { category: 'daily', type: 'subway' },
+  '19046': { category: 'daily', type: 'bus_stop' },
+  '15014': { category: 'daily', type: 'hospital' },
+  '15019': { category: 'daily', type: 'clinic' },
+};
+
+// ── Overpass fallback tag mappings ────────────────────────────────────────────
+const TAG_CATEGORIES: Record<string, { category: string; type: string }> = {
   'amenity=gym': { category: 'wellness', type: 'gym' },
   'leisure=fitness_centre': { category: 'wellness', type: 'fitness_centre' },
   'leisure=sports_centre': { category: 'wellness', type: 'sports_centre' },
@@ -15,7 +50,6 @@ const TAG_CATEGORIES: Record<string, { category: string; type: string }> = {
   'amenity=spa': { category: 'wellness', type: 'spa' },
   'shop=health_food': { category: 'wellness', type: 'health_food' },
   'leisure=sauna': { category: 'wellness', type: 'sauna' },
-  // family
   'leisure=playground': { category: 'family', type: 'playground' },
   'leisure=park': { category: 'family', type: 'park' },
   'tourism=zoo': { category: 'family', type: 'zoo' },
@@ -26,14 +60,12 @@ const TAG_CATEGORIES: Record<string, { category: string; type: string }> = {
   'amenity=library': { category: 'family', type: 'library' },
   'tourism=museum': { category: 'family', type: 'museum' },
   'amenity=ice_cream': { category: 'family', type: 'ice_cream' },
-  // food
   'amenity=cafe': { category: 'food', type: 'cafe' },
   'amenity=restaurant': { category: 'food', type: 'restaurant' },
   'shop=supermarket': { category: 'food', type: 'supermarket' },
   'shop=bakery': { category: 'food', type: 'bakery' },
   'amenity=pub': { category: 'food', type: 'pub' },
   'shop=convenience': { category: 'food', type: 'convenience' },
-  // daily
   'amenity=pharmacy': { category: 'daily', type: 'pharmacy' },
   'amenity=bank': { category: 'daily', type: 'bank' },
   'amenity=atm': { category: 'daily', type: 'atm' },
@@ -58,26 +90,6 @@ function haversine(lat1: number, lon1: number, lat2: number, lon2: number): numb
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// ── Build combined Overpass query ─────────────────────────────────────────────
-function buildOverpassQuery(lat: number, lng: number, radius: number): string {
-  const tagFilters: string[] = [];
-  for (const key of Object.keys(TAG_CATEGORIES)) {
-    const [k, v] = key.split('=');
-    tagFilters.push(`node["${k}"="${v}"](around:${radius},${lat},${lng});`);
-    tagFilters.push(`way["${k}"="${v}"](around:${radius},${lat},${lng});`);
-  }
-  return `[out:json][timeout:10];(${tagFilters.join('')});out center;`;
-}
-
-// ── Classify an OSM element ───────────────────────────────────────────────────
-function classifyElement(tags: Record<string, string>): { category: string; type: string } | null {
-  for (const [tagKey, info] of Object.entries(TAG_CATEGORIES)) {
-    const [k, v] = tagKey.split('=');
-    if (tags[k] === v) return info;
-  }
-  return null;
-}
-
 type ScoutPlace = {
   name: string;
   type: string;
@@ -100,6 +112,7 @@ type ScoutResponse = {
   };
   cached: boolean;
   fallback: boolean;
+  source?: 'foursquare' | 'overpass';
 };
 
 const CORS = {
@@ -110,6 +123,176 @@ const CORS = {
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS });
+}
+
+// ── Foursquare Places API ─────────────────────────────────────────────────────
+async function fetchFoursquare(lat: number, lng: number, radius: number): Promise<ScoutPlace[] | null> {
+  const apiKey = process.env.FOURSQUARE_API_KEY;
+  if (!apiKey) return null;
+
+  const categoryIds = Object.keys(FSQ_CATEGORY_MAP).join(',');
+  const url = `https://api.foursquare.com/v3/places/search?ll=${lat},${lng}&radius=${radius}&categories=${categoryIds}&limit=50&sort=DISTANCE`;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
+    const res = await fetch(url, {
+      headers: {
+        'Authorization': apiKey,
+        'Accept': 'application/json',
+      },
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data.results || !Array.isArray(data.results)) return null;
+
+    const places: ScoutPlace[] = [];
+    for (const place of data.results) {
+      const name = place.name;
+      if (!name) continue;
+
+      const pLat = place.geocodes?.main?.latitude;
+      const pLng = place.geocodes?.main?.longitude;
+      if (!isFinite(pLat) || !isFinite(pLng)) continue;
+
+      // Find matching category
+      let info: { category: string; type: string } | null = null;
+      for (const cat of (place.categories || [])) {
+        const catId = String(cat.id);
+        // Check exact match first, then prefix match (Foursquare uses hierarchical IDs)
+        if (FSQ_CATEGORY_MAP[catId]) {
+          info = FSQ_CATEGORY_MAP[catId];
+          break;
+        }
+        // Check first 5 digits as parent category
+        const prefix = catId.slice(0, 5);
+        if (FSQ_CATEGORY_MAP[prefix]) {
+          info = FSQ_CATEGORY_MAP[prefix];
+          break;
+        }
+      }
+      if (!info) continue;
+
+      const dist = haversine(lat, lng, pLat, pLng);
+      places.push({
+        name,
+        type: info.type,
+        lat: pLat,
+        lng: pLng,
+        distance_m: Math.round(dist),
+        walk_min: Math.max(1, Math.round(dist / 80)),
+      });
+    }
+
+    return places.length > 0 ? places : null;
+  } catch {
+    return null;
+  }
+}
+
+// ── Overpass API (fallback) ───────────────────────────────────────────────────
+function buildOverpassQuery(lat: number, lng: number, radius: number): string {
+  const tagFilters: string[] = [];
+  for (const key of Object.keys(TAG_CATEGORIES)) {
+    const [k, v] = key.split('=');
+    tagFilters.push(`node["${k}"="${v}"](around:${radius},${lat},${lng});`);
+    tagFilters.push(`way["${k}"="${v}"](around:${radius},${lat},${lng});`);
+  }
+  return `[out:json][timeout:10];(${tagFilters.join('')});out center;`;
+}
+
+function classifyElement(tags: Record<string, string>): { category: string; type: string } | null {
+  for (const [tagKey, info] of Object.entries(TAG_CATEGORIES)) {
+    const [k, v] = tagKey.split('=');
+    if (tags[k] === v) return info;
+  }
+  return null;
+}
+
+async function fetchOverpass(lat: number, lng: number, radius: number): Promise<ScoutPlace[] | null> {
+  const query = buildOverpassQuery(lat, lng, radius);
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    const res = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `data=${encodeURIComponent(query)}`,
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    const elements = data.elements || [];
+    if (elements.length === 0) return null;
+
+    const places: ScoutPlace[] = [];
+    for (const el of elements) {
+      const tags = el.tags || {};
+      const name = tags.name || tags['name:en'];
+      if (!name) continue;
+
+      const info = classifyElement(tags);
+      if (!info) continue;
+
+      const elLat = el.lat ?? el.center?.lat;
+      const elLng = el.lon ?? el.center?.lon;
+      if (!isFinite(elLat) || !isFinite(elLng)) continue;
+
+      const dist = haversine(lat, lng, elLat, elLng);
+      places.push({
+        name,
+        type: info.type,
+        lat: elLat,
+        lng: elLng,
+        distance_m: Math.round(dist),
+        walk_min: Math.max(1, Math.round(dist / 80)),
+      });
+    }
+
+    return places.length > 0 ? places : null;
+  } catch {
+    return null;
+  }
+}
+
+// ── Bucket, sort, limit ───────────────────────────────────────────────────────
+function bucketPlaces(places: ScoutPlace[]): Record<string, ScoutPlace[]> {
+  const buckets: Record<string, ScoutPlace[]> = { wellness: [], family: [], food: [], daily: [] };
+  const seen = new Set<string>();
+
+  // Build a reverse lookup: type → category
+  const typeToCategory: Record<string, string> = {};
+  for (const info of Object.values(FSQ_CATEGORY_MAP)) {
+    typeToCategory[info.type] = info.category;
+  }
+  for (const info of Object.values(TAG_CATEGORIES)) {
+    typeToCategory[info.type] = info.category;
+  }
+
+  for (const place of places) {
+    const cat = typeToCategory[place.type];
+    if (!cat || !buckets[cat]) continue;
+
+    const dedupKey = `${cat}:${place.name}`;
+    if (seen.has(dedupKey)) continue;
+    seen.add(dedupKey);
+
+    buckets[cat].push(place);
+  }
+
+  for (const cat of Object.keys(buckets)) {
+    buckets[cat].sort((a, b) => a.distance_m - b.distance_m);
+    buckets[cat] = buckets[cat].slice(0, 5);
+  }
+
+  return buckets;
 }
 
 export async function POST(req: NextRequest) {
@@ -135,27 +318,17 @@ export async function POST(req: NextRequest) {
       // KV unavailable — proceed without cache
     }
 
-    // ── Step 2: Query Overpass ──
-    const query = buildOverpassQuery(lat, lng, radius);
-    let elements: any[] = [];
+    // ── Step 2: Try Foursquare first, fall back to Overpass ──
+    let places: ScoutPlace[] | null = null;
+    let source: 'foursquare' | 'overpass' = 'foursquare';
 
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
+    places = await fetchFoursquare(lat, lng, radius);
+    if (!places) {
+      source = 'overpass';
+      places = await fetchOverpass(lat, lng, radius);
+    }
 
-      const res = await fetch('https://overpass-api.de/api/interpreter', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `data=${encodeURIComponent(query)}`,
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-
-      if (!res.ok) throw new Error(`Overpass returned ${res.status}`);
-      const data = await res.json();
-      elements = data.elements || [];
-    } catch {
-      // ── Overpass error/timeout — return fallback ──
+    if (!places) {
       return NextResponse.json(
         {
           hotel: { lat, lng },
@@ -165,60 +338,16 @@ export async function POST(req: NextRequest) {
           categories: { wellness: [], family: [], food: [], daily: [] },
           cached: false,
           fallback: true,
+          source,
           message: 'Neighbourhood data is temporarily unavailable. Please try again shortly.',
         },
         { headers: CORS }
       );
     }
 
-    // ── Step 3: Process results ──
-    const buckets: Record<string, ScoutPlace[]> = {
-      wellness: [],
-      family: [],
-      food: [],
-      daily: [],
-    };
+    // ── Step 3: Bucket & summarise ──
+    const buckets = bucketPlaces(places);
 
-    const seen = new Set<string>();
-
-    for (const el of elements) {
-      const tags = el.tags || {};
-      const name = tags.name || tags['name:en'];
-      if (!name) continue;
-
-      const info = classifyElement(tags);
-      if (!info) continue;
-
-      // Deduplicate by name+category
-      const dedupKey = `${info.category}:${name}`;
-      if (seen.has(dedupKey)) continue;
-      seen.add(dedupKey);
-
-      // Get coordinates (ways use center, nodes use lat/lon)
-      const elLat = el.lat ?? el.center?.lat;
-      const elLng = el.lon ?? el.center?.lon;
-      if (!isFinite(elLat) || !isFinite(elLng)) continue;
-
-      const dist = haversine(lat, lng, elLat, elLng);
-      const walkMin = Math.max(1, Math.round(dist / 80));
-
-      buckets[info.category].push({
-        name,
-        type: info.type,
-        lat: elLat,
-        lng: elLng,
-        distance_m: Math.round(dist),
-        walk_min: walkMin,
-      });
-    }
-
-    // ── Step 4: Sort & limit ──
-    for (const cat of Object.keys(buckets)) {
-      buckets[cat].sort((a, b) => a.distance_m - b.distance_m);
-      buckets[cat] = buckets[cat].slice(0, 5);
-    }
-
-    // ── Step 5: Summary & quality ──
     const summary = {
       total: buckets.wellness.length + buckets.family.length + buckets.food.length + buckets.daily.length,
       wellness: buckets.wellness.length,
@@ -245,16 +374,16 @@ export async function POST(req: NextRequest) {
       },
       cached: false,
       fallback: false,
+      source,
     };
 
-    // ── Step 6: Store in KV ──
+    // ── Step 4: Store in KV ──
     try {
       await kv.set(cacheKey, response, { ex: 86400 });
     } catch {
       // KV unavailable — continue without caching
     }
 
-    // ── Step 7: Return ──
     return NextResponse.json(response, { headers: CORS });
   } catch {
     return NextResponse.json(

@@ -19,8 +19,8 @@ export default function About() {
 
       <div className="max-w-[720px] mx-auto px-5 pb-16 space-y-4">
         <Card title="✈️ Who We Are">
-          <p>Jetmeaway is a UK-based travel comparison platform that brings together prices from 20+ trusted travel providers in one place. Whether you&apos;re looking for flights, hotels, packages, car hire, activities, transfers, eSIM data or travel insurance — we help you compare and find the best value.</p>
-          <p>We believe everyone deserves a great trip at a fair price. That&apos;s why we built Jetmeaway — to take the stress out of travel planning.</p>
+          <p>JETMEAWAY LTD (Company No: 17140522) is a UK-based travel comparison platform registered at 66 Paul Street, London. We bring together prices from 20+ trusted travel providers in one place. Whether you&apos;re looking for flights, hotels, packages, car hire, activities, transfers, eSIM data or travel insurance — we help you compare and find the best value.</p>
+          <p>We believe everyone deserves a great trip at a fair price. That&apos;s why we built JetMeAway — to take the stress out of travel planning.</p>
         </Card>
         <Card title="🔍 How It Works">
           <p>Tell us where you want to go. Jetmeaway scouts across 20+ providers — including Expedia, Trip.com, GetYourGuide, Aviasales, Airalo, Klook, and many more — to help you find the best prices.</p>

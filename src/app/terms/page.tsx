@@ -21,7 +21,7 @@ export default function Terms() {
       <div className="max-w-[720px] mx-auto px-5 pb-16">
         <div className="bg-white border border-[#F1F3F7] rounded-3xl p-8 text-[.85rem] text-[#5C6378] leading-relaxed space-y-1">
           <h2 className="font-poppins text-[.95rem] font-bold text-[#0066FF] mt-0">1. Introduction</h2>
-          <p>These terms govern your use of Jetmeaway (jetmeaway.co.uk). By using our website, you accept these terms.</p>
+          <p>These terms govern your use of JETMEAWAY LTD (Company No: 17140522, jetmeaway.co.uk), registered at 66 Paul Street, London. By using our website, you accept these terms.</p>
 
           <h2 className="font-poppins text-[.95rem] font-bold text-[#0066FF] mt-5">2. What Jetmeaway Does</h2>
           <p>Jetmeaway is a travel comparison website. We display prices from third-party providers. We are not a travel agent, tour operator, or booking provider. When you click a deal, you are redirected to the provider&apos;s website.</p>
@@ -33,7 +33,7 @@ export default function Terms() {
           <p>Prices change rapidly and we cannot guarantee accuracy. The final price is always determined by the provider.</p>
 
           <h2 className="font-poppins text-[.95rem] font-bold text-[#0066FF] mt-5">5. Bookings &amp; Contracts</h2>
-          <p>Any booking is a contract between you and the travel provider — not Jetmeaway. Contact the provider directly for any issues.</p>
+          <p>Any booking is a contract between you and the travel provider — not JETMEAWAY LTD. Contact the provider directly for any issues.</p>
 
           <h2 className="font-poppins text-[.95rem] font-bold text-[#0066FF] mt-5">6. Limitation of Liability</h2>
           <p>Jetmeaway is provided &quot;as is.&quot; We exclude all liability for loss or damage to the fullest extent permitted by law.</p>
