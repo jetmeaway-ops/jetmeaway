@@ -96,3 +96,22 @@ export function scoutBookingMessage(params: {
     `Check your email for full details and your Deep Neighbourhood guide. - JetMeAway`
   );
 }
+
+/**
+ * Hotel booking confirmation SMS.
+ */
+export function hotelBookingMessage(params: {
+  bookingRef: string;
+  hotelName: string;
+  checkIn: string;  // e.g. "Tue 15 Apr"
+  checkOut: string; // e.g. "Fri 18 Apr"
+  city: string;
+}): string {
+  const { bookingRef, hotelName, checkIn, checkOut, city } = params;
+  return (
+    `Your hotel is booked! ${hotelName}, ${city}. ` +
+    `Check-in: ${checkIn}, Check-out: ${checkOut}. ` +
+    `Ref: ${bookingRef}. ` +
+    `Check your email for full details. - JetMeAway`
+  );
+}

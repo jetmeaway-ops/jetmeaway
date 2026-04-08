@@ -353,7 +353,7 @@ function StarFilter({ value, onChange }: { value: number; onChange: (v: number) 
    BOOK DIRECT (LiteAPI) — creates a pending booking then redirects to checkout
    ═══════════════════════════════════════════════════════════════════════════ */
 
-function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, checkin, checkout, searchedDest, buildDetailHref, setScoutHotel }: {
+function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, checkin, checkout, searchedDest, buildDetailHref, setScoutHotel, priceView }: {
   hotel: HotelResult;
   index: number;
   isCheapest: boolean;
@@ -364,6 +364,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, checkin, c
   searchedDest: string;
   buildDetailHref: (h: HotelResult) => string;
   setScoutHotel: (s: { name: string; lat: number; lng: number } | null) => void;
+  priceView: 'total' | 'perPerson';
 }) {
   const [selectedBoard, setSelectedBoard] = useState(0);
   const h = hotel;
@@ -448,9 +449,20 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, checkin, c
         {/* Price + Actions */}
         <div className="p-5 flex flex-col items-end justify-center gap-2 border-t md:border-t-0 md:border-l border-[#F1F3F7]">
           <div className="text-right">
-            <div className="font-poppins font-black text-[1.5rem] text-[#1A1D2B] leading-none">£{displayPrice}<span className="text-[.7rem] font-semibold text-[#8E95A9]">/night</span></div>
-            {nights > 0 && (
-              <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">£{displayTotal} total for {nights} night{nights !== 1 ? 's' : ''}</div>
+            {priceView === 'perPerson' ? (
+              <>
+                <div className="font-poppins font-black text-[1.5rem] text-[#1A1D2B] leading-none">£{Math.round(displayTotal / Math.max(1, adults))}<span className="text-[.7rem] font-semibold text-[#8E95A9]">/person</span></div>
+                {nights > 0 && (
+                  <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">£{displayTotal} total · {nights} night{nights !== 1 ? 's' : ''} · {adults} guest{adults !== 1 ? 's' : ''}</div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="font-poppins font-black text-[1.5rem] text-[#1A1D2B] leading-none">£{displayPrice}<span className="text-[.7rem] font-semibold text-[#8E95A9]">/night</span></div>
+                {nights > 0 && (
+                  <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">£{displayTotal} total for {nights} night{nights !== 1 ? 's' : ''}</div>
+                )}
+              </>
             )}
           </div>
           <div className="flex flex-col gap-1.5 w-full">
@@ -652,6 +664,7 @@ function HotelsContent() {
   const [searchedDest, setSearchedDest] = useState('');
   const [sortBy, setSortBy] = useState<SortBy>('recommended');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [priceView, setPriceView] = useState<'total' | 'perPerson'>('total');
 
   // Scout sidebar state
   const [scoutHotel, setScoutHotel] = useState<{ name: string; lat: number; lng: number } | null>(null);
@@ -1105,6 +1118,24 @@ function HotelsContent() {
                   </button>
                 </div>
 
+                {/* Price view toggle */}
+                <div className="inline-flex bg-[#F1F3F7] rounded-xl p-1">
+                  <button
+                    type="button"
+                    onClick={() => setPriceView('total')}
+                    className={`px-3 py-1.5 rounded-lg text-[.72rem] font-poppins font-bold transition-all ${priceView === 'total' ? 'bg-white text-[#1A1D2B] shadow-sm' : 'text-[#5C6378]'}`}
+                  >
+                    Total price
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPriceView('perPerson')}
+                    className={`px-3 py-1.5 rounded-lg text-[.72rem] font-poppins font-bold transition-all ${priceView === 'perPerson' ? 'bg-white text-[#1A1D2B] shadow-sm' : 'text-[#5C6378]'}`}
+                  >
+                    Per person
+                  </button>
+                </div>
+
                 {/* Sort dropdown */}
                 <div className="flex items-center gap-2">
                   <label htmlFor="hotel-sort" className="text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9]">Sort by</label>
@@ -1163,6 +1194,7 @@ function HotelsContent() {
                       searchedDest={searchedDest}
                       buildDetailHref={buildDetailHref}
                       setScoutHotel={setScoutHotel}
+                      priceView={priceView}
                     />
                 ))}
               </div>

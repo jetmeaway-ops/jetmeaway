@@ -786,6 +786,7 @@ function FlightsContent() {
   const [landingMin, setLandingMin] = useState(0);
   const [landingMax, setLandingMax] = useState(1439);
   const [filtersOpenMobile, setFiltersOpenMobile] = useState(false);
+  const [priceView, setPriceView] = useState<'perPerson' | 'total'>('perPerson');
 
   // URL param initialisation
   const [initOrigin, setInitOrigin] = useState('');
@@ -1126,7 +1127,7 @@ function FlightsContent() {
                 <div className="flex items-center gap-3">
                   <span className="text-xl">🏷</span>
                   <span className="font-poppins font-black text-[1rem] text-[#1A1D2B]">
-                    Cheapest found: <span className="text-green-600">£{cheapest.price}</span> with {cheapest.airline}
+                    Cheapest found: <span className="text-green-600">£{priceView === 'total' ? Math.round(cheapest.price * (adults + children)) : cheapest.price}{priceView === 'total' ? ' total' : '/pp'}</span> with {cheapest.airline}
                     {cheapest.transfers === 0 && <span className="text-green-600"> (direct)</span>}
                   </span>
                 </div>
@@ -1187,6 +1188,27 @@ function FlightsContent() {
                           {o.l}
                         </label>
                       ))}
+                    </div>
+                  </div>
+
+                  {/* Price view */}
+                  <div className="mb-5">
+                    <h4 className="font-poppins font-black text-[.78rem] text-[#1A1D2B] mb-2 uppercase tracking-wide">Show price</h4>
+                    <div className="inline-flex bg-[#F1F3F7] rounded-xl p-1 w-full">
+                      <button
+                        type="button"
+                        onClick={() => setPriceView('perPerson')}
+                        className={`flex-1 px-3 py-1.5 rounded-lg text-[.72rem] font-poppins font-bold transition-all ${priceView === 'perPerson' ? 'bg-white text-[#1A1D2B] shadow-sm' : 'text-[#5C6378]'}`}
+                      >
+                        Per person
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPriceView('total')}
+                        className={`flex-1 px-3 py-1.5 rounded-lg text-[.72rem] font-poppins font-bold transition-all ${priceView === 'total' ? 'bg-white text-[#1A1D2B] shadow-sm' : 'text-[#5C6378]'}`}
+                      >
+                        Total
+                      </button>
                     </div>
                   </div>
 
@@ -1358,10 +1380,21 @@ function FlightsContent() {
                         {/* Price */}
                         <div className="flex items-center gap-4 md:flex-col md:items-end md:gap-2">
                           <div className="text-right">
-                            <div className="font-poppins font-black text-[1.5rem] text-[#1A1D2B] leading-none">{f.currency}{f.price}</div>
-                            <div className="text-[.6rem] text-[#8E95A9] font-semibold">
-                              {isDuffel ? 'total price, per person' : `per person, ${f.return_at ? 'return' : 'one-way'}`}
-                            </div>
+                            {priceView === 'total' ? (
+                              <>
+                                <div className="font-poppins font-black text-[1.5rem] text-[#1A1D2B] leading-none">{f.currency}{Math.round(f.price * (adults + children))}</div>
+                                <div className="text-[.6rem] text-[#8E95A9] font-semibold">
+                                  total for {adults + children} passenger{adults + children !== 1 ? 's' : ''}{f.return_at ? ', return' : ', one-way'}
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="font-poppins font-black text-[1.5rem] text-[#1A1D2B] leading-none">{f.currency}{f.price}</div>
+                                <div className="text-[.6rem] text-[#8E95A9] font-semibold">
+                                  {isDuffel ? 'total price, per person' : `per person, ${f.return_at ? 'return' : 'one-way'}`}
+                                </div>
+                              </>
+                            )}
                             {isDuffel && (
                               <div className="text-[.55rem] text-green-600 font-bold mt-0.5">✓ Live price incl. taxes</div>
                             )}
@@ -1385,7 +1418,7 @@ function FlightsContent() {
                           {isDuffel && f.offer_id ? (
                             <a href={`/checkout/${f.offer_id}`}
                               className="flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 text-white font-poppins font-bold text-[.7rem] py-2 px-3 rounded-lg transition-all shadow-sm whitespace-nowrap col-span-2 sm:col-span-3 lg:col-span-5">
-                              ✓ Book Now — {f.currency}{f.price} →
+                              ✓ Book Now — {f.currency}{priceView === 'total' ? Math.round(f.price * (adults + children)) : f.price}{priceView === 'total' ? ' total' : '/pp'} →
                             </a>
                           ) : (
                             PROVIDERS.map((p, pi) => {

@@ -1,5 +1,6 @@
 import { kv } from '@vercel/kv';
 import { bookWithTransactionId, completeBooking } from '@/lib/liteapi';
+import { sendSms, hotelBookingMessage } from '@/lib/twilio';
 import type { PendingBooking } from '@/app/api/hotels/start-booking/route';
 import type { PendingGuest } from '@/app/api/hotels/pending/[ref]/guest/route';
 
@@ -568,6 +569,23 @@ export default async function SuccessPage({
   // Await emails — fire-and-forget gets killed in server components
   try { await sendHotelConfirmationEmail(b); } catch (e) { console.error('[/success] confirmation email error:', e); }
   try { await sendOwnerSuccessEmail(b); } catch (e) { console.error('[/success] owner email error:', e); }
+
+  // SMS confirmation
+  if (b.guest?.phone) {
+    try {
+      const fmtDate = (d: string) => {
+        try { return new Date(d).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); }
+        catch { return d; }
+      };
+      await sendSms(b.guest.phone, hotelBookingMessage({
+        bookingRef: b.ref || '',
+        hotelName: b.hotelName || '',
+        checkIn: fmtDate(b.checkIn),
+        checkOut: fmtDate(b.checkOut),
+        city: b.city || '',
+      }));
+    } catch (e) { console.error('[/success] SMS error:', e); }
+  }
 
   return (
     <main className="max-w-[760px] mx-auto px-5 py-12">
