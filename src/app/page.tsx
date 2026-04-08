@@ -1,7 +1,6 @@
 export const runtime = 'edge';
 
 import Header from '@/components/Header';
-import DiscoverPopup from '@/components/DiscoverPopup';
 import HomepageClient from './homepage-client';
 
 const jsonLd = [
@@ -33,7 +32,6 @@ export default function Home() {
       {jsonLd.map((ld, i) => (
         <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
       ))}
-      <DiscoverPopup />
       <Header />
       <HomepageClient />
     </>
