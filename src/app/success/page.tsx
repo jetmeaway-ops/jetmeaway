@@ -344,36 +344,52 @@ async function finalisePaymentSdk(
     return { ok: false, error: 'Guest details were missing. Please contact waqar@jetmeaway.co.uk with your reference.', booking: record };
   }
 
-  try {
-    const booking = await bookWithTransactionId({
-      prebookId,
-      transactionId,
-      guest: {
-        firstName: record.guest.firstName,
-        lastName: record.guest.lastName,
-        email: record.guest.email,
-        phone: record.guest.phone,
-        nationality: record.guest.nationality,
-      },
-      clientReference: ref,
-    });
+  // Retry up to 2 times — LiteAPI can return transient 500s / 4012 that clear on retry
+  const MAX_ATTEMPTS = 2;
+  let lastError = '';
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const booking = await bookWithTransactionId({
+        prebookId,
+        transactionId,
+        guest: {
+          firstName: record.guest.firstName,
+          lastName: record.guest.lastName,
+          email: record.guest.email,
+          phone: record.guest.phone,
+          nationality: record.guest.nationality,
+        },
+        clientReference: ref,
+      });
 
-    const updated: StoredBooking = {
-      ...record,
-      state: 'confirmed',
-      liteapiBookingId: booking.bookingId,
-      liteapiStatus: booking.status,
-      liteapiConfirmationCode: booking.hotelConfirmationCode ?? null,
-    };
-    await kv.set(`pending-booking:${ref}`, updated, { ex: 30 * 24 * 60 * 60 });
-    return { ok: true, booking: updated };
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    console.error('[/success] bookWithTransactionId failed', message);
-    const updated: StoredBooking = { ...record, state: 'failed', error: message };
-    await kv.set(`pending-booking:${ref}`, updated, { ex: 24 * 60 * 60 });
-    return { ok: false, error: message, booking: updated };
+      const updated: StoredBooking = {
+        ...record,
+        state: 'confirmed',
+        liteapiBookingId: booking.bookingId,
+        liteapiStatus: booking.status,
+        liteapiConfirmationCode: booking.hotelConfirmationCode ?? null,
+      };
+      await kv.set(`pending-booking:${ref}`, updated, { ex: 30 * 24 * 60 * 60 });
+      return { ok: true, booking: updated };
+    } catch (err: unknown) {
+      lastError = err instanceof Error ? err.message : 'Unknown error';
+      console.error(`[/success] bookWithTransactionId attempt ${attempt}/${MAX_ATTEMPTS} failed:`, lastError);
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise(r => setTimeout(r, 2000)); // wait 2s before retry
+      }
+    }
   }
+
+  // All attempts failed
+  const updated: StoredBooking = { ...record, state: 'failed', error: lastError };
+  await kv.set(`pending-booking:${ref}`, updated, { ex: 24 * 60 * 60 });
+
+  // Alert owner via SMS
+  try {
+    await sendSms('+447508350581', `⚠️ BOOKING FAILED — Ref: ${ref}, Hotel: ${record.hotelName || 'N/A'}, Guest: ${record.guest.firstName} ${record.guest.lastName}, Error: ${lastError.slice(0, 120)} — jetmeaway.co.uk`);
+  } catch (e) { console.error('[/success] owner SMS alert error:', e); }
+
+  return { ok: false, error: lastError, booking: updated };
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
