@@ -310,8 +310,11 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     for (const rt of entry.roomTypes || []) {
       if (!rt.offerId) continue;
       for (const r of rt.rates || []) {
-        const price = r.retailRate?.total?.[0]?.amount ?? Infinity;
-        const suggested = r.retailRate?.suggestedSellingPrice?.[0]?.amount;
+        // Sum ALL entries in total[] — multi-room bookings have one entry per room
+        const totalArr = r.retailRate?.total || [];
+        const price = totalArr.length > 0 ? totalArr.reduce((s, t) => s + (t.amount || 0), 0) : Infinity;
+        const suggestedArr = r.retailRate?.suggestedSellingPrice || [];
+        const suggested = suggestedArr.length > 0 ? suggestedArr.reduce((s, t) => s + (t.amount || 0), 0) : undefined;
         const effectivePrice = suggested ?? price;
         const board = r.boardName || r.boardType || r.name || 'Room Only';
         const isRefundable = r.cancellationPolicies?.refundableTag === 'RFN';
@@ -349,13 +352,17 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     // Sort board options by price
     allOptions.sort((a, b) => a.totalPrice - b.totalPrice);
 
-    const total = bestRate.retailRate?.total?.[0];
-    const suggested = bestRate.retailRate?.suggestedSellingPrice?.[0];
+    // Sum ALL entries — multi-room bookings have one entry per room
+    const totalAll = bestRate.retailRate?.total || [];
+    const total = totalAll.length > 0 ? { amount: totalAll.reduce((s, t) => s + (t.amount || 0), 0), currency: totalAll[0].currency } : undefined;
+    const suggestedAll = bestRate.retailRate?.suggestedSellingPrice || [];
+    const suggested = suggestedAll.length > 0 ? { amount: suggestedAll.reduce((s, t) => s + (t.amount || 0), 0), currency: suggestedAll[0].currency } : undefined;
     // Sum only taxes that aren't already included in `total`
     const extraTaxes = (bestRate.retailRate?.taxesAndFees || [])
       .filter((t) => t.included === false)
       .reduce((sum, t) => sum + (t.amount || 0), 0);
-    const commission = bestRate.commission?.[0]?.amount ?? null;
+    const commissionArr = bestRate.commission || [];
+    const commission = commissionArr.length > 0 ? commissionArr.reduce((s, c) => s + (c.amount || 0), 0) : null;
 
     // Prefer the expanded `hotel` object from /hotels/rates when present,
     // otherwise fall back to the directory we built from /data/hotels. This
