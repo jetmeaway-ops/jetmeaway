@@ -163,56 +163,78 @@ function LoadingState({ loc }: { loc: string }) {
 const TP_CAR = (campaignId: number, p: number, innerUrl: string) =>
   `https://tp.media/r?campaign_id=${campaignId}&marker=714449&p=${p}&trs=512633&u=${encodeURIComponent(innerUrl)}`;
 
-/* Extract clean city/airport name from "Barcelona Airport (BCN)" → "Barcelona Airport" */
 function cleanLoc(loc: string) { return loc.replace(/\s*\([A-Z]{3}\)\s*$/, '').trim(); }
-/* Extract IATA from "Barcelona Airport (BCN)" → "BCN" */
 function locIata(loc: string) { return loc.match(/\(([A-Z]{3})\)/)?.[1] || ''; }
+function cityName(loc: string) { return cleanLoc(loc).replace(/ Airport$/i, '').replace(/ City Centre$/i, ''); }
+function citySlug(loc: string) { return cityName(loc).toLowerCase().replace(/\s+/g, '-'); }
+
+const CC: Record<string, [string, string]> = {
+  'london':['united-kingdom','europe'],'manchester':['united-kingdom','europe'],'birmingham':['united-kingdom','europe'],
+  'edinburgh':['united-kingdom','europe'],'glasgow':['united-kingdom','europe'],'liverpool':['united-kingdom','europe'],
+  'leeds':['united-kingdom','europe'],'bristol':['united-kingdom','europe'],'newcastle':['united-kingdom','europe'],
+  'aberdeen':['united-kingdom','europe'],'southampton':['united-kingdom','europe'],'cardiff':['united-kingdom','europe'],
+  'bournemouth':['united-kingdom','europe'],'belfast':['united-kingdom','europe'],
+  'east midlands':['united-kingdom','europe'],'leeds bradford':['united-kingdom','europe'],
+  'barcelona':['spain','europe'],'madrid':['spain','europe'],'malaga':['spain','europe'],
+  'alicante':['spain','europe'],'palma':['spain','europe'],'tenerife south':['spain','europe'],
+  'tenerife north':['spain','europe'],'lanzarote':['spain','europe'],'fuerteventura':['spain','europe'],
+  'gran canaria':['spain','europe'],'seville':['spain','europe'],'ibiza':['spain','europe'],
+  'faro':['portugal','europe'],'lisbon':['portugal','europe'],
+  'paris':['france','europe'],'nice':['france','europe'],'lyon':['france','europe'],'marseille':['france','europe'],
+  'rome':['italy','europe'],'milan':['italy','europe'],'venice':['italy','europe'],
+  'florence':['italy','europe'],'naples':['italy','europe'],
+  'amsterdam':['netherlands','europe'],
+  'athens':['greece','europe'],'crete heraklion':['greece','europe'],'rhodes':['greece','europe'],
+  'corfu':['greece','europe'],'santorini':['greece','europe'],
+  'dubrovnik':['croatia','europe'],'split':['croatia','europe'],
+  'antalya':['turkey','europe'],'bodrum':['turkey','europe'],'dalaman':['turkey','europe'],'istanbul':['turkey','europe'],
+  'dubai':['uae','asia'],'abu dhabi':['uae','asia'],
+  'marrakech':['morocco','africa'],'cairo':['egypt','africa'],
+  'new york':['usa','north-america'],'los angeles':['usa','north-america'],'miami':['usa','north-america'],
+  'san francisco':['usa','north-america'],'las vegas':['usa','north-america'],'orlando':['usa','north-america'],
+  'cancun':['mexico','north-america'],'toronto':['canada','north-america'],'vancouver':['canada','north-america'],
+  'bangkok':['thailand','asia'],'singapore':['singapore','asia'],'tokyo':['japan','asia'],
+  'bali':['indonesia','asia'],'phuket':['thailand','asia'],'kuala lumpur':['malaysia','asia'],
+  'hong kong':['hong-kong','asia'],'seoul':['south-korea','asia'],
+  'sydney':['australia','oceania'],'melbourne':['australia','oceania'],
+  'cape town':['south-africa','africa'],'johannesburg':['south-africa','africa'],
+  'lahore':['pakistan','asia'],'islamabad':['pakistan','asia'],'karachi':['pakistan','asia'],
+  'baku':['azerbaijan','asia'],'yerevan':['armenia','asia'],'tbilisi':['georgia','asia'],
+  'ashgabat':['turkmenistan','asia'],'tashkent':['uzbekistan','asia'],
+  'almaty':['kazakhstan','asia'],'astana':['kazakhstan','asia'],
+  'bishkek':['kyrgyzstan','asia'],'dushanbe':['tajikistan','asia'],
+};
+function ccLookup(loc: string) { return CC[cityName(loc).toLowerCase()] || null; }
 
 function buildEconomyBookingsUrl(loc: string, pickup: string, dropoff: string, pickupTime: string, dropoffTime: string, age: string) {
-  // EconomyBookings uses /car-rental/ path with IATA code or city slug
   const iata = locIata(loc);
-  const city = cleanLoc(loc).replace(/ Airport$/i, '').replace(/ City Centre$/i, '');
-  const citySlug = city.toLowerCase().replace(/\s+/g, '-');
-  const inner = iata
-    ? `https://www.economybookings.com/en/car-rental/${encodeURIComponent(citySlug)}/${iata.toLowerCase()}?pick_up_date=${pickup}&drop_off_date=${dropoff}&pick_up_time=${pickupTime}&drop_off_time=${dropoffTime}&driver_age=${age || '30'}&currency=GBP`
-    : `https://www.economybookings.com/en/car-rental?location=${encodeURIComponent(city)}&pick_up_date=${pickup}&drop_off_date=${dropoff}&pick_up_time=${pickupTime}&drop_off_time=${dropoffTime}&driver_age=${age || '30'}&currency=GBP`;
-  return TP_CAR(10, 2018, inner);
+  const cc = ccLookup(loc);
+  if (cc && iata) return TP_CAR(10, 2018, `https://www.economybookings.com/car-rental/${cc[1]}/${cc[0]}/${citySlug(loc)}/${iata.toLowerCase()}`);
+  if (cc) return TP_CAR(10, 2018, `https://www.economybookings.com/car-rental/${cc[1]}/${cc[0]}/${citySlug(loc)}`);
+  return TP_CAR(10, 2018, `https://www.economybookings.com/`);
 }
 
 function buildLocalrentUrl(loc: string, pickup: string, dropoff: string) {
-  // Localrent uses /en/city/slug/ path format with query params for dates
-  const city = cleanLoc(loc).replace(/ Airport$/i, '').replace(/ City Centre$/i, '');
-  const citySlug = city.toLowerCase().replace(/\s+/g, '-');
-  const inner = `https://localrent.com/en/city/${encodeURIComponent(citySlug)}/?currency=GBP&dateFrom=${pickup}&dateTo=${dropoff}`;
-  return TP_CAR(87, 2043, inner);
+  const cc = ccLookup(loc);
+  if (cc) return TP_CAR(87, 2043, `https://localrent.com/en/${cc[0]}/${citySlug(loc)}/`);
+  return TP_CAR(87, 2043, `https://localrent.com/en/`);
 }
 
 function buildQeeqUrl(loc: string, pickup: string, dropoff: string, pickupTime: string, dropoffTime: string) {
-  // Qeeq uses /search/ path with location, dates as query params
-  const iata = locIata(loc);
-  const city = cleanLoc(loc).replace(/ Airport$/i, '').replace(/ City Centre$/i, '');
-  const inner = iata
-    ? `https://www.qeeq.com/search?location=${encodeURIComponent(city + ' Airport')}&pick_up_date=${pickup}&drop_off_date=${dropoff}&pick_up_time=${pickupTime}&drop_off_time=${dropoffTime}&currency_code=GBP`
-    : `https://www.qeeq.com/search?location=${encodeURIComponent(city)}&pick_up_date=${pickup}&drop_off_date=${dropoff}&pick_up_time=${pickupTime}&drop_off_time=${dropoffTime}&currency_code=GBP`;
-  return TP_CAR(172, 4845, inner);
+  return TP_CAR(172, 4845, `https://www.qeeq.com/`);
 }
 
 function buildGetRentaCarUrl(loc: string, pickup: string, dropoff: string) {
   const iata = locIata(loc);
-  const city = cleanLoc(loc).replace(/ Airport$/i, '').replace(/ City Centre$/i, '');
-  const locationParam = iata ? `${city}+Airport` : city;
-  const inner = `https://getrentacar.com/en-US/car-rental/search?currency=GBP&from=${pickup}&to=${dropoff}&location=${encodeURIComponent(locationParam)}`;
-  return TP_CAR(222, 5996, inner);
+  const locationParam = iata ? `${cityName(loc)}+Airport` : cityName(loc);
+  return TP_CAR(222, 5996, `https://getrentacar.com/en-US/car-rental/search?currency=GBP&from=${pickup}&to=${dropoff}&location=${encodeURIComponent(locationParam)}`);
 }
 
 function buildKlookUrl(loc: string, pickup: string, dropoff: string) {
-  const city = cleanLoc(loc).replace(/ Airport$/i, '').replace(/ City Centre$/i, '');
-  const inner = `https://www.klook.com/en-GB/car-rentals/search/?keyword=${encodeURIComponent(city)}&pickUpDate=${pickup}&dropOffDate=${dropoff}`;
-  return TP_CAR(137, 4110, inner);
+  return TP_CAR(137, 4110, `https://www.klook.com/en-GB/car-rentals/`);
 }
 
 function buildExpediaUrl(loc: string, pickup: string, dropoff: string, pickupTime: string, dropoffTime: string) {
-  // Expedia uses /carsearch path with locn param and 24h time format
   const iata = locIata(loc);
   const locParam = iata ? `${cleanLoc(loc)} (${iata})` : cleanLoc(loc);
   return `https://www.expedia.co.uk/carsearch?locn=${encodeURIComponent(locParam)}&date1=${pickup}&date2=${dropoff}&time1=${pickupTime}&time2=${dropoffTime}&affcid=clbU3QK`;
