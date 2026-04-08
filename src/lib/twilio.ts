@@ -93,7 +93,7 @@ export function scoutBookingMessage(params: {
   return (
     `Your Scout has secured your flight! ${origin} to ${destination}, ${departureDate}. ` +
     `Booking ref: ${bookingRef}. ` +
-    `Check your email for full details and your Deep Neighbourhood guide. - JetMeAway`
+    `Check your email for full details and your Deep Neighbourhood guide. - JetMeAway jetmeaway.co.uk`
   );
 }
 
@@ -112,6 +112,6 @@ export function hotelBookingMessage(params: {
     `Your hotel is booked! ${hotelName}, ${city}. ` +
     `Check-in: ${checkIn}, Check-out: ${checkOut}. ` +
     `Ref: ${bookingRef}. ` +
-    `Check your email for full details. - JetMeAway`
+    `Check your email for full details. - JetMeAway jetmeaway.co.uk`
   );
 }
