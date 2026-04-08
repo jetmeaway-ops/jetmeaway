@@ -504,9 +504,9 @@ export default async function SuccessPage({
 
   // ── FAILURE ──
   if (!result.ok) {
-    // Send failure emails to customer + owner
+    // Send failure emails to customer + owner (must await — fire-and-forget gets killed in server components)
     if (result.booking) {
-      sendFailureEmails(result.booking, result.error || 'Unknown error').catch(() => {});
+      try { await sendFailureEmails(result.booking, result.error || 'Unknown error'); } catch (e) { console.error('[/success] sendFailureEmails error:', e); }
     }
 
     // Stripe refunded
@@ -565,9 +565,9 @@ export default async function SuccessPage({
   // ── SUCCESS — send confirmation email with neighbourhood guide ──
   const b = result.booking!;
 
-  // Fire-and-forget: send emails in the background (don't block page render)
-  sendHotelConfirmationEmail(b).catch(() => {});
-  sendOwnerSuccessEmail(b).catch(() => {});
+  // Await emails — fire-and-forget gets killed in server components
+  try { await sendHotelConfirmationEmail(b); } catch (e) { console.error('[/success] confirmation email error:', e); }
+  try { await sendOwnerSuccessEmail(b); } catch (e) { console.error('[/success] owner email error:', e); }
 
   return (
     <main className="max-w-[760px] mx-auto px-5 py-12">
