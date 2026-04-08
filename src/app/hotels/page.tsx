@@ -657,6 +657,7 @@ function HotelsContent() {
   const [rooms, setRooms] = useState(1);
   const [minStars, setMinStars] = useState(0);
   const [boardFilter, setBoardFilter] = useState('any');
+  const [refundableOnly, setRefundableOnly] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [hotels, setHotels] = useState<HotelResult[] | null>(null);
@@ -787,6 +788,7 @@ function HotelsContent() {
   };
 
   const filteredHotels = hotels ? hotels.filter(h => {
+    if (refundableOnly && h.refundable !== true) return false;
     if (boardFilter === 'any') return true;
     if (!h.boardType) return false;
     const bt = h.boardType.toLowerCase();
@@ -906,6 +908,15 @@ function HotelsContent() {
               ))}
             </div>
           </div>
+
+          {/* Free cancellation filter */}
+          <label className="flex items-center gap-2.5 mb-4 cursor-pointer select-none group">
+            <div className={`relative w-9 h-5 rounded-full transition-colors ${refundableOnly ? 'bg-green-500' : 'bg-[#D1D5DB]'}`}
+              onClick={() => setRefundableOnly(v => !v)}>
+              <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${refundableOnly ? 'translate-x-4' : ''}`} />
+            </div>
+            <span className="text-[.78rem] font-bold text-[#1A1D2B] group-hover:text-green-600 transition-colors">Free cancellation only</span>
+          </label>
 
           <button onClick={handleSearch} disabled={loading}
             className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(245,158,11,0.3)]">
