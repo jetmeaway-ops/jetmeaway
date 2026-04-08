@@ -1042,7 +1042,18 @@ function FlightsContent() {
           <div className={`grid gap-3 mb-4 ${tripType === 'return' ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2'}`}>
             <div>
               <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Departure</label>
-              <input type="date" min={today} value={depDate} onChange={e => setDepDate(e.target.value)}
+              <input type="date" min={today} value={depDate} onChange={e => {
+                const newDep = e.target.value;
+                setDepDate(newDep);
+                // Auto-adjust return date: if return is before new departure, move it forward
+                if (tripType === 'return') {
+                  if (!retDate || retDate <= newDep) {
+                    const r = new Date(newDep);
+                    r.setDate(r.getDate() + 7);
+                    setRetDate(r.toISOString().split('T')[0]);
+                  }
+                }
+              }}
                 className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.85rem] font-semibold text-[#1A1D2B] outline-none focus:border-[#0066FF] focus:bg-white transition-all" />
             </div>
             {tripType === 'return' && (

@@ -504,7 +504,14 @@ function PackagesContent() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
             <div>
               <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Departure</label>
-              <input type="date" min={today} value={depDate} onChange={e => setDepDate(e.target.value)}
+              <input type="date" min={today} value={depDate} onChange={e => {
+                const v = e.target.value;
+                setDepDate(v);
+                if (!retDate || retDate <= v) {
+                  const r = new Date(v); r.setDate(r.getDate() + 7);
+                  setRetDate(r.toISOString().split('T')[0]);
+                }
+              }}
                 className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-purple-500 focus:bg-white transition-all" />
             </div>
             <div>

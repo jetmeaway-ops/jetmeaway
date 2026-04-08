@@ -460,7 +460,14 @@ function CarsContent() {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
             <div>
               <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Pickup Date</label>
-              <input type="date" min={today} value={pickupDate} onChange={e => setPickupDate(e.target.value)}
+              <input type="date" min={today} value={pickupDate} onChange={e => {
+                const v = e.target.value;
+                setPickupDate(v);
+                if (!dropoffDate || dropoffDate <= v) {
+                  const r = new Date(v); r.setDate(r.getDate() + 3);
+                  setDropoffDate(r.toISOString().split('T')[0]);
+                }
+              }}
                 className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-emerald-500 focus:bg-white transition-all" />
             </div>
             <div>
