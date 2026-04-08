@@ -109,18 +109,42 @@ function getNearestAirport(lat: number, lon: number): Airport {
 const POPULAR_CODES = ['DXB', 'BCN', 'AYT', 'PMI', 'TFS', 'MLE'];
 const POPULAR = DESTINATIONS.filter(d => POPULAR_CODES.includes(d.code));
 
+type RecentSearch = { code: string; city: string; country: string; flag: string; ts: number };
+
+function saveRecentSearch(dest: Dest) {
+  try {
+    const raw = localStorage.getItem('jma_recent_searches');
+    const existing: RecentSearch[] = raw ? JSON.parse(raw) : [];
+    const entry: RecentSearch = { code: dest.code, city: dest.city, country: dest.country, flag: dest.flag, ts: Date.now() };
+    const filtered = existing.filter(s => s.code !== dest.code);
+    const updated = [entry, ...filtered].slice(0, 3);
+    localStorage.setItem('jma_recent_searches', JSON.stringify(updated));
+  } catch { /* localStorage unavailable */ }
+}
+
+function getRecentSearches(): RecentSearch[] {
+  try {
+    const raw = localStorage.getItem('jma_recent_searches');
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
 export default function FlightSearch() {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<Dest[]>([]);
   const [showSugg, setShowSugg] = useState(false);
   const [origin, setOrigin] = useState<Airport>(AIRPORTS[0]);
   const [showOriginPicker, setShowOriginPicker] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const ref = useRef<HTMLDivElement>(null);
   const originRef = useRef<HTMLDivElement>(null);
 
   // ── Auto-detect nearest airport with localStorage persistence ──
   useEffect(() => {
+    // Load recent searches
+    setRecentSearches(getRecentSearches());
+
     // Check localStorage first
     const saved = localStorage.getItem('jma_departure_airport');
     if (saved) {
@@ -172,6 +196,7 @@ export default function FlightSearch() {
 
   // ── Navigate to flights page ──
   function goToFlights(dest: Dest) {
+    saveRecentSearch(dest);
     window.location.href = `/flights?origin=${origin.code}&dest=${dest.code}&destCity=${encodeURIComponent(dest.city)}`;
   }
 
@@ -243,6 +268,24 @@ export default function FlightSearch() {
             </ul>
           )}
         </div>
+
+        {/* Welcome back — recent searches */}
+        {recentSearches.length > 0 && (
+          <div className="mb-3">
+            <p className="text-[.62rem] font-bold uppercase tracking-[2px] text-[#0066FF] mb-2">Welcome back — your recent searches</p>
+            <div className="flex flex-wrap gap-2">
+              {recentSearches.map(s => {
+                const dest = DESTINATIONS.find(d => d.code === s.code);
+                return (
+                  <button key={s.code} onMouseDown={() => dest && goToFlights(dest)}
+                    className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 hover:border-blue-300 rounded-full text-[.78rem] font-semibold text-[#0066FF] transition-all">
+                    {s.flag} {s.city}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Popular chips */}
         <div className="mb-2">

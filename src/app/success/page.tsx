@@ -7,6 +7,146 @@ import type { PendingGuest } from '@/app/api/hotels/pending/[ref]/guest/route';
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   NEIGHBOURHOOD GUIDE EMAIL
+   Fetches Scout data for the hotel and sends a confirmation email with a
+   neighbourhood guide section — "The Scout's Report" for the area.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+type ScoutPlace = { name: string; type: string; distance_m: number; walk_min: number };
+type ScoutData = {
+  quality: string;
+  categories: { wellness: ScoutPlace[]; family: ScoutPlace[]; food: ScoutPlace[]; daily: ScoutPlace[] };
+};
+
+async function fetchScoutData(lat: number, lng: number): Promise<ScoutData | null> {
+  try {
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : 'http://localhost:3000';
+    const res = await fetch(`${baseUrl}/api/scout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ latitude: lat, longitude: lng, radius: 800 }),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch { return null; }
+}
+
+function buildScoutEmailSection(scout: ScoutData): string {
+  const catLabels: Record<string, { emoji: string; title: string }> = {
+    food: { emoji: '🍽', title: 'Food & Coffee' },
+    wellness: { emoji: '💪', title: 'Wellness & Fitness' },
+    family: { emoji: '👨‍👩‍👧‍👦', title: 'Family & Fun' },
+    daily: { emoji: '🏪', title: 'Daily Essentials' },
+  };
+
+  let html = `
+    <div style="background:#fff;border:1px solid #E8ECF4;border-radius:16px;padding:20px;margin-bottom:16px;">
+      <p style="font-size:11px;font-weight:700;color:#0066FF;text-transform:uppercase;letter-spacing:2px;margin:0 0 4px;">The Scout's Report</p>
+      <p style="font-size:16px;font-weight:800;color:#1A1D2B;margin:0 0 12px;">Your Neighbourhood Guide</p>
+      <p style="font-size:13px;color:#5C6378;margin:0 0 16px;">Here's what's within walking distance of your hotel:</p>`;
+
+  for (const [cat, info] of Object.entries(catLabels)) {
+    const places = (scout.categories as any)[cat] as ScoutPlace[];
+    if (!places || places.length === 0) continue;
+
+    html += `
+      <div style="margin-bottom:14px;">
+        <p style="font-size:14px;font-weight:700;color:#1A1D2B;margin:0 0 6px;">${info.emoji} ${info.title}</p>`;
+
+    for (const p of places.slice(0, 3)) {
+      html += `
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #F1F3F7;">
+          <span style="font-size:13px;color:#5C6378;">${p.name}</span>
+          <span style="font-size:12px;color:#8E95A9;white-space:nowrap;">${p.walk_min} min walk</span>
+        </div>`;
+    }
+    html += `</div>`;
+  }
+
+  html += `
+      <p style="font-size:11px;color:#8E95A9;margin:12px 0 0;">Powered by Scout — JetMeAway's neighbourhood intelligence</p>
+    </div>`;
+
+  return html;
+}
+
+async function sendHotelConfirmationEmail(booking: StoredBooking) {
+  const RESEND_KEY = process.env.RESEND_API_KEY;
+  if (!RESEND_KEY || !booking.guest?.email) return;
+
+  // Fetch Scout data if hotel has coordinates
+  let scoutSection = '';
+  if (booking.lat && booking.lng) {
+    const scout = await fetchScoutData(booking.lat, booking.lng);
+    if (scout && scout.quality !== 'empty') {
+      scoutSection = buildScoutEmailSection(scout);
+    }
+  }
+
+  const currency = (booking.currency || 'GBP') === 'GBP' ? '&pound;' : `${booking.currency} `;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#F8FAFC;font-family:'Helvetica Neue',Arial,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:32px 20px;">
+    <div style="text-align:center;margin-bottom:32px;">
+      <img src="https://jetmeaway.co.uk/jetmeaway-logo.png" alt="JetMeAway" width="160" style="display:inline-block;height:auto;max-width:160px;border:0;" />
+      <p style="font-size:13px;color:#8E95A9;margin:8px 0 0;">Your travel scout</p>
+    </div>
+
+    <div style="background:linear-gradient(135deg,#059669,#10B981);border-radius:16px;padding:24px;text-align:center;margin-bottom:24px;">
+      <h2 style="font-size:20px;font-weight:800;color:#fff;margin:0 0 4px;">Hotel Booking Confirmed!</h2>
+      <p style="font-size:13px;color:rgba(255,255,255,0.85);margin:0;">Your stay is secured</p>
+    </div>
+
+    <div style="background:#fff;border:1px solid #E8ECF4;border-radius:16px;padding:20px;margin-bottom:16px;">
+      <p style="font-size:11px;font-weight:700;color:#8E95A9;text-transform:uppercase;letter-spacing:2px;margin:0 0 4px;">Booking Reference</p>
+      <p style="font-size:22px;font-weight:800;color:#1A1D2B;margin:0;letter-spacing:1px;">${booking.ref}</p>
+      ${booking.liteapiConfirmationCode ? `<p style="font-size:12px;color:#5C6378;margin:4px 0 0;">Hotel confirmation: ${booking.liteapiConfirmationCode}</p>` : ''}
+    </div>
+
+    <div style="background:#fff;border:1px solid #E8ECF4;border-radius:16px;padding:20px;margin-bottom:16px;">
+      <p style="font-size:11px;font-weight:700;color:#8E95A9;text-transform:uppercase;letter-spacing:2px;margin:0 0 12px;">Hotel Details</p>
+      <p style="font-size:16px;font-weight:800;color:#1A1D2B;margin:0 0 8px;">${booking.hotelName}</p>
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Check-in</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${booking.checkIn}</td></tr>
+        <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Check-out</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${booking.checkOut}</td></tr>
+        <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Guests</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${booking.adults} · ${booking.nights} night${booking.nights !== 1 ? 's' : ''}</td></tr>
+        <tr><td colspan="2" style="border-top:2px solid #E8ECF4;padding:12px 0 0;"></td></tr>
+        <tr><td style="font-size:16px;font-weight:800;color:#1A1D2B;">Total Paid</td><td style="font-size:20px;font-weight:800;color:#059669;text-align:right;">${currency}${booking.totalPrice.toFixed(2)}</td></tr>
+      </table>
+    </div>
+
+    ${scoutSection}
+
+    <div style="text-align:center;padding:16px 0;border-top:1px solid #E8ECF4;">
+      <p style="font-size:12px;color:#8E95A9;margin:0 0 4px;">Questions? Contact us at <a href="mailto:waqar@jetmeaway.co.uk" style="color:#0066FF;">waqar@jetmeaway.co.uk</a></p>
+      <p style="font-size:11px;color:#B0B8CC;margin:0;">JETMEAWAY LTD (Company No: 17140522) &middot; 66 Paul Street, London</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  try {
+    const { Resend } = await import('resend');
+    const resend = new Resend(RESEND_KEY);
+    await resend.emails.send({
+      from: 'JetMeAway <bookings@jetmeaway.co.uk>',
+      to: booking.guest.email,
+      subject: `🏨 Hotel Booking Confirmed — ${booking.hotelName} | JetMeAway`,
+      html,
+    });
+    console.log(`[/success] Confirmation email sent to ${booking.guest.email}`);
+  } catch (err) {
+    console.error('[/success] Failed to send confirmation email:', err);
+  }
+}
+
 /**
  * /success — Post-payment finalisation page.
  *
@@ -268,8 +408,11 @@ export default async function SuccessPage({
     );
   }
 
-  // ── SUCCESS ──
+  // ── SUCCESS — send confirmation email with neighbourhood guide ──
   const b = result.booking!;
+
+  // Fire-and-forget: send email in the background (don't block page render)
+  sendHotelConfirmationEmail(b).catch(() => {});
 
   return (
     <main className="max-w-[760px] mx-auto px-5 py-12">

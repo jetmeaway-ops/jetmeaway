@@ -122,6 +122,78 @@ async function resolveCountryCode(cityKey: string): Promise<string | null> {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   RATEHAWK API (dual-race with LiteAPI)
+   When RATEHAWK_API_KEY is set, both APIs are queried simultaneously via
+   Promise.allSettled. Results are merged, deduplicated by hotel name, and
+   the cheapest price wins.
+   ═══════════════════════════════════════════════════════════════════════════ */
+async function fetchRateHawkHotels(
+  cityKey: string,
+  checkin: string,
+  checkout: string,
+  adults: number,
+  rooms: number,
+  timeoutMs: number = 12000,
+): Promise<HotelOffer[]> {
+  const apiKey = process.env.RATEHAWK_API_KEY;
+  if (!apiKey) return [];
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    const cityName = cityKey.charAt(0).toUpperCase() + cityKey.slice(1);
+
+    const res = await fetch('https://api.worldota.net/api/b2b/v3/search/serp/hotels/', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${btoa(apiKey)}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        checkin,
+        checkout,
+        destination: cityName,
+        guests: [{ adults }],
+        residency: 'gb',
+        language: 'en',
+        currency: 'GBP',
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      console.warn(`[ratehawk] ${cityName} returned ${res.status}`);
+      return [];
+    }
+    const data = await res.json();
+    const hotels = data?.data?.hotels || [];
+
+    return hotels.slice(0, 20).map((h: any) => ({
+      hotelId: `rh_${h.id}`,
+      hotelName: h.name || 'Hotel',
+      price: h.min_price || 0,
+      pricePerNight: h.min_price_per_night || 0,
+      currency: 'GBP',
+      stars: h.star_rating || 0,
+      city: cityName,
+      latitude: h.latitude,
+      longitude: h.longitude,
+      thumbnail: h.images?.[0]?.url || null,
+      refundable: null,
+      boardType: null,
+      boardOptions: [],
+      offerId: null,
+      source: 'ratehawk' as any,
+    }));
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`[ratehawk] fetch failed:`, message);
+    return [];
+  }
+}
+
 /** Fetch LiteAPI bookable offers with a hard timeout so we never block the response */
 async function fetchLiteApiHotels(
   cityKey: string,
@@ -654,14 +726,56 @@ export async function GET(req: NextRequest) {
       rank: i,
     }));
 
-  // Kick off the LiteAPI fetch in parallel — we'll await it below alongside curated
+  // Kick off LiteAPI + RateHawk in parallel (dual API racing)
   const liteApiPromise = fetchLiteApiHotels(cityKey, checkin, checkout, adultsNum, childrenNum, roomsNum, childAges);
+  const rateHawkPromise = fetchRateHawkHotels(cityKey, checkin, checkout, adultsNum, roomsNum);
 
   // Apply server-side minStars filter. minStars === 5 means exactly 5; else >=.
   const passesStars = <T extends { stars: number }>(h: T) => {
     if (minStars === 0) return true;
     if (minStars === 5) return h.stars >= 5;
     return h.stars >= minStars;
+  };
+
+  // Normalise RateHawk results the same way as LiteAPI
+  const normaliseRateHawk = (offers: HotelOffer[]) =>
+    offers.map((o, i) => ({
+      id: `rh_${o.hotelId}`,
+      name: o.hotelName,
+      stars: o.stars ?? 0,
+      pricePerNight: Math.round((o.pricePerNight ?? o.price / nights) * 100) / 100,
+      totalPrice: Math.round(o.price * 100) / 100,
+      currency: o.currency || 'GBP',
+      location: o.city || city,
+      district: null,
+      lat: o.latitude ?? undefined,
+      lng: o.longitude ?? undefined,
+      thumbnail: o.thumbnail || null,
+      refundable: o.refundable,
+      boardType: o.boardType,
+      boardOptions: o.boardOptions || undefined,
+      source: 'ratehawk' as const,
+      bookable: false, // RateHawk affiliate — links to their site
+      offerId: o.offerId,
+      rank: i,
+    }));
+
+  // Await both APIs, merge and deduplicate by hotel name (cheapest wins)
+  const mergeApis = async () => {
+    const [liteResults, rhResults] = await Promise.all([liteApiPromise, rateHawkPromise]);
+    const liteNorm = normaliseLiteApi(liteResults);
+    const rhNorm = normaliseRateHawk(rhResults);
+    const all = [...liteNorm, ...rhNorm];
+    // Deduplicate: if same hotel name, keep the cheaper one
+    const seen = new Map<string, typeof all[0]>();
+    for (const h of all) {
+      const key = h.name.toLowerCase().trim();
+      const existing = seen.get(key);
+      if (!existing || h.pricePerNight < existing.pricePerNight) {
+        seen.set(key, h);
+      }
+    }
+    return Array.from(seen.values()).sort((a, b) => a.pricePerNight - b.pricePerNight);
   };
 
   // Look up curated hotels
@@ -683,18 +797,18 @@ export async function GET(req: NextRequest) {
         bookable: false,
         ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
       }));
-      const liteApiHotels = normaliseLiteApi(await liteApiPromise).filter(passesStars);
-      const hotels = [...liteApiHotels, ...curatedHotels.filter(passesStars)];
+      const apiHotels = (await mergeApis()).filter(passesStars);
+      const hotels = [...apiHotels, ...curatedHotels.filter(passesStars)];
 
-      const result = { hotels, city: match.charAt(0).toUpperCase() + match.slice(1), checkin, checkout, adults: adultsNum, liteapiCount: liteApiHotels.length };
+      const result = { hotels, city: match.charAt(0).toUpperCase() + match.slice(1), checkin, checkout, adults: adultsNum, liteapiCount: apiHotels.length };
       try { await kv.set(kvKey, result, { ex: KV_TTL }); } catch { /* KV write fail */ }
       return NextResponse.json(result);
     }
 
-    // No curated match — still try LiteAPI as a last resort
-    const liteApiHotels = normaliseLiteApi(await liteApiPromise).filter(passesStars);
-    if (liteApiHotels.length > 0) {
-      const result = { hotels: liteApiHotels, city, checkin, checkout, adults: adultsNum, liteapiCount: liteApiHotels.length };
+    // No curated match — still try APIs as a last resort
+    const apiHotels = (await mergeApis()).filter(passesStars);
+    if (apiHotels.length > 0) {
+      const result = { hotels: apiHotels, city, checkin, checkout, adults: adultsNum, liteapiCount: apiHotels.length };
       try { await kv.set(kvKey, result, { ex: KV_TTL }); } catch {}
       return NextResponse.json(result);
     }
@@ -714,9 +828,9 @@ export async function GET(req: NextRequest) {
     bookable: false,
     ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
   }));
-  const liteApiHotels = normaliseLiteApi(await liteApiPromise).filter(passesStars);
-  // LiteAPI bookable hotels first, curated deep-link hotels after
-  const hotels = [...liteApiHotels, ...curatedHotels.filter(passesStars)];
+  const apiHotels = (await mergeApis()).filter(passesStars);
+  // Bookable API hotels first, curated deep-link hotels after
+  const hotels = [...apiHotels, ...curatedHotels.filter(passesStars)];
 
   const result = {
     hotels,
@@ -724,7 +838,7 @@ export async function GET(req: NextRequest) {
     checkin,
     checkout,
     adults: adultsNum,
-    liteapiCount: liteApiHotels.length,
+    liteapiCount: apiHotels.length,
   };
 
   // Cache in KV

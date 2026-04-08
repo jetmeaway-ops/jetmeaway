@@ -37,6 +37,8 @@ export interface PendingBooking {
   adults: number;
   nights: number;
   thumbnail: string | null;
+  lat?: number;
+  lng?: number;
   state: 'pending' | 'paid' | 'confirmed' | 'failed';
   createdAt: number;
   // Populated after prebook (Payment SDK flow)
@@ -79,6 +81,8 @@ export async function POST(req: NextRequest) {
       adults = 2,
       nights,
       thumbnail = null,
+      lat,
+      lng,
     } = body || {};
 
     if (!offerId || typeof offerId !== 'string') {
@@ -112,6 +116,8 @@ export async function POST(req: NextRequest) {
       adults,
       nights: computedNights,
       thumbnail,
+      ...(Number.isFinite(lat) ? { lat } : {}),
+      ...(Number.isFinite(lng) ? { lng } : {}),
       state: 'pending',
       createdAt: Date.now(),
     };

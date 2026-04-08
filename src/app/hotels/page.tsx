@@ -551,6 +551,8 @@ function BookDirectButton({
           adults,
           nights: Math.max(1, nights),
           thumbnail: hotel.thumbnail || null,
+          lat: hotel.lat,
+          lng: hotel.lng,
         }),
       });
       const data = await res.json();
