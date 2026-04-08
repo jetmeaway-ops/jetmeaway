@@ -438,6 +438,16 @@ function AutocompleteTo({ value, onChange, initialCode }: {
     }
   }, [initialCode]);
 
+  // Sync when value changes externally (e.g. from Hot Deals click)
+  useEffect(() => {
+    if (!value) return;
+    const d = DESTINATIONS.find(d => d.code === value.toUpperCase());
+    if (d && (!chosen || chosen.code !== d.code)) {
+      setQ(`${d.city} (${d.code})`);
+      setChosen(d);
+    }
+  }, [value]);
+
   const lq = q.toLowerCase();
   const filtered = q.length >= 1
     ? DESTINATIONS.filter(d =>
@@ -1062,7 +1072,19 @@ function FlightsContent() {
         <HotDeals onSelect={(code, city) => {
           setDestCode(code);
           setDestCity(city);
-          // Scroll to search form
+          // Set a default departure date if not already set (next Saturday)
+          if (!depDate) {
+            const d = new Date();
+            d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7 || 7)); // next Saturday
+            const iso = d.toISOString().split('T')[0];
+            setDepDate(iso);
+            if (tripType === 'return' && !retDate) {
+              const r = new Date(d);
+              r.setDate(r.getDate() + 7);
+              setRetDate(r.toISOString().split('T')[0]);
+            }
+          }
+          // Scroll to search form so user can see destination is pre-filled
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }} />
       )}
