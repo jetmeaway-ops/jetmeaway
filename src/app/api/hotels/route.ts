@@ -218,8 +218,10 @@ async function fetchLiteApiHotels(
 
   // Build occupancy: one entry per room. Split adults across rooms (min 1 per
   // room). Put all children in the first room — LiteAPI allows uneven splits.
-  const safeRooms = Math.max(1, Math.min(3, rooms));
+  // Auto-enforce minimum rooms: max 3 adults per room (hotel standard).
   const safeAdults = Math.max(1, adults);
+  const minRoomsNeeded = Math.ceil(safeAdults / 3);
+  const safeRooms = Math.max(minRoomsNeeded, Math.min(5, rooms));
   const safeChildren = Math.max(0, childrenCount);
   const adultsPerRoom: number[] = [];
   let remaining = safeAdults;
@@ -681,7 +683,9 @@ export async function GET(req: NextRequest) {
   const childAges = childrenAgesParam
     ? childrenAgesParam.split(',').map(a => Math.max(0, Math.min(17, parseInt(a) || 0)))
     : [];
-  const roomsNum = Math.max(1, Math.min(3, parseInt(roomsParam) || 1));
+  const roomsRaw = Math.max(1, Math.min(5, parseInt(roomsParam) || 1));
+  // Auto-enforce minimum rooms: max 3 adults per room
+  const roomsNum = Math.max(Math.ceil(adultsNum / 3), roomsRaw);
   const minStars = Math.max(0, Math.min(5, parseInt(starsParam) || 0));
   // Cache key v4 — bumped after LiteAPI sandbox → production swap
   const kvKey = `hotels:v4:${cityKey}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
