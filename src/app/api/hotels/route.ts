@@ -683,8 +683,8 @@ export async function GET(req: NextRequest) {
     : [];
   const roomsNum = Math.max(1, Math.min(5, parseInt(roomsParam) || 1));
   const minStars = Math.max(0, Math.min(5, parseInt(starsParam) || 0));
-  // Cache key v4 — bumped after LiteAPI sandbox → production swap
-  const kvKey = `hotels:v4:${cityKey}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
+  // Cache key v5 — bumped after multi-room price fix (sum retailRate.total[])
+  const kvKey = `hotels:v5:${cityKey}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
 
   // Check KV cache
   try {

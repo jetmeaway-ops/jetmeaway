@@ -819,6 +819,7 @@ function HotelsContent() {
       rooms: String(rooms),
       city: searchedDest,
     });
+    if (childrenAges.length > 0) qp.set('childrenAges', childrenAges.join(','));
     if (h.offerId) qp.set('offerId', h.offerId);
     if (h.totalPrice) qp.set('price', String(h.totalPrice));
     else qp.set('price', String(h.pricePerNight * Math.max(1, nights)));

@@ -69,6 +69,7 @@ export default function HotelDetailPage() {
   const checkout = sp?.get('checkout') || '';
   const adults = sp?.get('adults') || '2';
   const children = sp?.get('children') || '0';
+  const childrenAges = sp?.get('childrenAges') || '';
   const rooms = sp?.get('rooms') || '1';
   const price = sp?.get('price') || '';
   const currency = sp?.get('currency') || 'GBP';
@@ -108,6 +109,7 @@ export default function HotelDetailPage() {
       rooms,
       stars: '0',
     });
+    if (childrenAges) params.set('childrenAges', childrenAges);
     fetch(`/api/hotels?${params}`)
       .then(r => r.json())
       .then(data => {
