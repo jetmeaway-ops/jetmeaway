@@ -209,15 +209,17 @@ function ccLookup(loc: string) { return CC[cityName(loc).toLowerCase()] || null;
 function buildEconomyBookingsUrl(loc: string, pickup: string, dropoff: string, pickupTime: string, dropoffTime: string, age: string) {
   const iata = locIata(loc);
   const cc = ccLookup(loc);
-  if (cc && iata) return TP_CAR(10, 2018, `https://www.economybookings.com/car-rental/${cc[1]}/${cc[0]}/${citySlug(loc)}/${iata.toLowerCase()}`);
-  if (cc) return TP_CAR(10, 2018, `https://www.economybookings.com/car-rental/${cc[1]}/${cc[0]}/${citySlug(loc)}`);
-  return TP_CAR(10, 2018, `https://www.economybookings.com/`);
+  const qs = `?pick_up_date=${pickup}&drop_off_date=${dropoff}&pick_up_time=${pickupTime}&drop_off_time=${dropoffTime}&driver_age=${age || '30'}&currency=GBP`;
+  if (cc && iata) return TP_CAR(10, 2018, `https://www.economybookings.com/car-rental/${cc[1]}/${cc[0]}/${citySlug(loc)}/${iata.toLowerCase()}${qs}`);
+  if (cc) return TP_CAR(10, 2018, `https://www.economybookings.com/car-rental/${cc[1]}/${cc[0]}/${citySlug(loc)}${qs}`);
+  return TP_CAR(10, 2018, `https://www.economybookings.com/${qs}`);
 }
 
 function buildLocalrentUrl(loc: string, pickup: string, dropoff: string) {
   const cc = ccLookup(loc);
-  if (cc) return TP_CAR(87, 2043, `https://localrent.com/en/${cc[0]}/${citySlug(loc)}/`);
-  return TP_CAR(87, 2043, `https://localrent.com/en/`);
+  const qs = `?currency=GBP&dateFrom=${pickup}&dateTo=${dropoff}`;
+  if (cc) return TP_CAR(87, 2043, `https://localrent.com/en/${cc[0]}/${citySlug(loc)}/${qs}`);
+  return TP_CAR(87, 2043, `https://localrent.com/en/${qs}`);
 }
 
 function buildQeeqUrl(loc: string, pickup: string, dropoff: string, pickupTime: string, dropoffTime: string) {
