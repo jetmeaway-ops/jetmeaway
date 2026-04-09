@@ -110,6 +110,52 @@ export async function getPlaces(query: string): Promise<Place[]> {
 }
 
 /* ───────────────────────────────────────────────────────────────────────── */
+/*  eSIM — eSimply addon packages                                            */
+/* ───────────────────────────────────────────────────────────────────────── */
+
+export interface EsimPackage {
+  packageId: number;
+  name: string;
+  dataSizeMb: number;
+  validityDays: number;
+  price: number;
+  currency: string;
+}
+
+/**
+ * Fetch available eSimply eSIM packages for a country (ISO-2 code).
+ * Uses the dev endpoint as per LiteAPI's current eSimply addon docs.
+ */
+export async function getEsimPackages(countryCode: string): Promise<EsimPackage[]> {
+  if (!countryCode || countryCode.length !== 2) return [];
+
+  const data = await liteFetch<{
+    code?: string;
+    data: Array<{
+      package_id: number;
+      name: string;
+      data_size_mb: number;
+      validity_days: number;
+      calculated_price: number;
+      currency: string;
+    }>;
+  }>(
+    `/addons/esimply/packages/${countryCode.toUpperCase()}`,
+    { method: 'GET' },
+    10_000,
+  );
+
+  return (data.data || []).map((p) => ({
+    packageId: p.package_id,
+    name: p.name,
+    dataSizeMb: p.data_size_mb,
+    validityDays: p.validity_days,
+    price: p.calculated_price,
+    currency: p.currency,
+  }));
+}
+
+/* ───────────────────────────────────────────────────────────────────────── */
 /*  TYPES                                                                    */
 /* ───────────────────────────────────────────────────────────────────────── */
 

@@ -1,9 +1,47 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { redirectUrl } from '@/lib/redirect';
+
+// ─── Country → ISO-2 code mapping ─────────────────────────────────────────
+const COUNTRY_ISO: Record<string, string> = {
+  'afghanistan': 'AF', 'albania': 'AL', 'algeria': 'DZ', 'argentina': 'AR', 'armenia': 'AM',
+  'australia': 'AU', 'austria': 'AT', 'azerbaijan': 'AZ', 'bahrain': 'BH', 'bangladesh': 'BD',
+  'belgium': 'BE', 'bolivia': 'BO', 'bosnia': 'BA', 'brazil': 'BR', 'brunei': 'BN', 'bulgaria': 'BG',
+  'cambodia': 'KH', 'cameroon': 'CM', 'canada': 'CA', 'chile': 'CL', 'china': 'CN', 'colombia': 'CO',
+  'costa rica': 'CR', 'croatia': 'HR', 'cuba': 'CU', 'cyprus': 'CY', 'czech republic': 'CZ',
+  'denmark': 'DK', 'dominican republic': 'DO', 'ecuador': 'EC', 'egypt': 'EG', 'estonia': 'EE',
+  'ethiopia': 'ET', 'fiji': 'FJ', 'finland': 'FI', 'france': 'FR', 'georgia': 'GE', 'germany': 'DE',
+  'ghana': 'GH', 'greece': 'GR', 'guatemala': 'GT', 'honduras': 'HN', 'hong kong': 'HK',
+  'hungary': 'HU', 'iceland': 'IS', 'india': 'IN', 'indonesia': 'ID', 'iran': 'IR', 'iraq': 'IQ',
+  'ireland': 'IE', 'israel': 'IL', 'italy': 'IT', 'jamaica': 'JM', 'japan': 'JP', 'jordan': 'JO',
+  'kazakhstan': 'KZ', 'kenya': 'KE', 'kuwait': 'KW', 'kyrgyzstan': 'KG', 'laos': 'LA',
+  'latvia': 'LV', 'lebanon': 'LB', 'lithuania': 'LT', 'luxembourg': 'LU', 'macau': 'MO',
+  'madagascar': 'MG', 'malaysia': 'MY', 'maldives': 'MV', 'malta': 'MT', 'mauritius': 'MU',
+  'mexico': 'MX', 'moldova': 'MD', 'mongolia': 'MN', 'montenegro': 'ME', 'morocco': 'MA',
+  'mozambique': 'MZ', 'myanmar': 'MM', 'nepal': 'NP', 'netherlands': 'NL', 'new zealand': 'NZ',
+  'nicaragua': 'NI', 'nigeria': 'NG', 'north macedonia': 'MK', 'norway': 'NO', 'oman': 'OM',
+  'pakistan': 'PK', 'panama': 'PA', 'paraguay': 'PY', 'peru': 'PE', 'philippines': 'PH',
+  'poland': 'PL', 'portugal': 'PT', 'qatar': 'QA', 'romania': 'RO', 'russia': 'RU', 'rwanda': 'RW',
+  'saudi arabia': 'SA', 'senegal': 'SN', 'serbia': 'RS', 'singapore': 'SG', 'slovakia': 'SK',
+  'slovenia': 'SI', 'south africa': 'ZA', 'south korea': 'KR', 'spain': 'ES', 'sri lanka': 'LK',
+  'sweden': 'SE', 'switzerland': 'CH', 'tajikistan': 'TJ', 'taiwan': 'TW', 'tanzania': 'TZ',
+  'thailand': 'TH', 'tunisia': 'TN', 'turkey': 'TR', 'turkmenistan': 'TM', 'uae': 'AE',
+  'uganda': 'UG', 'ukraine': 'UA', 'united kingdom': 'GB', 'united states': 'US', 'uruguay': 'UY',
+  'uzbekistan': 'UZ', 'vietnam': 'VN', 'zambia': 'ZM', 'zimbabwe': 'ZW',
+};
+
+// ─── Live eSIM package type ────────────────────────────────────────────────
+type LiveEsimPackage = {
+  packageId: number;
+  name: string;
+  dataSizeMb: number;
+  validityDays: number;
+  price: number;
+  currency: string;
+};
 
 // ─── Country list ───────────────────────────────────────────────────────────
 const COUNTRIES = [
@@ -204,6 +242,9 @@ export default function ESIMPage() {
   const [duration, setDuration] = useState('7');
   const [searched, setSearched] = useState(false);
   const [plans, setPlans] = useState<CuratedPlan[]>([]);
+  const [livePackages, setLivePackages] = useState<LiveEsimPackage[]>([]);
+  const [liveLoading, setLiveLoading] = useState(false);
+  const [liveError, setLiveError] = useState('');
 
   /* Auto-calc duration from dates */
   useEffect(() => {
@@ -229,10 +270,25 @@ export default function ESIMPage() {
     if (ed) setEndDate(ed);
   }, []);
 
+  const fetchLivePackages = useCallback(async (countryName: string) => {
+    const iso = COUNTRY_ISO[countryName.toLowerCase().trim()];
+    if (!iso) { setLivePackages([]); return; }
+    setLiveLoading(true);
+    setLiveError('');
+    try {
+      const res = await fetch(`/api/esim/packages?country=${iso}`);
+      const data = await res.json();
+      if (data.error) { setLiveError(data.error); setLivePackages([]); }
+      else setLivePackages(data.packages || []);
+    } catch { setLiveError('Could not load live eSIM plans'); setLivePackages([]); }
+    setLiveLoading(false);
+  }, []);
+
   function handleSearch() {
     if (!country) { alert('Please enter a destination country'); return; }
     setPlans(getPlansForCountry(country, parseInt(duration)));
     setSearched(true);
+    fetchLivePackages(country);
     setTimeout(() => document.getElementById('esim-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
   }
 
@@ -305,8 +361,90 @@ export default function ESIMPage() {
       </section>
 
       {/* eSIM Results */}
-      {searched && plans.length > 0 && (
+      {searched && (
         <section id="esim-results" className="max-w-[1100px] mx-auto px-5 py-10">
+
+          {/* ── Live eSimply packages (Book Direct) ── */}
+          {liveLoading && (
+            <div className="bg-white border border-[#E8ECF4] rounded-2xl p-8 text-center mb-8">
+              <div className="flex items-center justify-center gap-3">
+                <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                <span className="text-[.9rem] font-bold text-[#5C6378]">Loading live eSIM plans...</span>
+              </div>
+            </div>
+          )}
+          {!liveLoading && livePackages.length > 0 && (
+            <div className="mb-10">
+              <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h2 className="font-poppins font-black text-[1.3rem] text-[#1A1D2B]">Book Direct</h2>
+                    <span className="text-[.55rem] font-black uppercase tracking-[1.5px] bg-gradient-to-r from-[#0066FF] to-[#4C8BFF] text-white px-2.5 py-1 rounded-full">Live Prices</span>
+                  </div>
+                  <p className="text-[.72rem] text-[#8E95A9] font-semibold">
+                    {livePackages.length} eSIM package{livePackages.length !== 1 ? 's' : ''} for {country} · instant QR code activation
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {livePackages.map((pkg, i) => {
+                  const dataLabel = pkg.dataSizeMb >= 1024
+                    ? `${Math.round(pkg.dataSizeMb / 1024)} GB`
+                    : `${pkg.dataSizeMb} MB`;
+                  return (
+                    <div key={pkg.packageId} className={`bg-white border rounded-2xl p-5 flex flex-col transition-all hover:shadow-lg ${i === 0 ? 'border-[#0066FF] ring-1 ring-blue-100' : 'border-[#E8ECF4]'}`}>
+                      {i === 0 && (
+                        <span className="self-start text-[.55rem] font-black uppercase tracking-[1.5px] bg-[#0066FF] text-white px-2.5 py-1 rounded-full mb-3">Cheapest</span>
+                      )}
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-2xl">📱</span>
+                        <h3 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B]">{dataLabel}</h3>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        <span className="flex items-center gap-1 text-[.68rem] font-bold text-[#5C6378]">
+                          <span className="text-sm">📅</span> {pkg.validityDays} days
+                        </span>
+                        <span className="flex items-center gap-1 text-[.68rem] font-bold text-[#5C6378]">
+                          <span className="text-sm">📶</span> 4G/LTE
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 mb-4">
+                        <span className="flex items-center gap-1 text-[.58rem] font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
+                          <span className="text-green-500">✓</span> Instant QR code
+                        </span>
+                        <span className="flex items-center gap-1 text-[.58rem] font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
+                          <span className="text-green-500">✓</span> No SIM swap
+                        </span>
+                      </div>
+                      <div className="mt-auto">
+                        <div className="mb-3">
+                          <span className="font-poppins font-black text-[1.6rem] text-[#1A1D2B] leading-none">
+                            ${pkg.price.toFixed(2)}
+                          </span>
+                          <span className="text-[.68rem] text-[#8E95A9] font-semibold ml-1">{pkg.currency}</span>
+                        </div>
+                        <button
+                          type="button"
+                          className="w-full bg-gradient-to-r from-[#0066FF] to-[#4C8BFF] hover:from-[#0052CC] hover:to-[#3B7AEE] text-white font-poppins font-black text-[.78rem] py-3 rounded-xl transition-all shadow-[0_2px_10px_rgba(0,102,255,0.25)] flex items-center justify-center gap-2"
+                        >
+                          <i className="fa-solid fa-lock text-[.65rem]" /> Book Direct →
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {!liveLoading && liveError && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-8 text-center">
+              <p className="text-[.78rem] font-semibold text-amber-700">Live eSIM plans unavailable for {country} — compare affiliate providers below</p>
+            </div>
+          )}
+
+          {/* ── Affiliate provider plans ── */}
+          {plans.length > 0 && (
+          <>
           <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
             <div>
               <h2 className="font-poppins font-black text-[1.3rem] text-[#1A1D2B]">
@@ -412,6 +550,8 @@ export default function ESIMPage() {
               ))}
             </div>
           </div>
+          </>
+          )}
         </section>
       )}
 
