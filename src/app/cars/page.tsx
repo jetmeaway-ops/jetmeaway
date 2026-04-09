@@ -123,11 +123,8 @@ function LocationPicker({ value, onChange, placeholder }: {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const LOADING_MSGS = [
-  'Searching Economy Bookings...',
   'Checking Localrent...',
-  'Comparing Qeeq...',
   'Scanning GetRentaCar...',
-  'Checking Expedia...',
 ];
 
 function LoadingState({ loc }: { loc: string }) {
@@ -206,40 +203,19 @@ const CC: Record<string, [string, string]> = {
 };
 function ccLookup(loc: string) { return CC[cityName(loc).toLowerCase()] || null; }
 
-function buildEconomyBookingsUrl(loc: string, pickup: string, dropoff: string, pickupTime: string, dropoffTime: string, age: string) {
-  const iata = locIata(loc);
+function buildLocalrentUrl(loc: string, pickup: string, dropoff: string, pickupTime: string, dropoffTime: string) {
   const cc = ccLookup(loc);
-  const qs = `?pick_up_date=${pickup}&drop_off_date=${dropoff}&pick_up_time=${pickupTime}&drop_off_time=${dropoffTime}&driver_age=${age || '30'}&currency=GBP`;
-  if (cc && iata) return TP_CAR(10, 2018, `https://www.economybookings.com/car-rental/${cc[1]}/${cc[0]}/${citySlug(loc)}/${iata.toLowerCase()}${qs}`);
-  if (cc) return TP_CAR(10, 2018, `https://www.economybookings.com/car-rental/${cc[1]}/${cc[0]}/${citySlug(loc)}${qs}`);
-  return TP_CAR(10, 2018, `https://www.economybookings.com/${qs}`);
-}
-
-function buildLocalrentUrl(loc: string, pickup: string, dropoff: string) {
-  const cc = ccLookup(loc);
-  const qs = `?currency=GBP&dateFrom=${pickup}&dateTo=${dropoff}`;
+  const qs = `?currency=GBP&date_from=${pickup}&date_to=${dropoff}&time_from=${pickupTime || '10:00'}&time_to=${dropoffTime || '10:00'}`;
   if (cc) return TP_CAR(87, 2043, `https://localrent.com/en/${cc[0]}/${citySlug(loc)}/${qs}`);
   return TP_CAR(87, 2043, `https://localrent.com/en/${qs}`);
 }
 
-function buildQeeqUrl(loc: string, pickup: string, dropoff: string, pickupTime: string, dropoffTime: string) {
-  return TP_CAR(172, 4845, `https://www.qeeq.com/`);
-}
-
 function buildGetRentaCarUrl(loc: string, pickup: string, dropoff: string) {
-  const iata = locIata(loc);
-  const locationParam = iata ? `${cityName(loc)}+Airport` : cityName(loc);
-  return TP_CAR(222, 5996, `https://getrentacar.com/en-US/car-rental/search?currency=GBP&from=${pickup}&to=${dropoff}&location=${encodeURIComponent(locationParam)}`);
-}
-
-function buildKlookUrl(loc: string, pickup: string, dropoff: string) {
-  return TP_CAR(137, 4110, `https://www.klook.com/en-GB/car-rentals/`);
-}
-
-function buildExpediaUrl(loc: string, pickup: string, dropoff: string, pickupTime: string, dropoffTime: string) {
-  const iata = locIata(loc);
-  const locParam = iata ? `${cleanLoc(loc)} (${iata})` : cleanLoc(loc);
-  return `https://www.expedia.co.uk/carsearch?locn=${encodeURIComponent(locParam)}&date1=${pickup}&date2=${dropoff}&time1=${pickupTime}&time2=${dropoffTime}&affcid=clbU3QK`;
+  const city = cityName(loc);
+  const [y1, m1, d1] = pickup.split('-');
+  const [y2, m2, d2] = dropoff.split('-');
+  const inner = `https://getrentacar.com/en-US/car-rental/request?vehicleSegment=cars&pickup[location]=${encodeURIComponent(city)}&pickup[date]=${d1}.${m1}.${y1}&return[date]=${d2}.${m2}.${y2}`;
+  return TP_CAR(222, 5996, inner);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -258,29 +234,12 @@ interface Provider {
 
 const PROVIDERS: Provider[] = [
   {
-    name: 'Economy Bookings',
-    tagline: 'One of the largest car rental comparison sites — compares 900+ companies',
-    selling: ['Free cancellation on most bookings', 'No hidden fees', 'Best price guarantee'],
-    extra: 'Under 25? Economy Bookings has lower young driver surcharges than most providers',
-    color: '#2563EB',
-    bgColor: '#EFF6FF',
-    buildUrl: (loc, pickup, dropoff, pickupTime, dropoffTime, age) => buildEconomyBookingsUrl(loc, pickup, dropoff, pickupTime, dropoffTime, age),
-  },
-  {
     name: 'Localrent',
     tagline: 'Rent directly from local companies — often cheaper than international chains',
     selling: ['Direct from local owners', 'Full insurance included', 'No deposit on many cars'],
     color: '#059669',
     bgColor: '#ECFDF5',
-    buildUrl: (loc, pickup, dropoff) => buildLocalrentUrl(loc, pickup, dropoff),
-  },
-  {
-    name: 'Qeeq',
-    tagline: 'Compare 300+ car rental suppliers worldwide',
-    selling: ['Price match guarantee', 'Free cancellation', 'No credit card fees'],
-    color: '#7C3AED',
-    bgColor: '#F5F3FF',
-    buildUrl: (loc, pickup, dropoff, pickupTime, dropoffTime) => buildQeeqUrl(loc, pickup, dropoff, pickupTime, dropoffTime),
+    buildUrl: (loc, pickup, dropoff, pickupTime, dropoffTime) => buildLocalrentUrl(loc, pickup, dropoff, pickupTime, dropoffTime),
   },
   {
     name: 'GetRentaCar',
@@ -289,23 +248,6 @@ const PROVIDERS: Provider[] = [
     color: '#DC2626',
     bgColor: '#FEF2F2',
     buildUrl: (loc, pickup, dropoff) => buildGetRentaCarUrl(loc, pickup, dropoff),
-  },
-  {
-    name: 'Klook',
-    tagline: 'Popular in Asia & beyond — car hire, tours and activities',
-    selling: ['Best price guarantee', 'Instant confirmation', 'Easy cancellation'],
-    color: '#FF5722',
-    bgColor: '#FFF3E0',
-    buildUrl: (loc, pickup, dropoff) => buildKlookUrl(loc, pickup, dropoff),
-  },
-  {
-    name: 'Expedia',
-    tagline: 'Car hire from a name you trust — part of the Expedia family',
-    selling: ['Earn Expedia rewards points', 'Bundle with flights and hotels for extra savings', 'Flexible cancellation'],
-    color: '#D97706',
-    bgColor: '#FFFBEB',
-    buildUrl: (loc, pickup, dropoff, pickupTime, dropoffTime) =>
-      buildExpediaUrl(loc, pickup, dropoff, pickupTime, dropoffTime),
   },
 ];
 
@@ -354,15 +296,14 @@ const SUPPLIER_LOGOS = [
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const COMPARE_ROWS = [
-  { feature: 'Free cancellation', values: ['✅', '✅', '✅', '✅', '✅'] },
-  { feature: 'No deposit options', values: ['❌', '✅', '❌', '✅', '❌'] },
-  { feature: 'Young driver friendly', values: ['✅ Best rates', '✅', '✅', '✅', '⚠️ Higher surcharge'] },
-  { feature: 'Local companies', values: ['❌', '✅ Specialist', '❌', '✅', '❌'] },
-  { feature: 'Loyalty rewards', values: ['❌', '❌', '❌', '❌', '✅ Expedia points'] },
-  { feature: 'Full insurance included', values: ['⚠️ Optional', '✅ Most cars', '⚠️ Optional', '✅ Most cars', '⚠️ Optional'] },
+  { feature: 'Free cancellation', values: ['✅', '✅'] },
+  { feature: 'No deposit options', values: ['✅', '✅'] },
+  { feature: 'Young driver friendly', values: ['✅', '✅'] },
+  { feature: 'Local companies', values: ['✅ Specialist', '✅'] },
+  { feature: 'Full insurance included', values: ['✅ Most cars', '✅ Most cars'] },
 ];
 
-const PROVIDER_NAMES = ['Economy Bookings', 'Localrent', 'Qeeq', 'GetRentaCar', 'Expedia'];
+const PROVIDER_NAMES = ['Localrent', 'GetRentaCar'];
 
 /* ═══════════════════════════════════════════════════════════════════════════
    HELPER: extract city name for cross-sell links
@@ -474,7 +415,7 @@ function CarsContent() {
           <h1 className="font-poppins text-[2.6rem] md:text-[3.8rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
             Hire a Car <em className="italic bg-gradient-to-br from-emerald-500 to-teal-500 bg-clip-text text-transparent">Anywhere</em>
           </h1>
-          <p className="text-[1rem] text-[#8E95A9] font-semibold max-w-[520px] mx-auto">Compare 5 trusted car rental providers — real prices, no hidden fees.</p>
+          <p className="text-[1rem] text-[#8E95A9] font-semibold max-w-[520px] mx-auto">Compare trusted car rental providers — real prices, no hidden fees.</p>
         </div>
 
         <div className="max-w-[860px] mx-auto bg-white border border-[#E8ECF4] rounded-3xl p-6 shadow-[0_8px_40px_rgba(0,0,0,0.07)]">
@@ -569,7 +510,7 @@ function CarsContent() {
                 <h2 className="font-poppins font-black text-[1.15rem] text-[#1A1D2B]">
                   Car hire in {city} — {pickupDate} to {dropoffDate}{days ? ` (${days} day${days !== 1 ? 's' : ''})` : ''}
                 </h2>
-                <p className="text-[.75rem] text-[#5C6378] font-semibold mt-1">{filteredCars.length} car types available · Compare across 6 providers</p>
+                <p className="text-[.75rem] text-[#5C6378] font-semibold mt-1">{filteredCars.length} car types available · Compare across 2 providers</p>
               </div>
               <select value={sortBy} onChange={e => setSortBy(e.target.value as 'price-asc' | 'price-desc' | 'seats')}
                 className="px-3 py-2 rounded-lg border border-[#E8ECF4] bg-white text-[.78rem] font-semibold text-[#1A1D2B] outline-none focus:border-emerald-500">
@@ -677,17 +618,17 @@ function CarsContent() {
               <h3 className="font-poppins font-black text-[.95rem] text-[#1A1D2B] mb-2">💡 Our Recommendation</h3>
               {ageGroup === 'young' && (
                 <p className="text-[.82rem] text-[#5C6378] font-semibold leading-relaxed">
-                  <strong className="text-[#1A1D2B]">Young driver?</strong> We recommend <strong>Economy Bookings</strong> and <strong>Qeeq</strong> — they typically have the lowest young driver surcharges, saving you £5-15/day compared to booking direct.
+                  <strong className="text-[#1A1D2B]">Young driver?</strong> Both <strong>Localrent</strong> and <strong>GetRentaCar</strong> offer competitive young driver rates, saving you £5-15/day compared to booking direct with international chains.
                 </p>
               )}
               {ageGroup === 'standard' && (
                 <p className="text-[.82rem] text-[#5C6378] font-semibold leading-relaxed">
-                  For the best overall value, start with <strong>Economy Bookings</strong> for international chains or <strong>Localrent</strong> for local deals with full insurance included.
+                  For the best overall value, try <strong>Localrent</strong> for local deals with full insurance included, or <strong>GetRentaCar</strong> for transparent pricing with no hidden charges.
                 </p>
               )}
               {ageGroup === 'senior' && (
                 <p className="text-[.82rem] text-[#5C6378] font-semibold leading-relaxed">
-                  <strong className="text-[#1A1D2B]">Senior drivers</strong> may find the best rates on <strong>Economy Bookings</strong> and <strong>Expedia</strong>, which have no upper age limits on most vehicles.
+                  <strong className="text-[#1A1D2B]">Senior drivers</strong> will find flexible rates on both <strong>Localrent</strong> and <strong>GetRentaCar</strong>, with no upper age limits on most vehicles.
                 </p>
               )}
             </div>
@@ -757,7 +698,7 @@ function CarsContent() {
               ['Book early, pick up off-airport', 'Off-airport depots are 20-40% cheaper. Take a taxi from arrivals — still worth it.'],
               ['Always take full-to-full fuel', 'Return with a full tank — "full-to-empty" deals sound cheap but rarely are.'],
               ['Decline excess waiver at the desk', 'Buy third-party excess insurance for ~£3/day instead of £15-25/day at the counter.'],
-              ['Under 25? Use specialist sites', 'Economy Bookings & Qeeq have younger driver surcharges that are 30-50% lower.'],
+              ['Under 25? Compare specialist sites', 'Localrent & GetRentaCar often have younger driver surcharges that are 30-50% lower.'],
             ].map(([title, body]) => (
               <div key={title} className="flex gap-3">
                 <div className="w-1.5 flex-shrink-0 rounded-full bg-gradient-to-b from-emerald-500 to-teal-500 self-stretch" />

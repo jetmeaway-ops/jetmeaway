@@ -111,10 +111,25 @@ export interface HotelOffer {
   refundable: boolean;
   cancellationDeadline?: string | null;
   currency: string;
-  price: number;              // total stay, after tax
+  price: number;              // total stay, after tax (best available — negotiated if present)
   priceBeforeTax?: number | null;
   pricePerNight?: number | null;
   commission?: number | null; // our commission (merchant margin)
+
+  /* ── v3.0: Negotiated Rates & Signals ── */
+  /** Negotiated/Scout Deal price (lower, from LiteAPI partnerships) */
+  negotiatedPrice?: number | null;
+  negotiatedPerNight?: number | null;
+  /** Market/retail price (standard public rate) */
+  marketPrice?: number | null;
+  marketPerNight?: number | null;
+  /** Rate type: 'negotiated_rate' | 'cheapest_rate' | undefined */
+  rateType?: string | null;
+  /** Perks bundled with this rate (e.g. free breakfast, late checkout) */
+  perks?: string[];
+  /** Signal from LiteAPI AI Recommendations (e.g. 'high_demand', 'price_drop') */
+  signalType?: string | null;
+
   /** All available board options for this hotel (including the selected one) */
   boardOptions?: Array<{
     offerId: string;
@@ -245,12 +260,25 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     boardType?: string;
     boardName?: string;
     cancellationPolicies?: { refundableTag?: string; cancelPolicyInfos?: Array<{ cancelTime?: string }> };
-    retailRate?: {
+    /** v3.0: can be flat number OR nested object (backward compat) */
+    retailRate?: number | {
       total?: Array<{ amount: number; currency: string }>;
       suggestedSellingPrice?: Array<{ amount: number; currency: string }>;
       taxesAndFees?: Array<{ amount: number; currency: string; included?: boolean }>;
     };
+    /** v3.0: flat negotiated/Scout price (only present when a deal is active) */
+    negotiatedRate?: number;
+    /** v3.0: rate-level price (best available — equals negotiatedRate when deal active) */
+    price?: number;
+    /** v3.0: 'negotiated' | 'standard' — distinction flag */
+    priceType?: string;
     commission?: Array<{ amount: number; currency: string }>;
+    /** v3.0: perks bundled with this rate (e.g. "free_breakfast", "late_checkout") */
+    perks?: string[];
+    /** v3.0: offerId can also live at rate level */
+    offerId?: string;
+    /** v3.0: cancellation policy (new flat format) */
+    cancellationPolicy?: { refundable?: boolean; deadline?: string };
   };
   type AmountObj = { amount: number; currency: string };
   type RoomType = {
@@ -283,6 +311,8 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
   const ratesRes = await liteFetch<{
     data: Array<{
       hotelId: string;
+      /** v3.0: AI signal at hotel/search level (e.g. "high_demand") */
+      signalType?: string;
       hotel?: {
         id: string;
         name: string;
@@ -328,31 +358,54 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     }> = [];
 
     for (const rt of entry.roomTypes || []) {
-      if (!rt.offerId) continue;
+      // offerId can be on roomType (old) or rate (v3.0) — we check both below
       for (const r of rt.rates || []) {
-        // Price priority: offer-level SSP → offer-level retailRate → rate-level sum
+        // Resolve offerId: rate-level (v3.0) takes priority, then roomType-level
+        const rateOfferId = r.offerId || rt.offerId;
+        if (!rateOfferId) continue;
+
+        // ── Price extraction: handle both v3.0 flat numbers AND old nested objects ──
+        // v3.0: retailRate is a flat number; old: retailRate is {total: [{amount}]}
+        let retailFlat: number | undefined;
+        let rateTotal: number | undefined;
+        let rateSuggested: number | undefined;
+        if (typeof r.retailRate === 'number') {
+          // v3.0 flat format
+          retailFlat = r.retailRate;
+        } else if (r.retailRate && typeof r.retailRate === 'object') {
+          // Old nested format
+          const totalArr = (r.retailRate as { total?: Array<{ amount: number; currency: string }> }).total || [];
+          const suggestedArr = (r.retailRate as { suggestedSellingPrice?: Array<{ amount: number; currency: string }> }).suggestedSellingPrice || [];
+          rateTotal = totalArr.length > 0 ? totalArr.reduce((s, t) => s + (t.amount || 0), 0) : undefined;
+          rateSuggested = suggestedArr.length > 0 ? suggestedArr.reduce((s, t) => s + (t.amount || 0), 0) : undefined;
+        }
+
+        // Offer-level prices (old format)
         const offerSSP = extractAmount(rt.suggestedSellingPrice);
         const offerRetail = extractAmount(rt.offerRetailRate);
-        const totalArr = r.retailRate?.total || [];
-        const suggestedArr = r.retailRate?.suggestedSellingPrice || [];
-        const rateTotal = totalArr.length > 0 ? totalArr.reduce((s, t) => s + (t.amount || 0), 0) : undefined;
-        const rateSuggested = suggestedArr.length > 0 ? suggestedArr.reduce((s, t) => s + (t.amount || 0), 0) : undefined;
 
-        // Best price = first defined in priority chain
-        const price = offerSSP ?? offerRetail ?? rateSuggested ?? rateTotal ?? Infinity;
+        // v3.0 flat rate-level price
+        const ratePrice = r.price;
 
-        // DEBUG: log multi-room price structure
-        console.log(`[liteapi:rates] hotel=${entry.hotelId} offerId=${rt.offerId?.slice(0,20)} offerSSP=${offerSSP} offerRetail=${offerRetail} rateTotal=${rateTotal} rateSuggested=${rateSuggested} → price=${price}`);
+        // Market price = retailRate (flat or nested) or offer-level SSP
+        const marketPrice = retailFlat ?? offerSSP ?? offerRetail ?? rateSuggested ?? rateTotal ?? ratePrice ?? Infinity;
+        // Negotiated price = v3.0 flat negotiatedRate (only when deal active)
+        const negPrice = typeof r.negotiatedRate === 'number' ? r.negotiatedRate : undefined;
+        // Best price = negotiated if cheaper, else market
+        const effectivePrice = (negPrice != null && negPrice < marketPrice) ? negPrice : marketPrice;
 
-        const effectivePrice = price;
+        console.log(`[liteapi:rates] hotel=${entry.hotelId} offerId=${rateOfferId?.slice(0,20)} market=${marketPrice} negotiated=${negPrice} effective=${effectivePrice} priceType=${r.priceType}`);
+
         const board = r.boardName || r.boardType || r.name || 'Room Only';
-        const isRefundable = r.cancellationPolicies?.refundableTag === 'RFN';
+        // Refundable: v3.0 flat format or old nested format
+        const isRefundable = r.cancellationPolicy?.refundable === true
+          || r.cancellationPolicies?.refundableTag === 'RFN';
 
         // Only add unique board types (keep cheapest per board type)
         const existingIdx = allOptions.findIndex(o => o.boardType.toLowerCase() === board.toLowerCase());
         if (existingIdx === -1) {
           allOptions.push({
-            offerId: rt.offerId,
+            offerId: rateOfferId,
             boardType: board,
             totalPrice: Math.round(effectivePrice * 100) / 100,
             pricePerNight: Math.round((effectivePrice / nights) * 100) / 100,
@@ -360,7 +413,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
           });
         } else if (effectivePrice < allOptions[existingIdx].totalPrice) {
           allOptions[existingIdx] = {
-            offerId: rt.offerId,
+            offerId: rateOfferId,
             boardType: board,
             totalPrice: Math.round(effectivePrice * 100) / 100,
             pricePerNight: Math.round((effectivePrice / nights) * 100) / 100,
@@ -368,49 +421,68 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
           };
         }
 
-        if (price < bestPrice) {
-          bestPrice = price;
+        if (effectivePrice < bestPrice) {
+          bestPrice = effectivePrice;
           bestRoomType = rt;
           bestRate = r;
         }
       }
     }
 
-    if (!bestRoomType || !bestRate || !bestRoomType.offerId) continue;
+    // offerId: rate-level (v3.0) or roomType-level (old)
+    const bestOfferId = bestRate?.offerId || bestRoomType?.offerId;
+    if (!bestRoomType || !bestRate || !bestOfferId) continue;
 
     // Sort board options by price
     allOptions.sort((a, b) => a.totalPrice - b.totalPrice);
 
-    // ── PRICE FIX: priority SSP → offerRetailRate → rate-level ──
-    // offerRetailRate and suggestedSellingPrice on the roomType are SINGLE
-    // objects {amount, currency} — NOT arrays. extractAmount() handles both.
-    const offerSSP = extractAmount(bestRoomType.suggestedSellingPrice);
-    const offerRetail = extractAmount(bestRoomType.offerRetailRate);
-    const totalAll = bestRate.retailRate?.total || [];
-    const suggestedAll = bestRate.retailRate?.suggestedSellingPrice || [];
-    const rateTotal = totalAll.length > 0 ? totalAll.reduce((s, t) => s + (t.amount || 0), 0) : undefined;
-    const rateSuggested = suggestedAll.length > 0 ? suggestedAll.reduce((s, t) => s + (t.amount || 0), 0) : undefined;
+    // ── PRICE: handle v3.0 flat numbers AND old nested objects ──
+    let marketRaw: number;
+    let negotiatedRaw: number | undefined;
 
-    const finalPrice = offerSSP ?? offerRetail ?? rateSuggested ?? rateTotal ?? 0;
+    if (typeof bestRate.retailRate === 'number') {
+      // v3.0 flat format
+      marketRaw = bestRate.retailRate;
+      negotiatedRaw = typeof bestRate.negotiatedRate === 'number' ? bestRate.negotiatedRate : undefined;
+    } else {
+      // Old nested format — extract from offer-level or rate-level objects
+      const offerSSP = extractAmount(bestRoomType.suggestedSellingPrice);
+      const offerRetail = extractAmount(bestRoomType.offerRetailRate);
+      const totalAll = bestRate.retailRate?.total || [];
+      const suggestedAll = bestRate.retailRate?.suggestedSellingPrice || [];
+      const rateTotal = totalAll.length > 0 ? totalAll.reduce((s, t) => s + (t.amount || 0), 0) : undefined;
+      const rateSuggested = suggestedAll.length > 0 ? suggestedAll.reduce((s, t) => s + (t.amount || 0), 0) : undefined;
+      marketRaw = offerSSP ?? offerRetail ?? rateSuggested ?? rateTotal ?? bestRate.price ?? 0;
+      negotiatedRaw = undefined; // old format has no negotiated rate
+    }
+
+    // Final price = negotiated if cheaper, else market
+    const finalPrice = (negotiatedRaw != null && negotiatedRaw > 0 && negotiatedRaw < marketRaw)
+      ? negotiatedRaw : marketRaw;
+
     const finalCurrency =
       extractCurrency(bestRoomType.suggestedSellingPrice) ??
       extractCurrency(bestRoomType.offerRetailRate) ??
-      (suggestedAll[0]?.currency) ??
-      (totalAll[0]?.currency) ??
       currency;
 
-    // Sum only taxes that aren't already included in `total`
-    const extraTaxes = (bestRate.retailRate?.taxesAndFees || [])
-      .filter((t) => t.included === false)
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
+    // Sum only taxes that aren't already included in `total` (old format only)
+    const extraTaxes = (typeof bestRate.retailRate === 'object' && bestRate.retailRate)
+      ? ((bestRate.retailRate as { taxesAndFees?: Array<{ amount: number; included?: boolean }> }).taxesAndFees || [])
+          .filter((t) => t.included === false)
+          .reduce((sum, t) => sum + (t.amount || 0), 0)
+      : 0;
     const commissionArr = bestRate.commission || [];
     const commission = commissionArr.length > 0 ? commissionArr.reduce((s, c) => s + (c.amount || 0), 0) : null;
 
-    // For priceBeforeTax / pricePerNight, also prefer offerRetailRate
     const priceBeforeTax = finalPrice > 0 ? finalPrice + extraTaxes : null;
     const pricePerNight = finalPrice > 0 ? finalPrice / nights : null;
 
-    console.log(`[liteapi:offer] hotel=${entry.hotelId} offerId=${bestRoomType.offerId} offerSSP=${offerSSP} offerRetail=${offerRetail} rateTotal=${rateTotal} rateSuggested=${rateSuggested} → finalPrice=${finalPrice}`);
+    // v3.0: perks (rate-level), signal (hotel-level), rateType
+    const perks = bestRate.perks?.length ? bestRate.perks : undefined;
+    const signalType = entry.signalType || null; // hotel/search level
+    const rateType = bestRate.priceType || bestRoomType.priceType || null;
+
+    console.log(`[liteapi:offer] hotel=${entry.hotelId} offerId=${bestOfferId} market=${marketRaw} negotiated=${negotiatedRaw} → final=${finalPrice} rateType=${rateType} perks=${perks?.join(',') || 'none'} signal=${signalType}`);
 
     // Prefer the expanded `hotel` object from /hotels/rates when present,
     // otherwise fall back to the directory we built from /data/hotels. This
@@ -421,7 +493,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       ? (typeof meta!.hotelImages[0] === 'string' ? meta!.hotelImages[0] as string : (meta!.hotelImages[0] as { url?: string }).url)
       : undefined;
     offers.push({
-      offerId: bestRoomType.offerId,
+      offerId: bestOfferId,
       hotelId: entry.hotelId,
       hotelName: h?.name || meta?.name || entry.hotelId,
       address: h?.address || meta?.address,
@@ -432,14 +504,29 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       latitude: h?.latitude ?? meta?.latitude ?? null,
       longitude: h?.longitude ?? meta?.longitude ?? null,
       boardType: bestRate.boardName || bestRate.boardType || bestRate.name || null,
-      refundable: bestRate.cancellationPolicies?.refundableTag === 'RFN',
+      // Refundable: v3.0 flat format or old nested format
+      refundable: bestRate.cancellationPolicy?.refundable === true
+        || bestRate.cancellationPolicies?.refundableTag === 'RFN',
       cancellationDeadline:
-        bestRate.cancellationPolicies?.cancelPolicyInfos?.[0]?.cancelTime || null,
+        bestRate.cancellationPolicy?.deadline
+        || bestRate.cancellationPolicies?.cancelPolicyInfos?.[0]?.cancelTime || null,
       currency: finalCurrency,
       price: Math.round(finalPrice * 100) / 100,
       priceBeforeTax: priceBeforeTax != null ? Math.round(priceBeforeTax * 100) / 100 : null,
       pricePerNight: pricePerNight != null ? Math.round(pricePerNight * 100) / 100 : null,
       commission,
+
+      // v3.0: negotiated vs market
+      negotiatedPrice: (negotiatedRaw != null && negotiatedRaw < marketRaw)
+        ? Math.round(negotiatedRaw * 100) / 100 : null,
+      negotiatedPerNight: (negotiatedRaw != null && negotiatedRaw < marketRaw)
+        ? Math.round((negotiatedRaw / nights) * 100) / 100 : null,
+      marketPrice: Math.round(marketRaw * 100) / 100,
+      marketPerNight: marketRaw != null ? Math.round((marketRaw / nights) * 100) / 100 : null,
+      rateType,
+      perks: perks || undefined,
+      signalType,
+
       boardOptions: allOptions.length > 1 ? allOptions : undefined,
     });
   }

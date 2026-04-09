@@ -683,14 +683,21 @@ export async function GET(req: NextRequest) {
     : [];
   const roomsNum = Math.max(1, Math.min(5, parseInt(roomsParam) || 1));
   const minStars = Math.max(0, Math.min(5, parseInt(starsParam) || 0));
-  // Cache key v9 — fixed offerRetailRate single-object extraction
-  const kvKey = `hotels:v9:${cityKey}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
+  // Cache key v10 — added negotiated rates, perks, signals
+  const kvKey = `hotels:v10:${cityKey}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
 
-  // Check KV cache
-  try {
-    const cached = await kv.get<any>(kvKey);
-    if (cached) return NextResponse.json({ ...cached, cached: true });
-  } catch { /* KV miss */ }
+  // Group occupancy bypass: large groups (>4 guests) always get fresh prices
+  // because cached availability/room blocks may not hold for that many people.
+  const totalGuests = adultsNum + childrenNum;
+  const skipCache = totalGuests > 4;
+
+  // Check KV cache (bypassed for large groups)
+  if (!skipCache) {
+    try {
+      const cached = await kv.get<any>(kvKey);
+      if (cached) return NextResponse.json({ ...cached, cached: true });
+    } catch { /* KV miss */ }
+  }
 
   /**
    * Normalise LiteAPI offers into the shape the /hotels page expects.
@@ -724,6 +731,14 @@ export async function GET(req: NextRequest) {
       bookable: true,
       offerId: o.offerId,
       rank: i,
+      // v3.0: negotiated vs market rates
+      negotiatedPrice: o.negotiatedPrice ?? null,
+      negotiatedPerNight: o.negotiatedPerNight ?? null,
+      marketPrice: o.marketPrice ?? null,
+      marketPerNight: o.marketPerNight ?? null,
+      rateType: o.rateType ?? null,
+      perks: o.perks || [],
+      signalType: o.signalType ?? null,
     }));
 
   // Kick off LiteAPI + RateHawk in parallel (dual API racing)

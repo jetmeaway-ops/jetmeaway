@@ -105,10 +105,6 @@ const DESTINATIONS = [
    PROVIDER DEEP LINKS (only affiliated providers)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-function buildKlookUrl(dest: string): string {
-  return `https://www.klook.com/en-GB/search/?query=${encodeURIComponent(dest + ' hotels')}&spm=SearchResult.SearchResult_LIST&clickFrom=HOME_SEARCH&aid=CByEYa65`;
-}
-
 function buildTripcomUrl(dest: string, cin: string, cout: string, adults: number): string {
   const slug = dest.toLowerCase().replace(/\s+/g, '-');
   return `https://www.trip.com/hotels/${slug}-hotels-list/?checkin=${cin}&checkout=${cout}&adult=${adults}&curr=GBP&Allianceid=8023009&SID=303363796&trip_sub3=D15021113`;
@@ -121,7 +117,6 @@ function buildExpediaUrl(dest: string, cin: string, cout: string, adults: number
 type Provider = { name: string; logo: string; getUrl: (dest: string, cin: string, cout: string, adults: number) => string };
 
 const PROVIDERS: Provider[] = [
-  { name: 'Klook', logo: '🎟', getUrl: (d) => buildKlookUrl(d) },
   { name: 'Trip.com', logo: '🗺', getUrl: (d, ci, co, a) => buildTripcomUrl(d, ci, co, a) },
   { name: 'Expedia', logo: '🌍', getUrl: (d, ci, co, a) => buildExpediaUrl(d, ci, co, a) },
 ];
@@ -185,6 +180,14 @@ type HotelResult = {
   refundable?: boolean;
   boardType?: string | null;
   boardOptions?: BoardOption[];
+  // v3.0 fields
+  negotiatedPrice?: number | null;
+  negotiatedPerNight?: number | null;
+  marketPrice?: number | null;
+  marketPerNight?: number | null;
+  rateType?: string | null;
+  perks?: string[];
+  signalType?: string | null;
 };
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -392,7 +395,6 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, checkin, c
     'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=640&h=480&fit=crop',
   ];
   const photoUrl = h.thumbnail || HOTEL_PHOTOS[index % HOTEL_PHOTOS.length];
-  const klookUrl = buildKlookUrl(searchedDest);
   const tripUrl = buildTripcomUrl(searchedDest, checkin, checkout, adults);
   const expediaUrl = buildExpediaUrl(searchedDest, checkin, checkout, adults);
   const detailHref = buildDetailHref(h);
@@ -450,8 +452,15 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, checkin, c
         {/* Price + Actions */}
         <div className="p-5 flex flex-col items-end justify-center gap-2 border-t md:border-t-0 md:border-l border-[#F1F3F7]">
           <div className="text-right">
+            {/* Scout Deal badge — negotiated rate is lower than market */}
+            {h.marketPerNight != null && h.negotiatedPerNight != null && h.negotiatedPerNight < h.marketPerNight && (
+              <span className="inline-block text-[.55rem] font-black uppercase tracking-[1.2px] bg-gradient-to-r from-orange-500 to-amber-500 text-white px-2 py-0.5 rounded-full mb-1.5">Scout Deal</span>
+            )}
             {priceView === 'perPerson' ? (
               <>
+                {h.marketPrice != null && h.negotiatedPrice != null && h.negotiatedPrice < h.marketPrice && (
+                  <div className="text-[.72rem] text-[#8E95A9] font-bold line-through mb-0.5">£{Math.round(h.marketPrice / Math.max(1, adults))}/person</div>
+                )}
                 <div className="font-poppins font-black text-[1.5rem] text-[#1A1D2B] leading-none">£{Math.round(displayTotal / Math.max(1, adults))}<span className="text-[.7rem] font-semibold text-[#8E95A9]">/person</span></div>
                 {nights > 0 && (
                   <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">£{displayTotal} total · {nights} night{nights !== 1 ? 's' : ''} · {adults} guest{adults !== 1 ? 's' : ''}</div>
@@ -459,11 +468,25 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, checkin, c
               </>
             ) : (
               <>
+                {h.marketPerNight != null && h.negotiatedPerNight != null && h.negotiatedPerNight < h.marketPerNight && (
+                  <div className="text-[.72rem] text-[#8E95A9] font-bold line-through mb-0.5">£{h.marketPerNight}/night</div>
+                )}
                 <div className="font-poppins font-black text-[1.5rem] text-[#1A1D2B] leading-none">£{displayPrice}<span className="text-[.7rem] font-semibold text-[#8E95A9]">/night</span></div>
                 {nights > 0 && (
                   <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">£{displayTotal} total for {nights} night{nights !== 1 ? 's' : ''}</div>
                 )}
               </>
+            )}
+            {/* Signal type badge */}
+            {h.signalType && (
+              <span className={`inline-flex items-center gap-1 mt-1.5 text-[.6rem] font-bold uppercase tracking-[0.8px] px-2 py-0.5 rounded-full ${
+                h.signalType === 'high_demand' ? 'bg-red-50 text-red-600 border border-red-200' :
+                h.signalType === 'selling_fast' ? 'bg-orange-50 text-orange-600 border border-orange-200' :
+                'bg-blue-50 text-blue-600 border border-blue-200'
+              }`}>
+                <i className={`fa-solid ${h.signalType === 'high_demand' ? 'fa-fire' : h.signalType === 'selling_fast' ? 'fa-bolt' : 'fa-circle-info'} text-[.55rem]`} />
+                {h.signalType.replace(/_/g, ' ')}
+              </span>
             )}
           </div>
           <div className="flex flex-col gap-1.5 w-full">
@@ -477,10 +500,6 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, checkin, c
             <a href={redirectUrl(expediaUrl, 'Expedia', searchedDest, 'hotels')}
               className="bg-[#1B2B65] hover:bg-[#142050] text-white font-poppins font-bold text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap">
               Expedia →
-            </a>
-            <a href={redirectUrl(klookUrl, 'Klook', searchedDest, 'hotels')}
-              className="bg-orange-500 hover:bg-orange-600 text-white font-poppins font-bold text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap">
-              Klook →
             </a>
           </div>
           {h.lat && h.lng ? (
@@ -597,9 +616,9 @@ function BookDirectButton({
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const LOADING_MSGS = [
-  'Searching Klook...',
   'Checking Trip.com...',
   'Comparing Expedia...',
+  'Searching live rates...',
   'Finding the best rates...',
 ];
 
@@ -828,6 +847,10 @@ function HotelsContent() {
     if (h.currency) qp.set('currency', h.currency);
     if (typeof h.refundable === 'boolean') qp.set('refundable', h.refundable ? '1' : '0');
     if (h.boardType) qp.set('board', h.boardType);
+    if (h.negotiatedPrice != null) qp.set('negPrice', String(h.negotiatedPrice));
+    if (h.marketPrice != null) qp.set('mktPrice', String(h.marketPrice));
+    if (h.perks && h.perks.length > 0) qp.set('perks', h.perks.join(','));
+    if (h.signalType) qp.set('signal', h.signalType);
     return `/hotels/${encodeURIComponent(String(h.id))}?${qp.toString()}`;
   };
 

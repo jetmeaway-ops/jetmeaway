@@ -39,6 +39,36 @@ interface SimilarHotel {
   currency?: string;
 }
 
+const PERK_ICONS: Record<string, { icon: string; label: string }> = {
+  free_breakfast: { icon: 'fa-mug-saucer', label: 'Free Breakfast' },
+  free_wifi: { icon: 'fa-wifi', label: 'Free WiFi' },
+  free_parking: { icon: 'fa-square-parking', label: 'Free Parking' },
+  late_checkout: { icon: 'fa-clock', label: 'Late Checkout' },
+  early_checkin: { icon: 'fa-clock-rotate-left', label: 'Early Check-in' },
+  spa_access: { icon: 'fa-spa', label: 'Spa Access' },
+  airport_transfer: { icon: 'fa-plane-arrival', label: 'Airport Transfer' },
+  room_upgrade: { icon: 'fa-arrow-up', label: 'Room Upgrade' },
+  free_cancellation: { icon: 'fa-circle-check', label: 'Free Cancellation' },
+  all_inclusive: { icon: 'fa-utensils', label: 'All Inclusive' },
+};
+
+// Fallback: derive perks from boardType when perks array is empty
+// Keys are normalised (lowercase, trimmed) — lookup via normBoard()
+const BOARD_TO_PERKS: Record<string, string[]> = {
+  'bb': ['free_breakfast'],
+  'bed and breakfast': ['free_breakfast'],
+  'bed & breakfast': ['free_breakfast'],
+  'breakfast included': ['free_breakfast'],
+  'hb': ['free_breakfast'],
+  'half board': ['free_breakfast'],
+  'fb': ['free_breakfast'],
+  'full board': ['free_breakfast'],
+  'ai': ['free_breakfast', 'all_inclusive'],
+  'all inclusive': ['free_breakfast', 'all_inclusive'],
+  'all-inclusive': ['free_breakfast', 'all_inclusive'],
+};
+const normBoard = (b: string) => b.trim().toLowerCase();
+
 function Stars({ count }: { count: number | null }) {
   if (!count || count < 1) return null;
   return (
@@ -77,6 +107,12 @@ export default function HotelDetailPage() {
   const refundableParam = sp?.get('refundable');
   const refundable = refundableParam === '1' ? true : refundableParam === '0' ? false : null;
   const boardType = sp?.get('board') || '';
+  const negPrice = sp?.get('negPrice') ? parseFloat(sp.get('negPrice')!) : null;
+  const mktPrice = sp?.get('mktPrice') ? parseFloat(sp.get('mktPrice')!) : null;
+  const rawPerks = sp?.get('perks') ? sp.get('perks')!.split(',') : [];
+  // Fallback: if perks empty, derive from boardType
+  const perks = rawPerks.length > 0 ? rawPerks : (BOARD_TO_PERKS[normBoard(boardType)] || []);
+  const signalType = sp?.get('signal') || '';
 
   useEffect(() => {
     let cancelled = false;
@@ -273,12 +309,40 @@ export default function HotelDetailPage() {
 
           {/* Right: booking summary */}
           <aside className="bg-white border border-[#E8ECF4] rounded-2xl p-6 h-fit sticky top-24">
+            {/* Scout Alert badge */}
+            {signalType && (
+              <div className={`mb-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[.68rem] font-black uppercase tracking-[1px] ${
+                signalType === 'high_demand' ? 'bg-red-50 text-red-600 border border-red-200' :
+                signalType === 'selling_fast' ? 'bg-orange-50 text-orange-600 border border-orange-200' :
+                'bg-blue-50 text-blue-600 border border-blue-200'
+              }`}>
+                <i className={`fa-solid ${signalType === 'high_demand' ? 'fa-fire' : signalType === 'selling_fast' ? 'fa-bolt' : 'fa-circle-info'} text-[.6rem]`} />
+                Scout Alert: {signalType.replace(/_/g, ' ')}
+              </div>
+            )}
+
             {price && (
               <>
                 <div className="text-[.7rem] font-bold text-[#8E95A9] uppercase tracking-wide">Total for {numNights || '—'} night{numNights !== 1 ? 's' : ''}</div>
-                <div className="font-poppins font-black text-[2rem] text-[#1A1D2B] leading-none mt-1">
-                  {currency === 'GBP' ? '£' : `${currency} `}{parseFloat(price).toFixed(2)}
-                </div>
+                {/* Scout Deal — show market price crossed out */}
+                {mktPrice != null && negPrice != null && negPrice < mktPrice ? (
+                  <div className="mt-1">
+                    <span className="inline-block text-[.55rem] font-black uppercase tracking-[1.2px] bg-gradient-to-r from-orange-500 to-amber-500 text-white px-2 py-0.5 rounded-full mb-1">Scout Deal</span>
+                    <div className="text-[.85rem] text-[#8E95A9] font-bold line-through">
+                      {currency === 'GBP' ? '£' : `${currency} `}{mktPrice.toFixed(2)}
+                    </div>
+                    <div className="font-poppins font-black text-[2rem] text-[#1A1D2B] leading-none">
+                      {currency === 'GBP' ? '£' : `${currency} `}{negPrice.toFixed(2)}
+                    </div>
+                    <div className="text-[.68rem] text-green-600 font-bold mt-0.5">
+                      You save {currency === 'GBP' ? '£' : `${currency} `}{(mktPrice - negPrice).toFixed(2)}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="font-poppins font-black text-[2rem] text-[#1A1D2B] leading-none mt-1">
+                    {currency === 'GBP' ? '£' : `${currency} `}{parseFloat(price).toFixed(2)}
+                  </div>
+                )}
               </>
             )}
             <div className="mt-4 space-y-2 text-[.82rem] text-[#5C6378] font-semibold">
@@ -306,6 +370,21 @@ export default function HotelDetailPage() {
                     {boardType}
                   </span>
                 )}
+              </div>
+            )}
+
+            {/* Perks */}
+            {perks.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {perks.map((perk) => {
+                  const info = PERK_ICONS[perk] || { icon: 'fa-gift', label: perk.replace(/_/g, ' ') };
+                  return (
+                    <span key={perk} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[.68rem] font-bold bg-emerald-50 border border-emerald-200 text-emerald-700">
+                      <i className={`fa-solid ${info.icon} text-[.58rem]`} />
+                      {info.label}
+                    </span>
+                  );
+                })}
               </div>
             )}
 

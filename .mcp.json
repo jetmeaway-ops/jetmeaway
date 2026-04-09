@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "liteapi": {
+      "url": "https://mcp.liteapi.travel/api/mcp?apiKey=prod_7d258430-16d2-4ca0-8ef0-bd5271b94308"
+    }
+  }
+}
