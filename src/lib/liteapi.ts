@@ -71,6 +71,45 @@ async function liteFetch<T = any>(
 }
 
 /* ───────────────────────────────────────────────────────────────────────── */
+/*  PLACES — Global Search autocomplete                                      */
+/* ───────────────────────────────────────────────────────────────────────── */
+
+export interface Place {
+  id: string;          // placeId — use as destinationId for hotel search
+  name: string;        // displayName e.g. "Paris"
+  description: string; // formattedAddress e.g. "Paris, Île-de-France, France"
+  type: string;        // primary type e.g. "locality", "airport", "hotel"
+}
+
+/**
+ * Search LiteAPI /data/places for cities, airports, or hotels matching a query.
+ * Returns structured results with placeId for precise hotel searches.
+ */
+export async function getPlaces(query: string): Promise<Place[]> {
+  if (!query || query.length < 2) return [];
+
+  const data = await liteFetch<{
+    data: Array<{
+      placeId: string;
+      displayName: string;
+      formattedAddress?: string;
+      types?: string[];
+    }>;
+  }>(
+    `/data/places?textQuery=${encodeURIComponent(query)}&type=locality,airport,hotel`,
+    { method: 'GET' },
+    8_000, // fast timeout — autocomplete should be snappy
+  );
+
+  return (data.data || []).map((place) => ({
+    id: place.placeId,
+    name: place.displayName,
+    description: place.formattedAddress || '',
+    type: (place.types && place.types[0]) || 'locality',
+  }));
+}
+
+/* ───────────────────────────────────────────────────────────────────────── */
 /*  TYPES                                                                    */
 /* ───────────────────────────────────────────────────────────────────────── */
 

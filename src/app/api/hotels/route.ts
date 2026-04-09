@@ -194,7 +194,9 @@ async function fetchRateHawkHotels(
   }
 }
 
-/** Fetch LiteAPI bookable offers with a hard timeout so we never block the response */
+/** Fetch LiteAPI bookable offers with a hard timeout so we never block the response.
+ *  When `placeId` is provided it's used as the `destinationId` — no country-code
+ *  resolution needed. Otherwise falls back to cityName + countryCode. */
 async function fetchLiteApiHotels(
   cityKey: string,
   checkin: string,
@@ -204,17 +206,26 @@ async function fetchLiteApiHotels(
   rooms: number,
   childAgesParam: number[] = [],
   timeoutMs: number = 12000,
+  placeId?: string,
 ): Promise<HotelOffer[]> {
   if (!process.env.LITE_API_KEY) {
     console.warn('[liteapi] LITE_API_KEY not set — skipping hotel search');
     return [];
   }
-  const countryCode = await resolveCountryCode(cityKey);
-  if (!countryCode) {
-    console.warn('[liteapi] could not resolve country code for city:', cityKey);
-    return [];
+
+  // When placeId is given we skip geocoding entirely — faster & more accurate
+  let resolvedCity: string | undefined;
+  let resolvedCountry: string | undefined;
+  if (!placeId) {
+    const countryCode = await resolveCountryCode(cityKey);
+    if (!countryCode) {
+      console.warn('[liteapi] could not resolve country code for city:', cityKey);
+      return [];
+    }
+    resolvedCity = cityKey.charAt(0).toUpperCase() + cityKey.slice(1);
+    resolvedCountry = countryCode;
   }
-  const cityName = cityKey.charAt(0).toUpperCase() + cityKey.slice(1);
+  const cityName = resolvedCity || cityKey.charAt(0).toUpperCase() + cityKey.slice(1);
 
   // Build occupancy: one entry per room. Split adults across rooms (min 1 per
   // room). Put all children in the first room — LiteAPI allows uneven splits.
@@ -242,8 +253,9 @@ async function fetchLiteApiHotels(
   try {
     const result = await Promise.race([
       liteapiGetHotels({
-        cityName,
-        countryCode,
+        ...(placeId
+          ? { destinationId: placeId }
+          : { cityName: resolvedCity, countryCode: resolvedCountry }),
         checkIn: checkin,
         checkOut: checkout,
         occupancy,
@@ -255,11 +267,11 @@ async function fetchLiteApiHotels(
         setTimeout(() => reject(new Error('LiteAPI timeout')), timeoutMs),
       ),
     ]);
-    console.log(`[liteapi] ${cityName} (${countryCode}) ${checkin}→${checkout}: ${result.length} offers in ${Date.now() - t0}ms`);
+    console.log(`[liteapi] ${cityName} (${placeId || resolvedCountry || '?'}) ${checkin}→${checkout}: ${result.length} offers in ${Date.now() - t0}ms`);
     return result;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    console.warn(`[liteapi] ${cityName} (${countryCode}) fetch failed after ${Date.now() - t0}ms:`, message);
+    console.warn(`[liteapi] ${cityName} (${placeId || resolvedCountry || '?'}) fetch failed after ${Date.now() - t0}ms:`, message);
     return [];
   }
 }
@@ -670,6 +682,7 @@ export async function GET(req: NextRequest) {
   const childrenAgesParam = searchParams.get('childrenAges') || '';
   const roomsParam = searchParams.get('rooms') || '1';
   const starsParam = searchParams.get('stars') || '0';
+  const placeId = searchParams.get('placeId') || '';
 
   if (!city || !checkin || !checkout) {
     return NextResponse.json({ error: 'Missing required parameters (city, checkin, checkout)' }, { status: 400 });
@@ -683,8 +696,9 @@ export async function GET(req: NextRequest) {
     : [];
   const roomsNum = Math.max(1, Math.min(5, parseInt(roomsParam) || 1));
   const minStars = Math.max(0, Math.min(5, parseInt(starsParam) || 0));
-  // Cache key v10 — added negotiated rates, perks, signals
-  const kvKey = `hotels:v10:${cityKey}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
+  // Cache key v11 — added placeId support for precise location searches
+  const cacheCity = placeId || cityKey;
+  const kvKey = `hotels:v11:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
 
   // Group occupancy bypass: large groups (>4 guests) always get fresh prices
   // because cached availability/room blocks may not hold for that many people.
@@ -743,7 +757,7 @@ export async function GET(req: NextRequest) {
     }));
 
   // Kick off LiteAPI + RateHawk in parallel (dual API racing)
-  const liteApiPromise = fetchLiteApiHotels(cityKey, checkin, checkout, adultsNum, childrenNum, roomsNum, childAges);
+  const liteApiPromise = fetchLiteApiHotels(cityKey, checkin, checkout, adultsNum, childrenNum, roomsNum, childAges, 12000, placeId || undefined);
   const rateHawkPromise = fetchRateHawkHotels(cityKey, checkin, checkout, adultsNum, roomsNum);
 
   // Apply server-side minStars filter. minStars === 5 means exactly 5; else >=.

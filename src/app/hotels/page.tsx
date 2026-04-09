@@ -195,9 +195,18 @@ type HotelResult = {
    COMPONENTS
    ═══════════════════════════════════════════════════════════════════════════ */
 
-function DestinationPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+type PlaceResult = { id: string; name: string; description: string; type: string };
+
+function DestinationPicker({ value, onChange, onPlaceSelect }: {
+  value: string;
+  onChange: (v: string) => void;
+  onPlaceSelect: (place: PlaceResult | null) => void;
+}) {
   const [open, setOpen] = useState(false);
+  const [apiResults, setApiResults] = useState<PlaceResult[]>([]);
+  const [searching, setSearching] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     const fn = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
@@ -205,31 +214,101 @@ function DestinationPicker({ value, onChange }: { value: string; onChange: (v: s
     return () => document.removeEventListener('mousedown', fn);
   }, []);
 
+  // Debounced API lookup
+  const fetchPlaces = useCallback((q: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (q.length < 2) { setApiResults([]); setSearching(false); return; }
+    setSearching(true);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/hotels/places?q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        setApiResults(data.places || []);
+      } catch { setApiResults([]); }
+      setSearching(false);
+    }, 300);
+  }, []);
+
+  const handleInput = (v: string) => {
+    onChange(v);
+    onPlaceSelect(null); // Clear placeId when typing
+    setOpen(true);
+    fetchPlaces(v);
+  };
+
   const q = value.toLowerCase().trim();
-  const filtered = q.length >= 1
-    ? DESTINATIONS.filter(d => d.toLowerCase().includes(q)).slice(0, 8)
-    : DESTINATIONS.slice(0, 10);
+  // Static fallback — show while API results load or for short queries
+  const staticFiltered = q.length >= 1
+    ? DESTINATIONS.filter(d => d.toLowerCase().includes(q)).slice(0, 6)
+    : DESTINATIONS.slice(0, 8);
+
+  const typeIcon = (t: string) => {
+    if (t === 'airport' || t === 'aerodrome') return 'fa-plane';
+    if (t === 'hotel' || t === 'lodging') return 'fa-hotel';
+    return 'fa-location-dot';
+  };
 
   return (
     <div ref={ref} className="relative">
-      <input type="text" placeholder="Any city or town worldwide" value={value} autoComplete="off"
-        onChange={e => { onChange(e.target.value); setOpen(true); }}
-        onFocus={() => setOpen(true)}
-        className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-orange-400 focus:bg-white transition-all placeholder:text-[#B0B8CC]" />
+      <div className="relative">
+        <input type="text" placeholder="Any city or town worldwide" value={value} autoComplete="off"
+          onChange={e => handleInput(e.target.value)}
+          onFocus={() => setOpen(true)}
+          className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-orange-400 focus:bg-white transition-all placeholder:text-[#B0B8CC] pr-10" />
+        {searching && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+            <div className="w-4 h-4 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
+      </div>
       {open && (
-        <ul className="absolute z-50 w-full mt-1.5 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl overflow-auto max-h-64">
-          {filtered.length > 0 ? filtered.map(c => (
-            <li key={c} onMouseDown={() => { onChange(c); setOpen(false); }}
-              className={`px-4 py-3 hover:bg-orange-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 font-poppins font-semibold text-[.88rem] text-[#1A1D2B] ${value === c ? 'bg-orange-50' : ''}`}>
-              {c}
-            </li>
-          )) : q.length >= 2 ? (
+        <ul className="absolute z-50 w-full mt-1.5 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl overflow-auto max-h-72">
+          {/* API results (live from LiteAPI) */}
+          {apiResults.length > 0 && (
+            <>
+              <li className="px-4 py-1.5 text-[.58rem] font-black uppercase tracking-[2px] text-[#8E95A9] bg-[#F8FAFC] border-b border-[#F1F3F7]">
+                Global Search
+              </li>
+              {apiResults.slice(0, 8).map(p => (
+                <li key={p.id} onMouseDown={() => { onChange(p.name); onPlaceSelect(p); setOpen(false); setApiResults([]); }}
+                  className="px-4 py-2.5 hover:bg-orange-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 flex items-center gap-3">
+                  <i className={`fa-solid ${typeIcon(p.type)} text-[.8rem] text-orange-400 w-5 text-center flex-shrink-0`} />
+                  <div className="min-w-0">
+                    <span className="font-poppins font-bold text-[.85rem] text-[#1A1D2B] block truncate">{p.name}</span>
+                    {p.description && <span className="text-[.68rem] text-[#8E95A9] font-semibold block truncate">{p.description}</span>}
+                  </div>
+                  <span className="text-[.55rem] font-bold text-[#B0B8CC] uppercase tracking-wider ml-auto flex-shrink-0">
+                    {p.type === 'airport' || p.type === 'aerodrome' ? 'Airport' : p.type === 'hotel' || p.type === 'lodging' ? 'Hotel' : 'City'}
+                  </span>
+                </li>
+              ))}
+            </>
+          )}
+          {/* Static quick picks */}
+          {apiResults.length === 0 && staticFiltered.length > 0 && (
+            <>
+              {q.length >= 2 && (
+                <li className="px-4 py-1.5 text-[.58rem] font-black uppercase tracking-[2px] text-[#8E95A9] bg-[#F8FAFC] border-b border-[#F1F3F7]">
+                  {searching ? 'Searching...' : 'Popular Destinations'}
+                </li>
+              )}
+              {staticFiltered.map(c => (
+                <li key={c} onMouseDown={() => { onChange(c); onPlaceSelect(null); setOpen(false); }}
+                  className={`px-4 py-2.5 hover:bg-orange-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 flex items-center gap-3 ${value === c ? 'bg-orange-50' : ''}`}>
+                  <i className="fa-solid fa-location-dot text-[.8rem] text-[#B0B8CC] w-5 text-center flex-shrink-0" />
+                  <span className="font-poppins font-semibold text-[.85rem] text-[#1A1D2B]">{c}</span>
+                </li>
+              ))}
+            </>
+          )}
+          {/* Free-text search hint when no results */}
+          {apiResults.length === 0 && staticFiltered.length === 0 && q.length >= 2 && !searching && (
             <li onMouseDown={() => { setOpen(false); }}
-              className="px-4 py-3 cursor-pointer hover:bg-orange-50 transition-colors font-poppins font-semibold text-[.88rem] text-[#1A1D2B]">
+              className="px-4 py-3 cursor-pointer hover:bg-orange-50 transition-colors font-poppins font-semibold text-[.85rem] text-[#1A1D2B]">
               <span className="text-orange-500">Search &quot;{value}&quot;</span>
-              <span className="text-[#8E95A9] text-[.8rem] ml-2">— we cover cities worldwide</span>
+              <span className="text-[#8E95A9] text-[.78rem] ml-2">-- we cover cities worldwide</span>
             </li>
-          ) : null}
+          )}
         </ul>
       )}
     </div>
@@ -669,6 +748,7 @@ function Stars({ count }: { count: number }) {
 
 function HotelsContent() {
   const [destination, setDestination] = useState('');
+  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [checkin, setCheckin] = useState('');
   const [checkout, setCheckout] = useState('');
   const [adults, setAdults] = useState(2);
@@ -755,6 +835,9 @@ function HotelsContent() {
         rooms: String(rooms),
         stars: String(minStars),
       });
+      if (selectedPlaceId) {
+        params.set('placeId', selectedPlaceId);
+      }
       if (childrenAges.length > 0) {
         params.set('childrenAges', childrenAges.join(','));
       }
@@ -776,7 +859,7 @@ function HotelsContent() {
       setApiError('Could not load hotel prices. Please try again.');
       setLoading(false);
     }
-  }, [destination, checkin, checkout, adults, childCount, rooms, minStars, childrenAges]);
+  }, [destination, selectedPlaceId, checkin, checkout, adults, childCount, rooms, minStars, childrenAges]);
 
   // Auto-search when URL params are present
   const autoSearched = useRef(false);
@@ -874,7 +957,7 @@ function HotelsContent() {
           {/* Destination */}
           <div className="mb-3">
             <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Destination</label>
-            <DestinationPicker value={destination} onChange={setDestination} />
+            <DestinationPicker value={destination} onChange={setDestination} onPlaceSelect={(p) => setSelectedPlaceId(p?.id || null)} />
           </div>
 
           {/* Dates + Guests */}
