@@ -276,7 +276,7 @@ export default function HotelCheckoutPage() {
 
   return (
     <main className="max-w-[860px] mx-auto px-4 sm:px-5 py-6 sm:py-10">
-      <a href="/hotels" className="text-[.78rem] font-bold text-[#0066FF] hover:underline">← Back to search</a>
+      <a href={`/hotels?destination=${encodeURIComponent(booking.city)}&checkin=${booking.checkIn}&checkout=${booking.checkOut}&adults=${booking.adults}`} className="text-[.78rem] font-bold text-[#0066FF] hover:underline">← Back to search</a>
       <h1 className="font-poppins font-black text-[1.4rem] sm:text-[1.8rem] text-[#1A1D2B] mt-3 mb-1">Confirm your booking</h1>
       <p className="text-[.82rem] text-[#5C6378] font-semibold mb-5 sm:mb-6">Ref: <span className="font-mono">{booking.ref}</span></p>
 
@@ -479,7 +479,7 @@ export default function HotelCheckoutPage() {
                 <i className="fa-solid fa-xmark text-red-600 text-xl" />
               </div>
               <p className="font-poppins font-bold text-red-700 mb-2">{stepError || 'Something went wrong'}</p>
-              <a href="/hotels" className="text-sm font-bold text-[#0066FF] underline">
+              <a href={`/hotels?destination=${encodeURIComponent(booking.city)}&checkin=${booking.checkIn}&checkout=${booking.checkOut}&adults=${booking.adults}`} className="text-sm font-bold text-[#0066FF] underline">
                 Back to search
               </a>
             </div>

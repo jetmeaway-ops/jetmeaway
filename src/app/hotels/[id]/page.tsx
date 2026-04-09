@@ -215,7 +215,7 @@ export default function HotelDetailPage() {
         <main className="max-w-[1100px] mx-auto px-5 pt-32 pb-16">
           <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
             <p className="font-poppins font-bold text-red-700">{error || 'Hotel not found'}</p>
-            <a href="/hotels" className="inline-block mt-4 text-sm font-bold text-[#0066FF] underline">← Back to hotels</a>
+            <a href={city ? `/hotels?destination=${encodeURIComponent(city)}&checkin=${checkin}&checkout=${checkout}&adults=${adults}` : '/hotels'} className="inline-block mt-4 text-sm font-bold text-[#0066FF] underline">← Back to hotels</a>
           </div>
         </main>
         <Footer />
@@ -234,7 +234,7 @@ export default function HotelDetailPage() {
     <>
       <Header />
       <main className="max-w-[1100px] mx-auto px-5 pt-28 pb-16">
-        <a href="/hotels" className="text-[.78rem] font-bold text-orange-500 hover:underline">← Back to search</a>
+        <a href={city ? `/hotels?destination=${encodeURIComponent(city)}&checkin=${checkin}&checkout=${checkout}&adults=${adults}` : '/hotels'} className="text-[.78rem] font-bold text-orange-500 hover:underline">← Back to search</a>
 
         {/* Header */}
         <div className="mt-3 mb-5">
