@@ -66,6 +66,8 @@ const DESTINATIONS = [
   'Tunis', 'Hammamet',
   // Indian Ocean
   'Maldives', 'Mauritius', 'Seychelles', 'Zanzibar', 'Madagascar',
+  // Nepal
+  'Kathmandu', 'Pokhara', 'Chitwan', 'Lumbini',
   // Pakistan
   'Lahore', 'Islamabad', 'Karachi', 'Peshawar', 'Faisalabad', 'Multan', 'Rahim Yar Khan',
   // India & Sri Lanka

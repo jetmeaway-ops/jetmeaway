@@ -52,8 +52,11 @@ const CITY_COUNTRY: Record<string, string> = {
   'hanoi': 'VN', 'ho chi minh city': 'VN',
   'mumbai': 'IN', 'delhi': 'IN', 'goa': 'IN',
   'colombo': 'LK',
+  // Nepal
+  'kathmandu': 'NP', 'pokhara': 'NP', 'chitwan': 'NP', 'lumbini': 'NP',
   // Pakistan
-  'lahore': 'PK', 'islamabad': 'PK', 'karachi': 'PK',
+  'lahore': 'PK', 'islamabad': 'PK', 'karachi': 'PK', 'peshawar': 'PK',
+  'faisalabad': 'PK', 'multan': 'PK', 'rahim yar khan': 'PK',
   // Americas
   'new york': 'US', 'los angeles': 'US', 'miami': 'US', 'las vegas': 'US',
   'orlando': 'US', 'san francisco': 'US', 'chicago': 'US', 'boston': 'US',
@@ -261,7 +264,7 @@ async function fetchLiteApiHotels(
         occupancy,
         currency: 'GBP',
         guestNationality: 'GB',
-        limit: 20,
+        limit: 50,
       }),
       new Promise<HotelOffer[]>((_, reject) =>
         setTimeout(() => reject(new Error('LiteAPI timeout')), timeoutMs),
