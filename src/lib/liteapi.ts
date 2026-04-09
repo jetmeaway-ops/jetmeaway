@@ -130,6 +130,9 @@ export interface HotelOffer {
   /** Signal from LiteAPI AI Recommendations (e.g. 'high_demand', 'price_drop') */
   signalType?: string | null;
 
+  /** Taxes/fees NOT included in price — payable at property (e.g. city tax) */
+  excludedTaxes?: number | null;
+
   /** All available board options for this hotel (including the selected one) */
   boardOptions?: Array<{
     offerId: string;
@@ -387,8 +390,11 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
         // v3.0 flat rate-level price
         const ratePrice = r.price;
 
-        // Market price = retailRate (flat or nested) or offer-level SSP
-        const marketPrice = retailFlat ?? offerSSP ?? offerRetail ?? rateSuggested ?? rateTotal ?? ratePrice ?? Infinity;
+        // Market price = what the customer actually pays via LiteAPI Payment SDK.
+        // Priority: offerRetailRate (offer-level total) > rate-level total > rate.price.
+        // suggestedSellingPrice is a markup hint for merchant model — NOT what the
+        // customer pays in the commission/Payment-SDK model, so we skip it.
+        const marketPrice = retailFlat ?? offerRetail ?? rateTotal ?? ratePrice ?? Infinity;
         // Negotiated price = v3.0 flat negotiatedRate (only when deal active)
         const negPrice = typeof r.negotiatedRate === 'number' ? r.negotiatedRate : undefined;
         // Best price = negotiated if cheaper, else market
@@ -452,7 +458,9 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       const suggestedAll = bestRate.retailRate?.suggestedSellingPrice || [];
       const rateTotal = totalAll.length > 0 ? totalAll.reduce((s, t) => s + (t.amount || 0), 0) : undefined;
       const rateSuggested = suggestedAll.length > 0 ? suggestedAll.reduce((s, t) => s + (t.amount || 0), 0) : undefined;
-      marketRaw = offerSSP ?? offerRetail ?? rateSuggested ?? rateTotal ?? bestRate.price ?? 0;
+      // Use offerRetailRate (what the customer pays) — NOT suggestedSellingPrice
+      // (a markup hint for merchant model that doesn't match the Payment SDK price).
+      marketRaw = offerRetail ?? rateTotal ?? bestRate.price ?? 0;
       negotiatedRaw = undefined; // old format has no negotiated rate
     }
 
@@ -465,12 +473,15 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       extractCurrency(bestRoomType.offerRetailRate) ??
       currency;
 
-    // Sum only taxes that aren't already included in `total` (old format only)
-    const extraTaxes = (typeof bestRate.retailRate === 'object' && bestRate.retailRate)
+    // Sum only taxes that aren't already included in `total` (old format only).
+    // This is PER-ROOM excluded tax — multiply across all rooms in the roomType.
+    const perRoomExcluded = (typeof bestRate.retailRate === 'object' && bestRate.retailRate)
       ? ((bestRate.retailRate as { taxesAndFees?: Array<{ amount: number; included?: boolean }> }).taxesAndFees || [])
           .filter((t) => t.included === false)
           .reduce((sum, t) => sum + (t.amount || 0), 0)
       : 0;
+    const roomCount = (bestRoomType.rates || []).length || 1;
+    const extraTaxes = perRoomExcluded * roomCount;
     const commissionArr = bestRate.commission || [];
     const commission = commissionArr.length > 0 ? commissionArr.reduce((s, c) => s + (c.amount || 0), 0) : null;
 
@@ -527,6 +538,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       perks: perks || undefined,
       signalType,
 
+      excludedTaxes: extraTaxes > 0 ? Math.round(extraTaxes * 100) / 100 : null,
       boardOptions: allOptions.length > 1 ? allOptions : undefined,
     });
   }

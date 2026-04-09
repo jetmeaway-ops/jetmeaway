@@ -39,6 +39,8 @@ export interface PendingBooking {
   thumbnail: string | null;
   lat?: number;
   lng?: number;
+  /** Taxes/fees NOT included in totalPrice — payable at property (e.g. city tax) */
+  localFees?: number;
   state: 'pending' | 'paid' | 'booking' | 'confirmed' | 'failed';
   createdAt: number;
   // Populated after prebook (Payment SDK flow)
@@ -83,6 +85,7 @@ export async function POST(req: NextRequest) {
       thumbnail = null,
       lat,
       lng,
+      localFees = 0,
     } = body || {};
 
     if (!offerId || typeof offerId !== 'string') {
@@ -118,6 +121,7 @@ export async function POST(req: NextRequest) {
       thumbnail,
       ...(Number.isFinite(lat) ? { lat } : {}),
       ...(Number.isFinite(lng) ? { lng } : {}),
+      ...(Number.isFinite(localFees) && localFees > 0 ? { localFees: Math.round(localFees * 100) / 100 } : {}),
       state: 'pending',
       createdAt: Date.now(),
     };

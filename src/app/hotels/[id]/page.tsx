@@ -113,6 +113,7 @@ export default function HotelDetailPage() {
   // Fallback: if perks empty, derive from boardType
   const perks = rawPerks.length > 0 ? rawPerks : (BOARD_TO_PERKS[normBoard(boardType)] || []);
   const signalType = sp?.get('signal') || '';
+  const localFees = sp?.get('localFees') ? parseFloat(sp.get('localFees')!) : null;
 
   useEffect(() => {
     let cancelled = false;
@@ -182,6 +183,7 @@ export default function HotelDetailPage() {
           rooms: parseInt(rooms),
           totalPrice: parseFloat(price),
           currency,
+          localFees: localFees || 0,
         }),
       });
       const data = await res.json();

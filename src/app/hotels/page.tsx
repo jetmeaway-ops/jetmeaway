@@ -188,6 +188,7 @@ type HotelResult = {
   rateType?: string | null;
   perks?: string[];
   signalType?: string | null;
+  excludedTaxes?: number | null;
 };
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -851,6 +852,7 @@ function HotelsContent() {
     if (h.marketPrice != null) qp.set('mktPrice', String(h.marketPrice));
     if (h.perks && h.perks.length > 0) qp.set('perks', h.perks.join(','));
     if (h.signalType) qp.set('signal', h.signalType);
+    if (h.excludedTaxes != null && h.excludedTaxes > 0) qp.set('localFees', String(h.excludedTaxes));
     return `/hotels/${encodeURIComponent(String(h.id))}?${qp.toString()}`;
   };
 

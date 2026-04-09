@@ -15,6 +15,7 @@ interface PendingSummary {
   adults: number;
   nights: number;
   thumbnail: string | null;
+  localFees?: number;
   state: 'pending' | 'paid' | 'confirmed' | 'failed';
 }
 
@@ -499,23 +500,32 @@ export default function HotelCheckoutPage() {
             <div>Check-out: <strong className="text-[#1A1D2B]">{booking.checkOut}</strong></div>
             <div>{booking.nights} night{booking.nights !== 1 ? 's' : ''} · {booking.adults} guest{booking.adults !== 1 ? 's' : ''}</div>
           </div>
-          <div className="border-t border-[#E8ECF4] pt-3 flex items-center justify-between">
-            <span className="text-[.8rem] font-bold text-[#5C6378]">Total</span>
-            <div className="text-right">
-              {prebookResult?.price && prebookResult.price !== booking.totalPrice ? (
-                <>
-                  <span className="font-poppins font-bold text-[.85rem] text-[#8E95A9] line-through mr-1.5">
-                    {fmtPrice(booking.totalPrice)}
-                  </span>
-                  <span className="font-poppins font-black text-[1.3rem] text-[#1A1D2B]">
-                    {fmtPrice(prebookResult.price)}
-                  </span>
-                </>
-              ) : (
-                <span className="font-poppins font-black text-[1.3rem] text-[#1A1D2B]">
-                  {fmtPrice(booking.totalPrice)}
+          {/* ── Price breakdown ── */}
+          <div className="border-t border-[#E8ECF4] pt-3 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[.78rem] font-semibold text-[#5C6378]">Secure now</span>
+              <span className="font-poppins font-bold text-[.9rem] text-[#1A1D2B]">
+                {fmtPrice(prebookResult?.price ?? booking.totalPrice)}
+              </span>
+            </div>
+            {booking.localFees != null && booking.localFees > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-[.78rem] font-semibold text-[#5C6378]">Local fees <span className="text-[.68rem] text-[#8E95A9]">(pay at hotel)</span></span>
+                <span className="font-poppins font-bold text-[.9rem] text-[#1A1D2B]">
+                  {fmtPrice(booking.localFees)}
                 </span>
-              )}
+              </div>
+            )}
+            {prebookResult?.price && prebookResult.price !== booking.totalPrice && (
+              <div className="flex items-center justify-between text-[.72rem] text-amber-700 font-semibold">
+                <span>Price updated from {fmtPrice(booking.totalPrice)}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between pt-1.5 border-t border-[#E8ECF4]">
+              <span className="text-[.82rem] font-bold text-[#1A1D2B]">Total</span>
+              <span className="font-poppins font-black text-[1.3rem] text-[#1A1D2B]">
+                {fmtPrice((prebookResult?.price ?? booking.totalPrice) + (booking.localFees || 0))}
+              </span>
             </div>
           </div>
         </aside>

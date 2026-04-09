@@ -739,6 +739,7 @@ export async function GET(req: NextRequest) {
       rateType: o.rateType ?? null,
       perks: o.perks || [],
       signalType: o.signalType ?? null,
+      excludedTaxes: o.excludedTaxes ?? null,
     }));
 
   // Kick off LiteAPI + RateHawk in parallel (dual API racing)
