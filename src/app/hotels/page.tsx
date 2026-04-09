@@ -67,7 +67,7 @@ const DESTINATIONS = [
   // Indian Ocean
   'Maldives', 'Mauritius', 'Seychelles', 'Zanzibar', 'Madagascar',
   // Pakistan
-  'Lahore', 'Islamabad', 'Karachi', 'Peshawar', 'Faisalabad', 'Multan',
+  'Lahore', 'Islamabad', 'Karachi', 'Peshawar', 'Faisalabad', 'Multan', 'Rahim Yar Khan',
   // India & Sri Lanka
   'Mumbai', 'Delhi', 'Goa', 'Colombo', 'Jaipur', 'Bangalore', 'Chennai',
   'Hyderabad', 'Kerala', 'Agra',
