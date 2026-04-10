@@ -45,7 +45,8 @@ export default function Contact() {
           {/* Info */}
           <div className="bg-white border border-[#F1F3F7] rounded-3xl p-7 space-y-5">
             <InfoItem icon="fa-envelope" title="Email Us" desc={<>
-              <span className="text-[.78rem] text-[#8E95A9]">Use the contact form and we&apos;ll get back to you within 24 hours.</span>
+              <a href="mailto:contact@jetmeaway.co.uk" className="text-[.82rem] text-[#0066FF] font-bold hover:underline block mb-1">contact@jetmeaway.co.uk</a>
+              <span className="text-[.78rem] text-[#8E95A9]">Or use the contact form and we&apos;ll get back to you within 24 hours.</span>
             </>} />
             <InfoItem icon="fa-clock" title="Response Time" desc={<><span className="text-[.78rem] text-[#8E95A9]">Mon–Fri: Within 24 hours<br/>Weekends: Within 48 hours</span></>} />
             <InfoItem icon="fa-shield-halved" title="Booking Queries" desc={<span className="text-[.78rem] text-[#8E95A9]">Jetmeaway is a comparison site. For booking issues, contact the travel provider directly.</span>} />
