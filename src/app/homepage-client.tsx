@@ -380,8 +380,17 @@ function HomepageFooter() {
           </div>
         </div>
 
-        {/* Financial Protection Notice */}
+        {/* Booking Support Line */}
         <div className="border-t border-white/10 pt-6 mb-5 max-w-[900px]">
+          <p className="font-poppins text-white/30 text-[.55rem] uppercase tracking-[2.5px] font-extrabold mb-2">Booking Support Line</p>
+          <a href="tel:+441174630606" className="inline-block font-poppins font-black text-[1rem] text-white/50 hover:text-white transition-colors mb-2">
+            +44 117 463 0606
+          </a>
+          <p className="font-[var(--font-dm-sans)] text-white/30 text-[.68rem] leading-relaxed">Available 24/7 for customers with an active JetMeAway booking. You will be asked for your booking reference or confirmation number at the start of the call. For all other enquiries, please email <a href="mailto:contact@jetmeaway.co.uk" className="text-white/50 hover:text-white underline">contact@jetmeaway.co.uk</a>.</p>
+        </div>
+
+        {/* Financial Protection Notice */}
+        <div className="mb-5 max-w-[900px]">
           <p className="font-poppins text-white/30 text-[.55rem] uppercase tracking-[2.5px] font-extrabold mb-2">Financial Protection Notice</p>
           <p className="font-[var(--font-dm-sans)] text-white/30 text-[.68rem] leading-relaxed mb-1.5">JETMEAWAY LTD acts as a technology platform and an agent for various travel providers.</p>
           <p className="font-[var(--font-dm-sans)] text-white/30 text-[.68rem] leading-relaxed mb-1.5"><span className="text-white/50">Hotels &amp; eSIMs:</span> Standalone accommodation and eSIM services are provided directly by JETMEAWAY LTD and are not subject to ATOL protection.</p>

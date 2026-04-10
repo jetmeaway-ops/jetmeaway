@@ -1,15 +1,9 @@
 /**
- * Override the root layout's Edge runtime for /blog/* routes.
- *
- * The root layout at src/app/layout.tsx sets `runtime = 'edge'` so the
- * rest of the site ships on Vercel Edge Functions for speed. But the
- * blog uses Node's `fs` module to read MDX files from content/posts/,
- * which Edge runtime doesn't support. Overriding runtime to 'nodejs'
- * for this subtree is the cleanest fix — everything under /blog runs
- * on Node and can read the filesystem.
+ * Blog routes run on Node.js so the MDX helper can read files from
+ * content/posts/ via fs. This is now the default runtime since the
+ * root layout dropped its `runtime = 'edge'` declaration — kept as a
+ * placeholder layout so the /blog subtree has a clear owner.
  */
-export const runtime = 'nodejs';
-
 export default function BlogLayout({ children }: { children: React.ReactNode }) {
   return children;
 }

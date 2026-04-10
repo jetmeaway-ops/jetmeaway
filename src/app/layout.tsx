@@ -1,4 +1,10 @@
-export const runtime = 'edge';
+// Root layout runs on Node.js (the Next.js 16 default). Individual
+// routes that need Edge still declare `export const runtime = 'edge'`
+// at the page/route level — removing it from the root lets the
+// auto-generated _not-found function stay under Vercel's Hobby-plan
+// 1MB Edge limit while keeping per-route Edge opt-ins intact.
+// Fluid Compute is enabled on the Vercel project, so Node functions
+// get near-Edge cold-start performance anyway.
 
 import './globals.css';
 import Script from 'next/script';

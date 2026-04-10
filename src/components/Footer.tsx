@@ -38,6 +38,14 @@ export default function Footer() {
           <p className="text-[.68rem] text-white/[.12] leading-relaxed font-semibold">Jetmeaway participates in the Expedia Affiliate Program (Partnerize) and Travelpayouts Network, uses Nuitee for hotel inventory, and works with GetYourGuide, Viator, Klook, Tiqets, Airalo, Yesim, Ekta Traveling, Economy Bookings, Localrent, Qeeq, GetRentaCar, KiwiTaxi, Welcome Pickups, GetTransfer, AirHelp, Compensair, WeGoTrip, Aviasales, and Trip.com. We may receive compensation when you book through our links at no additional cost to you.</p>
         </div>
         <div className="max-w-[800px] mb-7">
+          <div className="text-[.55rem] uppercase tracking-[2.5px] font-extrabold text-white/20 mb-1.5">Booking Support Line</div>
+          <a href="tel:+441174630606" className="inline-block font-poppins font-black text-[.95rem] text-white/40 hover:text-white transition-colors mb-1.5">
+            +44 117 463 0606
+          </a>
+          <p className="text-[.68rem] text-white/[.12] leading-relaxed font-semibold">Available 24/7 for customers with an active JetMeAway booking. You will be asked for your booking reference or confirmation number at the start of the call. For all other enquiries, please email <a href="mailto:contact@jetmeaway.co.uk" className="text-white/25 hover:text-white underline">contact@jetmeaway.co.uk</a>.</p>
+        </div>
+
+        <div className="max-w-[800px] mb-7">
           <div className="text-[.55rem] uppercase tracking-[2.5px] font-extrabold text-white/20 mb-1.5">Financial Protection Notice</div>
           <p className="text-[.68rem] text-white/[.12] leading-relaxed font-semibold mb-2">JETMEAWAY LTD acts as a technology platform and an agent for various travel providers.</p>
           <p className="text-[.68rem] text-white/[.12] leading-relaxed font-semibold mb-2"><span className="text-white/25">Hotels &amp; eSIMs:</span> Standalone accommodation and eSIM services are provided directly by JETMEAWAY LTD and are not subject to ATOL protection.</p>
