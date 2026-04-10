@@ -364,7 +364,7 @@ export default function ESIMPage() {
       {searched && (
         <section id="esim-results" className="max-w-[1100px] mx-auto px-5 py-10">
 
-          {/* ── Live eSimply packages (Book Direct) ── */}
+          {/* ── Live eSimply packages (Buy Direct) ── */}
           {liveLoading && (
             <div className="bg-white border border-[#E8ECF4] rounded-2xl p-8 text-center mb-8">
               <div className="flex items-center justify-center gap-3">
@@ -378,7 +378,7 @@ export default function ESIMPage() {
               <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <h2 className="font-poppins font-black text-[1.3rem] text-[#1A1D2B]">Book Direct</h2>
+                    <h2 className="font-poppins font-black text-[1.3rem] text-[#1A1D2B]">Buy Direct</h2>
                     <span className="text-[.55rem] font-black uppercase tracking-[1.5px] bg-gradient-to-r from-[#0066FF] to-[#4C8BFF] text-white px-2.5 py-1 rounded-full">Live Prices</span>
                   </div>
                   <p className="text-[.72rem] text-[#8E95A9] font-semibold">
@@ -427,7 +427,7 @@ export default function ESIMPage() {
                           type="button"
                           className="w-full bg-gradient-to-r from-[#0066FF] to-[#4C8BFF] hover:from-[#0052CC] hover:to-[#3B7AEE] text-white font-poppins font-black text-[.78rem] py-3 rounded-xl transition-all shadow-[0_2px_10px_rgba(0,102,255,0.25)] flex items-center justify-center gap-2"
                         >
-                          <i className="fa-solid fa-lock text-[.65rem]" /> Book Direct →
+                          <i className="fa-solid fa-lock text-[.65rem]" /> Buy Direct →
                         </button>
                       </div>
                     </div>

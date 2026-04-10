@@ -5,11 +5,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const NAV = [
-  { href: '/flights', label: 'Flights', icon: '✈' },
   { href: '/hotels', label: 'Hotels', icon: '🏨' },
   { href: '/packages', label: 'Packages', icon: '📦' },
-  { href: '/cars', label: 'Car Hire', icon: '🚗' },
   { href: '/esim', label: 'eSIM', icon: '📱' },
+  { href: '/flights', label: 'Flights', icon: '✈' },
+  { href: '/cars', label: 'Car Hire', icon: '🚗' },
   { href: '/explore', label: 'Explore', icon: '🧭' },
 ];
 

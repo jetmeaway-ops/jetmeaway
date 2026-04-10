@@ -1,6 +1,7 @@
 export const runtime = 'edge';
 
 import './globals.css';
+import Script from 'next/script';
 import { Poppins, Playfair_Display, DM_Sans } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/react';
 import ScoutChat from '@/components/ScoutChat';
@@ -64,6 +65,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         <Analytics />
         <ScoutChat />
+        {/* Travelpayouts tracking pixel — fires on every page */}
+        <Script
+          id="travelpayouts-tracker"
+          src="https://tp-em.com/NTEyNjMz.js?t=512633"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );

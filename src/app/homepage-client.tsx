@@ -32,8 +32,8 @@ function LogoScroll() {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const STEPS = [
-  { num: '01', icon: 'fa-magnifying-glass', title: 'Search', desc: 'Enter your destination, dates, and preferences. We instantly scan 20+ trusted travel providers.' },
-  { num: '02', icon: 'fa-chart-bar', title: 'Compare', desc: 'See real prices side-by-side from Expedia, Trip.com, Booking.com and more. No hidden fees.' },
+  { num: '01', icon: 'fa-magnifying-glass', title: 'Search', desc: 'Enter your destination, dates, and preferences. We instantly scan 15+ trusted travel providers.' },
+  { num: '02', icon: 'fa-chart-bar', title: 'Compare', desc: 'See real prices side-by-side from Expedia, Trip.com, Aviasales and more. No hidden fees.' },
   { num: '03', icon: 'fa-circle-check', title: 'Book', desc: 'Choose the best deal and book directly with the provider. We never charge booking fees.' },
 ];
 
@@ -304,7 +304,7 @@ function CtaSection() {
         <h2 className="font-[var(--font-playfair)] text-[2rem] md:text-[2.6rem] font-black text-[#0a1628] mb-3">
           Ready to Find Your <span className="bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">Best Deal?</span>
         </h2>
-        <p className="font-[var(--font-dm-sans)] text-[.95rem] text-[#5C6378] mb-8">Join thousands of UK travellers saving money across 20+ providers</p>
+        <p className="font-[var(--font-dm-sans)] text-[.95rem] text-[#5C6378] mb-8">Join thousands of UK travellers saving money across 15+ providers</p>
         <a href="/hotels"
           className="inline-block bg-orange-500 hover:bg-orange-600 text-white font-poppins font-black text-[1rem] px-10 py-4 rounded-xl shadow-[0_8px_30px_rgba(249,115,22,0.35)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(249,115,22,0.4)]">
           Compare Hotel Prices Now
@@ -330,7 +330,7 @@ function HomepageFooter() {
               <span className="font-poppins font-black text-white text-[1.1rem]">JetMeAway</span>
             </a>
             <p className="font-[var(--font-dm-sans)] text-white/50 text-[.78rem] leading-relaxed mb-3">
-              UK&apos;s smart travel comparison engine. Real prices from 20+ providers, zero booking fees.
+              UK&apos;s smart travel comparison engine. Real prices from 15+ providers, zero booking fees.
             </p>
             <a href="/contact" className="font-[var(--font-dm-sans)] text-orange-400 hover:text-orange-300 text-[.78rem] font-medium transition-colors">
               Contact Us &rarr;
@@ -373,16 +373,24 @@ function HomepageFooter() {
           <div>
             <p className="font-poppins font-bold text-white/30 text-[.65rem] uppercase tracking-[2px] mb-4">Providers</p>
             <ul className="space-y-2.5">
-              {['Expedia', 'Trip.com', 'Booking.com', 'Aviasales', 'Klook', 'Airalo'].map(p => (
+              {['Expedia', 'Trip.com', 'Nuitee', 'Aviasales', 'Klook', 'Airalo'].map(p => (
                 <li key={p}><span className="font-[var(--font-dm-sans)] text-white/40 text-[.82rem]">{p}</span></li>
               ))}
             </ul>
           </div>
         </div>
 
+        {/* Financial Protection Notice */}
+        <div className="border-t border-white/10 pt-6 mb-5 max-w-[900px]">
+          <p className="font-poppins text-white/30 text-[.55rem] uppercase tracking-[2.5px] font-extrabold mb-2">Financial Protection Notice</p>
+          <p className="font-[var(--font-dm-sans)] text-white/30 text-[.68rem] leading-relaxed mb-1.5">JETMEAWAY LTD acts as a technology platform and an agent for various travel providers.</p>
+          <p className="font-[var(--font-dm-sans)] text-white/30 text-[.68rem] leading-relaxed mb-1.5"><span className="text-white/50">Hotels &amp; eSIMs:</span> Standalone accommodation and eSIM services are provided directly by JETMEAWAY LTD and are not subject to ATOL protection.</p>
+          <p className="font-[var(--font-dm-sans)] text-white/30 text-[.68rem] leading-relaxed"><span className="text-white/50">Flights &amp; Packages:</span> Flight-inclusive packages shown on this website are fulfilled by our ATOL-protected partners, including Expedia (ATOL 5788) and Trip.com (ATOL 11572). JetMeAway Ltd does not create its own packages; we connect you to fully licensed and bonded ATOL holders. Your air travel and package holidays are financially protected under the ATOL scheme administered by the UK Civil Aviation Authority.</p>
+        </div>
+
         {/* Bottom */}
         <div className="border-t border-white/10 pt-6 flex flex-col md:flex-row items-center justify-between gap-3">
-          <p className="font-[var(--font-dm-sans)] text-white/30 text-[.72rem]">&copy; 2026 Jetmeaway. All rights reserved.</p>
+          <p className="font-[var(--font-dm-sans)] text-white/30 text-[.72rem]">&copy; 2026 JETMEAWAY LTD (Company No: 17140522). All rights reserved.</p>
           <p className="font-[var(--font-dm-sans)] text-white/20 text-[.68rem]">
             Made with <span className="text-red-400">&hearts;</span> in the UK
           </p>
@@ -414,13 +422,13 @@ export default function HomepageClient() {
             <span className="bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent">Less</span>
           </h1>
           <p className="font-[var(--font-dm-sans)] text-white/60 text-[1.05rem] mb-8 max-w-[550px] mx-auto">
-            Compare flights, hotels, car hire and more from 20+ trusted providers. Zero fees, real prices.
+            Compare flights, hotels, car hire and more from 15+ trusted providers. Zero fees, real prices.
           </p>
 
           {/* Stats bar */}
           <div className="flex flex-wrap justify-center gap-6 md:gap-10 mb-8">
             {[
-              { val: '20+', label: 'Providers' },
+              { val: '15+', label: 'Providers' },
               { val: '2M+', label: 'Hotels' },
               { val: '0', label: 'Booking Fees', prefix: '\u00A3' },
               { val: '24/7', label: 'AI Assistant' },

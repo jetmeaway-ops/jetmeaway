@@ -38,6 +38,7 @@ const MSG = {
     payment: 'For payment issues, please check your bank statement for a charge from Nuitee Travel or JetMeAway. If you have been double charged or see an unexpected payment, please email waqar at jetmeaway dot co dot uk with your booking reference and a screenshot of the charge. We will resolve this within 48 hours.',
     other: 'For all other enquiries, please visit our website at jetmeaway dot co dot uk slash contact, or email us at waqar at jetmeaway dot co dot uk. Our team typically responds within 24 hours.',
     resolved: 'We hope this has been helpful. Has your query been resolved? Press 1 for yes. Press 2 if you still need assistance.',
+    noAgentWithoutRef: 'To speak with an agent, you will need a valid booking reference number. You can find this in your confirmation email. Alternatively, please email waqar at jetmeaway dot co dot uk or visit jetmeaway dot co dot uk slash contact and we will get back to you within 24 hours.',
     thankyou: 'Thank you for calling JetMeAway. We appreciate your business and wish you a wonderful trip. Goodbye.',
     holdMsg: 'Please hold while we connect you to the next available agent. Your estimated wait time is 2 to 3 minutes. Please note, this call may be recorded for quality and training purposes.',
     holdMusic: 'Thank you for your patience. An agent will be with you shortly.',
@@ -64,6 +65,7 @@ const MSG = {
     payment: 'Payment maslon ke liye, apne bank statement mein Nuitee Travel ya JetMeAway ka charge check karein. Agar double charge hua hai toh email karein waqar at jetmeaway dot co dot uk par. 48 ghanton mein hal ho jayega.',
     other: 'Baqi tamam sawalaat ke liye, jetmeaway dot co dot uk slash contact par jayein ya email karein waqar at jetmeaway dot co dot uk par.',
     resolved: 'Kya aap ka masla hal ho gaya? Haan ke liye 1 dabayein. Agar abhi bhi madad chahiye toh 2 dabayein.',
+    noAgentWithoutRef: 'Agent se baat karne ke liye aap ko booking reference number chahiye. Yeh aap ki confirmation email mein hai. Baraye meherbani email karein waqar at jetmeaway dot co dot uk par ya jetmeaway dot co dot uk slash contact par jayein. 24 ghanton mein jawab milega.',
     thankyou: 'JetMeAway mein call karne ka shukriya. Aap ka safar khush-gawaar ho. Khuda Hafiz.',
     holdMsg: 'Baraye meherbani hold karein, hum aap ko agent se connect kar rahe hain. Tahmini intezaar ka waqt 2 se 3 minute hai.',
     holdMusic: 'Shukriya aap ke sabr ka. Agent jald aap se baat karega.',
@@ -153,13 +155,10 @@ function stepNonHotelDept(lang: Lang, dept: string) {
   else if (dept === '4') msg = m.packageDept;
   else if (dept === '5') msg = m.insuranceDept;
 
-  const g = gather(`/api/twilio/voice?step=resolved&lang=${lang}&dept=${dept}`, { numDigits: 1, timeout: 8 });
+  // Non-hotel depts never forward to agent — info only
   return twiml(
     say(msg, lang) +
     pause(1) +
-    g.open +
-    say(m.resolved, lang) +
-    g.close +
     say(m.thankyou, lang) +
     '<Hangup/>'
   );
@@ -235,7 +234,7 @@ function stepNoRef(lang: Lang, dept: string) {
   );
 }
 
-function stepProblemResponse(lang: Lang, problem: string) {
+function stepProblemResponse(lang: Lang, problem: string, ref: string) {
   const m = MSG[lang];
   let response = m.other;
   if (problem === '1') response = m.checkin;
@@ -245,7 +244,7 @@ function stepProblemResponse(lang: Lang, problem: string) {
   else if (problem === '5') response = m.payment;
   else if (problem === '6') response = m.other;
 
-  const g = gather(`/api/twilio/voice?step=resolved&lang=${lang}`, { numDigits: 1, timeout: 8 });
+  const g = gather(`/api/twilio/voice?step=resolved&lang=${lang}&ref=${ref}`, { numDigits: 1, timeout: 8 });
   return twiml(
     say(response, lang) +
     pause(2) +
@@ -257,7 +256,7 @@ function stepProblemResponse(lang: Lang, problem: string) {
   );
 }
 
-function stepResolved(lang: Lang, digit: string) {
+function stepResolved(lang: Lang, digit: string, ref: string) {
   const m = MSG[lang];
 
   if (digit === '1') {
@@ -265,26 +264,25 @@ function stepResolved(lang: Lang, digit: string) {
     return twiml(say(m.thankyou, lang) + '<Hangup/>');
   }
 
-  // Not resolved — hold message, then forward
-  if (FORWARD_NUMBER) {
+  // Not resolved — only forward if they have a valid booking reference
+  const hasValidRef = ref && ref !== 'none' && ref !== '';
+  if (hasValidRef && FORWARD_NUMBER) {
     return twiml(
       say(m.sorry, lang) +
       pause(1) +
       say(m.holdMsg, lang) +
-      pause(3) +
+      `<Play>http://com.twilio.music.soft-rock.s3.amazonaws.com/Strehlow_-_Holding_Pattern.mp3</Play>` +
       say(m.holdMusic, lang) +
-      pause(5) +
-      say(m.holdMusic, lang) +
-      pause(5) +
+      `<Play>http://com.twilio.music.soft-rock.s3.amazonaws.com/Strehlow_-_Holding_Pattern.mp3</Play>` +
       `<Dial timeout="30" callerId="${escXml(process.env.TWILIO_FROM || '')}">${escXml(FORWARD_NUMBER)}</Dial>` +
       say(m.closed, lang) +
       '<Hangup/>'
     );
   }
 
-  // No forward number configured
+  // No valid ref — tell them they need a reference to speak to an agent
   return twiml(
-    say(m.other, lang) +
+    say(m.noAgentWithoutRef, lang) +
     pause(1) +
     say(m.thankyou, lang) +
     '<Hangup/>'
@@ -348,10 +346,10 @@ export async function POST(req: NextRequest) {
       return stepNoRef(lang, dept);
 
     case 'problem':
-      return stepProblemResponse(lang, digits || '6');
+      return stepProblemResponse(lang, digits || '6', ref);
 
     case 'resolved':
-      return stepResolved(lang, digits || '1');
+      return stepResolved(lang, digits || '1', ref);
 
     default:
       return step1Welcome();

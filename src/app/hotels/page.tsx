@@ -1076,13 +1076,14 @@ function HotelsContent() {
                     href={dealHref}
                     className="group bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden hover:shadow-[0_8px_30px_rgba(245,158,11,0.12)] hover:border-orange-200 transition-all text-left"
                   >
-                    {/* Photo */}
+                    {/* Photo — prefer real hotel thumbnail over destination photo */}
                     <div className="relative h-36 overflow-hidden">
                       <img
-                        src={deal.photo}
-                        alt={deal.city}
+                        src={hotel?.thumbnail || deal.photo}
+                        alt={hotel?.name || deal.city}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         loading="lazy"
+                        onError={e => { (e.target as HTMLImageElement).src = deal.photo; }}
                       />
                       {/* Gradient overlay */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />

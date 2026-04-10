@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { redirectUrl } from '@/lib/redirect';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    LOCATIONS — airports + city centres
@@ -123,8 +122,8 @@ function LocationPicker({ value, onChange, placeholder }: {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const LOADING_MSGS = [
-  'Checking Localrent...',
-  'Scanning GetRentaCar...',
+  'Checking availability...',
+  'Comparing prices...',
 ];
 
 function LoadingState({ loc }: { loc: string }) {
@@ -152,104 +151,6 @@ function LoadingState({ loc }: { loc: string }) {
     </section>
   );
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   AFFILIATE LINK BUILDERS
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-const TP_CAR = (campaignId: number, p: number, innerUrl: string) =>
-  `https://tp.media/r?campaign_id=${campaignId}&marker=714449&p=${p}&trs=512633&u=${encodeURIComponent(innerUrl)}`;
-
-function cleanLoc(loc: string) { return loc.replace(/\s*\([A-Z]{3}\)\s*$/, '').trim(); }
-function locIata(loc: string) { return loc.match(/\(([A-Z]{3})\)/)?.[1] || ''; }
-function cityName(loc: string) { return cleanLoc(loc).replace(/ Airport$/i, '').replace(/ City Centre$/i, ''); }
-function citySlug(loc: string) { return cityName(loc).toLowerCase().replace(/\s+/g, '-'); }
-
-const CC: Record<string, [string, string]> = {
-  'london':['united-kingdom','europe'],'manchester':['united-kingdom','europe'],'birmingham':['united-kingdom','europe'],
-  'edinburgh':['united-kingdom','europe'],'glasgow':['united-kingdom','europe'],'liverpool':['united-kingdom','europe'],
-  'leeds':['united-kingdom','europe'],'bristol':['united-kingdom','europe'],'newcastle':['united-kingdom','europe'],
-  'aberdeen':['united-kingdom','europe'],'southampton':['united-kingdom','europe'],'cardiff':['united-kingdom','europe'],
-  'bournemouth':['united-kingdom','europe'],'belfast':['united-kingdom','europe'],
-  'east midlands':['united-kingdom','europe'],'leeds bradford':['united-kingdom','europe'],
-  'barcelona':['spain','europe'],'madrid':['spain','europe'],'malaga':['spain','europe'],
-  'alicante':['spain','europe'],'palma':['spain','europe'],'tenerife south':['spain','europe'],
-  'tenerife north':['spain','europe'],'lanzarote':['spain','europe'],'fuerteventura':['spain','europe'],
-  'gran canaria':['spain','europe'],'seville':['spain','europe'],'ibiza':['spain','europe'],
-  'faro':['portugal','europe'],'lisbon':['portugal','europe'],
-  'paris':['france','europe'],'nice':['france','europe'],'lyon':['france','europe'],'marseille':['france','europe'],
-  'rome':['italy','europe'],'milan':['italy','europe'],'venice':['italy','europe'],
-  'florence':['italy','europe'],'naples':['italy','europe'],
-  'amsterdam':['netherlands','europe'],
-  'athens':['greece','europe'],'crete heraklion':['greece','europe'],'rhodes':['greece','europe'],
-  'corfu':['greece','europe'],'santorini':['greece','europe'],
-  'dubrovnik':['croatia','europe'],'split':['croatia','europe'],
-  'antalya':['turkey','europe'],'bodrum':['turkey','europe'],'dalaman':['turkey','europe'],'istanbul':['turkey','europe'],
-  'dubai':['uae','asia'],'abu dhabi':['uae','asia'],
-  'marrakech':['morocco','africa'],'cairo':['egypt','africa'],
-  'new york':['usa','north-america'],'los angeles':['usa','north-america'],'miami':['usa','north-america'],
-  'san francisco':['usa','north-america'],'las vegas':['usa','north-america'],'orlando':['usa','north-america'],
-  'cancun':['mexico','north-america'],'toronto':['canada','north-america'],'vancouver':['canada','north-america'],
-  'bangkok':['thailand','asia'],'singapore':['singapore','asia'],'tokyo':['japan','asia'],
-  'bali':['indonesia','asia'],'phuket':['thailand','asia'],'kuala lumpur':['malaysia','asia'],
-  'hong kong':['hong-kong','asia'],'seoul':['south-korea','asia'],
-  'sydney':['australia','oceania'],'melbourne':['australia','oceania'],
-  'cape town':['south-africa','africa'],'johannesburg':['south-africa','africa'],
-  'lahore':['pakistan','asia'],'islamabad':['pakistan','asia'],'karachi':['pakistan','asia'],
-  'baku':['azerbaijan','asia'],'yerevan':['armenia','asia'],'tbilisi':['georgia','asia'],
-  'ashgabat':['turkmenistan','asia'],'tashkent':['uzbekistan','asia'],
-  'almaty':['kazakhstan','asia'],'astana':['kazakhstan','asia'],
-  'bishkek':['kyrgyzstan','asia'],'dushanbe':['tajikistan','asia'],
-};
-function ccLookup(loc: string) { return CC[cityName(loc).toLowerCase()] || null; }
-
-function buildLocalrentUrl(loc: string, pickup: string, dropoff: string, pickupTime: string, dropoffTime: string) {
-  const cc = ccLookup(loc);
-  const qs = `?currency=GBP&date_from=${pickup}&date_to=${dropoff}&time_from=${pickupTime || '10:00'}&time_to=${dropoffTime || '10:00'}`;
-  if (cc) return TP_CAR(87, 2043, `https://localrent.com/en/${cc[0]}/${citySlug(loc)}/${qs}`);
-  return TP_CAR(87, 2043, `https://localrent.com/en/${qs}`);
-}
-
-function buildGetRentaCarUrl(loc: string, pickup: string, dropoff: string) {
-  const city = cityName(loc);
-  const [y1, m1, d1] = pickup.split('-');
-  const [y2, m2, d2] = dropoff.split('-');
-  const inner = `https://getrentacar.com/en-US/car-rental/request?vehicleSegment=cars&pickup[location]=${encodeURIComponent(city)}&pickup[date]=${d1}.${m1}.${y1}&return[date]=${d2}.${m2}.${y2}`;
-  return TP_CAR(222, 5996, inner);
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   PROVIDER DATA
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-interface Provider {
-  name: string;
-  tagline: string;
-  selling: string[];
-  extra?: string;
-  color: string;
-  bgColor: string;
-  buildUrl: (loc: string, pickup: string, dropoff: string, pickupTime: string, dropoffTime: string, age: string) => string;
-}
-
-const PROVIDERS: Provider[] = [
-  {
-    name: 'Localrent',
-    tagline: 'Rent directly from local companies — often cheaper than international chains',
-    selling: ['Direct from local owners', 'Full insurance included', 'No deposit on many cars'],
-    color: '#059669',
-    bgColor: '#ECFDF5',
-    buildUrl: (loc, pickup, dropoff, pickupTime, dropoffTime) => buildLocalrentUrl(loc, pickup, dropoff, pickupTime, dropoffTime),
-  },
-  {
-    name: 'GetRentaCar',
-    tagline: 'Budget-friendly car hire with transparent pricing',
-    selling: ['No hidden charges', 'Full-to-full fuel policy', '24/7 support'],
-    color: '#DC2626',
-    bgColor: '#FEF2F2',
-    buildUrl: (loc, pickup, dropoff) => buildGetRentaCarUrl(loc, pickup, dropoff),
-  },
-];
 
 /* ═══════════════════════════════════════════════════════════════════════════
    CAR CATEGORIES
@@ -292,30 +193,11 @@ const SUPPLIER_LOGOS = [
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   COMPARISON TABLE
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-const COMPARE_ROWS = [
-  { feature: 'Free cancellation', values: ['✅', '✅'] },
-  { feature: 'No deposit options', values: ['✅', '✅'] },
-  { feature: 'Young driver friendly', values: ['✅', '✅'] },
-  { feature: 'Local companies', values: ['✅ Specialist', '✅'] },
-  { feature: 'Full insurance included', values: ['✅ Most cars', '✅ Most cars'] },
-];
-
-const PROVIDER_NAMES = ['Localrent', 'GetRentaCar'];
-
-/* ═══════════════════════════════════════════════════════════════════════════
    HELPER: extract city name for cross-sell links
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function extractCity(loc: string): string {
   return loc.replace(/ Airport.*$/, '').replace(/ City Centre$/, '').replace(/ \(.*\)$/, '').trim();
-}
-
-function extractIATA(loc: string): string {
-  const m = loc.match(/\(([A-Z]{3})\)/);
-  return m ? m[1] : '';
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -392,9 +274,7 @@ function CarsContent() {
     }
   }, [location, pickupDate, dropoffDate, handleSearch]);
 
-  const ageGroup = parseInt(driverAge) < 25 ? 'young' : parseInt(driverAge) > 65 ? 'senior' : 'standard';
   const city = extractCity(searchedLoc);
-  const iata = extractIATA(searchedLoc);
 
   const filteredCars = CAR_CATEGORIES
     .filter(c => c.fromPrice <= budget)
@@ -493,7 +373,7 @@ function CarsContent() {
             className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(16,185,129,0.3)]">
             Search Car Rentals →
           </button>
-          <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">Free comparison · Prices shown here · Click any provider to book on their site</p>
+          <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">Free comparison · Estimated prices shown here</p>
         </div>
       </section>
 
@@ -510,7 +390,7 @@ function CarsContent() {
                 <h2 className="font-poppins font-black text-[1.15rem] text-[#1A1D2B]">
                   Car hire in {city} — {pickupDate} to {dropoffDate}{days ? ` (${days} day${days !== 1 ? 's' : ''})` : ''}
                 </h2>
-                <p className="text-[.75rem] text-[#5C6378] font-semibold mt-1">{filteredCars.length} car types available · Compare across 2 providers</p>
+                <p className="text-[.75rem] text-[#5C6378] font-semibold mt-1">{filteredCars.length} car types available</p>
               </div>
               <select value={sortBy} onChange={e => setSortBy(e.target.value as 'price-asc' | 'price-desc' | 'seats')}
                 className="px-3 py-2 rounded-lg border border-[#E8ECF4] bg-white text-[.78rem] font-semibold text-[#1A1D2B] outline-none focus:border-emerald-500">
@@ -578,7 +458,7 @@ function CarsContent() {
                         </div>
                       </div>
 
-                      {/* Price + View Deal */}
+                      {/* Price */}
                       <div className="p-5 flex flex-col items-end justify-center gap-2 border-t md:border-t-0 md:border-l border-[#F1F3F7] min-w-[180px]">
                         <div className="text-right">
                           <div className="text-[.65rem] text-[#8E95A9] font-semibold">estimated from</div>
@@ -586,18 +466,6 @@ function CarsContent() {
                           {days && days > 1 && (
                             <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">~£{totalEst} total for {days} day{days !== 1 ? 's' : ''}</div>
                           )}
-                        </div>
-                        <div className="flex flex-col gap-1.5 w-full">
-                          {PROVIDERS.map((p) => {
-                            const url = p.buildUrl(searchedLoc, pickupDate, dropoffDate, pickupTime, dropoffTime, driverAge);
-                            return (
-                              <a key={p.name} href={redirectUrl(url, p.name, city, 'cars')} target="_blank" rel="noopener noreferrer"
-                                className="text-white font-poppins font-bold text-[.68rem] px-3 py-2 rounded-lg transition-all text-center whitespace-nowrap hover:opacity-90"
-                                style={{ backgroundColor: p.color }}>
-                                {p.name} →
-                              </a>
-                            );
-                          })}
                         </div>
                       </div>
                     </div>
@@ -612,80 +480,6 @@ function CarsContent() {
             </div>
           </section>
 
-          {/* Smart recommendation */}
-          <section className="max-w-[1000px] mx-auto px-5 pb-6">
-            <div className="bg-gradient-to-r from-emerald-50 to-cyan-50 border border-emerald-200 rounded-2xl p-6">
-              <h3 className="font-poppins font-black text-[.95rem] text-[#1A1D2B] mb-2">💡 Our Recommendation</h3>
-              {ageGroup === 'young' && (
-                <p className="text-[.82rem] text-[#5C6378] font-semibold leading-relaxed">
-                  <strong className="text-[#1A1D2B]">Young driver?</strong> Both <strong>Localrent</strong> and <strong>GetRentaCar</strong> offer competitive young driver rates, saving you £5-15/day compared to booking direct with international chains.
-                </p>
-              )}
-              {ageGroup === 'standard' && (
-                <p className="text-[.82rem] text-[#5C6378] font-semibold leading-relaxed">
-                  For the best overall value, try <strong>Localrent</strong> for local deals with full insurance included, or <strong>GetRentaCar</strong> for transparent pricing with no hidden charges.
-                </p>
-              )}
-              {ageGroup === 'senior' && (
-                <p className="text-[.82rem] text-[#5C6378] font-semibold leading-relaxed">
-                  <strong className="text-[#1A1D2B]">Senior drivers</strong> will find flexible rates on both <strong>Localrent</strong> and <strong>GetRentaCar</strong>, with no upper age limits on most vehicles.
-                </p>
-              )}
-            </div>
-          </section>
-
-          {/* Cross-sell */}
-          <section className="max-w-[1000px] mx-auto px-5 pb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-[#F8FAFC] border border-[#E8ECF4] rounded-2xl p-6">
-              <span className="text-2xl mb-2 block">✈️</span>
-              <h3 className="font-poppins font-black text-[1rem] text-[#1A1D2B] mb-1">Flights to {city}</h3>
-              <p className="text-[.78rem] text-[#5C6378] font-semibold mb-3">Still need flights? Compare across our providers.</p>
-              <a href={`/flights?to=${iata || encodeURIComponent(city)}`}
-                className="inline-block px-5 py-2.5 rounded-xl border-2 border-[#0066FF] text-[#0066FF] font-poppins font-bold text-[.8rem] hover:bg-blue-50 transition-colors">
-                Compare Flights →
-              </a>
-            </div>
-            <div className="bg-[#F8FAFC] border border-[#E8ECF4] rounded-2xl p-6">
-              <span className="text-2xl mb-2 block">🏨</span>
-              <h3 className="font-poppins font-black text-[1rem] text-[#1A1D2B] mb-1">Hotels in {city}</h3>
-              <p className="text-[.78rem] text-[#5C6378] font-semibold mb-3">Find your hotel too.</p>
-              <a href={`/hotels?destination=${encodeURIComponent(city)}`}
-                className="inline-block px-5 py-2.5 rounded-xl border-2 border-orange-500 text-orange-500 font-poppins font-bold text-[.8rem] hover:bg-orange-50 transition-colors">
-                Compare Hotels →
-              </a>
-            </div>
-          </section>
-
-          {/* Comparison table */}
-          <section className="max-w-[1000px] mx-auto px-5 pb-8">
-            <div className="bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden">
-              <div className="px-6 py-4 border-b border-[#E8ECF4] bg-[#F8FAFC]">
-                <h3 className="font-poppins font-black text-[1rem] text-[#1A1D2B]">How Our Providers Compare</h3>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-[.75rem]">
-                  <thead>
-                    <tr className="border-b border-[#E8ECF4]">
-                      <th className="text-left px-4 py-3 font-bold text-[#8E95A9] text-[.65rem] uppercase tracking-wider">Feature</th>
-                      {PROVIDER_NAMES.map(n => (
-                        <th key={n} className="text-center px-3 py-3 font-bold text-[#1A1D2B] text-[.7rem]">{n}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {COMPARE_ROWS.map((row, ri) => (
-                      <tr key={row.feature} className={ri % 2 === 0 ? 'bg-[#F8FAFC]' : 'bg-white'}>
-                        <td className="px-4 py-3 font-bold text-[#1A1D2B] text-[.75rem] whitespace-nowrap">{row.feature}</td>
-                        {row.values.map((v, vi) => (
-                          <td key={vi} className="text-center px-3 py-3 font-semibold text-[#5C6378] text-[.72rem]">{v}</td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </section>
         </div>
       )}
 
@@ -698,7 +492,7 @@ function CarsContent() {
               ['Book early, pick up off-airport', 'Off-airport depots are 20-40% cheaper. Take a taxi from arrivals — still worth it.'],
               ['Always take full-to-full fuel', 'Return with a full tank — "full-to-empty" deals sound cheap but rarely are.'],
               ['Decline excess waiver at the desk', 'Buy third-party excess insurance for ~£3/day instead of £15-25/day at the counter.'],
-              ['Under 25? Compare specialist sites', 'Localrent & GetRentaCar often have younger driver surcharges that are 30-50% lower.'],
+              ['Under 25? Compare specialist sites', 'Specialist car hire sites often have younger driver surcharges that are 30-50% lower than international chains.'],
             ].map(([title, body]) => (
               <div key={title} className="flex gap-3">
                 <div className="w-1.5 flex-shrink-0 rounded-full bg-gradient-to-b from-emerald-500 to-teal-500 self-stretch" />

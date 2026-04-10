@@ -300,6 +300,8 @@ function TourCard({ tour }: { tour: Tour }) {
 
 function ExploreContent() {
   const [destination, setDestination] = useState('');
+  const [travelDate, setTravelDate] = useState('');
+  const [activity, setActivity] = useState('');
   const [searched, setSearched] = useState(false);
   const [searchedDest, setSearchedDest] = useState('');
   const [tours, setTours] = useState<Tour[]>([]);
@@ -310,6 +312,8 @@ function ExploreContent() {
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     const dest = p.get('destination') || p.get('dest') || '';
+    const d = p.get('date') || '';
+    if (d) setTravelDate(d);
     if (dest) {
       setDestination(dest);
       setSearchedDest(dest);
@@ -323,7 +327,8 @@ function ExploreContent() {
     setToursLoading(true);
     setToursError('');
     setTours([]);
-    fetch(`/api/tours?destination=${encodeURIComponent(searchedDest)}`)
+    const activityParam = activity ? `&activity=${encodeURIComponent(activity)}` : '';
+    fetch(`/api/tours?destination=${encodeURIComponent(searchedDest)}${activityParam}`)
       .then((res) => {
         if (!res.ok) throw new Error('API error');
         return res.json();
@@ -337,7 +342,7 @@ function ExploreContent() {
       .finally(() => {
         setToursLoading(false);
       });
-  }, [searchedDest]);
+  }, [searchedDest, activity]);
 
   const handleSearch = () => {
     if (!destination) return;
@@ -363,9 +368,47 @@ function ExploreContent() {
         </div>
 
         <div className="max-w-[860px] mx-auto bg-white border border-[#E8ECF4] rounded-3xl p-6 shadow-[0_8px_40px_rgba(20,184,166,0.08)]">
+          <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-3 mb-3">
+            <div>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Destination</label>
+              <DestinationPicker value={destination} onChange={setDestination} />
+            </div>
+            <div>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Date</label>
+              <input type="date" min={new Date().toISOString().split('T')[0]} value={travelDate} onChange={e => setTravelDate(e.target.value)}
+                className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-teal-400 focus:bg-white transition-all" />
+            </div>
+          </div>
           <div className="mb-3">
-            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Destination</label>
-            <DestinationPicker value={destination} onChange={setDestination} />
+            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Activity</label>
+            <select value={activity} onChange={e => setActivity(e.target.value)}
+              className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-teal-400 focus:bg-white transition-all">
+              <option value="">All Activities</option>
+              <optgroup label="🧭 Core Adventure">
+                <option value="Tours & Sightseeing">Tours & Sightseeing</option>
+                <option value="Attractions & Landmarks">Attractions & Landmarks</option>
+                <option value="Day Trips & Excursions">Day Trips & Excursions</option>
+                <option value="Skip-the-Line Entry">Skip-the-Line Entry</option>
+              </optgroup>
+              <optgroup label="🥗 Lifestyle & Culture">
+                <option value="Food & Drink">Food & Drink</option>
+                <option value="Morning Rituals & Coffee">Morning Rituals & Coffee</option>
+                <option value="Hidden Gems">Hidden Gems</option>
+                <option value="Classes & Workshops">Classes & Workshops</option>
+              </optgroup>
+              <optgroup label="⚡ Activity Level">
+                <option value="Wellness & Spa">Wellness & Spa</option>
+                <option value="Fitness & Gyms">Fitness & Gyms</option>
+                <option value="Adventure & Sports">Adventure & Sports</option>
+                <option value="Nature & Outdoors">Nature & Outdoors</option>
+              </optgroup>
+              <optgroup label="👥 Audience & Vibe">
+                <option value="Family Friendly">Family Friendly</option>
+                <option value="Nightlife & Entertainment">Nightlife & Entertainment</option>
+                <option value="Shopping & Fashion">Shopping & Fashion</option>
+                <option value="Relaxation & Hush Spots">Relaxation & Hush Spots</option>
+              </optgroup>
+            </select>
           </div>
           <button onClick={handleSearch} className="w-full bg-teal-500 hover:bg-teal-600 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(20,184,166,0.3)]">
             Explore Activities →

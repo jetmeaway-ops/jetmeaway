@@ -63,7 +63,7 @@ export default function PhoneMockup() {
               <p className="font-poppins font-black text-[11px] text-[#1A1D2B] leading-tight">
                 Travel <em className="text-[#0066FF] italic">Intelligently.</em>
               </p>
-              <p className="text-[7px] text-[#8E95A9] mt-0.5">Comparing 20+ providers in real-time</p>
+              <p className="text-[7px] text-[#8E95A9] mt-0.5">Comparing 15+ providers in real-time</p>
             </div>
 
             {/* Category grid */}
