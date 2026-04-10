@@ -19,11 +19,23 @@ import { kv } from '@vercel/kv';
 
 const FORWARD_NUMBER = process.env.TWILIO_FORWARD_NUMBER || '';
 
+/* Hold music — Twilio-hosted S3 clip that we loop between dial attempts.
+   Used anywhere we want to keep the caller entertained while waiting. */
+const HOLD_MUSIC_URL = 'http://com.twilio.music.soft-rock.s3.amazonaws.com/Strehlow_-_Holding_Pattern.mp3';
+
+/* Max times we'll try to reach an agent before giving up and playing
+   the fallback "no agent available" message. */
+const MAX_DIAL_ATTEMPTS = 5;
+
+/* How long each individual dial attempt rings before Twilio gives up.
+   5 attempts × 15 seconds = ~75 seconds max wait per caller. */
+const DIAL_TIMEOUT_SECONDS = 15;
+
 /* ── Messages ─────────────────────────────────────────────────────────── */
 
 const MSG = {
   en: {
-    welcome: 'Thank you for calling JetMeAway, your trusted travel comparison engine. Your call is important to us.',
+    welcome: 'Thank you for calling JetMeAway, your trusted travel comparison engine. Please note, this support line is available 24 hours a day, 7 days a week, and is reserved exclusively for customers with an active JetMeAway booking. To speak with an agent, you must have your booking reference or confirmation number ready. If you do not have an active booking with us, please hang up now and email contact at jetmeaway dot co dot uk, and our team will respond within 24 hours.',
     langSelect: 'For English, press 1. Urdu ke liye, 2 dabayein.',
     dept: 'Please select from the following options. Press 1 for hotel bookings. Press 2 for flight enquiries. Press 3 for car hire. Press 4 for holiday packages. Press 5 for insurance or e-sim. Press 6 for general enquiry.',
     enterRef: 'Please enter your booking reference number using your keypad, followed by the hash key. If you do not have a reference number, press hash.',
@@ -32,25 +44,26 @@ const MSG = {
     bookingNotFound: 'Sorry, we could not find a booking with that reference. Please check and try again, or press hash to continue without a reference.',
     problem: 'How can we help you today? Press 1 for check-in or check-out issues. Press 2 for cancellation request. Press 3 for refund query. Press 4 for amendment or room change. Press 5 for payment issues. Press 6 for something else.',
     checkin: 'For check-in and check-out queries, please contact your hotel directly using the details in your confirmation email. The hotel front desk will be able to assist you with early check-in, late check-out, or any room related concerns.',
-    cancel: 'To request a cancellation, please email waqar at jetmeaway dot co dot uk with your booking reference number. Our cancellation policy allows free cancellation up to 48 hours before check-in for most bookings. You will receive a confirmation email within 24 hours.',
-    refund: 'Refund requests are processed within 5 to 10 business days after cancellation is confirmed. If your cancellation has already been confirmed and you have not received your refund, please email waqar at jetmeaway dot co dot uk with your booking reference and we will investigate.',
-    amendment: 'To amend your booking, including date changes, room upgrades, or guest name changes, please email waqar at jetmeaway dot co dot uk with your booking reference and the changes you would like to make. We will confirm availability and any price difference within 24 hours.',
-    payment: 'For payment issues, please check your bank statement for a charge from Nuitee Travel or JetMeAway. If you have been double charged or see an unexpected payment, please email waqar at jetmeaway dot co dot uk with your booking reference and a screenshot of the charge. We will resolve this within 48 hours.',
-    other: 'For all other enquiries, please visit our website at jetmeaway dot co dot uk slash contact, or email us at waqar at jetmeaway dot co dot uk. Our team typically responds within 24 hours.',
+    cancel: 'To request a cancellation, please email contact at jetmeaway dot co dot uk with your booking reference number. Our cancellation policy allows free cancellation up to 48 hours before check-in for most bookings. You will receive a confirmation email within 24 hours.',
+    refund: 'Refund requests are processed within 5 to 10 business days after cancellation is confirmed. If your cancellation has already been confirmed and you have not received your refund, please email contact at jetmeaway dot co dot uk with your booking reference and we will investigate.',
+    amendment: 'To amend your booking, including date changes, room upgrades, or guest name changes, please email contact at jetmeaway dot co dot uk with your booking reference and the changes you would like to make. We will confirm availability and any price difference within 24 hours.',
+    payment: 'For payment issues, please check your bank statement for a charge from Nuitee Travel or JetMeAway. If you have been double charged or see an unexpected payment, please email contact at jetmeaway dot co dot uk with your booking reference and a screenshot of the charge. We will resolve this within 48 hours.',
+    other: 'For all other enquiries, please visit our website at jetmeaway dot co dot uk slash contact, or email us at contact at jetmeaway dot co dot uk. Our team typically responds within 24 hours.',
     resolved: 'We hope this has been helpful. Has your query been resolved? Press 1 for yes. Press 2 if you still need assistance.',
-    noAgentWithoutRef: 'To speak with an agent, you will need a valid booking reference number. You can find this in your confirmation email. Alternatively, please email waqar at jetmeaway dot co dot uk or visit jetmeaway dot co dot uk slash contact and we will get back to you within 24 hours.',
+    noAgentWithoutRef: 'We are unable to connect your call to an agent because this support line is reserved exclusively for customers with an active booking. A valid booking reference or confirmation number is required to speak with our team, and it can be found in your confirmation email. For all other enquiries, please email contact at jetmeaway dot co dot uk or visit jetmeaway dot co dot uk slash contact and we will respond within 24 hours.',
     thankyou: 'Thank you for calling JetMeAway. We appreciate your business and wish you a wonderful trip. Goodbye.',
-    holdMsg: 'Please hold while we connect you to the next available agent. Your estimated wait time is 2 to 3 minutes. Please note, this call may be recorded for quality and training purposes.',
+    holdMsg: 'Please hold while we connect you to the next available agent. Please note, this call may be recorded for quality and training purposes.',
     holdMusic: 'Thank you for your patience. An agent will be with you shortly.',
+    tryingAgent: 'We are still trying to connect you to an agent. Please continue to hold.',
     sorry: 'We are sorry we could not resolve your query today. Let us connect you to a member of our team.',
-    closed: 'Our phone lines are open Monday to Saturday, 9 ay em to 8 pee em. You have reached us outside of business hours. Please email waqar at jetmeaway dot co dot uk or visit jetmeaway dot co dot uk slash contact and we will get back to you within 24 hours. Thank you for calling JetMeAway.',
+    closed: 'Unfortunately, no agent is available to take your call right now. Please email contact at jetmeaway dot co dot uk or visit jetmeaway dot co dot uk slash contact with your booking reference, and our team will respond within 24 hours. Thank you for calling JetMeAway.',
     flightDept: 'For flight enquiries, JetMeAway compares prices across multiple airlines and booking platforms. We do not book flights directly. To find the best flight deals, please visit jetmeaway dot co dot uk slash flights. If you booked a flight through one of our partner links, please contact the airline or booking platform directly for changes or cancellations.',
     carDept: 'For car hire enquiries, please visit jetmeaway dot co dot uk slash cars to compare prices across our partner providers. If you have an existing car hire booking, please contact the rental company directly using the details in your confirmation email.',
     packageDept: 'For holiday package enquiries, please visit jetmeaway dot co dot uk slash packages to compare deals from Expedia, Trip dot com, and other providers. If you booked a package through one of our partner links, please contact the provider directly for any changes.',
     insuranceDept: 'For travel insurance or e-sim enquiries, please visit jetmeaway dot co dot uk. If you purchased insurance or an e-sim through one of our partner links, please contact the provider directly using the details in your confirmation email.',
   },
   ur: {
-    welcome: 'JetMeAway mein call karne ka shukriya. Aap ki call hamare liye ahem hai.',
+    welcome: 'JetMeAway mein call karne ka shukriya. Baraye meherbani note karein, yeh support line 24 ghante, haftay ke saaton din available hai, aur sirf un customers ke liye hai jin ki JetMeAway ke saath active booking hai. Agent se baat karne ke liye aap ke paas booking reference ya confirmation number hona lazmi hai. Agar aap ki humare saath koi active booking nahi hai, toh baraye meherbani abhi call band karein aur contact at jetmeaway dot co dot uk par email karein. Hamari team 24 ghanton mein jawab degi.',
     langSelect: 'For English, press 1. Urdu ke liye, 2 dabayein.',
     dept: 'Baraye meherbani apna option chunein. Hotel booking ke liye 1 dabayein. Flight ke liye 2 dabayein. Car hire ke liye 3 dabayein. Holiday packages ke liye 4 dabayein. Insurance ya e-sim ke liye 5 dabayein. Aam sawal ke liye 6 dabayein.',
     enterRef: 'Baraye meherbani apna booking reference number keypad se darj karein, phir hash key dabayein. Agar reference number nahi hai, toh hash dabayein.',
@@ -59,18 +72,19 @@ const MSG = {
     bookingNotFound: 'Maaf kijiye, is reference se koi booking nahi mili. Baraye meherbani dobara check karein, ya hash dabayein.',
     problem: 'Hum aap ki kaise madad kar sakte hain? Check-in ya check-out ke liye 1 dabayein. Cancellation ke liye 2 dabayein. Refund ke liye 3 dabayein. Booking mein tabdeeli ke liye 4 dabayein. Payment masle ke liye 5 dabayein. Kuch aur ke liye 6 dabayein.',
     checkin: 'Check-in aur check-out ke sawalaat ke liye, baraye meherbani apne hotel se seedha rabta karein. Hotel ki contact details aap ki confirmation email mein hain.',
-    cancel: 'Cancellation ke liye, baraye meherbani apna booking reference email karein waqar at jetmeaway dot co dot uk par. Aksar bookings check-in se 48 ghante pehle muft cancel ho sakti hain. Aap ko 24 ghanton mein jawab milega.',
-    refund: 'Refund cancellation confirm hone ke 5 se 10 kaam ke dinon mein process hota hai. Agar aap ka refund nahi aaya, toh baraye meherbani email karein waqar at jetmeaway dot co dot uk par.',
-    amendment: 'Booking mein tabdeeli ke liye, baraye meherbani email karein waqar at jetmeaway dot co dot uk par apna booking reference aur jo tabdeeliyaan chahiye woh bhi likhein. 24 ghanton mein jawab milega.',
-    payment: 'Payment maslon ke liye, apne bank statement mein Nuitee Travel ya JetMeAway ka charge check karein. Agar double charge hua hai toh email karein waqar at jetmeaway dot co dot uk par. 48 ghanton mein hal ho jayega.',
-    other: 'Baqi tamam sawalaat ke liye, jetmeaway dot co dot uk slash contact par jayein ya email karein waqar at jetmeaway dot co dot uk par.',
+    cancel: 'Cancellation ke liye, baraye meherbani apna booking reference email karein contact at jetmeaway dot co dot uk par. Aksar bookings check-in se 48 ghante pehle muft cancel ho sakti hain. Aap ko 24 ghanton mein jawab milega.',
+    refund: 'Refund cancellation confirm hone ke 5 se 10 kaam ke dinon mein process hota hai. Agar aap ka refund nahi aaya, toh baraye meherbani email karein contact at jetmeaway dot co dot uk par.',
+    amendment: 'Booking mein tabdeeli ke liye, baraye meherbani email karein contact at jetmeaway dot co dot uk par apna booking reference aur jo tabdeeliyaan chahiye woh bhi likhein. 24 ghanton mein jawab milega.',
+    payment: 'Payment maslon ke liye, apne bank statement mein Nuitee Travel ya JetMeAway ka charge check karein. Agar double charge hua hai toh email karein contact at jetmeaway dot co dot uk par. 48 ghanton mein hal ho jayega.',
+    other: 'Baqi tamam sawalaat ke liye, jetmeaway dot co dot uk slash contact par jayein ya email karein contact at jetmeaway dot co dot uk par.',
     resolved: 'Kya aap ka masla hal ho gaya? Haan ke liye 1 dabayein. Agar abhi bhi madad chahiye toh 2 dabayein.',
-    noAgentWithoutRef: 'Agent se baat karne ke liye aap ko booking reference number chahiye. Yeh aap ki confirmation email mein hai. Baraye meherbani email karein waqar at jetmeaway dot co dot uk par ya jetmeaway dot co dot uk slash contact par jayein. 24 ghanton mein jawab milega.',
+    noAgentWithoutRef: 'Hum aap ki call agent se connect nahi kar sakte kyunke yeh support line sirf un customers ke liye hai jin ki active booking hai. Hamari team se baat karne ke liye booking reference ya confirmation number lazmi hai, jo aap ki confirmation email mein mojood hai. Baqi tamam sawalaat ke liye, baraye meherbani contact at jetmeaway dot co dot uk par email karein ya jetmeaway dot co dot uk slash contact par jayein. Hum 24 ghanton mein jawab denge.',
     thankyou: 'JetMeAway mein call karne ka shukriya. Aap ka safar khush-gawaar ho. Khuda Hafiz.',
-    holdMsg: 'Baraye meherbani hold karein, hum aap ko agent se connect kar rahe hain. Tahmini intezaar ka waqt 2 se 3 minute hai.',
+    holdMsg: 'Baraye meherbani hold karein, hum aap ko agent se connect kar rahe hain. Yeh call quality aur training ke liye record ho sakti hai.',
     holdMusic: 'Shukriya aap ke sabr ka. Agent jald aap se baat karega.',
+    tryingAgent: 'Hum abhi bhi aap ko agent se connect karne ki koshish kar rahe hain. Baraye meherbani hold karein.',
     sorry: 'Maaf kijiye hum aap ka masla hal nahi kar sake. Hum aap ko team ke ek member se connect kar rahe hain.',
-    closed: 'Hamari phone lines Monday se Saturday, subah 9 baje se raat 8 baje tak khuli hain. Aap ne business hours ke baad call ki hai. Baraye meherbani email karein waqar at jetmeaway dot co dot uk par. Shukriya.',
+    closed: 'Maazrat, abhi koi agent aap ki call lene ke liye mojood nahi hai. Baraye meherbani contact at jetmeaway dot co dot uk par email karein ya jetmeaway dot co dot uk slash contact par jayein, apni booking reference ke saath. Hamari team 24 ghanton mein jawab degi. JetMeAway mein call karne ka shukriya.',
     flightDept: 'Flight ke sawalaat ke liye, JetMeAway multiple airlines se prices compare karta hai. Hum seedha flights book nahi karte. Behterein deals ke liye jetmeaway dot co dot uk slash flights par jayein.',
     carDept: 'Car hire ke sawalaat ke liye, jetmeaway dot co dot uk slash cars par jayein. Agar aap ne car book ki hai toh rental company se seedha rabta karein.',
     packageDept: 'Holiday package ke sawalaat ke liye, jetmeaway dot co dot uk slash packages par jayein. Agar aap ne kisi partner se book kiya hai toh un se seedha rabta karein.',
@@ -267,17 +281,8 @@ function stepResolved(lang: Lang, digit: string, ref: string) {
   // Not resolved — only forward if they have a valid booking reference
   const hasValidRef = ref && ref !== 'none' && ref !== '';
   if (hasValidRef && FORWARD_NUMBER) {
-    return twiml(
-      say(m.sorry, lang) +
-      pause(1) +
-      say(m.holdMsg, lang) +
-      `<Play>http://com.twilio.music.soft-rock.s3.amazonaws.com/Strehlow_-_Holding_Pattern.mp3</Play>` +
-      say(m.holdMusic, lang) +
-      `<Play>http://com.twilio.music.soft-rock.s3.amazonaws.com/Strehlow_-_Holding_Pattern.mp3</Play>` +
-      `<Dial timeout="30" callerId="${escXml(process.env.TWILIO_FROM || '')}">${escXml(FORWARD_NUMBER)}</Dial>` +
-      say(m.closed, lang) +
-      '<Hangup/>'
-    );
+    // Kick off the first of MAX_DIAL_ATTEMPTS tries.
+    return stepDialAgent(lang, ref, 1);
   }
 
   // No valid ref — tell them they need a reference to speak to an agent
@@ -289,21 +294,75 @@ function stepResolved(lang: Lang, digit: string, ref: string) {
   );
 }
 
+/* ── Dial-with-retry flow ─────────────────────────────────────────────
+   Twilio's <Dial> verb rings the forwarded number once per TwiML
+   response. To "retry" the agent, we have to return fresh TwiML each
+   time. The trick: <Dial action="..."> tells Twilio to POST back to
+   us after the dial finishes, with a DialCallStatus parameter telling
+   us whether it was answered (completed) or not (no-answer/busy/failed).
+
+   We chain up to MAX_DIAL_ATTEMPTS of these, playing hold music
+   between attempts so the caller hears something other than silence.
+   After all attempts fail, we play the fallback "no agent" message
+   and hang up. */
+function stepDialAgent(lang: Lang, ref: string, attempt: number) {
+  const m = MSG[lang];
+  const actionUrl = `/api/twilio/voice?step=dial-result&lang=${lang}&ref=${ref}&attempt=${attempt}`;
+
+  // Attempt 1: full apology + hold preamble + music clip (caller hears
+  // something meaningful before the first ring). <Play> plays the full
+  // audio file to completion, so we only include it on the first attempt
+  // to keep subsequent retry cycles short (~20s each instead of minutes).
+  //
+  // Attempts 2-5: just "still trying" + the dial ring tone. This keeps
+  // the total retry window bounded to ~1-2 minutes maximum.
+  const preamble = attempt === 1
+    ? say(m.sorry, lang) +
+      pause(1) +
+      say(m.holdMsg, lang) +
+      `<Play>${HOLD_MUSIC_URL}</Play>` +
+      say(m.holdMusic, lang)
+    : say(m.tryingAgent, lang);
+
+  return twiml(
+    preamble +
+    `<Dial timeout="${DIAL_TIMEOUT_SECONDS}" action="${escXml(actionUrl)}" callerId="${escXml(process.env.TWILIO_FROM || '')}">${escXml(FORWARD_NUMBER)}</Dial>`
+  );
+}
+
+function stepDialResult(lang: Lang, ref: string, attempt: number, dialStatus: string) {
+  const m = MSG[lang];
+
+  // 'completed' means the dialed party answered and the call has ended
+  // naturally. Nothing more to do.
+  if (dialStatus === 'completed') {
+    return twiml('<Hangup/>');
+  }
+
+  // Not connected (no-answer / busy / failed / canceled).
+  // Retry if we haven't hit the max.
+  if (attempt < MAX_DIAL_ATTEMPTS) {
+    return stepDialAgent(lang, ref, attempt + 1);
+  }
+
+  // All attempts exhausted — play fallback and hang up.
+  return twiml(
+    say(m.closed, lang) +
+    pause(1) +
+    say(m.thankyou, lang) +
+    '<Hangup/>'
+  );
+}
+
 function stepClosed(lang: Lang) {
   const m = MSG[lang];
   return twiml(say(m.closed, lang) + '<Hangup/>');
 }
 
-/* ── Check business hours (Mon-Sat 9am-8pm UK) ───────────────────────── */
-function isBusinessHours(): boolean {
-  const now = new Date(new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' }));
-  const day = now.getDay(); // 0=Sun
-  const hour = now.getHours();
-  if (day === 0) return false; // Sunday closed
-  return hour >= 9 && hour < 20; // 9am-8pm
-}
-
 /* ── Main Handler ─────────────────────────────────────────────────────── */
+/* Note: IVR runs 24/7. The 'closed' message is only used as a fallback if
+   no agent is available when forwarding a call, not as a business-hours
+   gate. Previously the IVR was gated to Mon-Sat 9am-8pm UK time. */
 
 export async function POST(req: NextRequest) {
   const url = new URL(req.url);
@@ -325,11 +384,7 @@ export async function POST(req: NextRequest) {
       const timeout = url.searchParams.get('timeout');
       if (timeout) return step2Dept('en'); // Default to English on timeout
       const selectedLang: Lang = digits === '2' ? 'ur' : 'en';
-
-      // Check business hours
-      if (!isBusinessHours()) {
-        return stepClosed(selectedLang);
-      }
+      // 24/7 — no business hours gate. Proceed straight to department menu.
       return step2Dept(selectedLang);
     }
 
@@ -350,6 +405,14 @@ export async function POST(req: NextRequest) {
 
     case 'resolved':
       return stepResolved(lang, digits || '1', ref);
+
+    case 'dial-result': {
+      // Twilio POSTs here after each <Dial> finishes. The body includes
+      // DialCallStatus (completed / no-answer / busy / failed / canceled).
+      const attempt = parseInt(url.searchParams.get('attempt') || '1', 10);
+      const dialStatus = params.get('DialCallStatus') || '';
+      return stepDialResult(lang, ref, attempt, dialStatus);
+    }
 
     default:
       return step1Welcome();

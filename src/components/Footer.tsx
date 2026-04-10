@@ -36,18 +36,6 @@ export default function Footer() {
           <div className="text-[.55rem] uppercase tracking-[2.5px] font-extrabold text-white/20 mb-1.5">Affiliate Disclosure</div>
           <p className="text-[.68rem] text-white/[.12] leading-relaxed font-semibold">Jetmeaway participates in the Expedia Affiliate Program (Partnerize) and Travelpayouts Network, uses Nuitee for hotel inventory, and works with GetYourGuide, Viator, Klook, Tiqets, Airalo, Yesim, Ekta Traveling, Economy Bookings, Localrent, Qeeq, GetRentaCar, KiwiTaxi, Welcome Pickups, GetTransfer, AirHelp, Compensair, WeGoTrip, Aviasales, and Trip.com. We may receive compensation when you book through our links at no additional cost to you.</p>
         </div>
-        {/* Emergency support line — distinct amber-accented block so it stands out */}
-        <div className="max-w-[800px] mb-7 p-4 border border-amber-500/20 rounded-xl bg-amber-500/[.03]">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="text-amber-400 text-[.7rem]">⚠</span>
-            <div className="text-[.55rem] uppercase tracking-[2.5px] font-extrabold text-amber-400/90">Emergency Booking Support — Active Bookings Only</div>
-          </div>
-          <a href="tel:+441174630606" className="inline-block font-poppins font-black text-[1.15rem] text-amber-400 hover:text-amber-300 tracking-tight mb-1.5 transition-colors">
-            +44 117 463 0606
-          </a>
-          <p className="text-[.68rem] text-white/[.18] leading-relaxed font-semibold">This line is for customers with an <span className="text-white/30">active booking</span> only. You will be asked for your <span className="text-white/30">booking reference or confirmation number</span> at the start of the call — calls without a valid reference cannot be connected to an agent. For all other enquiries, please email <a href="mailto:contact@jetmeaway.co.uk" className="text-amber-400/80 hover:text-amber-300 underline">contact@jetmeaway.co.uk</a> or use our <a href="/contact" className="text-amber-400/80 hover:text-amber-300 underline">contact form</a>.</p>
-        </div>
-
         <div className="max-w-[800px] mb-7">
           <div className="text-[.55rem] uppercase tracking-[2.5px] font-extrabold text-white/20 mb-1.5">Financial Protection Notice</div>
           <p className="text-[.68rem] text-white/[.12] leading-relaxed font-semibold mb-2">JETMEAWAY LTD acts as a technology platform and an agent for various travel providers.</p>

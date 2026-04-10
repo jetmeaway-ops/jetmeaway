@@ -380,22 +380,8 @@ function HomepageFooter() {
           </div>
         </div>
 
-        {/* Emergency support line — distinct amber-accented block */}
-        <div className="border-t border-white/10 pt-6 mb-5 max-w-[900px]">
-          <div className="p-4 border border-amber-500/20 rounded-xl bg-amber-500/[.03]">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <span className="text-amber-400 text-[.8rem]">⚠</span>
-              <p className="font-poppins text-amber-400/90 text-[.55rem] uppercase tracking-[2.5px] font-extrabold">Emergency Booking Support — Active Bookings Only</p>
-            </div>
-            <a href="tel:+441174630606" className="inline-block font-poppins font-black text-[1.2rem] text-amber-400 hover:text-amber-300 tracking-tight mb-1.5 transition-colors">
-              +44 117 463 0606
-            </a>
-            <p className="font-[var(--font-dm-sans)] text-white/40 text-[.68rem] leading-relaxed">This line is for customers with an <span className="text-white/60">active booking</span> only. You will be asked for your <span className="text-white/60">booking reference or confirmation number</span> at the start of the call — calls without a valid reference cannot be connected to an agent. For all other enquiries, please email <a href="mailto:contact@jetmeaway.co.uk" className="text-amber-400/80 hover:text-amber-300 underline">contact@jetmeaway.co.uk</a> or use our <a href="/contact" className="text-amber-400/80 hover:text-amber-300 underline">contact form</a>.</p>
-          </div>
-        </div>
-
         {/* Financial Protection Notice */}
-        <div className="mb-5 max-w-[900px]">
+        <div className="border-t border-white/10 pt-6 mb-5 max-w-[900px]">
           <p className="font-poppins text-white/30 text-[.55rem] uppercase tracking-[2.5px] font-extrabold mb-2">Financial Protection Notice</p>
           <p className="font-[var(--font-dm-sans)] text-white/30 text-[.68rem] leading-relaxed mb-1.5">JETMEAWAY LTD acts as a technology platform and an agent for various travel providers.</p>
           <p className="font-[var(--font-dm-sans)] text-white/30 text-[.68rem] leading-relaxed mb-1.5"><span className="text-white/50">Hotels &amp; eSIMs:</span> Standalone accommodation and eSIM services are provided directly by JETMEAWAY LTD and are not subject to ATOL protection.</p>
