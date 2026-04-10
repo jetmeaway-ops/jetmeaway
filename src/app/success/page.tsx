@@ -127,7 +127,7 @@ async function sendHotelConfirmationEmail(booking: StoredBooking) {
     ${scoutSection}
 
     <div style="text-align:center;padding:16px 0;border-top:1px solid #E8ECF4;">
-      <p style="font-size:12px;color:#8E95A9;margin:0 0 4px;">Questions? Contact us at <a href="mailto:waqar@jetmeaway.co.uk" style="color:#0066FF;">waqar@jetmeaway.co.uk</a></p>
+      <p style="font-size:12px;color:#8E95A9;margin:0 0 4px;">Questions? Contact us at <a href="mailto:contact@jetmeaway.co.uk" style="color:#0066FF;">contact@jetmeaway.co.uk</a></p>
       <p style="font-size:11px;color:#B0B8CC;margin:0;">JETMEAWAY LTD (Company No: 17140522) &middot; 66 Paul Street, London</p>
     </div>
   </div>
@@ -226,7 +226,7 @@ async function sendFailureEmails(booking: StoredBooking, error: string) {
     </ul>
   </div>
   <div style="text-align:center;padding:16px 0;border-top:1px solid #E8ECF4;">
-    <p style="font-size:12px;color:#8E95A9;margin:0 0 4px;">Need help? Contact us at <a href="mailto:waqar@jetmeaway.co.uk" style="color:#0066FF;">waqar@jetmeaway.co.uk</a></p>
+    <p style="font-size:12px;color:#8E95A9;margin:0 0 4px;">Need help? Contact us at <a href="mailto:contact@jetmeaway.co.uk" style="color:#0066FF;">contact@jetmeaway.co.uk</a></p>
     <p style="font-size:11px;color:#B0B8CC;margin:0;">JETMEAWAY LTD (Company No: 17140522) &middot; 66 Paul Street, London</p>
   </div>
 </div></body></html>`;
@@ -315,7 +315,7 @@ async function finalisePaymentSdk(
 }> {
   const record = await kv.get<StoredBooking>(`pending-booking:${ref}`);
   if (!record) {
-    return { ok: false, error: 'Booking record not found or expired. Please contact waqar@jetmeaway.co.uk with your reference.' };
+    return { ok: false, error: 'Booking record not found or expired. Please contact contact@jetmeaway.co.uk with your reference.' };
   }
 
   // Idempotency: already confirmed
@@ -326,22 +326,22 @@ async function finalisePaymentSdk(
   // Verify transactionId/prebookId match what was stored during prebook
   if (record.transactionId && record.transactionId !== transactionId) {
     console.error(`[/success] transactionId mismatch: URL=${transactionId} KV=${record.transactionId}`);
-    return { ok: false, error: 'Transaction ID mismatch — this may be a stale payment link. Please contact waqar@jetmeaway.co.uk.', booking: record };
+    return { ok: false, error: 'Transaction ID mismatch — this may be a stale payment link. Please contact contact@jetmeaway.co.uk.', booking: record };
   }
   if (record.prebookId && record.prebookId !== prebookId) {
     console.error(`[/success] prebookId mismatch: URL=${prebookId} KV=${record.prebookId}`);
-    return { ok: false, error: 'Prebook ID mismatch — this may be a stale payment link. Please contact waqar@jetmeaway.co.uk.', booking: record };
+    return { ok: false, error: 'Prebook ID mismatch — this may be a stale payment link. Please contact contact@jetmeaway.co.uk.', booking: record };
   }
 
   // Prevent double-confirm: mark as 'booking' state immediately
   if (record.state === 'failed') {
-    return { ok: false, error: record.error || 'This booking has already failed. Please contact waqar@jetmeaway.co.uk.', booking: record };
+    return { ok: false, error: record.error || 'This booking has already failed. Please contact contact@jetmeaway.co.uk.', booking: record };
   }
   await kv.set(`pending-booking:${ref}`, { ...record, state: 'paid' as const }, { ex: 4 * 60 * 60 });
 
   if (!record.guest) {
     await kv.set(`pending-booking:${ref}`, { ...record, state: 'failed', error: 'Guest details missing' }, { ex: 24 * 60 * 60 });
-    return { ok: false, error: 'Guest details were missing. Please contact waqar@jetmeaway.co.uk with your reference.', booking: record };
+    return { ok: false, error: 'Guest details were missing. Please contact contact@jetmeaway.co.uk with your reference.', booking: record };
   }
 
   // Retry up to 2 times — LiteAPI can return transient 500s / 4012 that clear on retry
@@ -513,7 +513,7 @@ export default async function SuccessPage({
         <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
           <h1 className="font-poppins font-black text-[1.3rem] text-red-700 mb-2">We couldn&apos;t finalise your booking</h1>
           <p className="text-[.85rem] text-red-700 font-semibold">{message}</p>
-          <p className="text-[.78rem] text-[#5C6378] mt-3">Please email <a className="underline" href="mailto:waqar@jetmeaway.co.uk">waqar@jetmeaway.co.uk</a> with your reference.</p>
+          <p className="text-[.78rem] text-[#5C6378] mt-3">Please email <a className="underline" href="mailto:contact@jetmeaway.co.uk">contact@jetmeaway.co.uk</a> with your reference.</p>
         </div>
       </main>
     );
@@ -568,7 +568,7 @@ export default async function SuccessPage({
             <p className="text-[.78rem] text-[#5C6378]">Reference: <span className="font-mono font-bold">{result.booking.ref}</span></p>
           )}
           <p className="text-[.78rem] text-[#5C6378] mt-3">
-            Your payment was processed by our hotel partner. If the booking couldn&apos;t be confirmed, any charge will be automatically reversed. Please email <a className="underline" href="mailto:waqar@jetmeaway.co.uk">waqar@jetmeaway.co.uk</a> if you need help.
+            Your payment was processed by our hotel partner. If the booking couldn&apos;t be confirmed, any charge will be automatically reversed. Please email <a className="underline" href="mailto:contact@jetmeaway.co.uk">contact@jetmeaway.co.uk</a> if you need help.
           </p>
           <div className="mt-5 flex gap-3">
             <a href="/hotels" className="flex-1 text-center bg-orange-500 hover:bg-orange-600 text-white font-poppins font-black text-[.85rem] py-3 rounded-xl transition-all">Search again</a>

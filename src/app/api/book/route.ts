@@ -163,7 +163,7 @@ function buildEmailHtml(order: any, passengers: any[], totalPerPerson: number, t
 
     <!-- Footer -->
     <div style="text-align:center;padding:16px 0;border-top:1px solid #E8ECF4;">
-      <p style="font-size:12px;color:#8E95A9;margin:0 0 4px;">Questions? Contact us at <a href="mailto:waqar@jetmeaway.co.uk" style="color:#0066FF;">waqar@jetmeaway.co.uk</a></p>
+      <p style="font-size:12px;color:#8E95A9;margin:0 0 4px;">Questions? Contact us at <a href="mailto:contact@jetmeaway.co.uk" style="color:#0066FF;">contact@jetmeaway.co.uk</a></p>
       <p style="font-size:11px;color:#B0B8CC;margin:0;">JetMeAway · jetmeaway.co.uk · Your AI-powered travel scout</p>
     </div>
 

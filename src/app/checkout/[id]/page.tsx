@@ -897,7 +897,7 @@ export default function CheckoutPage() {
                   {orderError && (
                     <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center mb-4">
                       <p className="text-[.78rem] text-red-600 font-semibold mb-1">{orderError}</p>
-                      <p className="text-[.68rem] text-red-500">Your payment was processed. Contact <a href="mailto:waqar@jetmeaway.co.uk" className="underline">waqar@jetmeaway.co.uk</a> for assistance.</p>
+                      <p className="text-[.68rem] text-red-500">Your payment was processed. Contact <a href="mailto:contact@jetmeaway.co.uk" className="underline">contact@jetmeaway.co.uk</a> for assistance.</p>
                     </div>
                   )}
 

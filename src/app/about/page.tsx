@@ -55,7 +55,7 @@ export default function About() {
           </div>
         </Card>
         <Card title="📩 Get In Touch">
-          <p>Visit our <a href="/contact" className="text-[#0066FF] font-bold">contact page</a> or email <a href="mailto:waqar@jetmeaway.co.uk" className="text-[#0066FF] font-bold">waqar@jetmeaway.co.uk</a>.</p>
+          <p>Visit our <a href="/contact" className="text-[#0066FF] font-bold">contact page</a> or email <a href="mailto:contact@jetmeaway.co.uk" className="text-[#0066FF] font-bold">contact@jetmeaway.co.uk</a>.</p>
         </Card>
       </div>
       <Footer />

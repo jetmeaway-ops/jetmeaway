@@ -42,7 +42,7 @@ export default function Terms() {
           <p>These terms are governed by the laws of England and Wales.</p>
 
           <h2 className="font-poppins text-[.95rem] font-bold text-[#0066FF] mt-5">8. Contact</h2>
-          <p>Questions? Email <a href="mailto:waqar@jetmeaway.co.uk" className="text-[#0066FF] font-bold">waqar@jetmeaway.co.uk</a> or visit our <a href="/contact" className="text-[#0066FF] font-bold">contact page</a>.</p>
+          <p>Questions? Email <a href="mailto:contact@jetmeaway.co.uk" className="text-[#0066FF] font-bold">contact@jetmeaway.co.uk</a> or visit our <a href="/contact" className="text-[#0066FF] font-bold">contact page</a>.</p>
         </div>
       </div>
       <Footer />
