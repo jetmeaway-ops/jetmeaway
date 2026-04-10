@@ -1,5 +1,3 @@
-export const runtime = 'edge';
-
 import Header from '@/components/Header';
 import HomepageClient from './homepage-client';
 
