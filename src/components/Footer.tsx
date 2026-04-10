@@ -22,6 +22,7 @@ export default function Footer() {
           <div>
             <h4 className="font-poppins text-[.62rem] font-extrabold uppercase tracking-[2.5px] text-white mb-4">Company</h4>
             <Link href="/about" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">About</Link>
+            <Link href="/blog" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">Blog</Link>
             <Link href="/privacy" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">Privacy Policy</Link>
             <Link href="/terms" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">Terms of Service</Link>
             <Link href="/contact" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">Contact Us</Link>

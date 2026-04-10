@@ -1,0 +1,208 @@
+import { notFound } from 'next/navigation';
+import { compileMDX } from 'next-mdx-remote/rsc';
+import Link from 'next/link';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import { getAllPostSlugs, getPostBySlug, formatPostDate } from '@/lib/blog';
+import type { Metadata } from 'next';
+
+/**
+ * Statically pre-render every post at build time. New posts dropped into
+ * content/posts/ need a fresh deploy to appear — which matches the
+ * "Semi-Ongoing SEO" plan we agreed on.
+ */
+export function generateStaticParams() {
+  return getAllPostSlugs().map(slug => ({ slug }));
+}
+
+/**
+ * Per-post SEO metadata — drives <title>, meta description, and
+ * OpenGraph previews for WhatsApp / Twitter shares.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const post = getPostBySlug(slug);
+  if (!post) return {};
+  return {
+    title: `${post.title} | JetMeAway Blog`,
+    description: post.excerpt,
+    openGraph: {
+      title: post.title,
+      description: post.excerpt,
+      url: `https://jetmeaway.co.uk/blog/${post.slug}`,
+      type: 'article',
+      publishedTime: post.date,
+      images: [{ url: post.heroImage, width: 1600, height: 800, alt: post.title }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description: post.excerpt,
+      images: [post.heroImage],
+    },
+  };
+}
+
+/**
+ * Styled React components that replace default HTML elements inside the
+ * compiled MDX output. This gives us full Tailwind control over article
+ * typography without needing @tailwindcss/typography.
+ */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const mdxComponents = {
+  h1: (props: any) => (
+    <h1 className="font-poppins text-[2rem] md:text-[2.3rem] font-black text-[#1A1D2B] mt-12 mb-4 leading-tight" {...props} />
+  ),
+  h2: (props: any) => (
+    <h2 className="font-poppins text-[1.5rem] md:text-[1.75rem] font-black text-[#1A1D2B] mt-12 mb-4 leading-tight" {...props} />
+  ),
+  h3: (props: any) => (
+    <h3 className="font-poppins text-[1.15rem] md:text-[1.3rem] font-bold text-[#1A1D2B] mt-8 mb-2 leading-snug" {...props} />
+  ),
+  p: (props: any) => (
+    <p className="text-[1rem] md:text-[1.05rem] text-[#374151] leading-[1.75] mb-5 font-medium" {...props} />
+  ),
+  ul: (props: any) => (
+    <ul className="list-disc pl-6 mb-6 space-y-2 text-[1rem] md:text-[1.05rem] text-[#374151] font-medium" {...props} />
+  ),
+  ol: (props: any) => (
+    <ol className="list-decimal pl-6 mb-6 space-y-2 text-[1rem] md:text-[1.05rem] text-[#374151] font-medium" {...props} />
+  ),
+  li: (props: any) => <li className="leading-[1.7]" {...props} />,
+  strong: (props: any) => <strong className="font-bold text-[#1A1D2B]" {...props} />,
+  em: (props: any) => <em className="italic" {...props} />,
+  a: (props: any) => (
+    <a className="text-[#0066FF] font-bold hover:underline underline-offset-2 transition-colors hover:text-[#0052CC]" {...props} />
+  ),
+  blockquote: (props: any) => (
+    <blockquote
+      className="border-l-4 border-[#0066FF] pl-5 py-2 my-8 bg-blue-50/50 rounded-r-lg italic text-[#5C6378] font-semibold"
+      {...props}
+    />
+  ),
+  hr: () => <hr className="my-12 border-[#E8ECF4]" />,
+  code: (props: any) => (
+    <code className="bg-[#F1F3F7] text-[#0066FF] px-1.5 py-0.5 rounded text-[.92em] font-mono" {...props} />
+  ),
+};
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const post = getPostBySlug(slug);
+  if (!post) notFound();
+
+  // Compile the MDX body. Frontmatter is already parsed by gray-matter
+  // in the lib helper, so we pass the body content directly.
+  const { content } = await compileMDX({
+    source: post.content,
+    components: mdxComponents,
+    options: { parseFrontmatter: false },
+  });
+
+  // JSON-LD Article schema — gives Google the rich-result signal and
+  // helps establish topical authority for the travel niche.
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: post.title,
+    description: post.excerpt,
+    image: post.heroImage,
+    datePublished: post.date,
+    dateModified: post.date,
+    author: {
+      '@type': 'Organization',
+      name: post.author ?? 'JetMeAway',
+      url: 'https://jetmeaway.co.uk',
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'JetMeAway',
+      logo: {
+        '@type': 'ImageObject',
+        url: 'https://jetmeaway.co.uk/jetmeaway-logo.png',
+      },
+    },
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': `https://jetmeaway.co.uk/blog/${post.slug}`,
+    },
+  };
+
+  return (
+    <>
+      <Header />
+
+      {/* JSON-LD structured data — Google reads this for rich snippets */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
+      <article className="pt-32 pb-16 bg-white">
+        {/* Article header */}
+        <div className="max-w-[760px] mx-auto px-5 text-center mb-10">
+          <Link
+            href="/blog"
+            className="inline-flex items-center gap-1 text-[.72rem] font-bold text-[#8E95A9] hover:text-[#0066FF] uppercase tracking-[1.5px] mb-6 transition-colors"
+          >
+            <i className="fa-solid fa-arrow-left text-[.65rem]" /> Back to Blog
+          </Link>
+          <span className="inline-block bg-blue-50 text-[#0066FF] text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4">
+            {post.category}
+          </span>
+          <h1 className="font-poppins text-[2.2rem] md:text-[3rem] font-black text-[#1A1D2B] leading-[1.1] tracking-tight mb-5">
+            {post.title}
+          </h1>
+          <div className="flex items-center justify-center gap-3 text-[.82rem] text-[#8E95A9] font-semibold">
+            <span>{formatPostDate(post.date)}</span>
+            <span>•</span>
+            <span>{post.readTime}</span>
+            {post.author && (
+              <>
+                <span>•</span>
+                <span>By {post.author}</span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Hero image */}
+        <div className="max-w-[960px] mx-auto px-5 mb-12">
+          <img
+            src={post.heroImage}
+            alt={post.title}
+            className="w-full h-[320px] md:h-[460px] object-cover rounded-3xl shadow-[0_24px_60px_-20px_rgba(0,102,255,0.2)]"
+          />
+        </div>
+
+        {/* MDX body */}
+        <div className="max-w-[760px] mx-auto px-5">{content}</div>
+
+        {/* End-of-post CTA */}
+        <div className="max-w-[760px] mx-auto px-5 mt-16">
+          <div className="bg-gradient-to-br from-[#EBF3FF] to-[#F8FAFC] border border-[#E8ECF4] rounded-3xl p-8 md:p-10 text-center">
+            <h3 className="font-poppins text-[1.3rem] md:text-[1.5rem] font-black text-[#1A1D2B] mb-2">
+              Plan Your 2026 Trip Now
+            </h3>
+            <p className="text-[.88rem] text-[#5C6378] font-semibold mb-6 max-w-[480px] mx-auto">
+              Use the JetMeAway Scout to compare live prices across 15+ trusted providers. Zero booking fees.
+            </p>
+            <Link
+              href="/hotels"
+              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-gradient-to-r from-[#0066FF] to-[#0052CC] text-white font-poppins font-black text-[.9rem] shadow-[0_8px_24px_rgba(0,102,255,0.28)] hover:shadow-[0_12px_32px_rgba(0,102,255,0.35)] hover:-translate-y-0.5 active:translate-y-0 transition-all"
+            >
+              Start Searching <i className="fa-solid fa-arrow-right text-[.8rem]" />
+            </Link>
+          </div>
+        </div>
+      </article>
+
+      <Footer />
+    </>
+  );
+}
