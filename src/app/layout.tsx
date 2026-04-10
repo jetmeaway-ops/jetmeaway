@@ -52,19 +52,37 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${poppins.variable} ${playfair.variable} ${dmSans.variable}`}>
       <head>
-        {/* Preconnect to Font Awesome CDN for faster icon loading */}
+        {/* Preconnect + DNS prefetch to Font Awesome CDN (cheap, non-blocking) */}
         <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossOrigin="anonymous" />
-        <link
-          rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
-          crossOrigin="anonymous"
-        />
-        {/* Poppins is self-hosted via next/font — no Google Fonts request needed */}
+        <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" />
+        {/*
+          Font Awesome is NOT loaded in the initial HTML — it would block first
+          paint by ~200-400ms. Instead, it's injected client-side via a
+          <Script strategy="lazyOnload"> below. Icons appear a fraction of a
+          second after first paint, but the page renders immediately.
+
+          <noscript> fallback: without JS we fall back to the sync stylesheet
+          so icons still work for users with JS disabled.
+        */}
+        <noscript>
+          <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+            crossOrigin="anonymous"
+          />
+        </noscript>
+        {/* Poppins + Playfair + DM Sans self-hosted via next/font — no Google Fonts request */}
       </head>
       <body>
         {children}
         <Analytics />
         <ScoutChat />
+        {/* Font Awesome — injected client-side during idle time so it never
+            blocks first paint. Icons (star ratings, step icons, etc) appear
+            a moment after the rest of the page is already visible. */}
+        <Script id="load-font-awesome" strategy="lazyOnload">
+          {`(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css';l.crossOrigin='anonymous';document.head.appendChild(l);})();`}
+        </Script>
         {/* Travelpayouts tracking pixel — fires on every page */}
         <Script
           id="travelpayouts-tracker"
