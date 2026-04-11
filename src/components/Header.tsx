@@ -13,13 +13,15 @@ import { usePathname } from 'next/navigation';
 const NAV = [
   { href: '/hotels', label: 'Hotels', icon: '🏨' },
   { href: '/packages', label: 'Packages', icon: '📦' },
-  { href: '/esim', label: 'eSIM', icon: '📱' },
-  { href: '/flights', label: 'Flights', icon: '✈' },
   { href: '/cars', label: 'Car Hire', icon: '🚗' },
 ];
 
-/** Children of the Discover dropdown on desktop. */
+/** Children of the Discover dropdown on desktop.
+ *  Flights & eSIM live here now — they're lower-priority than the
+ *  hotel-driven booking flow but still need to be one click away. */
 const DISCOVER_ITEMS = [
+  { href: '/flights', label: 'Flights', icon: '✈' },
+  { href: '/esim', label: 'eSIM', icon: '📱' },
   { href: '/explore', label: 'Destinations', icon: '🧭' },
   { href: '/about', label: 'About Us', icon: 'ℹ️' },
 ];
@@ -37,11 +39,9 @@ export default function Header() {
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + '/');
 
-  const discoverActive =
-    pathname === '/explore' ||
-    pathname.startsWith('/explore/') ||
-    pathname === '/about' ||
-    pathname.startsWith('/about/');
+  const discoverActive = DISCOVER_ITEMS.some(
+    item => pathname === item.href || pathname.startsWith(item.href + '/'),
+  );
 
   return (
     <>
@@ -125,8 +125,28 @@ export default function Header() {
             </div>
           </nav>
 
-          {/* RIGHT: Contact button + mobile hamburger */}
+          {/* RIGHT: Currency badge + Contact button + mobile hamburger */}
           <div className="flex items-center gap-2">
+            {/* Currency / region badge — display-only for now (we only price in GBP).
+                Union Jack is an inline SVG so it renders on Windows (which has no flag-emoji glyphs). */}
+            <span
+              className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-[.72rem] font-extrabold uppercase tracking-[1px] text-slate-500 bg-slate-50 border border-slate-200"
+              aria-label="Prices shown in British Pounds"
+              title="Prices shown in GBP"
+            >
+              <svg viewBox="0 0 60 30" className="w-4 h-[10px] rounded-[1px] shrink-0" aria-hidden="true">
+                <clipPath id="ukflag-clip"><rect width="60" height="30"/></clipPath>
+                <clipPath id="ukflag-tl"><path d="M30 15h30v15zv15H0zH0V0zV0h30z"/></clipPath>
+                <g clipPath="url(#ukflag-clip)">
+                  <rect width="60" height="30" fill="#012169"/>
+                  <path d="M0 0l60 30m0-30L0 30" stroke="#fff" strokeWidth="6"/>
+                  <path d="M0 0l60 30m0-30L0 30" clipPath="url(#ukflag-tl)" stroke="#C8102E" strokeWidth="4"/>
+                  <path d="M30 0v30M0 15h60" stroke="#fff" strokeWidth="10"/>
+                  <path d="M30 0v30M0 15h60" stroke="#C8102E" strokeWidth="6"/>
+                </g>
+              </svg>
+              GBP
+            </span>
             <Link
               href="/contact"
               className="hidden md:inline-flex bg-[#0F1119] text-white px-4 py-2.5 rounded-xl font-bold text-[.78rem] transition-all hover:bg-[#0066FF] shadow-[0_4px_16px_rgba(0,0,0,0.12)]"

@@ -217,92 +217,110 @@ export default function FlightSearch() {
     localStorage.setItem('jma_departure_airport', ap.code);
   }
 
+  function submitSearch() {
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      inputRef.current?.focus();
+      return;
+    }
+    // Resolve to a destination: exact match first, then startsWith, then includes
+    const exact = DESTINATIONS.find(d => d.city.toLowerCase() === q || d.code.toLowerCase() === q);
+    const partial = exact || DESTINATIONS.find(d => d.city.toLowerCase().startsWith(q)) || DESTINATIONS.find(d => d.city.toLowerCase().includes(q));
+    if (partial) goToFlights(partial);
+  }
+
   return (
-    <div className="max-w-2xl mx-auto w-full">
-      <div ref={ref} className="bg-white border border-[#E8ECF4] rounded-3xl shadow-[0_8px_40px_rgba(0,102,255,0.08)] p-5">
-        {/* Departing from */}
-        <div ref={originRef} className="relative mb-3">
-          <p className="text-[.62rem] font-black uppercase tracking-[2px] text-[#8E95A9] mb-1">Departing from</p>
-          <button onClick={() => setShowOriginPicker(!showOriginPicker)}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl border border-[#E8ECF4] hover:border-[#0066FF] transition-colors w-full text-left">
-            <span className="text-sm">🛫</span>
-            <span className="font-poppins font-bold text-[.85rem] text-[#1A1D2B]">{origin.name}</span>
-            <span className="text-[.72rem] text-[#8E95A9] font-semibold">({origin.code})</span>
-            <span className="ml-auto text-[.65rem] text-[#0066FF] font-bold">Change</span>
+    <div className="max-w-[680px] mx-auto w-full">
+      {/* ── Floating Command Bar — glassmorphic dark, single horizontal row ── */}
+      <div ref={ref}
+        className="relative backdrop-blur-2xl bg-white/[.08] border border-white/15 rounded-2xl shadow-[0_24px_60px_-20px_rgba(0,0,0,0.6),0_8px_24px_-8px_rgba(255,140,40,0.15)] p-2.5 flex items-center gap-2">
+
+        {/* Origin pill — glass within glass */}
+        <div ref={originRef} className="relative flex-shrink-0">
+          <button type="button" onClick={() => setShowOriginPicker(!showOriginPicker)}
+            className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 hover:border-white/25 transition-all">
+            <span className="text-[.85rem]" aria-hidden="true">🛫</span>
+            <span className="font-mono font-black text-[.78rem] sm:text-[.82rem] text-white tracking-wider">{origin.code}</span>
+            <span className="text-[.55rem] text-white/40 hidden sm:inline" aria-hidden="true">▾</span>
           </button>
           {showOriginPicker && (
-            <ul className="absolute z-50 w-full mt-1 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl overflow-auto max-h-60">
+            <ul className="absolute z-50 left-0 mt-2 w-[260px] backdrop-blur-2xl bg-[#0F1B33]/95 border border-white/15 rounded-2xl shadow-[0_24px_60px_-12px_rgba(0,0,0,0.7)] overflow-auto max-h-72 p-1">
               {AIRPORTS.map(ap => (
                 <li key={ap.code} onMouseDown={() => changeOrigin(ap)}
-                  className={`flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 cursor-pointer border-b border-[#F8FAFC] last:border-0 transition-colors ${ap.code === origin.code ? 'bg-blue-50' : ''}`}>
-                  <span className="font-mono text-[.75rem] font-bold text-[#0066FF] w-8">{ap.code}</span>
-                  <span className="font-poppins font-semibold text-[.82rem] text-[#1A1D2B]">{ap.name}</span>
+                  className={`flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer transition-all ${ap.code === origin.code ? 'bg-orange-500/15 border border-orange-400/30' : 'hover:bg-white/10 border border-transparent'}`}>
+                  <span className="font-mono text-[.72rem] font-black text-orange-300 w-9">{ap.code}</span>
+                  <span className="font-poppins font-semibold text-[.82rem] text-white/90">{ap.name}</span>
                 </li>
               ))}
             </ul>
           )}
         </div>
 
-        {/* Where to? */}
-        <p className="text-[.65rem] font-black uppercase tracking-[2.5px] text-[#0066FF] mb-2">Where to? 🌍</p>
-        <div className="relative mb-4">
+        {/* Destination input — borderless inside the glass bar */}
+        <div className="relative flex-1 min-w-0">
           <input ref={inputRef} type="text" value={query}
             onChange={e => handleInput(e.target.value)}
             onFocus={() => { if (query.trim()) handleInput(query); }}
-            placeholder="Type a city or country..."
-            className="w-full px-4 py-4 rounded-2xl border-2 border-[#E8ECF4] focus:border-[#0066FF] outline-none font-poppins font-semibold text-[1rem] text-[#1A1D2B] placeholder:text-[#C0C8D8] transition-colors" />
+            onKeyDown={e => { if (e.key === 'Enter') submitSearch(); }}
+            placeholder="Where will Scout take you?"
+            aria-label="Where will Scout take you"
+            className="w-full px-2 py-2.5 bg-transparent outline-none font-poppins font-semibold text-[.95rem] sm:text-[1rem] text-white placeholder:text-white/45 placeholder:font-medium" />
 
           {showSugg && suggestions.length > 0 && (
-            <ul className="absolute z-50 w-full mt-2 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl overflow-hidden">
+            <ul className="absolute z-50 left-0 right-0 mt-2 backdrop-blur-2xl bg-[#0F1B33]/95 border border-white/15 rounded-2xl shadow-[0_24px_60px_-12px_rgba(0,0,0,0.7)] overflow-hidden p-1">
               {suggestions.map(d => (
                 <li key={d.code} onMouseDown={() => selectDest(d)}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-[#F8FAFC] last:border-0 transition-colors">
-                  <span className="text-2xl">{d.flag}</span>
-                  <div className="flex-1 text-left">
-                    <div className="font-poppins font-bold text-[.9rem] text-[#1A1D2B]">{d.city}</div>
-                    <div className="text-[.72rem] text-[#8E95A9]">{d.country}</div>
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/10 cursor-pointer transition-colors">
+                  <span className="text-2xl" aria-hidden="true">{d.flag}</span>
+                  <div className="flex-1 text-left min-w-0">
+                    <div className="font-poppins font-bold text-[.9rem] text-white truncate">{d.city}</div>
+                    <div className="text-[.7rem] text-white/50 truncate">{d.country}</div>
                   </div>
-                  <span className="font-mono text-[.68rem] font-bold text-[#8E95A9]">{d.code}</span>
+                  <span className="font-mono text-[.66rem] font-black text-orange-300/80">{d.code}</span>
                 </li>
               ))}
             </ul>
           )}
         </div>
 
-        {/* Welcome back — recent searches */}
-        {recentSearches.length > 0 && (
-          <div className="mb-3">
-            <p className="text-[.62rem] font-bold uppercase tracking-[2px] text-[#0066FF] mb-2">Welcome back — your recent searches</p>
-            <div className="flex flex-wrap gap-2">
-              {recentSearches.map(s => {
-                const dest = DESTINATIONS.find(d => d.code === s.code);
-                return (
-                  <button key={s.code} onMouseDown={() => dest && goToFlights(dest)}
-                    className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 hover:border-blue-300 rounded-full text-[.78rem] font-semibold text-[#0066FF] transition-all">
-                    {s.flag} {s.city}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        {/* Search button — orange CTA with subtle glow */}
+        <button type="button" onMouseDown={submitSearch}
+          aria-label="Search"
+          className="flex-shrink-0 flex items-center justify-center gap-1.5 px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-gradient-to-br from-orange-400 to-orange-500 hover:from-orange-300 hover:to-orange-500 text-white font-poppins font-black text-[.78rem] sm:text-[.85rem] uppercase tracking-wider shadow-[0_8px_24px_-6px_rgba(249,115,22,0.6)] hover:shadow-[0_12px_28px_-6px_rgba(249,115,22,0.8)] transition-all">
+          <i className="fa-solid fa-magnifying-glass text-[.78rem]" aria-hidden="true" />
+          <span className="hidden sm:inline">Go</span>
+        </button>
+      </div>
 
-        {/* Popular chips */}
-        <div className="mb-2">
-          <p className="text-[.62rem] font-bold uppercase tracking-[2px] text-[#C0C8D8] mb-2">Popular right now</p>
-          <div className="flex flex-wrap gap-2">
-            {POPULAR.map(d => (
-              <button key={d.code} onMouseDown={() => goToFlights(d)}
-                className="px-3 py-1.5 bg-[#F8FAFC] hover:bg-blue-50 border border-[#E8ECF4] hover:border-blue-200 rounded-full text-[.78rem] font-semibold text-[#5C6378] hover:text-[#0066FF] transition-all">
-                {d.flag} {d.city}
-              </button>
-            ))}
-            <button onMouseDown={surpriseMe}
-              className="px-3 py-1.5 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100 hover:border-purple-300 rounded-full text-[.78rem] font-bold text-purple-600 transition-all">
-              🎲 Surprise me!
-            </button>
-          </div>
-        </div>
+      {/* ── Pills row beneath the bar: recent searches → popular → surprise me ── */}
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5">
+        {/* Recent searches first — most personal */}
+        {recentSearches.length > 0 && (
+          <>
+            <span className="text-[.6rem] font-black uppercase tracking-[2px] text-orange-300/80 mr-1 hidden sm:inline">Pick up where you left off</span>
+            {recentSearches.map(s => {
+              const dest = DESTINATIONS.find(d => d.code === s.code);
+              return (
+                <button key={`recent-${s.code}`} type="button" onMouseDown={() => dest && goToFlights(dest)}
+                  className="px-3 py-1.5 backdrop-blur-md bg-orange-400/15 hover:bg-orange-400/25 border border-orange-300/30 hover:border-orange-300/60 rounded-full text-[.74rem] font-bold text-orange-100 transition-all">
+                  <span className="mr-1" aria-hidden="true">{s.flag}</span>{s.city}
+                </button>
+              );
+            })}
+            <span className="w-px h-4 bg-white/15 mx-1 hidden sm:inline-block" aria-hidden="true" />
+          </>
+        )}
+        {/* Popular destinations */}
+        {POPULAR.slice(0, 5).map(d => (
+          <button key={`pop-${d.code}`} type="button" onMouseDown={() => goToFlights(d)}
+            className="px-3 py-1.5 backdrop-blur-md bg-white/[.06] hover:bg-white/15 border border-white/15 hover:border-white/30 rounded-full text-[.74rem] font-semibold text-white/80 hover:text-white transition-all">
+            <span className="mr-1" aria-hidden="true">{d.flag}</span>{d.city}
+          </button>
+        ))}
+        <button type="button" onMouseDown={surpriseMe}
+          className="px-3 py-1.5 backdrop-blur-md bg-gradient-to-r from-purple-400/15 to-pink-400/15 hover:from-purple-400/25 hover:to-pink-400/25 border border-purple-300/30 hover:border-purple-300/60 rounded-full text-[.74rem] font-bold text-purple-100 transition-all">
+          🎲 Surprise me
+        </button>
       </div>
     </div>
   );
