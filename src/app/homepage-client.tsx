@@ -11,7 +11,7 @@ const PROVIDERS = ['Expedia', 'Trip.com', 'GetYourGuide', 'Viator', 'Klook', 'Ai
 
 function LogoScroll() {
   return (
-    <section className="py-4 bg-[#F1F3F7] border-y border-[#e8ecf4] overflow-hidden">
+    <section className="py-4 bg-[#C8D0E0] border-y border-[#b6c0d3] overflow-hidden">
       <div className="flex animate-scroll">
         {[...PROVIDERS, ...PROVIDERS].map((name, i) => (
           <span key={i} className="flex-shrink-0 mx-8 font-[var(--font-dm-sans)] font-bold text-[.85rem] tracking-wide text-[#8E95A9] uppercase whitespace-nowrap">
@@ -170,7 +170,8 @@ function PopularDestinations() {
   const cards = [...DESTINATIONS, ...DESTINATIONS]; // duplicate for infinite loop
 
   return (
-    <section className="py-14 bg-white overflow-hidden">
+    // Same darker grey as the LogoScroll above — avoids the harsh white slab while keeping the cards readable.
+    <section className="py-14 bg-[#C8D0E0] overflow-hidden">
       <div className="max-w-[1100px] mx-auto px-6 mb-10">
         <div className="flex items-center justify-center gap-2 mb-2">
           <p className="text-[.65rem] font-black uppercase tracking-[3px] text-orange-500 font-[var(--font-dm-sans)]">Trending Now</p>
