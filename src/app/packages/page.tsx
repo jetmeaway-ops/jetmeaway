@@ -484,7 +484,7 @@ function PackagesContent() {
       {/* ── Hero + Search ── */}
       <section className="pt-36 pb-10 px-5 bg-[radial-gradient(ellipse_at_top,#F0E8FF_0%,#fff_55%,#F8FAFC_100%)]">
         <div className="max-w-[860px] mx-auto text-center mb-8">
-          <span className="inline-block bg-purple-50 text-purple-600 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4">📦 Holiday Packages</span>
+          <span className="inline-flex items-center gap-1.5 bg-purple-50 text-purple-600 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4"><span className="text-base leading-none">📦</span> Holiday Packages</span>
           <h1 className="font-poppins text-[2.4rem] md:text-[3.6rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
             Complete <em className="italic bg-gradient-to-br from-purple-500 to-indigo-600 bg-clip-text text-transparent">Holiday</em> Packages
           </h1>

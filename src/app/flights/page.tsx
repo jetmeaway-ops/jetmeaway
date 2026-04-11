@@ -997,7 +997,7 @@ function FlightsContent() {
       {/* ── Hero + Search ── */}
       <section className="pt-36 pb-10 px-5 bg-[radial-gradient(ellipse_at_top,#E8F0FE_0%,#fff_55%,#F8FAFC_100%)]">
         <div className="max-w-[860px] mx-auto text-center mb-8">
-          <span className="inline-block bg-blue-50 text-[#0066FF] text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4">✈ Flight Comparison</span>
+          <span className="inline-flex items-center gap-1.5 bg-blue-50 text-[#0066FF] text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4"><span className="text-base leading-none">✈</span> Flight Comparison</span>
           <h1 className="font-poppins text-[2.4rem] md:text-[3.6rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
             Find the <em className="italic bg-gradient-to-br from-[#0066FF] to-[#4F46E5] bg-clip-text text-transparent">Cheapest</em> Flights
           </h1>

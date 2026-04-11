@@ -79,7 +79,7 @@ export default function InsurancePage() {
 
       <section className="pt-36 pb-16 px-5 bg-[radial-gradient(ellipse_at_top,#E8F8EE_0%,#fff_55%,#F8FAFC_100%)] relative">
         <div className="max-w-[860px] mx-auto text-center mb-10">
-          <span className="inline-block bg-green-50 text-green-600 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4">🛡 Travel Insurance</span>
+          <span className="inline-flex items-center gap-1.5 bg-green-50 text-green-600 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4"><span className="text-base leading-none">🛡</span> Travel Insurance</span>
           <h1 className="font-poppins text-[2.6rem] md:text-[3.8rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
             Travel <em className="italic bg-gradient-to-br from-green-500 to-teal-600 bg-clip-text text-transparent">Protected</em>
           </h1>

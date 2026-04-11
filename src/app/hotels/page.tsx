@@ -948,7 +948,7 @@ function HotelsContent() {
       {/* ── Hero + Search ── */}
       <section className="pt-36 pb-10 px-5 bg-[radial-gradient(ellipse_at_top,#FFF7ED_0%,#fff_55%,#F8FAFC_100%)]">
         <div className="max-w-[860px] mx-auto text-center mb-8">
-          <span className="inline-block bg-orange-50 text-orange-500 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4">🏨 Hotel Comparison</span>
+          <span className="inline-flex items-center gap-1.5 bg-orange-50 text-orange-500 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4"><span className="text-base leading-none">🏨</span> Hotel Comparison</span>
           <h1 className="font-poppins text-[2.4rem] md:text-[3.6rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
             Find the <em className="italic bg-gradient-to-br from-orange-400 to-amber-600 bg-clip-text text-transparent">Best</em> Hotels
           </h1>
