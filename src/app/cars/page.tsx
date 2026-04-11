@@ -187,6 +187,57 @@ function buildEcoBookingsUrl(opts: {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   AFFILIATE URL BUILDER — Trip.com direct affiliate (Allianceid=8023009)
+   URL contract verified on 2026-04-11 against real Trip.com form submission.
+   Trip.com resolves airport name, city, country, lat/lon from just the IATA
+   code (`pcode`), so we only need IATA + dates + affiliate IDs.
+
+   Verified end-to-end on 2026-04-11:
+     LHR: title "London car rentals", pre-fills "London, United Kingdom",
+       4 car cards, prices £12-£19/day.
+     BCN: title "Barcelona car rentals", pre-fills "Barcelona, Spain",
+       4 car cards, prices £7-£400, auto-resolved Josep Tarradellas airport.
+     MAD: title "Madrid car rentals", pre-fills "Madrid, Spain", 4 car cards.
+     Allianceid=8023009 preserved in final URL in all cases.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const TRIP_ALLIANCE = '8023009';
+const TRIP_SID      = '303363796';
+const TRIP_SUB      = 'D15021113';
+
+function buildTripComUrl(opts: {
+  pickupIata: string;
+  dropoffIata: string;
+  pickupDate: string;   // YYYY-MM-DD
+  dropoffDate: string;  // YYYY-MM-DD
+  pickupTime: string;   // HH:MM
+  dropoffTime: string;  // HH:MM
+  currency?: string;
+}): string {
+  // Trip.com uses "YYYY/MM/DD HH:MM" format
+  const ptime = `${opts.pickupDate.replace(/-/g, '/')} ${opts.pickupTime}`;
+  const rtime = `${opts.dropoffDate.replace(/-/g, '/')} ${opts.dropoffTime}`;
+
+  const params = new URLSearchParams({
+    Allianceid: TRIP_ALLIANCE,
+    SID: TRIP_SID,
+    trip_sub3: TRIP_SUB,
+    scountry: '109',
+    locale: 'en-XX',
+    curr: opts.currency || 'GBP',
+    fromPage: 'Home',
+    pcode: opts.pickupIata,
+    ptype: '1',            // 1 = airport
+    ptime,
+    rcode: opts.dropoffIata,
+    rtype: '1',
+    rtime,
+    age: '30-60',
+  });
+  return `https://www.trip.com/carhire/online/list?${params.toString()}`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    LOCATION PICKER — autocomplete from verified list only
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -405,24 +456,33 @@ function CarsContent() {
       return b.seats - a.seats;
     });
 
-  // Build the affiliate URL once per render so every CTA shares the same link.
-  const ebUrl = (() => {
-    const pickupLoc = findLocation(searchedLoc);
-    const dropoffLoc = findLocation(searchedReturnLoc) || pickupLoc;
-    if (!pickupLoc || !dropoffLoc) return null;
-    return buildEcoBookingsUrl({
-      pickupPlc: pickupLoc.plc,
-      dropoffPlc: dropoffLoc.plc,
-      pickupDate,
-      dropoffDate,
-      pickupTime,
-      dropoffTime,
-      driverAge: Number(driverAge) || 30,
-      currency: 'GBP',
-    });
-  })();
+  // Build the affiliate URLs once per render so every CTA shares the same link.
+  const pickupLoc = findLocation(searchedLoc);
+  const dropoffLoc = findLocation(searchedReturnLoc) || pickupLoc;
+
+  const ebUrl = pickupLoc && dropoffLoc ? buildEcoBookingsUrl({
+    pickupPlc: pickupLoc.plc,
+    dropoffPlc: dropoffLoc.plc,
+    pickupDate,
+    dropoffDate,
+    pickupTime,
+    dropoffTime,
+    driverAge: Number(driverAge) || 30,
+    currency: 'GBP',
+  }) : null;
+
+  const tripUrl = pickupLoc && dropoffLoc ? buildTripComUrl({
+    pickupIata: pickupLoc.iata,
+    dropoffIata: dropoffLoc.iata,
+    pickupDate,
+    dropoffDate,
+    pickupTime,
+    dropoffTime,
+    currency: 'GBP',
+  }) : null;
 
   const ebHref = ebUrl ? redirectUrl(ebUrl, 'EconomyBookings', city, 'cars') : '#';
+  const tripHref = tripUrl ? redirectUrl(tripUrl, 'Trip.com', city, 'cars') : '#';
 
   return (
     <>
@@ -513,7 +573,7 @@ function CarsContent() {
             className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(16,185,129,0.3)]">
             Search Car Rentals →
           </button>
-          <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">Pick from {LOCATIONS.length} verified airports · We compare real live prices on EconomyBookings</p>
+          <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">Pick from {LOCATIONS.length} verified airports · Compare real live prices on EconomyBookings & Trip.com</p>
         </div>
       </section>
 
@@ -530,7 +590,7 @@ function CarsContent() {
                 <h2 className="font-poppins font-black text-[1.15rem] text-[#1A1D2B]">
                   Car hire in {city} — {pickupDate} to {dropoffDate}{days ? ` (${days} day${days !== 1 ? 's' : ''})` : ''}
                 </h2>
-                <p className="text-[.75rem] text-[#5C6378] font-semibold mt-1">{filteredCars.length} car types · Live prices on EconomyBookings</p>
+                <p className="text-[.75rem] text-[#5C6378] font-semibold mt-1">{filteredCars.length} car types · Live prices on EconomyBookings & Trip.com</p>
               </div>
               <select value={sortBy} onChange={e => setSortBy(e.target.value as 'price-asc' | 'price-desc' | 'seats')}
                 className="px-3 py-2 rounded-lg border border-[#E8ECF4] bg-white text-[.78rem] font-semibold text-[#1A1D2B] outline-none focus:border-emerald-500">
@@ -541,19 +601,24 @@ function CarsContent() {
             </div>
           </section>
 
-          {/* Primary CTA — opens EB results in new tab */}
+          {/* Primary CTAs — two providers side by side */}
           <section className="max-w-[1000px] mx-auto px-5 pb-4">
-            <a href={ebHref} target="_blank" rel="noopener sponsored"
-              className="block bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-2xl p-5 shadow-[0_8px_30px_rgba(16,185,129,0.25)] transition-all">
-              <div className="flex items-center justify-between gap-4 flex-wrap">
-                <div>
-                  <div className="text-[.65rem] font-black uppercase tracking-[2px] opacity-80 mb-1">Live results</div>
-                  <div className="font-poppins font-black text-[1.1rem]">See live prices on EconomyBookings →</div>
-                  <div className="text-[.75rem] font-semibold opacity-90 mt-0.5">Hertz · Europcar · Avis · Sixt · Budget · Enterprise + more</div>
-                </div>
-                <div className="text-[.7rem] font-bold bg-white/20 px-3 py-2 rounded-lg whitespace-nowrap">Free cancellation</div>
-              </div>
-            </a>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <a href={ebHref} target="_blank" rel="noopener sponsored"
+                className="block bg-gradient-to-br from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-2xl p-5 shadow-[0_8px_30px_rgba(16,185,129,0.25)] transition-all">
+                <div className="text-[.6rem] font-black uppercase tracking-[2px] opacity-80 mb-1">Live results · Provider 1</div>
+                <div className="font-poppins font-black text-[1.05rem]">EconomyBookings →</div>
+                <div className="text-[.72rem] font-semibold opacity-90 mt-0.5">Hertz · Europcar · Avis · Sixt · Enterprise</div>
+                <div className="inline-block text-[.62rem] font-bold bg-white/20 px-2.5 py-1 rounded-md mt-2">Free cancellation</div>
+              </a>
+              <a href={tripHref} target="_blank" rel="noopener sponsored"
+                className="block bg-gradient-to-br from-[#1A1D2B] to-[#0F1119] hover:from-[#0F1119] hover:to-black text-white rounded-2xl p-5 shadow-[0_8px_30px_rgba(15,17,25,0.25)] transition-all">
+                <div className="text-[.6rem] font-black uppercase tracking-[2px] opacity-80 mb-1">Live results · Provider 2</div>
+                <div className="font-poppins font-black text-[1.05rem]">Trip.com →</div>
+                <div className="text-[.72rem] font-semibold opacity-90 mt-0.5">Compare rates from global suppliers</div>
+                <div className="inline-block text-[.62rem] font-bold bg-white/20 px-2.5 py-1 rounded-md mt-2">Pay at pickup option</div>
+              </a>
+            </div>
           </section>
 
           {/* Supplier banner */}
@@ -622,10 +687,16 @@ function CarsContent() {
                             <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">~£{totalEst} total for {days} day{days !== 1 ? 's' : ''}</div>
                           )}
                         </div>
-                        <a href={ebHref} target="_blank" rel="noopener sponsored"
-                          className="text-[.75rem] font-black text-white bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded-lg transition-colors whitespace-nowrap">
-                          Compare Now →
-                        </a>
+                        <div className="flex flex-col gap-1.5 w-full md:w-auto">
+                          <a href={ebHref} target="_blank" rel="noopener sponsored"
+                            className="text-center text-[.72rem] font-black text-white bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded-lg transition-colors whitespace-nowrap">
+                            EconomyBookings →
+                          </a>
+                          <a href={tripHref} target="_blank" rel="noopener sponsored"
+                            className="text-center text-[.72rem] font-black text-white bg-[#1A1D2B] hover:bg-[#0F1119] px-4 py-2 rounded-lg transition-colors whitespace-nowrap">
+                            Trip.com →
+                          </a>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -639,12 +710,18 @@ function CarsContent() {
             </div>
           </section>
 
-          {/* Bottom CTA repeat */}
+          {/* Bottom CTA repeat — both providers */}
           <section className="max-w-[1000px] mx-auto px-5 pb-10">
-            <a href={ebHref} target="_blank" rel="noopener sponsored"
-              className="block text-center bg-[#1A1D2B] hover:bg-[#0F1119] text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-colors">
-              Book on EconomyBookings →
-            </a>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <a href={ebHref} target="_blank" rel="noopener sponsored"
+                className="block text-center bg-emerald-500 hover:bg-emerald-600 text-white font-poppins font-black text-[.9rem] py-4 rounded-xl transition-colors">
+                Book on EconomyBookings →
+              </a>
+              <a href={tripHref} target="_blank" rel="noopener sponsored"
+                className="block text-center bg-[#1A1D2B] hover:bg-[#0F1119] text-white font-poppins font-black text-[.9rem] py-4 rounded-xl transition-colors">
+                Book on Trip.com →
+              </a>
+            </div>
           </section>
 
         </div>
