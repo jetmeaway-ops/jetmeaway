@@ -563,17 +563,54 @@ function PackagesContent() {
     <>
       <Header />
 
-      {/* ── Hero + Search ── */}
-      <section className="pt-36 pb-10 px-5 bg-[radial-gradient(ellipse_at_top,#F0E8FF_0%,#fff_55%,#F8FAFC_100%)]">
-        <div className="max-w-[860px] mx-auto text-center mb-8">
-          <span className="inline-flex items-center gap-1.5 bg-purple-50 text-purple-600 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4"><span className="text-base leading-none">📦</span> Holiday Packages</span>
-          <h1 className="font-poppins text-[2.4rem] md:text-[3.6rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
-            Complete <em className="italic bg-gradient-to-br from-purple-500 to-indigo-600 bg-clip-text text-transparent">Holiday</em> Packages
+      {/* ── Hero + Search ── Packages identity: "vacation sunset" wine/aubergine with pink/fuchsia */}
+      <section
+        className="relative pt-36 pb-12 px-5 overflow-hidden"
+        style={{ background: 'linear-gradient(160deg, #1c0a22 0%, #2e0d2c 50%, #160516 100%)' }}
+      >
+        {/* Ambient pink + purple sunset blobs */}
+        <div className="absolute top-20 left-[10%] w-72 h-72 rounded-full bg-pink-500/[.18] blur-3xl pointer-events-none animate-blob-drift-a" />
+        <div className="absolute bottom-10 right-[5%] w-80 h-80 rounded-full bg-purple-500/[.16] blur-3xl pointer-events-none animate-blob-drift-b" />
+        <div className="absolute top-1/3 left-[42%] w-56 h-56 rounded-full bg-fuchsia-400/[.14] blur-3xl pointer-events-none animate-blob-drift-c" />
+        <div className="absolute top-1/2 right-[20%] w-40 h-40 rounded-full bg-rose-400/[.12] blur-3xl pointer-events-none animate-blob-drift-a" />
+
+        {/* Floating glass squares */}
+        <div className="absolute top-32 right-[12%] w-48 h-48 rounded-2xl border border-pink-300/20 bg-white/[.05] backdrop-blur-sm rotate-12 hidden md:block pointer-events-none shadow-[0_30px_60px_-25px_rgba(236,72,153,0.4)] animate-float-slow" />
+        <div className="absolute bottom-20 left-[7%] w-36 h-36 rounded-2xl border border-purple-300/20 bg-white/[.05] backdrop-blur-sm -rotate-6 hidden md:block pointer-events-none shadow-[0_30px_60px_-25px_rgba(168,85,247,0.35)] animate-float-slow-reverse" />
+        <div className="absolute top-[60%] right-[6%] w-20 h-20 rounded-xl border border-fuchsia-300/20 bg-white/[.05] backdrop-blur-sm rotate-[18deg] hidden lg:block pointer-events-none animate-float-slow-reverse" />
+        <div className="absolute top-[24%] left-[6%] w-16 h-16 rounded-xl border border-pink-300/25 bg-white/[.05] backdrop-blur-sm -rotate-12 hidden lg:block pointer-events-none animate-float-slow" />
+
+        {/* Sparkle dots */}
+        <div className="absolute top-[28%] left-[28%] w-1.5 h-1.5 rounded-full bg-pink-300/90 shadow-[0_0_12px_4px_rgba(249,168,212,0.6)] pointer-events-none animate-twinkle" />
+        <div className="absolute top-[55%] right-[32%] w-1 h-1 rounded-full bg-fuchsia-300/90 shadow-[0_0_10px_3px_rgba(240,171,252,0.6)] pointer-events-none animate-twinkle-delay" />
+        <div className="absolute top-[40%] right-[18%] w-1 h-1 rounded-full bg-purple-300/90 shadow-[0_0_10px_3px_rgba(216,180,254,0.5)] pointer-events-none animate-twinkle" />
+        <div className="absolute bottom-[20%] left-[35%] w-1.5 h-1.5 rounded-full bg-rose-200/90 shadow-[0_0_12px_4px_rgba(254,205,211,0.55)] pointer-events-none animate-twinkle-delay" />
+
+        <div className="max-w-[860px] mx-auto text-center mb-8 relative z-[1]">
+          <span className="inline-flex items-center gap-1.5 backdrop-blur-md bg-gradient-to-r from-purple-500/15 to-pink-500/15 border border-pink-300/30 text-pink-300 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4 shadow-[0_4px_20px_rgba(236,72,153,0.25)]"><span className="text-base leading-none">📦</span> Holiday Packages</span>
+          <h1 className="font-poppins text-[2.4rem] md:text-[3.6rem] font-black text-white leading-[1.05] tracking-tight mb-3">
+            Complete <em className="italic bg-gradient-to-br from-pink-300 via-purple-400 to-fuchsia-500 bg-clip-text text-transparent">Holiday</em> Packages
           </h1>
-          <p className="text-[1rem] text-[#8E95A9] font-semibold max-w-[520px] mx-auto">Flight + hotel bundles — compare prices across 2 package providers.</p>
+          <p className="text-[1rem] text-white/60 font-semibold max-w-[520px] mx-auto">Flight + hotel bundles — compare prices across 2 package providers.</p>
         </div>
 
-        <div className="max-w-[860px] mx-auto bg-white border border-[#E8ECF4] rounded-3xl p-6 shadow-[0_8px_40px_rgba(0,0,0,0.07)]">
+        <div className="max-w-[860px] mx-auto bg-white border border-white/20 rounded-3xl p-6 shadow-[0_30px_70px_-20px_rgba(0,0,0,0.6),0_8px_24px_-8px_rgba(236,72,153,0.3),0_0_0_1px_rgba(249,168,212,0.08)] relative z-[1]">
+
+        <style>{`
+          @keyframes blob-drift-a { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(20px,-15px) scale(1.08);} }
+          @keyframes blob-drift-b { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(-25px,10px) scale(1.05);} }
+          @keyframes blob-drift-c { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(15px,20px) scale(1.1);} }
+          .animate-blob-drift-a{animation:blob-drift-a 11s ease-in-out infinite;}
+          .animate-blob-drift-b{animation:blob-drift-b 13s ease-in-out infinite;}
+          .animate-blob-drift-c{animation:blob-drift-c 15s ease-in-out infinite;}
+          @keyframes float-slow { 0%,100%{transform:translateY(0) rotate(12deg);} 50%{transform:translateY(-12px) rotate(14deg);} }
+          @keyframes float-slow-reverse { 0%,100%{transform:translateY(0) rotate(-6deg);} 50%{transform:translateY(-10px) rotate(-8deg);} }
+          .animate-float-slow{animation:float-slow 8s ease-in-out infinite;}
+          .animate-float-slow-reverse{animation:float-slow-reverse 9s ease-in-out infinite;}
+          @keyframes twinkle { 0%,100%{opacity:.2;transform:scale(.85);} 50%{opacity:1;transform:scale(1.15);} }
+          .animate-twinkle{animation:twinkle 3.2s ease-in-out infinite;}
+          .animate-twinkle-delay{animation:twinkle 3.2s ease-in-out infinite;animation-delay:1.6s;}
+        `}</style>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <div>
               <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">From</label>

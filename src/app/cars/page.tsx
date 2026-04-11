@@ -488,17 +488,54 @@ function CarsContent() {
     <>
       <Header />
 
-      {/* ── Hero + Search Form ── */}
-      <section className="pt-36 pb-16 px-5 bg-[radial-gradient(ellipse_at_top,#E8F8EE_0%,#fff_55%,#F8FAFC_100%)]">
-        <div className="max-w-[860px] mx-auto text-center mb-10">
-          <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-600 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4"><span className="text-base leading-none">🚗</span> Car Rental Comparison</span>
-          <h1 className="font-poppins text-[2.6rem] md:text-[3.8rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
-            Hire a Car <em className="italic bg-gradient-to-br from-emerald-500 to-teal-500 bg-clip-text text-transparent">Anywhere</em>
+      {/* ── Hero + Search Form ── Cars identity: "night drive" slate charcoal with emerald/electric headlights */}
+      <section
+        className="relative pt-36 pb-16 px-5 overflow-hidden"
+        style={{ background: 'linear-gradient(160deg, #0a0e1a 0%, #141a2c 50%, #06090f 100%)' }}
+      >
+        {/* Ambient emerald + electric blue blobs */}
+        <div className="absolute top-20 left-[10%] w-72 h-72 rounded-full bg-emerald-500/[.18] blur-3xl pointer-events-none animate-blob-drift-a" />
+        <div className="absolute bottom-10 right-[5%] w-80 h-80 rounded-full bg-teal-500/[.14] blur-3xl pointer-events-none animate-blob-drift-b" />
+        <div className="absolute top-1/3 left-[42%] w-56 h-56 rounded-full bg-cyan-400/[.12] blur-3xl pointer-events-none animate-blob-drift-c" />
+        <div className="absolute top-1/2 right-[20%] w-40 h-40 rounded-full bg-emerald-400/[.10] blur-3xl pointer-events-none animate-blob-drift-a" />
+
+        {/* Floating glass squares */}
+        <div className="absolute top-32 right-[12%] w-48 h-48 rounded-2xl border border-emerald-300/20 bg-white/[.05] backdrop-blur-sm rotate-12 hidden md:block pointer-events-none shadow-[0_30px_60px_-25px_rgba(16,185,129,0.4)] animate-float-slow" />
+        <div className="absolute bottom-20 left-[7%] w-36 h-36 rounded-2xl border border-teal-300/20 bg-white/[.05] backdrop-blur-sm -rotate-6 hidden md:block pointer-events-none shadow-[0_30px_60px_-25px_rgba(20,184,166,0.35)] animate-float-slow-reverse" />
+        <div className="absolute top-[60%] right-[6%] w-20 h-20 rounded-xl border border-cyan-300/20 bg-white/[.05] backdrop-blur-sm rotate-[18deg] hidden lg:block pointer-events-none animate-float-slow-reverse" />
+        <div className="absolute top-[24%] left-[6%] w-16 h-16 rounded-xl border border-emerald-300/25 bg-white/[.05] backdrop-blur-sm -rotate-12 hidden lg:block pointer-events-none animate-float-slow" />
+
+        {/* Sparkle dots — like passing taillights */}
+        <div className="absolute top-[28%] left-[28%] w-1.5 h-1.5 rounded-full bg-emerald-300/90 shadow-[0_0_12px_4px_rgba(110,231,183,0.6)] pointer-events-none animate-twinkle" />
+        <div className="absolute top-[55%] right-[32%] w-1 h-1 rounded-full bg-teal-300/90 shadow-[0_0_10px_3px_rgba(94,234,212,0.6)] pointer-events-none animate-twinkle-delay" />
+        <div className="absolute top-[40%] right-[18%] w-1 h-1 rounded-full bg-cyan-300/90 shadow-[0_0_10px_3px_rgba(103,232,249,0.5)] pointer-events-none animate-twinkle" />
+        <div className="absolute bottom-[20%] left-[35%] w-1.5 h-1.5 rounded-full bg-emerald-200/90 shadow-[0_0_12px_4px_rgba(167,243,208,0.55)] pointer-events-none animate-twinkle-delay" />
+
+        <div className="max-w-[860px] mx-auto text-center mb-10 relative z-[1]">
+          <span className="inline-flex items-center gap-1.5 backdrop-blur-md bg-gradient-to-r from-emerald-500/15 to-teal-500/15 border border-emerald-300/30 text-emerald-300 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4 shadow-[0_4px_20px_rgba(16,185,129,0.25)]"><span className="text-base leading-none">🚗</span> Car Rental Comparison</span>
+          <h1 className="font-poppins text-[2.6rem] md:text-[3.8rem] font-black text-white leading-[1.05] tracking-tight mb-3">
+            Hire a Car <em className="italic bg-gradient-to-br from-emerald-300 via-teal-400 to-cyan-400 bg-clip-text text-transparent">Anywhere</em>
           </h1>
-          <p className="text-[1rem] text-[#8E95A9] font-semibold max-w-[520px] mx-auto">Compare trusted car rental providers — real prices, no hidden fees.</p>
+          <p className="text-[1rem] text-white/60 font-semibold max-w-[520px] mx-auto">Compare trusted car rental providers — real prices, no hidden fees.</p>
         </div>
 
-        <div className="max-w-[860px] mx-auto bg-white border border-[#E8ECF4] rounded-3xl p-6 shadow-[0_8px_40px_rgba(0,0,0,0.07)]">
+        <div className="max-w-[860px] mx-auto bg-white border border-white/20 rounded-3xl p-6 shadow-[0_30px_70px_-20px_rgba(0,0,0,0.6),0_8px_24px_-8px_rgba(16,185,129,0.3),0_0_0_1px_rgba(110,231,183,0.08)] relative z-[1]">
+
+        <style>{`
+          @keyframes blob-drift-a { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(20px,-15px) scale(1.08);} }
+          @keyframes blob-drift-b { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(-25px,10px) scale(1.05);} }
+          @keyframes blob-drift-c { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(15px,20px) scale(1.1);} }
+          .animate-blob-drift-a{animation:blob-drift-a 11s ease-in-out infinite;}
+          .animate-blob-drift-b{animation:blob-drift-b 13s ease-in-out infinite;}
+          .animate-blob-drift-c{animation:blob-drift-c 15s ease-in-out infinite;}
+          @keyframes float-slow { 0%,100%{transform:translateY(0) rotate(12deg);} 50%{transform:translateY(-12px) rotate(14deg);} }
+          @keyframes float-slow-reverse { 0%,100%{transform:translateY(0) rotate(-6deg);} 50%{transform:translateY(-10px) rotate(-8deg);} }
+          .animate-float-slow{animation:float-slow 8s ease-in-out infinite;}
+          .animate-float-slow-reverse{animation:float-slow-reverse 9s ease-in-out infinite;}
+          @keyframes twinkle { 0%,100%{opacity:.2;transform:scale(.85);} 50%{opacity:1;transform:scale(1.15);} }
+          .animate-twinkle{animation:twinkle 3.2s ease-in-out infinite;}
+          .animate-twinkle-delay{animation:twinkle 3.2s ease-in-out infinite;animation-delay:1.6s;}
+        `}</style>
           {/* Pickup location */}
           <div className="mb-3">
             <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Pickup Location</label>
