@@ -80,9 +80,11 @@ export default function InsurancePage() {
 
       {/* Insurance identity: "safe haven" deep emerald forest with calm green glow */}
       <section
-        className="relative pt-36 pb-16 px-5 overflow-hidden"
+        className="relative pt-36 pb-16 px-5"
         style={{ background: 'linear-gradient(160deg, #061a14 0%, #0b2820 50%, #03130c 100%)' }}
       >
+        {/* Ambient decoration — clipped to hero so it doesn't bleed, but lets popups overflow */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Ambient emerald + green safe-haven blobs */}
         <div className="absolute top-20 left-[10%] w-72 h-72 rounded-full bg-emerald-500/[.20] blur-3xl pointer-events-none animate-blob-drift-a" />
         <div className="absolute bottom-10 right-[5%] w-80 h-80 rounded-full bg-green-400/[.16] blur-3xl pointer-events-none animate-blob-drift-b" />
@@ -100,6 +102,7 @@ export default function InsurancePage() {
         <div className="absolute top-[55%] right-[32%] w-1 h-1 rounded-full bg-green-300/90 shadow-[0_0_10px_3px_rgba(134,239,172,0.6)] pointer-events-none animate-twinkle-delay" />
         <div className="absolute top-[40%] right-[18%] w-1 h-1 rounded-full bg-teal-300/90 shadow-[0_0_10px_3px_rgba(94,234,212,0.5)] pointer-events-none animate-twinkle" />
         <div className="absolute bottom-[20%] left-[35%] w-1.5 h-1.5 rounded-full bg-emerald-200/90 shadow-[0_0_12px_4px_rgba(167,243,208,0.55)] pointer-events-none animate-twinkle-delay" />
+        </div>
 
         <div className="max-w-[860px] mx-auto text-center mb-10 relative z-[1]">
           <span className="inline-flex items-center gap-1.5 backdrop-blur-md bg-gradient-to-r from-emerald-500/15 to-green-500/15 border border-emerald-300/30 text-emerald-300 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4 shadow-[0_4px_20px_rgba(16,185,129,0.25)]"><span className="text-base leading-none">🛡</span> Travel Insurance</span>

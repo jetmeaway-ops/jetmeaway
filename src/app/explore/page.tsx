@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import DateRangePicker from '@/components/DateRangePicker';
 import { redirectUrl } from '@/lib/redirect';
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -374,9 +375,16 @@ function ExploreContent() {
               <DestinationPicker value={destination} onChange={setDestination} />
             </div>
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Date</label>
-              <input type="date" min={new Date().toISOString().split('T')[0]} value={travelDate} onChange={e => setTravelDate(e.target.value)}
-                className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-teal-400 focus:bg-white transition-all" />
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Date</label>
+              <DateRangePicker
+                start={travelDate}
+                end=""
+                minDate={new Date().toISOString().split('T')[0]}
+                onChange={(next) => setTravelDate(next.start)}
+                accent="emerald"
+                oneWay
+                placeholder="Pick a date"
+              />
             </div>
           </div>
           <div className="mb-3">

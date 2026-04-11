@@ -1006,9 +1006,11 @@ function FlightsContent() {
 
       {/* ── Hero + Search ── Flights identity: "cabin at 30,000ft" deep cobalt sky with cyan accents */}
       <section
-        className="relative pt-36 pb-12 px-5 overflow-hidden"
+        className="relative pt-36 pb-12 px-5"
         style={{ background: 'linear-gradient(160deg, #051327 0%, #0b2342 50%, #03101f 100%)' }}
       >
+        {/* Ambient decoration — clipped to hero so it doesn't bleed, but lets popups overflow */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Ambient cyan + sky blobs */}
         <div className="absolute top-20 left-[10%] w-72 h-72 rounded-full bg-cyan-500/20 blur-3xl pointer-events-none animate-blob-drift-a" />
         <div className="absolute bottom-10 right-[5%] w-80 h-80 rounded-full bg-sky-400/[.16] blur-3xl pointer-events-none animate-blob-drift-b" />
@@ -1026,6 +1028,7 @@ function FlightsContent() {
         <div className="absolute top-[55%] right-[32%] w-1 h-1 rounded-full bg-sky-200/90 shadow-[0_0_10px_3px_rgba(186,230,253,0.6)] pointer-events-none animate-twinkle-delay" />
         <div className="absolute top-[40%] right-[18%] w-1 h-1 rounded-full bg-blue-200/90 shadow-[0_0_10px_3px_rgba(191,219,254,0.5)] pointer-events-none animate-twinkle" />
         <div className="absolute bottom-[20%] left-[35%] w-1.5 h-1.5 rounded-full bg-white/90 shadow-[0_0_12px_4px_rgba(255,255,255,0.55)] pointer-events-none animate-twinkle-delay" />
+        </div>
 
         <div className="max-w-[860px] mx-auto text-center mb-8 relative z-[1]">
           <span className="inline-flex items-center gap-1.5 backdrop-blur-md bg-gradient-to-r from-sky-500/15 to-cyan-500/15 border border-cyan-300/30 text-cyan-300 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4 shadow-[0_4px_20px_rgba(34,211,238,0.25)]"><span className="text-base leading-none">✈</span> Flight Comparison</span>
