@@ -79,7 +79,7 @@ const CATEGORIES = [
 
 function WhatWeCompare() {
   return (
-    <section className="py-10 px-6 bg-[#F8FAFC]">
+    <section className="py-10 px-6 bg-[#C8D0E0]">
       <div className="max-w-[1100px] mx-auto">
         <p className="text-center text-[.65rem] font-black uppercase tracking-[3px] text-orange-500 mb-1.5 font-[var(--font-dm-sans)]">All In One Place</p>
         <h2 className="text-center font-[var(--font-playfair)] text-[1.8rem] md:text-[2.2rem] font-black text-[#0a1628] mb-6">What We Compare</h2>
