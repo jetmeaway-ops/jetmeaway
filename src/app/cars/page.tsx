@@ -3,81 +3,191 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { redirectUrl } from '@/lib/redirect';
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   LOCATIONS — airports + city centres
+   LOCATIONS — verified EconomyBookings airports
+   Each entry has a numeric `plc` ID extracted from EB's own city pages.
+   These IDs are required to land on a fully pre-filled results page —
+   never ship a location without one (affiliate review will fail otherwise).
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const LOCATIONS = [
-  // UK airports
-  'London Heathrow Airport (LHR)', 'London Gatwick Airport (LGW)', 'London Stansted Airport (STN)',
-  'London Luton Airport (LTN)', 'London City Airport (LCY)', 'London Southend Airport (SEN)',
-  'Manchester Airport (MAN)', 'Birmingham Airport (BHX)', 'Edinburgh Airport (EDI)',
-  'Glasgow Airport (GLA)', 'Bristol Airport (BRS)', 'Leeds Bradford Airport (LBA)',
-  'Liverpool Airport (LPL)', 'Newcastle Airport (NCL)', 'East Midlands Airport (EMA)',
-  'Belfast Airport (BFS)', 'Aberdeen Airport (ABZ)', 'Southampton Airport (SOU)',
-  'Cardiff Airport (CWL)', 'Bournemouth Airport (BOH)',
-  // UK city centres
-  'London City Centre', 'Manchester City Centre', 'Birmingham City Centre',
-  'Edinburgh City Centre', 'Glasgow City Centre', 'Liverpool City Centre',
-  'Leeds City Centre', 'Bristol City Centre', 'Newcastle City Centre',
+type CarLocation = { name: string; plc: number; iata: string };
+
+const LOCATIONS: CarLocation[] = [
+  // United Kingdom
+  { name: 'London Heathrow Airport (LHR)',      plc: 272703, iata: 'LHR' },
+  { name: 'London Gatwick Airport (LGW)',       plc: 272699, iata: 'LGW' },
+  { name: 'London Stansted Airport (STN)',      plc: 272717, iata: 'STN' },
+  { name: 'London Luton Airport (LTN)',         plc: 4150,   iata: 'LTN' },
+  { name: 'London City Airport (LCY)',          plc: 272694, iata: 'LCY' },
+  { name: 'London Southend Airport (SEN)',      plc: 38478,  iata: 'SEN' },
+  { name: 'Manchester Airport (MAN)',           plc: 4050,   iata: 'MAN' },
+  { name: 'Birmingham Airport (BHX)',           plc: 4069,   iata: 'BHX' },
+  { name: 'Edinburgh Airport (EDI)',            plc: 3993,   iata: 'EDI' },
+  { name: 'Glasgow Airport (GLA)',              plc: 4113,   iata: 'GLA' },
+  { name: 'Bristol Airport (BRS)',              plc: 3982,   iata: 'BRS' },
+  { name: 'Leeds Bradford Airport (LBA)',       plc: 4139,   iata: 'LBA' },
+  { name: 'Liverpool Airport (LPL)',            plc: 4145,   iata: 'LPL' },
+  { name: 'Newcastle Airport (NCL)',            plc: 4158,   iata: 'NCL' },
+  { name: 'East Midlands Airport (EMA)',        plc: 89503,  iata: 'EMA' },
+  { name: 'Belfast Airport (BFS)',              plc: 3979,   iata: 'BFS' },
+  { name: 'Aberdeen Airport (ABZ)',             plc: 4057,   iata: 'ABZ' },
+  { name: 'Southampton Airport (SOU)',          plc: 4190,   iata: 'SOU' },
+  { name: 'Cardiff Airport (CWL)',              plc: 3988,   iata: 'CWL' },
+  { name: 'Bournemouth Airport (BOH)',          plc: 4077,   iata: 'BOH' },
   // Spain & Portugal
-  'Barcelona Airport (BCN)', 'Barcelona City Centre', 'Madrid Airport (MAD)', 'Madrid City Centre',
-  'Malaga Airport (AGP)', 'Malaga City Centre', 'Alicante Airport (ALC)', 'Alicante City Centre',
-  'Palma Airport (PMI)', 'Palma City Centre', 'Tenerife South Airport (TFS)', 'Tenerife North Airport (TFN)',
-  'Lanzarote Airport (ACE)', 'Fuerteventura Airport (FUE)', 'Gran Canaria Airport (LPA)',
-  'Faro Airport (FAO)', 'Faro City Centre', 'Lisbon Airport (LIS)', 'Lisbon City Centre',
-  'Seville Airport (SVQ)', 'Ibiza Airport (IBZ)',
+  { name: 'Barcelona Airport (BCN)',            plc: 3317,   iata: 'BCN' },
+  { name: 'Madrid Airport (MAD)',               plc: 3356,   iata: 'MAD' },
+  { name: 'Malaga Airport (AGP)',               plc: 3376,   iata: 'AGP' },
+  { name: 'Alicante Airport (ALC)',             plc: 3312,   iata: 'ALC' },
+  { name: 'Palma Mallorca Airport (PMI)',       plc: 4393,   iata: 'PMI' },
+  { name: 'Tenerife South Airport (TFS)',       plc: 208938, iata: 'TFS' },
+  { name: 'Tenerife North Airport (TFN)',       plc: 208937, iata: 'TFN' },
+  { name: 'Lanzarote Airport (ACE)',            plc: 4425,   iata: 'ACE' },
+  { name: 'Fuerteventura Airport (FUE)',        plc: 4405,   iata: 'FUE' },
+  { name: 'Gran Canaria Airport (LPA)',         plc: 4415,   iata: 'LPA' },
+  { name: 'Ibiza Airport (IBZ)',                plc: 4381,   iata: 'IBZ' },
+  { name: 'Seville Airport (SVQ)',              plc: 3403,   iata: 'SVQ' },
+  { name: 'Faro Airport (FAO)',                 plc: 2971,   iata: 'FAO' },
+  { name: 'Lisbon Airport (LIS)',               plc: 222945, iata: 'LIS' },
   // France
-  'Paris Charles de Gaulle Airport (CDG)', 'Paris Orly Airport (ORY)', 'Paris City Centre',
-  'Nice Airport (NCE)', 'Nice City Centre', 'Lyon Airport (LYS)', 'Marseille Airport (MRS)',
+  { name: 'Paris Charles de Gaulle Airport (CDG)', plc: 780,    iata: 'CDG' },
+  { name: 'Paris Orly Airport (ORY)',           plc: 112647, iata: 'ORY' },
+  { name: 'Nice Airport (NCE)',                 plc: 758,    iata: 'NCE' },
+  { name: 'Lyon Airport (LYS)',                 plc: 724,    iata: 'LYS' },
+  { name: 'Marseille Airport (MRS)',            plc: 726,    iata: 'MRS' },
   // Italy
-  'Rome Fiumicino Airport (FCO)', 'Rome City Centre', 'Milan Malpensa Airport (MXP)', 'Milan City Centre',
-  'Venice Airport (VCE)', 'Venice City Centre', 'Florence Airport (FLR)', 'Florence City Centre',
-  'Naples Airport (NAP)',
+  { name: 'Rome Fiumicino Airport (FCO)',       plc: 2151,   iata: 'FCO' },
+  { name: 'Milan Malpensa Airport (MXP)',       plc: 2042,   iata: 'MXP' },
+  { name: 'Venice Airport (VCE)',               plc: 10236,  iata: 'VCE' },
+  { name: 'Florence Airport (FLR)',             plc: 2348,   iata: 'FLR' },
+  { name: 'Naples Airport (NAP)',               plc: 2087,   iata: 'NAP' },
   // Netherlands
-  'Amsterdam Schiphol Airport (AMS)', 'Amsterdam City Centre',
+  { name: 'Amsterdam Schiphol Airport (AMS)',   plc: 2748,   iata: 'AMS' },
   // Greece
-  'Athens Airport (ATH)', 'Athens City Centre', 'Crete Heraklion Airport (HER)',
-  'Rhodes Airport (RHO)', 'Corfu Airport (CFU)', 'Santorini Airport (JTR)',
+  { name: 'Athens Airport (ATH)',               plc: 1519,   iata: 'ATH' },
+  { name: 'Heraklion Crete Airport (HER)',      plc: 4338,   iata: 'HER' },
+  { name: 'Rhodes Airport (RHO)',               plc: 1628,   iata: 'RHO' },
+  { name: 'Corfu Airport (CFU)',                plc: 1548,   iata: 'CFU' },
+  { name: 'Santorini Airport (JTR)',            plc: 1652,   iata: 'JTR' },
   // Croatia
-  'Dubrovnik Airport (DBV)', 'Dubrovnik City Centre', 'Split Airport (SPU)', 'Split City Centre',
+  { name: 'Dubrovnik Airport (DBV)',            plc: 422,    iata: 'DBV' },
+  { name: 'Split Airport (SPU)',                plc: 436,    iata: 'SPU' },
   // Turkey
-  'Antalya Airport (AYT)', 'Antalya City Centre', 'Bodrum Airport (BJV)', 'Bodrum City Centre',
-  'Dalaman Airport (DLM)', 'Istanbul Airport (IST)', 'Istanbul City Centre',
+  { name: 'Antalya Airport (AYT)',              plc: 211299, iata: 'AYT' },
+  { name: 'Bodrum Airport (BJV)',               plc: 3833,   iata: 'BJV' },
+  { name: 'Dalaman Airport (DLM)',              plc: 211304, iata: 'DLM' },
+  { name: 'Istanbul Airport (IST)',             plc: 371168, iata: 'IST' },
   // UAE
-  'Dubai Airport (DXB)', 'Dubai City Centre', 'Abu Dhabi Airport (AUH)',
+  { name: 'Dubai Airport (DXB)',                plc: 256206, iata: 'DXB' },
+  { name: 'Abu Dhabi Airport (AUH)',            plc: 3928,   iata: 'AUH' },
   // Morocco & Egypt
-  'Marrakech Airport (RAK)', 'Marrakech City Centre', 'Cairo Airport (CAI)',
+  { name: 'Marrakech Airport (RAK)',            plc: 2713,   iata: 'RAK' },
+  { name: 'Cairo Airport (CAI)',                plc: 255838, iata: 'CAI' },
   // Americas
-  'New York JFK Airport (JFK)', 'New York City Centre', 'Los Angeles Airport (LAX)', 'Los Angeles City Centre',
-  'Miami Airport (MIA)', 'Miami City Centre', 'San Francisco Airport (SFO)',
-  'Las Vegas Airport (LAS)', 'Orlando Airport (MCO)', 'Cancun Airport (CUN)',
-  'Toronto Airport (YYZ)', 'Vancouver Airport (YVR)',
+  { name: 'New York JFK Airport (JFK)',         plc: 4801,   iata: 'JFK' },
+  { name: 'Los Angeles Airport (LAX)',          plc: 4502,   iata: 'LAX' },
+  { name: 'Miami Airport (MIA)',                plc: 4564,   iata: 'MIA' },
+  { name: 'San Francisco Airport (SFO)',        plc: 4518,   iata: 'SFO' },
+  { name: 'Las Vegas Airport (LAS)',            plc: 4758,   iata: 'LAS' },
+  { name: 'Orlando Airport (MCO)',              plc: 4575,   iata: 'MCO' },
+  { name: 'Cancun Airport (CUN)',               plc: 10868,  iata: 'CUN' },
+  { name: 'Toronto Airport (YYZ)',              plc: 4303,   iata: 'YYZ' },
+  { name: 'Vancouver Airport (YVR)',            plc: 4309,   iata: 'YVR' },
   // Asia
-  'Bangkok Airport (BKK)', 'Bangkok City Centre', 'Singapore Changi Airport (SIN)',
-  'Tokyo Narita Airport (NRT)', 'Bali Airport (DPS)', 'Phuket Airport (HKT)',
-  'Kuala Lumpur Airport (KUL)', 'Hong Kong Airport (HKG)', 'Seoul Airport (ICN)',
+  { name: 'Bangkok Airport (BKK)',              plc: 3779,   iata: 'BKK' },
+  { name: 'Singapore Changi Airport (SIN)',     plc: 15201,  iata: 'SIN' },
+  { name: 'Tokyo Narita Airport (NRT)',         plc: 15816,  iata: 'NRT' },
+  { name: 'Bali Airport (DPS)',                 plc: 226090, iata: 'DPS' },
+  { name: 'Phuket Airport (HKT)',               plc: 3795,   iata: 'HKT' },
+  { name: 'Kuala Lumpur Airport (KUL)',         plc: 14950,  iata: 'KUL' },
+  { name: 'Seoul Incheon Airport (ICN)',        plc: 278108, iata: 'ICN' },
   // Australia
-  'Sydney Airport (SYD)', 'Sydney City Centre', 'Melbourne Airport (MEL)',
+  { name: 'Sydney Airport (SYD)',               plc: 10489,  iata: 'SYD' },
+  { name: 'Melbourne Airport (MEL)',            plc: 44,     iata: 'MEL' },
   // Africa
-  'Cape Town Airport (CPT)', 'Johannesburg Airport (JNB)',
-  // Pakistan
-  'Lahore Airport (LHE)', 'Islamabad Airport (ISB)', 'Karachi Airport (KHI)',
+  { name: 'Cape Town Airport (CPT)',            plc: 5442,   iata: 'CPT' },
+  { name: 'Johannesburg Airport (JNB)',         plc: 256209, iata: 'JNB' },
   // Caucasus & Central Asia
-  'Baku Airport (GYD)', 'Baku City Centre',
-  'Yerevan Airport (EVN)', 'Yerevan City Centre',
-  'Tbilisi Airport (TBS)', 'Tbilisi City Centre',
-  'Ashgabat Airport (ASB)',
-  'Tashkent Airport (TAS)', 'Tashkent City Centre',
-  'Almaty Airport (ALA)', 'Almaty City Centre',
-  'Astana Airport (NQZ)', 'Astana City Centre',
-  'Bishkek Airport (FRU)',
-  'Dushanbe Airport (DYU)',
+  { name: 'Baku Airport (GYD)',                 plc: 12849,  iata: 'GYD' },
+  { name: 'Yerevan Airport (EVN)',              plc: 211571, iata: 'EVN' },
+  { name: 'Tbilisi Airport (TBS)',              plc: 5267,   iata: 'TBS' },
+  { name: 'Ashgabat Airport (ASB)',             plc: 356225, iata: 'ASB' },
+  { name: 'Tashkent Airport (TAS)',             plc: 216158, iata: 'TAS' },
+  { name: 'Almaty Airport (ALA)',               plc: 15048,  iata: 'ALA' },
+  { name: 'Astana Airport (NQZ)',               plc: 15049,  iata: 'NQZ' },
+  { name: 'Bishkek Airport (FRU)',              plc: 226064, iata: 'FRU' },
+  { name: 'Dushanbe Airport (DYU)',             plc: 356243, iata: 'DYU' },
 ];
 
+function findLocation(name: string): CarLocation | undefined {
+  return LOCATIONS.find(l => l.name === name);
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
-   LOCATION PICKER
+   AFFILIATE URL BUILDER — EconomyBookings via Travelpayouts
+   URL contract reverse-engineered from a real EB form submission on 2026-04-11.
+   The plc IDs in LOCATIONS are EB's `mergedLocationId`, NOT the internal `id`.
+   Wrapped in tp.media so the click goes through Travelpayouts attribution
+   (btag=travelpayouts + tpo_uid=...-714449 are appended by tp.media itself).
+
+   Verified end-to-end on 2026-04-11 in a real browser, both UK and Spain:
+     LHR (plc=272703): lands on /en/cars/results, real cars from
+       Hertz/Sixt/Europcar/Enterprise/Alamo/Dollar at £47–£54.
+     BCN (plc=3317):   lands on /en/cars/results, real cars from
+       Hertz/Sixt/Europcar/Enterprise/Alamo/Dollar/Thrifty/Drivalia/
+       Goldcar/Record at £39–£159.
+     Both show btag=travelpayouts and tpo_uid=...-714449 in the final URL.
+     `cr=233` is constant — not country-specific.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const TP_MARKER = '714449';
+const TP_TRS    = '512633';
+const EB_P      = '2018';
+const EB_CAMP   = '10';
+
+function buildEcoBookingsUrl(opts: {
+  pickupPlc: number;
+  dropoffPlc: number;
+  pickupDate: string;   // YYYY-MM-DD
+  dropoffDate: string;  // YYYY-MM-DD
+  pickupTime: string;   // HH:MM
+  dropoffTime: string;  // HH:MM
+  driverAge: number;
+  currency?: string;
+}): string {
+  const [py, pm, pd] = opts.pickupDate.split('-');
+  const [dy, dm, dd] = opts.dropoffDate.split('-');
+  const pt = opts.pickupTime.replace(':', '');   // "10:00" -> "1000"
+  const dt = opts.dropoffTime.replace(':', '');
+
+  const ebParams = new URLSearchParams({
+    cr: '233',
+    crcy: opts.currency || 'GBP',
+    lang: 'en',
+    age: String(opts.driverAge),
+    py, pm, pd,
+    dy, dm, dd,
+    pt, dt,
+    plc: String(opts.pickupPlc),
+    dlc: String(opts.dropoffPlc),
+    reload: '1',
+  });
+  const ebUrl = `https://www.economybookings.com/en/cars/results?${ebParams.toString()}`;
+
+  const tpParams = new URLSearchParams({
+    marker: TP_MARKER,
+    trs: TP_TRS,
+    p: EB_P,
+    campaign_id: EB_CAMP,
+    u: ebUrl,
+  });
+  return `https://tp.media/r?${tpParams.toString()}`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LOCATION PICKER — autocomplete from verified list only
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function LocationPicker({ value, onChange, placeholder }: {
@@ -94,7 +204,7 @@ function LocationPicker({ value, onChange, placeholder }: {
 
   const q = value.toLowerCase().trim();
   const results = q.length >= 1
-    ? LOCATIONS.filter(l => l.toLowerCase().includes(q)).slice(0, 8)
+    ? LOCATIONS.filter(l => l.name.toLowerCase().includes(q) || l.iata.toLowerCase() === q).slice(0, 8)
     : [];
 
   return (
@@ -106,9 +216,9 @@ function LocationPicker({ value, onChange, placeholder }: {
       {open && results.length > 0 && (
         <ul className="absolute z-50 w-full mt-1.5 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl overflow-auto max-h-64">
           {results.map(l => (
-            <li key={l} onMouseDown={() => { onChange(l); setOpen(false); }}
-              className={`px-4 py-3 hover:bg-emerald-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 font-poppins font-semibold text-[.85rem] text-[#1A1D2B] ${value === l ? 'bg-emerald-50' : ''}`}>
-              {l.includes('Airport') ? '✈️ ' : '🏙️ '}{l}
+            <li key={l.name} onMouseDown={() => { onChange(l.name); setOpen(false); }}
+              className={`px-4 py-3 hover:bg-emerald-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 font-poppins font-semibold text-[.85rem] text-[#1A1D2B] ${value === l.name ? 'bg-emerald-50' : ''}`}>
+              ✈️ {l.name}
             </li>
           ))}
         </ul>
@@ -153,7 +263,7 @@ function LoadingState({ loc }: { loc: string }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   CAR CATEGORIES
+   CAR CATEGORIES (display only)
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const CAR_CATEGORIES = [
@@ -197,7 +307,7 @@ const SUPPLIER_LOGOS = [
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function extractCity(loc: string): string {
-  return loc.replace(/ Airport.*$/, '').replace(/ City Centre$/, '').replace(/ \(.*\)$/, '').trim();
+  return loc.replace(/ Airport.*$/, '').replace(/ \(.*\)$/, '').trim();
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -219,6 +329,7 @@ function CarsContent() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [searchedLoc, setSearchedLoc] = useState('');
+  const [searchedReturnLoc, setSearchedReturnLoc] = useState('');
 
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -248,16 +359,26 @@ function CarsContent() {
     : null;
 
   const handleSearch = useCallback(() => {
-    if (!location) { alert('Please enter a pickup location'); return; }
+    if (!location) { alert('Please choose a pickup airport from the list'); return; }
+    if (!findLocation(location)) {
+      alert('Please pick a location from the dropdown — only listed airports are supported.');
+      return;
+    }
     if (!pickupDate) { alert('Please select a pickup date'); return; }
     if (!dropoffDate) { alert('Please select a return date'); return; }
-    if (differentReturn && !returnLocation) { alert('Please enter a return location'); return; }
+    if (differentReturn) {
+      if (!returnLocation) { alert('Please choose a return location'); return; }
+      if (!findLocation(returnLocation)) {
+        alert('Please pick a return location from the dropdown — only listed airports are supported.');
+        return;
+      }
+    }
 
     setSearchedLoc(location);
+    setSearchedReturnLoc(differentReturn ? returnLocation : location);
     setLoading(true);
     setSearched(false);
 
-    // Simulate brief loading for the animation
     setTimeout(() => {
       setLoading(false);
       setSearched(true);
@@ -268,7 +389,7 @@ function CarsContent() {
   // Auto-search when URL params fill all required fields
   const autoSearched = useRef(false);
   useEffect(() => {
-    if (!autoSearched.current && location && pickupDate && dropoffDate) {
+    if (!autoSearched.current && location && pickupDate && dropoffDate && findLocation(location)) {
       autoSearched.current = true;
       handleSearch();
     }
@@ -284,6 +405,25 @@ function CarsContent() {
       return b.seats - a.seats;
     });
 
+  // Build the affiliate URL once per render so every CTA shares the same link.
+  const ebUrl = (() => {
+    const pickupLoc = findLocation(searchedLoc);
+    const dropoffLoc = findLocation(searchedReturnLoc) || pickupLoc;
+    if (!pickupLoc || !dropoffLoc) return null;
+    return buildEcoBookingsUrl({
+      pickupPlc: pickupLoc.plc,
+      dropoffPlc: dropoffLoc.plc,
+      pickupDate,
+      dropoffDate,
+      pickupTime,
+      dropoffTime,
+      driverAge: Number(driverAge) || 30,
+      currency: 'GBP',
+    });
+  })();
+
+  const ebHref = ebUrl ? redirectUrl(ebUrl, 'EconomyBookings', city, 'cars') : '#';
+
   return (
     <>
       <Header />
@@ -291,7 +431,7 @@ function CarsContent() {
       {/* ── Hero + Search Form ── */}
       <section className="pt-36 pb-16 px-5 bg-[radial-gradient(ellipse_at_top,#E8F8EE_0%,#fff_55%,#F8FAFC_100%)]">
         <div className="max-w-[860px] mx-auto text-center mb-10">
-          <span className="inline-block bg-emerald-50 text-emerald-600 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4">🚗 Car Rental Comparison</span>
+          <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-600 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4"><span className="text-base leading-none">🚗</span> Car Rental Comparison</span>
           <h1 className="font-poppins text-[2.6rem] md:text-[3.8rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
             Hire a Car <em className="italic bg-gradient-to-br from-emerald-500 to-teal-500 bg-clip-text text-transparent">Anywhere</em>
           </h1>
@@ -302,7 +442,7 @@ function CarsContent() {
           {/* Pickup location */}
           <div className="mb-3">
             <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Pickup Location</label>
-            <LocationPicker value={location} onChange={setLocation} placeholder="Airport or city — e.g. Barcelona Airport (BCN)" />
+            <LocationPicker value={location} onChange={setLocation} placeholder="Airport — e.g. Barcelona Airport (BCN)" />
           </div>
 
           {/* Different return toggle */}
@@ -373,7 +513,7 @@ function CarsContent() {
             className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(16,185,129,0.3)]">
             Search Car Rentals →
           </button>
-          <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">Free comparison · Estimated prices shown here</p>
+          <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">Pick from {LOCATIONS.length} verified airports · We compare real live prices on EconomyBookings</p>
         </div>
       </section>
 
@@ -381,7 +521,7 @@ function CarsContent() {
       {loading && <LoadingState loc={location} />}
 
       {/* ── Results ── */}
-      {searched && (
+      {searched && ebUrl && (
         <div ref={resultsRef}>
           {/* Search summary */}
           <section className="max-w-[1000px] mx-auto px-5 pt-8 pb-4">
@@ -390,7 +530,7 @@ function CarsContent() {
                 <h2 className="font-poppins font-black text-[1.15rem] text-[#1A1D2B]">
                   Car hire in {city} — {pickupDate} to {dropoffDate}{days ? ` (${days} day${days !== 1 ? 's' : ''})` : ''}
                 </h2>
-                <p className="text-[.75rem] text-[#5C6378] font-semibold mt-1">{filteredCars.length} car types available</p>
+                <p className="text-[.75rem] text-[#5C6378] font-semibold mt-1">{filteredCars.length} car types · Live prices on EconomyBookings</p>
               </div>
               <select value={sortBy} onChange={e => setSortBy(e.target.value as 'price-asc' | 'price-desc' | 'seats')}
                 className="px-3 py-2 rounded-lg border border-[#E8ECF4] bg-white text-[.78rem] font-semibold text-[#1A1D2B] outline-none focus:border-emerald-500">
@@ -399,6 +539,21 @@ function CarsContent() {
                 <option value="seats">Most Seats</option>
               </select>
             </div>
+          </section>
+
+          {/* Primary CTA — opens EB results in new tab */}
+          <section className="max-w-[1000px] mx-auto px-5 pb-4">
+            <a href={ebHref} target="_blank" rel="noopener sponsored"
+              className="block bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-2xl p-5 shadow-[0_8px_30px_rgba(16,185,129,0.25)] transition-all">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                  <div className="text-[.65rem] font-black uppercase tracking-[2px] opacity-80 mb-1">Live results</div>
+                  <div className="font-poppins font-black text-[1.1rem]">See live prices on EconomyBookings →</div>
+                  <div className="text-[.75rem] font-semibold opacity-90 mt-0.5">Hertz · Europcar · Avis · Sixt · Budget · Enterprise + more</div>
+                </div>
+                <div className="text-[.7rem] font-bold bg-white/20 px-3 py-2 rounded-lg whitespace-nowrap">Free cancellation</div>
+              </div>
+            </a>
           </section>
 
           {/* Supplier banner */}
@@ -458,8 +613,8 @@ function CarsContent() {
                         </div>
                       </div>
 
-                      {/* Price */}
-                      <div className="p-5 flex flex-col items-end justify-center gap-2 border-t md:border-t-0 md:border-l border-[#F1F3F7] min-w-[180px]">
+                      {/* Price + book CTA */}
+                      <div className="p-5 flex flex-col items-end justify-center gap-3 border-t md:border-t-0 md:border-l border-[#F1F3F7] min-w-[200px]">
                         <div className="text-right">
                           <div className="text-[.65rem] text-[#8E95A9] font-semibold">estimated from</div>
                           <div className="font-poppins font-black text-[1.6rem] text-[#1A1D2B] leading-none">£{car.fromPrice}<span className="text-[.7rem] font-semibold text-[#8E95A9]">/day</span></div>
@@ -467,6 +622,10 @@ function CarsContent() {
                             <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">~£{totalEst} total for {days} day{days !== 1 ? 's' : ''}</div>
                           )}
                         </div>
+                        <a href={ebHref} target="_blank" rel="noopener sponsored"
+                          className="text-[.75rem] font-black text-white bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded-lg transition-colors whitespace-nowrap">
+                          Compare Now →
+                        </a>
                       </div>
                     </div>
                   </div>
@@ -478,6 +637,14 @@ function CarsContent() {
                 </div>
               )}
             </div>
+          </section>
+
+          {/* Bottom CTA repeat */}
+          <section className="max-w-[1000px] mx-auto px-5 pb-10">
+            <a href={ebHref} target="_blank" rel="noopener sponsored"
+              className="block text-center bg-[#1A1D2B] hover:bg-[#0F1119] text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-colors">
+              Book on EconomyBookings →
+            </a>
           </section>
 
         </div>
