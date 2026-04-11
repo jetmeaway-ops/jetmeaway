@@ -104,6 +104,143 @@ const DESTINATIONS = [
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   AIRPORT COORDS — used to show "X mi from airport" on each hotel card
+   Keyed by lowercase city substring; first match wins.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const AIRPORT_COORDS: Array<{ match: string; iata: string; lat: number; lng: number }> = [
+  // UK
+  { match: 'london', iata: 'LHR', lat: 51.4700, lng: -0.4543 },
+  { match: 'manchester', iata: 'MAN', lat: 53.3537, lng: -2.2750 },
+  { match: 'edinburgh', iata: 'EDI', lat: 55.9500, lng: -3.3725 },
+  { match: 'glasgow', iata: 'GLA', lat: 55.8719, lng: -4.4331 },
+  { match: 'birmingham', iata: 'BHX', lat: 52.4539, lng: -1.7480 },
+  { match: 'bristol', iata: 'BRS', lat: 51.3827, lng: -2.7191 },
+  { match: 'belfast', iata: 'BFS', lat: 54.6575, lng: -6.2158 },
+  // France
+  { match: 'paris', iata: 'CDG', lat: 49.0097, lng: 2.5479 },
+  { match: 'nice', iata: 'NCE', lat: 43.6584, lng: 7.2159 },
+  { match: 'lyon', iata: 'LYS', lat: 45.7256, lng: 5.0811 },
+  { match: 'marseille', iata: 'MRS', lat: 43.4393, lng: 5.2214 },
+  // Benelux
+  { match: 'amsterdam', iata: 'AMS', lat: 52.3086, lng: 4.7639 },
+  { match: 'brussels', iata: 'BRU', lat: 50.9014, lng: 4.4844 },
+  // Germany / Austria
+  { match: 'berlin', iata: 'BER', lat: 52.3667, lng: 13.5033 },
+  { match: 'munich', iata: 'MUC', lat: 48.3538, lng: 11.7861 },
+  { match: 'frankfurt', iata: 'FRA', lat: 50.0333, lng: 8.5706 },
+  { match: 'hamburg', iata: 'HAM', lat: 53.6303, lng: 9.9883 },
+  { match: 'vienna', iata: 'VIE', lat: 48.1103, lng: 16.5697 },
+  { match: 'salzburg', iata: 'SZG', lat: 47.7933, lng: 13.0043 },
+  // Switzerland
+  { match: 'zurich', iata: 'ZRH', lat: 47.4647, lng: 8.5492 },
+  { match: 'geneva', iata: 'GVA', lat: 46.2381, lng: 6.1090 },
+  // Italy
+  { match: 'rome', iata: 'FCO', lat: 41.8003, lng: 12.2389 },
+  { match: 'milan', iata: 'MXP', lat: 45.6306, lng: 8.7231 },
+  { match: 'venice', iata: 'VCE', lat: 45.5053, lng: 12.3519 },
+  { match: 'naples', iata: 'NAP', lat: 40.8860, lng: 14.2908 },
+  { match: 'florence', iata: 'FLR', lat: 43.8100, lng: 11.2051 },
+  // Spain
+  { match: 'barcelona', iata: 'BCN', lat: 41.2974, lng: 2.0833 },
+  { match: 'madrid', iata: 'MAD', lat: 40.4983, lng: -3.5676 },
+  { match: 'malaga', iata: 'AGP', lat: 36.6749, lng: -4.4991 },
+  { match: 'palma', iata: 'PMI', lat: 39.5517, lng: 2.7388 },
+  { match: 'alicante', iata: 'ALC', lat: 38.2822, lng: -0.5582 },
+  { match: 'valencia', iata: 'VLC', lat: 39.4893, lng: -0.4816 },
+  { match: 'ibiza', iata: 'IBZ', lat: 38.8729, lng: 1.3731 },
+  { match: 'seville', iata: 'SVQ', lat: 37.4180, lng: -5.8931 },
+  { match: 'tenerife', iata: 'TFS', lat: 28.0445, lng: -16.5725 },
+  { match: 'gran canaria', iata: 'LPA', lat: 27.9319, lng: -15.3866 },
+  { match: 'lanzarote', iata: 'ACE', lat: 28.9455, lng: -13.6052 },
+  { match: 'fuerteventura', iata: 'FUE', lat: 28.4527, lng: -13.8638 },
+  // Portugal
+  { match: 'lisbon', iata: 'LIS', lat: 38.7742, lng: -9.1342 },
+  { match: 'porto', iata: 'OPO', lat: 41.2482, lng: -8.6813 },
+  { match: 'faro', iata: 'FAO', lat: 37.0144, lng: -7.9659 },
+  { match: 'madeira', iata: 'FNC', lat: 32.6979, lng: -16.7745 },
+  // Greece
+  { match: 'athens', iata: 'ATH', lat: 37.9364, lng: 23.9475 },
+  { match: 'santorini', iata: 'JTR', lat: 36.3992, lng: 25.4793 },
+  { match: 'mykonos', iata: 'JMK', lat: 37.4351, lng: 25.3481 },
+  { match: 'crete', iata: 'HER', lat: 35.3397, lng: 25.1802 },
+  { match: 'rhodes', iata: 'RHO', lat: 36.4054, lng: 28.0862 },
+  { match: 'corfu', iata: 'CFU', lat: 39.6019, lng: 19.9117 },
+  { match: 'zakynthos', iata: 'ZTH', lat: 37.7509, lng: 20.8843 },
+  // Scandinavia
+  { match: 'copenhagen', iata: 'CPH', lat: 55.6180, lng: 12.6561 },
+  { match: 'stockholm', iata: 'ARN', lat: 59.6519, lng: 17.9186 },
+  { match: 'oslo', iata: 'OSL', lat: 60.1939, lng: 11.1004 },
+  { match: 'helsinki', iata: 'HEL', lat: 60.3172, lng: 24.9633 },
+  { match: 'reykjavik', iata: 'KEF', lat: 63.9850, lng: -22.6056 },
+  // Eastern Europe
+  { match: 'prague', iata: 'PRG', lat: 50.1008, lng: 14.2600 },
+  { match: 'budapest', iata: 'BUD', lat: 47.4394, lng: 19.2617 },
+  { match: 'warsaw', iata: 'WAW', lat: 52.1657, lng: 20.9671 },
+  { match: 'krakow', iata: 'KRK', lat: 50.0777, lng: 19.7848 },
+  // Croatia
+  { match: 'dubrovnik', iata: 'DBV', lat: 42.5614, lng: 18.2683 },
+  { match: 'split', iata: 'SPU', lat: 43.5389, lng: 16.2980 },
+  // Turkey
+  { match: 'istanbul', iata: 'IST', lat: 41.2753, lng: 28.7519 },
+  { match: 'antalya', iata: 'AYT', lat: 36.8987, lng: 30.8005 },
+  { match: 'bodrum', iata: 'BJV', lat: 37.2506, lng: 27.6643 },
+  { match: 'dalaman', iata: 'DLM', lat: 36.7131, lng: 28.7925 },
+  // Middle East
+  { match: 'dubai', iata: 'DXB', lat: 25.2532, lng: 55.3657 },
+  { match: 'abu dhabi', iata: 'AUH', lat: 24.4331, lng: 54.6511 },
+  { match: 'doha', iata: 'DOH', lat: 25.2731, lng: 51.6080 },
+  // North Africa
+  { match: 'marrakech', iata: 'RAK', lat: 31.6069, lng: -8.0363 },
+  { match: 'sharm', iata: 'SSH', lat: 27.9773, lng: 34.3950 },
+  { match: 'hurghada', iata: 'HRG', lat: 27.1783, lng: 33.7994 },
+  { match: 'cairo', iata: 'CAI', lat: 30.1219, lng: 31.4056 },
+  // Indian Ocean
+  { match: 'maldives', iata: 'MLE', lat: 4.1919, lng: 73.5291 },
+  { match: 'mauritius', iata: 'MRU', lat: -20.4302, lng: 57.6836 },
+  // Asia
+  { match: 'bangkok', iata: 'BKK', lat: 13.6900, lng: 100.7501 },
+  { match: 'phuket', iata: 'HKT', lat: 8.1132, lng: 98.3169 },
+  { match: 'bali', iata: 'DPS', lat: -8.7482, lng: 115.1671 },
+  { match: 'singapore', iata: 'SIN', lat: 1.3644, lng: 103.9915 },
+  { match: 'kuala lumpur', iata: 'KUL', lat: 2.7456, lng: 101.7099 },
+  { match: 'tokyo', iata: 'NRT', lat: 35.7720, lng: 140.3929 },
+  { match: 'hong kong', iata: 'HKG', lat: 22.3080, lng: 113.9185 },
+  { match: 'shanghai', iata: 'PVG', lat: 31.1443, lng: 121.8083 },
+  { match: 'beijing', iata: 'PEK', lat: 40.0801, lng: 116.5846 },
+  { match: 'seoul', iata: 'ICN', lat: 37.4602, lng: 126.4407 },
+  // South Asia
+  { match: 'mumbai', iata: 'BOM', lat: 19.0896, lng: 72.8656 },
+  { match: 'delhi', iata: 'DEL', lat: 28.5562, lng: 77.1000 },
+  { match: 'goa', iata: 'GOI', lat: 15.3808, lng: 73.8314 },
+  // Americas
+  { match: 'new york', iata: 'JFK', lat: 40.6413, lng: -73.7781 },
+  { match: 'los angeles', iata: 'LAX', lat: 33.9416, lng: -118.4085 },
+  { match: 'orlando', iata: 'MCO', lat: 28.4312, lng: -81.3081 },
+  { match: 'miami', iata: 'MIA', lat: 25.7933, lng: -80.2906 },
+  { match: 'cancun', iata: 'CUN', lat: 21.0365, lng: -86.8771 },
+  { match: 'toronto', iata: 'YYZ', lat: 43.6777, lng: -79.6248 },
+  { match: 'las vegas', iata: 'LAS', lat: 36.0840, lng: -115.1537 },
+  // Oceania
+  { match: 'sydney', iata: 'SYD', lat: -33.9399, lng: 151.1753 },
+  { match: 'melbourne', iata: 'MEL', lat: -37.6690, lng: 144.8410 },
+  // Africa
+  { match: 'cape town', iata: 'CPT', lat: -33.9648, lng: 18.6017 },
+  { match: 'johannesburg', iata: 'JNB', lat: -26.1392, lng: 28.2460 },
+];
+
+function findAirport(dest: string): { iata: string; lat: number; lng: number } | null {
+  if (!dest) return null;
+  const d = dest.toLowerCase();
+  // Sort by longest match first so "gran canaria" wins over "canaria"
+  const sorted = [...AIRPORT_COORDS].sort((a, b) => b.match.length - a.match.length);
+  for (const a of sorted) {
+    if (d.includes(a.match)) return { iata: a.iata, lat: a.lat, lng: a.lng };
+  }
+  return null;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    PROVIDER DEEP LINKS (only affiliated providers)
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -439,7 +576,7 @@ function StarFilter({ value, onChange }: { value: number; onChange: (v: number) 
    BOOK DIRECT (LiteAPI) — creates a pending booking then redirects to checkout
    ═══════════════════════════════════════════════════════════════════════════ */
 
-function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, checkin, checkout, searchedDest, buildDetailHref, setScoutHotel, priceView }: {
+function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, checkin, checkout, searchedDest, buildDetailHref, setScoutHotel, priceView, cityCentre, airport }: {
   hotel: HotelResult;
   index: number;
   isCheapest: boolean;
@@ -451,7 +588,26 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, checkin, c
   buildDetailHref: (h: HotelResult) => string;
   setScoutHotel: (s: { name: string; lat: number; lng: number } | null) => void;
   priceView: 'total' | 'perPerson';
+  cityCentre: { lat: number; lng: number } | null;
+  airport: { iata: string; lat: number; lng: number } | null;
 }) {
+  // Distance (miles) from city centre and nearest airport
+  const haversineMi = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+    const R = 3958.8; // miles
+    const toRad = (d: number) => (d * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(a));
+  };
+  const hasCoords = typeof hotel.lat === 'number' && typeof hotel.lng === 'number';
+  const milesFromCentre = hasCoords && cityCentre
+    ? haversineMi(hotel.lat!, hotel.lng!, cityCentre.lat, cityCentre.lng)
+    : null;
+  const milesFromAirport = hasCoords && airport
+    ? haversineMi(hotel.lat!, hotel.lng!, airport.lat, airport.lng)
+    : null;
+  const fmtMi = (mi: number) => (mi < 10 ? mi.toFixed(1) : Math.round(mi).toString());
   const [selectedBoard, setSelectedBoard] = useState(0);
   const h = hotel;
   const opts = h.boardOptions;
@@ -513,7 +669,24 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, checkin, c
           <a href={detailHref} className="hover:bg-[#F8FAFC] transition-colors">
             <div className="mb-1"><Stars count={h.stars} /></div>
             <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-1">{h.name}</h3>
-            {h.district && <p className="text-[.75rem] text-[#8E95A9] font-semibold mb-2">📍 {h.district}</p>}
+            {h.district && <p className="text-[.75rem] text-[#8E95A9] font-semibold mb-1">📍 {h.district}</p>}
+            {(milesFromCentre != null || milesFromAirport != null) && (
+              <p className="text-[.72rem] text-[#5C6378] font-semibold mb-2 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                {milesFromCentre != null && (
+                  <span className="inline-flex items-center gap-1">
+                    <i className="fa-solid fa-location-dot text-[.62rem] text-orange-500" />
+                    {fmtMi(milesFromCentre)} mi from centre
+                  </span>
+                )}
+                {milesFromCentre != null && milesFromAirport != null && <span className="text-[#D1D5DB]">·</span>}
+                {milesFromAirport != null && airport && (
+                  <span className="inline-flex items-center gap-1">
+                    <i className="fa-solid fa-plane text-[.62rem] text-orange-500" />
+                    {fmtMi(milesFromAirport)} mi from {airport.iata}
+                  </span>
+                )}
+              </p>
+            )}
             {nights > 0 && <p className="text-[.72rem] text-[#5C6378] font-semibold">{nights} night{nights !== 1 ? 's' : ''} · {adults} guest{adults !== 1 ? 's' : ''}</p>}
             {h.bookable && typeof displayRefundable === 'boolean' && (
               <span className={`inline-flex items-center gap-1 mt-1.5 text-[.68rem] font-bold ${displayRefundable ? 'text-green-600' : 'text-red-500'}`}>
@@ -881,6 +1054,9 @@ function HotelsContent() {
         lng: geoHotels.reduce((s, h) => s + (h.lng || 0), 0) / geoHotels.length,
       }
     : null;
+
+  // Nearest airport for the searched destination (for "X mi from airport" labels)
+  const airport = findAirport(searchedDest);
 
   // Haversine distance in km
   const distanceKm = (lat1: number, lng1: number, lat2: number, lng2: number) => {
@@ -1319,6 +1495,8 @@ function HotelsContent() {
                       buildDetailHref={buildDetailHref}
                       setScoutHotel={setScoutHotel}
                       priceView={priceView}
+                      cityCentre={cityCentre}
+                      airport={airport}
                     />
                 ))}
               </div>

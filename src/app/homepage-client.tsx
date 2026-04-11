@@ -39,22 +39,22 @@ const STEPS = [
 
 function HowItWorks() {
   return (
-    <section className="py-14 px-6 bg-white">
+    <section className="py-10 px-6 bg-white">
       <div className="max-w-[1100px] mx-auto">
-        <p className="text-center text-[.65rem] font-black uppercase tracking-[3px] text-orange-500 mb-2 font-[var(--font-dm-sans)]">Simple Process</p>
-        <h2 className="text-center font-[var(--font-playfair)] text-[2rem] md:text-[2.6rem] font-black text-[#0a1628] mb-10">How It Works</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <p className="text-center text-[.65rem] font-black uppercase tracking-[3px] text-orange-500 mb-1.5 font-[var(--font-dm-sans)]">Simple Process</p>
+        <h2 className="text-center font-[var(--font-playfair)] text-[1.8rem] md:text-[2.2rem] font-black text-[#0a1628] mb-6">How It Works</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {STEPS.map((s) => (
             <div key={s.num}
-              className="relative bg-white border border-[#E8ECF4] rounded-2xl p-8 pt-10 text-center overflow-hidden transition-all duration-300 group hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] hover:border-t-[3px] hover:border-t-orange-500">
+              className="relative bg-white border border-[#E8ECF4] rounded-2xl p-5 text-center overflow-hidden transition-all duration-300 group hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] hover:border-t-[3px] hover:border-t-orange-500">
               {/* Watermark number */}
-              <span className="absolute top-2 right-4 font-[var(--font-playfair)] font-black text-[5rem] leading-none text-[#F1F3F7] group-hover:text-orange-50 transition-colors select-none pointer-events-none">{s.num}</span>
+              <span className="absolute top-1 right-3 font-[var(--font-playfair)] font-black text-[3.2rem] leading-none text-[#F1F3F7] group-hover:text-orange-50 transition-colors select-none pointer-events-none">{s.num}</span>
               <div className="relative z-[1]">
-                <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-orange-50 to-orange-100 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <i className={`fa-solid ${s.icon} text-2xl text-orange-500`} />
+                <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-orange-50 to-orange-100 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <i className={`fa-solid ${s.icon} text-xl text-orange-500`} />
                 </div>
-                <h3 className="font-[var(--font-playfair)] font-black text-[1.3rem] text-[#0a1628] mb-2">{s.title}</h3>
-                <p className="font-[var(--font-dm-sans)] text-[.85rem] text-[#5C6378] leading-relaxed">{s.desc}</p>
+                <h3 className="font-[var(--font-playfair)] font-black text-[1.1rem] text-[#0a1628] mb-1">{s.title}</h3>
+                <p className="font-[var(--font-dm-sans)] text-[.78rem] text-[#5C6378] leading-relaxed">{s.desc}</p>
               </div>
             </div>
           ))}
@@ -79,23 +79,23 @@ const CATEGORIES = [
 
 function WhatWeCompare() {
   return (
-    <section className="py-14 px-6 bg-[#F8FAFC]">
+    <section className="py-10 px-6 bg-[#F8FAFC]">
       <div className="max-w-[1100px] mx-auto">
-        <p className="text-center text-[.65rem] font-black uppercase tracking-[3px] text-orange-500 mb-2 font-[var(--font-dm-sans)]">All In One Place</p>
-        <h2 className="text-center font-[var(--font-playfair)] text-[2rem] md:text-[2.6rem] font-black text-[#0a1628] mb-10">What We Compare</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <p className="text-center text-[.65rem] font-black uppercase tracking-[3px] text-orange-500 mb-1.5 font-[var(--font-dm-sans)]">All In One Place</p>
+        <h2 className="text-center font-[var(--font-playfair)] text-[1.8rem] md:text-[2.2rem] font-black text-[#0a1628] mb-6">What We Compare</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {CATEGORIES.map((c) => (
             <a key={c.name} href={c.href}
-              className={`relative bg-white border rounded-2xl p-6 transition-all duration-300 group hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] ${c.live ? 'border-orange-200 bg-gradient-to-br from-white to-orange-50/50' : 'border-[#E8ECF4] hover:border-orange-200'}`}>
+              className={`relative bg-white border rounded-2xl p-4 transition-all duration-300 group hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] ${c.live ? 'border-orange-200 bg-gradient-to-br from-white to-orange-50/50' : 'border-[#E8ECF4] hover:border-orange-200'}`}>
               {c.live && (
-                <span className="absolute top-3 right-3 flex items-center gap-1 bg-green-50 border border-green-200 text-green-700 text-[.6rem] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
+                <span className="absolute top-2.5 right-2.5 flex items-center gap-1 bg-green-50 border border-green-200 text-green-700 text-[.58rem] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
                   <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
                   Live
                 </span>
               )}
-              <div className="text-3xl mb-3 group-hover:scale-110 transition-transform">{c.emoji}</div>
-              <h3 className="font-poppins font-black text-[1rem] text-[#0a1628] mb-1">{c.name}</h3>
-              <p className="font-[var(--font-dm-sans)] text-[.78rem] text-[#5C6378]">{c.desc}</p>
+              <div className="text-2xl mb-2 group-hover:scale-110 transition-transform">{c.emoji}</div>
+              <h3 className="font-poppins font-black text-[.95rem] text-[#0a1628] mb-0.5">{c.name}</h3>
+              <p className="font-[var(--font-dm-sans)] text-[.74rem] text-[#5C6378]">{c.desc}</p>
             </a>
           ))}
         </div>
@@ -457,9 +457,9 @@ export default function HomepageClient() {
       </section>
 
       <LogoScroll />
-      <HowItWorks />
-      <WhatWeCompare />
       <PopularDestinations />
+      <WhatWeCompare />
+      <HowItWorks />
       <Testimonials />
       <CtaSection />
       <HomepageFooter />
