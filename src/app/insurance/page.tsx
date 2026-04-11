@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import DateRangePicker from '@/components/DateRangePicker';
 import { redirectUrl } from '@/lib/redirect';
 
 const PROVIDERS = [
@@ -141,7 +142,7 @@ export default function InsurancePage() {
           </div>
 
           <div className="mb-3">
-            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Destination Region</label>
+            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Destination Region</label>
             <select value={destination} onChange={e => setDestination(e.target.value)}
               className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-green-500 focus:bg-white transition-all">
               <option value="">Select destination...</option>
@@ -152,26 +153,21 @@ export default function InsurancePage() {
             </select>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Departure Date</label>
-              <input type="date" min={today} value={depDate} onChange={e => {
-                const v = e.target.value;
-                setDepDate(v);
-                if (!retDate || retDate <= v) {
-                  const r = new Date(v); r.setDate(r.getDate() + 7);
-                  setRetDate(r.toISOString().split('T')[0]);
-                }
-              }}
-                className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-green-500 focus:bg-white transition-all" />
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Calendar</label>
+              <DateRangePicker
+                start={depDate}
+                end={retDate}
+                minDate={today}
+                accent="green"
+                startWord="departure"
+                endWord="return"
+                onChange={({ start: s, end: e }) => { setDepDate(s); setRetDate(e); }}
+              />
             </div>
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Return Date</label>
-              <input type="date" min={depDate || today} value={retDate} onChange={e => setRetDate(e.target.value)}
-                className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-green-500 focus:bg-white transition-all" />
-            </div>
-            <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Travellers</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Travellers</label>
               <select value={travellers} onChange={e => setTravellers(e.target.value)}
                 className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-green-500 focus:bg-white transition-all">
                 <option value="1">1 traveller</option>

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import DateRangePicker from '@/components/DateRangePicker';
 import { redirectUrl } from '@/lib/redirect';
 
 // ─── Country → ISO-2 code mapping ─────────────────────────────────────────
@@ -357,30 +358,23 @@ export default function ESIMPage() {
           .animate-twinkle-delay{animation:twinkle 3.2s ease-in-out infinite;animation-delay:1.6s;}
         `}</style>
           <div className="mb-3">
-            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Destination Country</label>
+            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Destination Country</label>
             <CountryPicker value={country} onChange={setCountry} placeholder="Where are you travelling? — e.g. Morocco, Thailand, USA" />
           </div>
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Travel From</label>
-              <input type="date" value={startDate} onChange={e => {
-                const v = e.target.value;
-                setStartDate(v);
-                if (!endDate || endDate <= v) {
-                  const r = new Date(v); r.setDate(r.getDate() + 7);
-                  setEndDate(r.toISOString().split('T')[0]);
-                }
-              }}
-                className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-indigo-500 focus:bg-white transition-all" />
-            </div>
-            <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Travel Until</label>
-              <input type="date" value={endDate} min={startDate || undefined} onChange={e => setEndDate(e.target.value)}
-                className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-indigo-500 focus:bg-white transition-all" />
-            </div>
+          <div className="mb-3">
+            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Calendar</label>
+            <DateRangePicker
+              start={startDate}
+              end={endDate}
+              minDate={new Date().toISOString().split('T')[0]}
+              accent="indigo"
+              startWord="travel from"
+              endWord="travel until"
+              onChange={({ start: s, end: e }) => { setStartDate(s); setEndDate(e); }}
+            />
           </div>
           <div className="mb-4">
-            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Trip Duration {startDate && endDate ? '(auto-calculated)' : ''}</label>
+            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Trip Duration {startDate && endDate ? '(auto-calculated)' : ''}</label>
             <select value={duration} onChange={e => setDuration(e.target.value)}
               className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-indigo-500 focus:bg-white transition-all">
               <option value="3">3 days (city break)</option>

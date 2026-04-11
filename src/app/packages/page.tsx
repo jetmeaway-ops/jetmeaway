@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import DateRangePicker from '@/components/DateRangePicker';
 import { redirectUrl } from '@/lib/redirect';
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -613,41 +614,36 @@ function PackagesContent() {
         `}</style>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">From</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">From</label>
               <FromPicker value={from} onChange={setFrom} />
             </div>
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Destination</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Destination</label>
               <DestinationPicker value={dest} onChange={setDest} />
             </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Departure</label>
-              <input type="date" min={today} value={depDate} onChange={e => {
-                const v = e.target.value;
-                setDepDate(v);
-                if (!retDate || retDate <= v) {
-                  const r = new Date(v); r.setDate(r.getDate() + 7);
-                  setRetDate(r.toISOString().split('T')[0]);
-                }
-              }}
-                className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-purple-500 focus:bg-white transition-all" />
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Calendar</label>
+              <DateRangePicker
+                start={depDate}
+                end={retDate}
+                minDate={today}
+                accent="purple"
+                startWord="departure"
+                endWord="return"
+                onChange={({ start: s, end: e }) => { setDepDate(s); setRetDate(e); }}
+              />
             </div>
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Return</label>
-              <input type="date" min={depDate || today} value={retDate} onChange={e => setRetDate(e.target.value)}
-                className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-purple-500 focus:bg-white transition-all" />
-            </div>
-            <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Duration</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Duration</label>
               <select value={duration} onChange={e => setDuration(e.target.value)}
                 className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-purple-500 focus:bg-white transition-all">
                 {[3,4,5,6,7,10,14,21].map(n => <option key={n} value={n}>{n} nights</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Guests</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Guests</label>
               <PkgGuestPicker adults={adults} children={children} childrenAges={childrenAges}
                 onChange={(a, c, ages) => { setAdults(a); setChildren(c); setChildrenAges(ages); }} />
             </div>

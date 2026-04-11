@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import DateRangePicker from '@/components/DateRangePicker';
 import { redirectUrl } from '@/lib/redirect';
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -1078,42 +1079,32 @@ function FlightsContent() {
           {/* From / To */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">From</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">From</label>
               <AutocompleteFrom value={originCode} onChange={(code, city) => { setOriginCode(code); setOriginCity(city); }} initialCode={initOrigin} />
             </div>
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">To</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">To</label>
               <AutocompleteTo value={destCode} onChange={(code, city) => { setDestCode(code); setDestCity(city); }} initialCode={initDest} />
             </div>
           </div>
 
           {/* Dates + Passengers */}
-          <div className={`grid gap-3 mb-4 ${tripType === 'return' ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2'}`}>
+          <div className="grid gap-3 mb-4 grid-cols-1 sm:grid-cols-2">
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Departure</label>
-              <input type="date" min={today} value={depDate} onChange={e => {
-                const newDep = e.target.value;
-                setDepDate(newDep);
-                // Auto-adjust return date: if return is before new departure, move it forward
-                if (tripType === 'return') {
-                  if (!retDate || retDate <= newDep) {
-                    const r = new Date(newDep);
-                    r.setDate(r.getDate() + 7);
-                    setRetDate(r.toISOString().split('T')[0]);
-                  }
-                }
-              }}
-                className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.85rem] font-semibold text-[#1A1D2B] outline-none focus:border-[#0066FF] focus:bg-white transition-all" />
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Calendar</label>
+              <DateRangePicker
+                start={depDate}
+                end={retDate}
+                minDate={today}
+                accent="blue"
+                oneWay={tripType !== 'return'}
+                startWord="departure"
+                endWord="return"
+                onChange={({ start: s, end: e }) => { setDepDate(s); setRetDate(e); }}
+              />
             </div>
-            {tripType === 'return' && (
-              <div>
-                <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Return</label>
-                <input type="date" min={depDate || today} value={retDate} onChange={e => setRetDate(e.target.value)}
-                  className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.85rem] font-semibold text-[#1A1D2B] outline-none focus:border-[#0066FF] focus:bg-white transition-all" />
-              </div>
-            )}
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Passengers</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Passengers</label>
               <PassengerPicker adults={adults} children={children} infants={infants}
                 onChange={(a, c, i) => { setAdults(a); setChildren(c); setInfants(i); }} />
             </div>

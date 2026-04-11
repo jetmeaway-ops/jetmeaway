@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import DateRangePicker from '@/components/DateRangePicker';
 import { redirectUrl } from '@/lib/redirect';
 
 const ScoutSidebar = dynamic(() => import('@/components/ScoutSidebar'), { ssr: false });
@@ -610,166 +611,6 @@ function StarFilter({ value, onChange }: { value: number; onChange: (v: number) 
           {o.label}
         </button>
       ))}
-    </div>
-  );
-}
-
-/**
- * DateRangePicker — single click-anywhere box that pops a 2-month calendar.
- * Click first day = check-in, click second day = check-out. Click before
- * check-in restarts the range. "Done" closes the popup.
- */
-function DateRangePicker({
-  checkin, checkout, minDate, onChange,
-}: {
-  checkin: string;
-  checkout: string;
-  minDate: string;
-  onChange: (next: { checkin: string; checkout: string }) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [viewMonth, setViewMonth] = useState(() => {
-    const d = checkin ? new Date(checkin) : new Date();
-    return new Date(d.getFullYear(), d.getMonth(), 1);
-  });
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const fn = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener('mousedown', fn);
-    return () => document.removeEventListener('mousedown', fn);
-  }, []);
-
-  const todayMs = new Date(minDate).setHours(0, 0, 0, 0);
-  const cinMs = checkin ? new Date(checkin).setHours(0, 0, 0, 0) : 0;
-  const coutMs = checkout ? new Date(checkout).setHours(0, 0, 0, 0) : 0;
-
-  function fmtIso(d: Date) {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  }
-  function fmtLabel(s: string) {
-    if (!s) return '';
-    return new Date(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-  }
-
-  function pick(d: Date) {
-    const ms = new Date(d).setHours(0, 0, 0, 0);
-    if (ms < todayMs) return;
-    if (!checkin || (checkin && checkout)) {
-      onChange({ checkin: fmtIso(d), checkout: '' });
-    } else if (ms <= cinMs) {
-      onChange({ checkin: fmtIso(d), checkout: '' });
-    } else {
-      onChange({ checkin, checkout: fmtIso(d) });
-      setOpen(false);
-    }
-  }
-
-  function buildMonth(monthStart: Date) {
-    const year = monthStart.getFullYear();
-    const month = monthStart.getMonth();
-    const startOffset = (new Date(year, month, 1).getDay() + 6) % 7; // Mon = 0
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const cells: (Date | null)[] = [];
-    for (let i = 0; i < startOffset; i++) cells.push(null);
-    for (let i = 1; i <= daysInMonth; i++) cells.push(new Date(year, month, i));
-    while (cells.length % 7) cells.push(null);
-    return cells;
-  }
-
-  function MonthGrid({ monthStart, hideOnMobile = false }: { monthStart: Date; hideOnMobile?: boolean }) {
-    const cells = buildMonth(monthStart);
-    const monthLabel = monthStart.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-    return (
-      <div className={`flex-1 min-w-[240px] ${hideOnMobile ? 'hidden md:block' : ''}`}>
-        <div className="text-center font-poppins font-black text-[.85rem] text-[#1A1D2B] mb-2">{monthLabel}</div>
-        <div className="grid grid-cols-7 text-center text-[.6rem] font-bold text-[#8E95A9] uppercase mb-1">
-          {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(d => <div key={d}>{d}</div>)}
-        </div>
-        <div className="grid grid-cols-7">
-          {cells.map((d, i) => {
-            if (!d) return <div key={i} />;
-            const ms = new Date(d).setHours(0, 0, 0, 0);
-            const isPast = ms < todayMs;
-            const isCheckin = ms === cinMs;
-            const isCheckout = ms === coutMs;
-            const inRange = !!cinMs && !!coutMs && ms > cinMs && ms < coutMs;
-            const isEdge = isCheckin || isCheckout;
-            return (
-              <button key={i} type="button" disabled={isPast}
-                onClick={() => pick(d)}
-                className={[
-                  'h-9 text-[.78rem] font-semibold transition-colors',
-                  isPast ? 'text-[#D0D6E2] cursor-not-allowed' : 'text-[#1A1D2B] hover:bg-orange-100',
-                  isEdge ? 'bg-orange-500 text-white hover:bg-orange-500' : '',
-                  isCheckin && coutMs ? 'rounded-l-full' : '',
-                  isCheckout ? 'rounded-r-full' : '',
-                  isCheckin && !coutMs ? 'rounded-full' : '',
-                  inRange ? 'bg-orange-100' : '',
-                ].join(' ')}>
-                {d.getDate()}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-
-  const todayD = new Date(); todayD.setHours(0, 0, 0, 0);
-  const canGoBack = !(viewMonth.getFullYear() === todayD.getFullYear() && viewMonth.getMonth() <= todayD.getMonth());
-  const nextMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1);
-  const prevMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1);
-  const nights = cinMs && coutMs ? Math.round((coutMs - cinMs) / 86400000) : 0;
-
-  const buttonLabel = checkin && checkout
-    ? `${fmtLabel(checkin)} → ${fmtLabel(checkout)}`
-    : checkin
-      ? `${fmtLabel(checkin)} → Pick check-out`
-      : 'Add dates';
-
-  return (
-    <div ref={ref} className="relative">
-      <button type="button" onClick={() => setOpen(v => !v)}
-        className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-left text-[.85rem] font-semibold text-[#1A1D2B] outline-none focus:border-orange-400 hover:bg-white transition-all flex items-center justify-between whitespace-nowrap">
-        <span className="truncate flex items-center gap-2">
-          <i className="fa-regular fa-calendar text-[#8E95A9]" aria-hidden />
-          {buttonLabel}
-        </span>
-        <span className="text-[#B0B8CC] text-xs ml-2">{open ? '▴' : '▾'}</span>
-      </button>
-      {open && (
-        <div className="absolute z-50 left-0 mt-1.5 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl p-4 w-[min(640px,90vw)]">
-          <div className="flex items-center justify-between mb-2">
-            <button type="button" disabled={!canGoBack}
-              onClick={() => setViewMonth(prevMonth)}
-              className="w-8 h-8 rounded-full hover:bg-[#F1F3F7] flex items-center justify-center text-[#5C6378] disabled:opacity-30 disabled:cursor-not-allowed text-lg">‹</button>
-            <button type="button"
-              onClick={() => setViewMonth(nextMonth)}
-              className="w-8 h-8 rounded-full hover:bg-[#F1F3F7] flex items-center justify-center text-[#5C6378] text-lg">›</button>
-          </div>
-          <div className="flex gap-6 flex-wrap">
-            <MonthGrid monthStart={viewMonth} />
-            <MonthGrid monthStart={nextMonth} hideOnMobile />
-          </div>
-          <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-[#F1F3F7]">
-            <div className="text-[.72rem] font-semibold text-[#5C6378]">
-              {nights > 0 ? `${nights} night${nights !== 1 ? 's' : ''}` : checkin ? 'Pick check-out' : 'Pick check-in'}
-            </div>
-            <div className="flex gap-2">
-              {(checkin || checkout) && (
-                <button type="button" onClick={() => onChange({ checkin: '', checkout: '' })}
-                  className="text-[.72rem] font-bold text-[#8E95A9] hover:text-[#5C6378] px-3 py-1.5">Clear</button>
-              )}
-              <button type="button" onClick={() => setOpen(false)}
-                className="bg-orange-500 hover:bg-orange-600 text-white font-poppins font-bold text-[.78rem] px-4 py-1.5 rounded-xl transition-colors">Done</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -1389,10 +1230,13 @@ function HotelsContent() {
             <div>
               <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Calendar</label>
               <DateRangePicker
-                checkin={checkin}
-                checkout={checkout}
+                start={checkin}
+                end={checkout}
                 minDate={today}
-                onChange={({ checkin: ci, checkout: co }) => { setCheckin(ci); setCheckout(co); }}
+                accent="orange"
+                startWord="check-in"
+                endWord="check-out"
+                onChange={({ start: ci, end: co }) => { setCheckin(ci); setCheckout(co); }}
               />
             </div>
             <div>

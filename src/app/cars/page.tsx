@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import DateRangePicker from '@/components/DateRangePicker';
 import { redirectUrl } from '@/lib/redirect';
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -538,57 +539,54 @@ function CarsContent() {
         `}</style>
           {/* Pickup location */}
           <div className="mb-3">
-            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Pickup Location</label>
+            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Pickup Location</label>
             <LocationPicker value={location} onChange={setLocation} placeholder="Airport — e.g. Barcelona Airport (BCN)" />
           </div>
 
           {/* Different return toggle */}
           <div className="mb-3">
-            <label className="flex items-center gap-2 cursor-pointer mb-2">
+            <label className="flex items-center gap-2 cursor-pointer mb-2 justify-center">
               <input type="checkbox" checked={differentReturn} onChange={e => setDifferentReturn(e.target.checked)}
                 className="w-4 h-4 rounded border-[#E8ECF4] text-emerald-500 focus:ring-emerald-500 accent-emerald-500" />
               <span className="text-[.75rem] font-bold text-[#5C6378]">Return to a different location</span>
             </label>
             {differentReturn && (
               <div>
-                <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Return Location</label>
+                <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Return Location</label>
                 <LocationPicker value={returnLocation} onChange={setReturnLocation} placeholder="Where are you dropping off?" />
               </div>
             )}
           </div>
 
-          {/* Dates, times, driver age */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+          {/* Calendar (shared range picker) + times + driver age */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Pickup Date</label>
-              <input type="date" min={today} value={pickupDate} onChange={e => {
-                const v = e.target.value;
-                setPickupDate(v);
-                if (!dropoffDate || dropoffDate <= v) {
-                  const r = new Date(v); r.setDate(r.getDate() + 3);
-                  setDropoffDate(r.toISOString().split('T')[0]);
-                }
-              }}
-                className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-emerald-500 focus:bg-white transition-all" />
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Calendar</label>
+              <DateRangePicker
+                start={pickupDate}
+                end={dropoffDate}
+                minDate={today}
+                accent="emerald"
+                startWord="pickup"
+                endWord="return"
+                onChange={({ start: s, end: e }) => { setPickupDate(s); setDropoffDate(e); }}
+              />
             </div>
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Pickup Time</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Driver Age</label>
+              <input type="number" min={18} max={99} value={driverAge} onChange={e => setDriverAge(e.target.value)}
+                className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-emerald-500 focus:bg-white transition-all" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Pickup Time</label>
               <input type="time" value={pickupTime} onChange={e => setPickupTime(e.target.value)}
                 className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-emerald-500 focus:bg-white transition-all" />
             </div>
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Return Date</label>
-              <input type="date" min={pickupDate || today} value={dropoffDate} onChange={e => setDropoffDate(e.target.value)}
-                className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-emerald-500 focus:bg-white transition-all" />
-            </div>
-            <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Return Time</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Return Time</label>
               <input type="time" value={dropoffTime} onChange={e => setDropoffTime(e.target.value)}
-                className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-emerald-500 focus:bg-white transition-all" />
-            </div>
-            <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Driver Age</label>
-              <input type="number" min={18} max={99} value={driverAge} onChange={e => setDriverAge(e.target.value)}
                 className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-emerald-500 focus:bg-white transition-all" />
             </div>
           </div>
