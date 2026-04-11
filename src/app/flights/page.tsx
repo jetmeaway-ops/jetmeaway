@@ -290,9 +290,18 @@ function buildSkyscannerUrl(o: string, d: string, dep: string, ret: string | nul
 }
 
 function buildExpediaUrl(o: string, d: string, dep: string, ret: string | null, adults: number): string {
+  // Expedia /Flights-Search expects dates as MM/DD/YYYY (not ISO) and the
+  // mode=search + full passengers struct, otherwise it lands on a "wrong turn"
+  // error page. Verified working in real browser 2026-04-11.
+  const toUS = (iso: string) => {
+    const [y, m, d2] = iso.split('-');
+    return `${m}/${d2}/${y}`;
+  };
   const trip = ret ? 'roundtrip' : 'oneway';
-  let u = `https://www.expedia.co.uk/Flights-Search?trip=${trip}&leg1=from:${o},to:${d},departure:${dep}TANYT&passengers=adults:${adults}&affcid=clbU3QK`;
-  if (ret) u += `&leg2=from:${d},to:${o},departure:${ret}TANYT`;
+  const passengers = `adults:${adults},children:0,seniors:0,infantinlap:Y`;
+  let u = `https://www.expedia.co.uk/Flights-Search?mode=search&trip=${trip}&leg1=from:${o},to:${d},departure:${toUS(dep)}TANYT`;
+  if (ret) u += `&leg2=from:${d},to:${o},departure:${toUS(ret)}TANYT`;
+  u += `&passengers=${passengers}&affcid=clbU3QK`;
   return u;
 }
 
