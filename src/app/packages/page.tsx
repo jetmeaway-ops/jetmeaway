@@ -279,7 +279,12 @@ function LoadingState({ dest }: { dest: string }) {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function buildExpediaUrl(dest: string, from: string, depDate: string, retDate: string, adults: number) {
-  return `https://www.expedia.co.uk/go/package/search/FlightHotel/${depDate}/${retDate}?FromAirport=${encodeURIComponent(from)}&Destination=${encodeURIComponent(dest)}&NumRoom=1&NumAdult=${adults}&affcid=clbU3QK`;
+  // Expedia's /go/package/search/ endpoint returns HTTP 502 when FromAirport is
+  // the display string "London Heathrow (LHR)"; it must be the bare IATA code.
+  // Extract the code from the "(LHR)" suffix, else fall back to the raw input.
+  const iataMatch = from.match(/\(([A-Z]{3})\)/);
+  const fromIata = iataMatch ? iataMatch[1] : from;
+  return `https://www.expedia.co.uk/go/package/search/FlightHotel/${depDate}/${retDate}?FromAirport=${encodeURIComponent(fromIata)}&Destination=${encodeURIComponent(dest)}&NumRoom=1&NumAdult=${adults}&affcid=clbU3QK`;
 }
 
 /* Trip.com uses city-level codes, not airport IATA codes */
@@ -331,6 +336,83 @@ const POPULAR_DESTS = [
   { name: 'Faro', flag: '🇵🇹', est: 349, photo: 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=400&h=300&fit=crop' },
   { name: 'Cancun', flag: '🇲🇽', est: 799, photo: 'https://images.unsplash.com/photo-1510097467424-192d713fd8b2?w=400&h=300&fit=crop' },
 ];
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FAMILY SUMMER PACKAGES — pre-built July/August deep links from London (LHR)
+   for a family of 4. Click-through goes straight to a fully pre-filled
+   Trip.com or Expedia results page. Uses the existing buildTripUrl /
+   buildExpediaUrl helpers (proven in production after a manual search).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const FAMILY_FROM_AIRPORT = 'London Heathrow (LHR)';
+const FAMILY_ADULTS = 4;
+
+const FAMILY_PACKAGES = [
+  { name: 'Tenerife',  flag: '🇪🇸', dep: '2026-07-18', ret: '2026-07-25', pp: 549, tag: 'Year-Round Sun', photo: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=600&h=400&fit=crop' },
+  { name: 'Palma',     flag: '🇪🇸', dep: '2026-07-25', ret: '2026-08-01', pp: 499, tag: 'School Holidays', photo: 'https://images.unsplash.com/photo-1591970934008-b42acc22a339?w=600&h=400&fit=crop' },
+  { name: 'Antalya',   flag: '🇹🇷', dep: '2026-08-01', ret: '2026-08-08', pp: 429, tag: 'All-Inclusive', photo: 'https://images.unsplash.com/photo-1568322503122-d237a9968485?w=600&h=400&fit=crop' },
+  { name: 'Crete',     flag: '🇬🇷', dep: '2026-08-08', ret: '2026-08-15', pp: 559, tag: 'Family Resorts', photo: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=600&h=400&fit=crop' },
+  { name: 'Faro',      flag: '🇵🇹', dep: '2026-07-18', ret: '2026-07-25', pp: 519, tag: 'Algarve Coast', photo: 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=600&h=400&fit=crop' },
+  { name: 'Lanzarote', flag: '🇪🇸', dep: '2026-08-15', ret: '2026-08-22', pp: 529, tag: 'Volcanic Beaches', photo: 'https://images.unsplash.com/photo-1572099606223-6e29045d7de3?w=600&h=400&fit=crop' },
+  { name: 'Malaga',    flag: '🇪🇸', dep: '2026-07-25', ret: '2026-08-01', pp: 489, tag: 'Costa del Sol', photo: 'https://images.unsplash.com/photo-1559627755-43c39e6c1a78?w=600&h=400&fit=crop' },
+  { name: 'Rhodes',    flag: '🇬🇷', dep: '2026-08-08', ret: '2026-08-15', pp: 569, tag: 'Greek Island', photo: 'https://images.unsplash.com/photo-1601581875309-fafbf2d3ed3a?w=600&h=400&fit=crop' },
+];
+
+function FamilyPackages() {
+  return (
+    <section className="max-w-[1100px] mx-auto px-5 pb-12 pt-2">
+      <div className="text-center mb-7">
+        <span className="inline-flex items-center gap-1.5 bg-purple-50 text-purple-600 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-3">
+          ☀️ July & August · Family of 4
+        </span>
+        <h2 className="font-poppins text-[1.8rem] md:text-[2.2rem] font-black text-[#1A1D2B] leading-tight mb-2">
+          Pre-Built Summer Packages
+        </h2>
+        <p className="text-[.85rem] text-[#8E95A9] font-semibold max-w-[560px] mx-auto">
+          7 nights from London Heathrow · Click any deal to see live prices on Trip.com or Expedia — all dates &amp; travellers pre-filled
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {FAMILY_PACKAGES.map(p => {
+          const tripUrl = buildTripUrl(p.name, FAMILY_FROM_AIRPORT, p.dep, p.ret, FAMILY_ADULTS);
+          const expediaUrl = buildExpediaUrl(p.name, FAMILY_FROM_AIRPORT, p.dep, p.ret, FAMILY_ADULTS);
+          const fmt = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+          return (
+            <div key={p.name} className="bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col">
+              <div className="relative h-40 bg-gradient-to-br from-purple-500 via-indigo-500 to-blue-600">
+                <img src={p.photo} alt="" loading="lazy"
+                  className="absolute inset-0 w-full h-full object-cover"
+                  onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
+                <span className="absolute top-2.5 left-2.5 text-[.55rem] font-black uppercase tracking-[1.5px] bg-white/95 text-purple-600 px-2 py-1 rounded-full">
+                  {p.tag}
+                </span>
+                <div className="absolute bottom-0 left-0 right-0 p-3">
+                  <div className="font-poppins font-black text-white text-[1.1rem] leading-tight">{p.name} {p.flag}</div>
+                  <div className="text-[.66rem] text-white/85 font-semibold mt-0.5">{fmt(p.dep)} — {fmt(p.ret)} · 7 nights</div>
+                </div>
+              </div>
+              <div className="p-3 flex flex-col gap-1.5 flex-1">
+                <div className="text-[.7rem] text-[#5C6378] font-semibold mb-0.5">
+                  From <span className="font-poppins font-black text-[1rem] text-[#1A1D2B]">£{p.pp}</span> pp
+                </div>
+                <a href={redirectUrl(tripUrl, 'Trip.com', p.name, 'packages')} target="_blank" rel="noopener sponsored"
+                  className="bg-[#287DFA] hover:bg-[#1A6AE0] text-white font-poppins font-bold text-[.72rem] py-2 rounded-lg transition-all text-center">
+                  Trip.com →
+                </a>
+                <a href={redirectUrl(expediaUrl, 'Expedia', p.name, 'packages')} target="_blank" rel="noopener sponsored"
+                  className="bg-[#1B2B65] hover:bg-[#142050] text-white font-poppins font-bold text-[.72rem] py-2 rounded-lg transition-all text-center">
+                  Expedia →
+                </a>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    BOARD / STAR OPTIONS
@@ -556,6 +638,9 @@ function PackagesContent() {
           <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">ATOL-protected options included · Book direct with providers</p>
         </div>
       </section>
+
+      {/* ── Pre-built family packages (empty state only) ── */}
+      {!searched && !loading && <FamilyPackages />}
 
       {/* ── Loading ── */}
       {loading && <LoadingState dest={dest} />}
