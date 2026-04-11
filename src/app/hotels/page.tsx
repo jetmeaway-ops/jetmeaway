@@ -336,6 +336,29 @@ type HotelResult = {
 
 type PlaceResult = { id: string; name: string; description: string; type: string };
 
+/**
+ * Curated UK landmark aliases. LiteAPI returns very few (or zero) hotels for
+ * tiny villages like West Lulworth or Wareham, but customers still ask for
+ * "hotels near Durdle Door". Each entry maps a landmark query to the nearest
+ * town with reliable hotel supply, surfaced as a synthetic top suggestion in
+ * the autocomplete dropdown. Add new landmarks here as customer requests come in.
+ */
+const LANDMARK_ALIASES: Array<{
+  match: RegExp;
+  label: string;
+  sublabel: string;
+  searchAs: string;
+  placeId: string;
+}> = [
+  {
+    match: /durdle|jurassic\s*coast|lulworth/i,
+    label: 'Durdle Door (Jurassic Coast)',
+    sublabel: 'Searches Bournemouth · nearest town with hotels (~30 min drive)',
+    searchAs: 'Bournemouth',
+    placeId: 'ChIJ_WegsaCYc0gRlCypaxXgLjs',
+  },
+];
+
 function DestinationPicker({ value, onChange, onPlaceSelect }: {
   value: string;
   onChange: (v: string) => void;
@@ -402,6 +425,25 @@ function DestinationPicker({ value, onChange, onPlaceSelect }: {
       </div>
       {open && (
         <ul className="absolute z-50 w-full mt-1.5 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl overflow-auto max-h-72">
+          {/* Curated landmark aliases — surface synthetic suggestions for famous spots
+              like Durdle Door that LiteAPI can't search directly */}
+          {q.length >= 2 && LANDMARK_ALIASES.filter(l => l.match.test(q)).map(l => (
+            <li key={`landmark-${l.label}`}
+              onMouseDown={() => {
+                onChange(l.searchAs);
+                onPlaceSelect({ id: l.placeId, name: l.searchAs, description: l.sublabel, type: 'locality' });
+                setOpen(false);
+                setApiResults([]);
+              }}
+              className="px-4 py-3 hover:bg-orange-50 cursor-pointer transition-colors border-b border-[#F1F3F7] flex items-center gap-3 bg-orange-50/40">
+              <i className="fa-solid fa-mountain-sun text-[.85rem] text-orange-500 w-5 text-center flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <span className="font-poppins font-bold text-[.85rem] text-[#1A1D2B] block truncate">{l.label}</span>
+                <span className="text-[.68rem] text-[#8E95A9] font-semibold block truncate">{l.sublabel}</span>
+              </div>
+              <span className="text-[.55rem] font-black text-orange-500 uppercase tracking-wider ml-auto flex-shrink-0">Landmark</span>
+            </li>
+          ))}
           {/* API results (live from LiteAPI) */}
           {apiResults.length > 0 && (
             <>
@@ -970,6 +1012,7 @@ function HotelsContent() {
     const c = p.get('children');
     const r = p.get('rooms');
     const s = p.get('stars');
+    const pid = p.get('placeId');
     if (dest) setDestination(dest);
     if (cin) setCheckin(cin);
     if (cout) setCheckout(cout);
@@ -977,6 +1020,7 @@ function HotelsContent() {
     if (c) setChildCount(Math.min(5, Math.max(0, parseInt(c))));
     if (r) setRooms(Math.min(5, Math.max(1, parseInt(r))));
     if (s) setMinStars(Math.min(5, Math.max(0, parseInt(s))));
+    if (pid) setSelectedPlaceId(pid);
   }, []);
 
   const today = new Date().toISOString().split('T')[0];
