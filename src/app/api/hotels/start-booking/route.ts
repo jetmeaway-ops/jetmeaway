@@ -41,6 +41,10 @@ export interface PendingBooking {
   lng?: number;
   /** Taxes/fees NOT included in totalPrice — payable at property (e.g. city tax) */
   localFees?: number;
+  /** Whether the rate is refundable (drives the Scout's Final Check badge on checkout) */
+  refundable?: boolean;
+  /** ISO timestamp by which the user must cancel to get a refund */
+  cancellationDeadline?: string | null;
   state: 'pending' | 'paid' | 'booking' | 'confirmed' | 'failed';
   createdAt: number;
   // Populated after prebook (Payment SDK flow)
@@ -86,6 +90,8 @@ export async function POST(req: NextRequest) {
       lat,
       lng,
       localFees = 0,
+      refundable,
+      cancellationDeadline = null,
     } = body || {};
 
     if (!offerId || typeof offerId !== 'string') {
@@ -122,6 +128,8 @@ export async function POST(req: NextRequest) {
       ...(Number.isFinite(lat) ? { lat } : {}),
       ...(Number.isFinite(lng) ? { lng } : {}),
       ...(Number.isFinite(localFees) && localFees > 0 ? { localFees: Math.round(localFees * 100) / 100 } : {}),
+      ...(typeof refundable === 'boolean' ? { refundable } : {}),
+      ...(typeof cancellationDeadline === 'string' && cancellationDeadline ? { cancellationDeadline } : {}),
       state: 'pending',
       createdAt: Date.now(),
     };

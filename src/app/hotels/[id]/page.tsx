@@ -184,6 +184,7 @@ export default function HotelDetailPage() {
           totalPrice: parseFloat(price),
           currency,
           localFees: localFees || 0,
+          ...(refundable !== null ? { refundable } : {}),
         }),
       });
       const data = await res.json();

@@ -840,6 +840,7 @@ function BookDirectButton({
           thumbnail: hotel.thumbnail || null,
           lat: hotel.lat,
           lng: hotel.lng,
+          ...(typeof hotel.refundable === 'boolean' ? { refundable: hotel.refundable } : {}),
         }),
       });
       const data = await res.json();

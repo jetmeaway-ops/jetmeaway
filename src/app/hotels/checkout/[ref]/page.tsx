@@ -16,7 +16,46 @@ interface PendingSummary {
   nights: number;
   thumbnail: string | null;
   localFees?: number;
+  refundable?: boolean | null;
+  cancellationDeadline?: string | null;
   state: 'pending' | 'paid' | 'confirmed' | 'failed';
+}
+
+/**
+ * Scout's Final Check — high-visibility badge that warns users whether the
+ * rate they're about to pay for is refundable or locked-in. Reduces support
+ * tickets from people surprised by non-refundable terms after booking.
+ */
+function ScoutFinalCheck({ refundable, deadline }: { refundable: boolean | null | undefined; deadline?: string | null }) {
+  if (refundable === null || refundable === undefined) return null;
+  const isRefundable = refundable === true;
+
+  // Format deadline as a friendly date if provided
+  let deadlineLabel: string | null = null;
+  if (isRefundable && deadline) {
+    const d = new Date(deadline);
+    if (!isNaN(d.getTime())) {
+      deadlineLabel = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+    }
+  }
+
+  return (
+    <div className={`p-4 rounded-xl border flex gap-3 mb-4 ${isRefundable ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+      <span className="text-xl leading-none mt-0.5" aria-hidden="true">{isRefundable ? '✅' : '⚠️'}</span>
+      <div className="flex-1">
+        <p className={`font-poppins font-black text-[.85rem] ${isRefundable ? 'text-green-800' : 'text-amber-900'}`}>
+          {isRefundable ? 'Scout Approved · Refundable booking' : 'Scout Warning · Non-refundable rate'}
+        </p>
+        <p className={`text-[.72rem] font-semibold leading-snug mt-0.5 ${isRefundable ? 'text-green-700' : 'text-amber-800'}`}>
+          {isRefundable
+            ? deadlineLabel
+              ? `Flexibility included. Cancel free until ${deadlineLabel}.`
+              : 'Flexibility included. Cancel before the deadline shown in your confirmation email.'
+            : 'Best price, but locked in — no refunds or changes after booking. Make sure your travel insurance is active before paying.'}
+        </p>
+      </div>
+    </div>
+  );
 }
 
 function StarRow({ count }: { count: number }) {
@@ -282,6 +321,9 @@ export default function HotelCheckoutPage() {
 
       <div className="grid md:grid-cols-[1fr_320px] gap-5 sm:gap-6">
         <div className="bg-white border border-[#E8ECF4] rounded-2xl p-4 sm:p-6">
+          {/* Scout's Final Check — refundable / non-refundable banner */}
+          <ScoutFinalCheck refundable={booking.refundable} deadline={booking.cancellationDeadline} />
+
           {/* Step: Locking rate on page load */}
           {step === 'locking' && (
             <div className="text-center py-10">
