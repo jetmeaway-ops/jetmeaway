@@ -233,7 +233,7 @@ export default function FlightSearch() {
     <div className="max-w-[680px] mx-auto w-full">
       {/* ── Floating Command Bar — glassmorphic dark, single horizontal row ── */}
       <div ref={ref}
-        className="relative backdrop-blur-2xl bg-white/[.08] border border-white/15 rounded-2xl shadow-[0_24px_60px_-20px_rgba(0,0,0,0.6),0_8px_24px_-8px_rgba(255,140,40,0.15)] p-2.5 flex items-center gap-2">
+        className="relative z-50 backdrop-blur-2xl bg-white/[.08] border border-white/15 rounded-2xl shadow-[0_24px_60px_-20px_rgba(0,0,0,0.6),0_8px_24px_-8px_rgba(255,140,40,0.15)] p-2.5 flex items-center gap-2">
 
         {/* Origin pill — glass within glass */}
         <div ref={originRef} className="relative flex-shrink-0">
