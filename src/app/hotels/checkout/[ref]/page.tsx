@@ -492,11 +492,9 @@ export default function HotelCheckoutPage() {
                   Your card details are handled directly by our secure payment partner. JetMeAway never sees or stores your card number.
                 </p>
               </div>
-              <div id="liteapi-payment-form" ref={paymentContainerRef} className="min-h-[120px]" />
-
-              {/* Safe Checkout — non-refundable acknowledgement */}
+              {/* Safe Checkout — non-refundable acknowledgement (above payment form) */}
               {booking.refundable === false && (
-                <label className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 mt-4 cursor-pointer select-none">
+                <label className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 cursor-pointer select-none">
                   <input
                     type="checkbox"
                     checked={fareAcknowledged}
@@ -509,27 +507,30 @@ export default function HotelCheckoutPage() {
                 </label>
               )}
 
-              <button
-                type="button"
-                onClick={handlePayNow}
-                disabled={payingNow || (booking.refundable === false && !fareAcknowledged)}
-                className="w-full mt-5 bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-60 disabled:cursor-not-allowed text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(0,102,255,0.3)] flex items-center justify-center gap-2"
-              >
-                {payingNow ? (
-                  <>
-                    <span className="inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    Processing…
-                  </>
-                ) : (
-                  <>
-                    <i className="fa-solid fa-lock text-[.8rem]" />
-                    Pay {prebookResult?.price ? fmtPrice(prebookResult.price) : booking ? fmtPrice(booking.totalPrice) : ''} now
-                  </>
-                )}
-              </button>
-              <p className="text-[.65rem] text-[#8E95A9] font-semibold text-center mt-2">
-                By paying you agree to our <a href="/terms" className="underline">Terms of Service</a>
-              </p>
+              <div className={booking.refundable === false && !fareAcknowledged ? 'opacity-50 pointer-events-none' : ''}>
+                <div id="liteapi-payment-form" ref={paymentContainerRef} className="min-h-[120px]" />
+                <button
+                  type="button"
+                  onClick={handlePayNow}
+                  disabled={payingNow}
+                  className="w-full mt-5 bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-60 disabled:cursor-not-allowed text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(0,102,255,0.3)] flex items-center justify-center gap-2"
+                >
+                  {payingNow ? (
+                    <>
+                      <span className="inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      Processing…
+                    </>
+                  ) : (
+                    <>
+                      <i className="fa-solid fa-lock text-[.8rem]" />
+                      Pay {prebookResult?.price ? fmtPrice(prebookResult.price) : booking ? fmtPrice(booking.totalPrice) : ''} now
+                    </>
+                  )}
+                </button>
+                <p className="text-[.65rem] text-[#8E95A9] font-semibold text-center mt-2">
+                  By paying you agree to our <a href="/terms" className="underline">Terms of Service</a>
+                </p>
+              </div>
             </>
           )}
 
