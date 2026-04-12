@@ -98,6 +98,9 @@ export default function HotelCheckoutPage() {
   const [priceChangeAccepted, setPriceChangeAccepted] = useState(false);
   const prebookFiredRef = useRef(false);
 
+  // Safe-checkout acknowledgement (non-refundable bookings only)
+  const [fareAcknowledged, setFareAcknowledged] = useState(false);
+
   const paymentContainerRef = useRef<HTMLDivElement>(null);
   const sdkLoadedRef = useRef(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -490,10 +493,26 @@ export default function HotelCheckoutPage() {
                 </p>
               </div>
               <div id="liteapi-payment-form" ref={paymentContainerRef} className="min-h-[120px]" />
+
+              {/* Safe Checkout — non-refundable acknowledgement */}
+              {booking.refundable === false && (
+                <label className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 mt-4 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={fareAcknowledged}
+                    onChange={e => setFareAcknowledged(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 accent-[#0066FF] shrink-0"
+                  />
+                  <span className="text-[.78rem] font-semibold text-amber-900 leading-snug">
+                    I confirm that I have read the booking conditions and understand that this hotel booking is <strong>non-refundable</strong>.
+                  </span>
+                </label>
+              )}
+
               <button
                 type="button"
                 onClick={handlePayNow}
-                disabled={payingNow}
+                disabled={payingNow || (booking.refundable === false && !fareAcknowledged)}
                 className="w-full mt-5 bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-60 disabled:cursor-not-allowed text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(0,102,255,0.3)] flex items-center justify-center gap-2"
               >
                 {payingNow ? (

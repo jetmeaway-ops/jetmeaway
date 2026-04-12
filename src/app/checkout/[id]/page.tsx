@@ -373,6 +373,9 @@ export default function CheckoutPage() {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
+  // Safe-checkout acknowledgement (non-refundable flights only)
+  const [fareAcknowledged, setFareAcknowledged] = useState(false);
+
   // Order state
   const [orderLoading, setOrderLoading] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
@@ -915,9 +918,24 @@ export default function CheckoutPage() {
                     </div>
                   )}
 
+                  {/* Safe Checkout — non-refundable acknowledgement */}
+                  {step === 'payment' && paymentClientToken && offer && !offer.refundable && (
+                    <label className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={fareAcknowledged}
+                        onChange={e => setFareAcknowledged(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 accent-[#0066FF] shrink-0"
+                      />
+                      <span className="text-[.78rem] font-semibold text-amber-900 leading-snug">
+                        I confirm that I have read the fare conditions and understand that this flight is <strong>non-refundable</strong> and <strong>non-changeable</strong>.
+                      </span>
+                    </label>
+                  )}
+
                   {/* Duffel Payments Card Element */}
                   {step === 'payment' && paymentClientToken && (
-                    <div className="bg-white border border-[#E8ECF4] rounded-2xl p-6 shadow-[0_2px_16px_rgba(0,102,255,0.06)]">
+                    <div className={`bg-white border border-[#E8ECF4] rounded-2xl p-6 shadow-[0_2px_16px_rgba(0,102,255,0.06)] ${!offer?.refundable && !fareAcknowledged ? 'opacity-50 pointer-events-none' : ''}`}>
                       <div className="flex items-center gap-2 mb-5">
                         <span className="text-lg">💳</span>
                         <h3 className="font-poppins font-black text-[.92rem] text-[#1A1D2B]">
