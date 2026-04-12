@@ -12,15 +12,15 @@ import { usePathname } from 'next/navigation';
  */
 const NAV = [
   { href: '/hotels', label: 'Hotels', icon: '🏨' },
+  { href: '/flights', label: 'Flights', icon: '✈' },
   { href: '/packages', label: 'Packages', icon: '📦' },
-  { href: '/cars', label: 'Car Hire', icon: '🚗' },
 ];
 
 /** Children of the Discover dropdown on desktop.
  *  Flights & eSIM live here now — they're lower-priority than the
  *  hotel-driven booking flow but still need to be one click away. */
 const DISCOVER_ITEMS = [
-  { href: '/flights', label: 'Flights', icon: '✈' },
+  { href: '/cars', label: 'Car Hire', icon: '🚗' },
   { href: '/esim', label: 'eSIM', icon: '📱' },
   { href: '/explore', label: 'Destinations', icon: '🧭' },
   { href: '/about', label: 'About Us', icon: 'ℹ️' },
