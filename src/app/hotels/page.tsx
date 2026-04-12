@@ -1117,10 +1117,13 @@ function HotelsContent() {
   const filteredHotels = hotels ? hotels.filter(h => {
     if (refundableOnly && h.refundable !== true) return false;
     if (boardFilter === 'any') return true;
-    if (!h.boardType) return false;
-    const bt = h.boardType.toLowerCase();
-    if (boardFilter === 'breakfast') return bt.includes('breakfast');
-    return bt.includes(boardFilter);
+    // Check top-level boardType AND all boardOptions
+    const allBoards: string[] = [];
+    if (h.boardType) allBoards.push(h.boardType.toLowerCase());
+    if (h.boardOptions) h.boardOptions.forEach((o: any) => { if (o.boardType) allBoards.push(o.boardType.toLowerCase()); });
+    if (allBoards.length === 0) return false;
+    if (boardFilter === 'breakfast') return allBoards.some(b => b.includes('breakfast'));
+    return allBoards.some(b => b.includes(boardFilter));
   }) : null;
 
   const sortedHotels = filteredHotels ? [...filteredHotels].sort((a, b) => {
