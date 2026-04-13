@@ -11,6 +11,7 @@ import Script from 'next/script';
 import { Poppins, Playfair_Display, DM_Sans } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/react';
 import ScoutChat from '@/components/ScoutChat';
+import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration';
 
 const poppins = Poppins({
   weight: ['400', '600', '700', '800', '900'],
@@ -52,12 +53,22 @@ export const metadata = {
     images: ['https://jetmeaway.co.uk/jetmeaway-logo.png'],
   },
   metadataBase: new URL('https://jetmeaway.co.uk'),
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'JetMeAway',
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${poppins.variable} ${playfair.variable} ${dmSans.variable}`}>
       <head>
+        <meta name="theme-color" content="#0066FF" />
+        <link rel="apple-touch-icon" href="/icon-192x192.png" />
         {/* Preconnect + DNS prefetch to Font Awesome CDN (cheap, non-blocking) */}
         <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" />
@@ -83,6 +94,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         <Analytics />
         <ScoutChat />
+        <ServiceWorkerRegistration />
         {/* Font Awesome — injected client-side during idle time so it never
             blocks first paint. Icons (star ratings, step icons, etc) appear
             a moment after the rest of the page is already visible. */}
