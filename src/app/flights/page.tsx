@@ -2,6 +2,8 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { LazyFlightsContent } from './flights-lazy';
 
+export const runtime = 'edge';
+
 export const metadata = {
   title: 'Compare Cheap Flights from the UK | JetMeAway',
   description: 'Compare flights from 5 providers in seconds. Find the cheapest flights from UK airports to 250+ destinations worldwide.',

@@ -2,6 +2,8 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { LazyHotelsContent } from './hotels-lazy';
 
+export const runtime = 'edge';
+
 export const metadata = {
   title: 'Compare Hotel Prices from 6 Providers | JetMeAway',
   description: 'Compare hotel prices from Booking.com, Expedia, Trip.com, Hotels.com, Agoda and Trivago. Find the best hotel deals worldwide.',

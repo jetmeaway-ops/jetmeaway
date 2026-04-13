@@ -2,6 +2,8 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { LazyPackagesContent } from './packages-lazy';
 
+export const runtime = 'edge';
+
 export const metadata = {
   title: 'Compare Holiday Packages | JetMeAway',
   description: 'Compare flight + hotel package deals from Expedia and Trip.com. ATOL-protected holiday bundles at the best prices.',

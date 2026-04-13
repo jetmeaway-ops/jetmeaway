@@ -2,6 +2,8 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { LazyExploreContent } from './explore-lazy';
 
+export const runtime = 'edge';
+
 export const metadata = {
   title: 'Explore Activities & Tours | JetMeAway',
   description: 'Compare activities, tours and experiences from GetYourGuide, Viator, Klook, Tiqets and more. Find things to do worldwide.',
