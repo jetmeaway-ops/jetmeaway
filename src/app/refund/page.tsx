@@ -30,8 +30,15 @@ export default function RefundPolicy() {
           <p className="font-bold text-[#1A1D2B] mt-3">Processing Fee</p>
           <p>JetMeAway may charge a non-refundable administration fee of <strong>£25 per person</strong> to process voluntary cancellation or change requests, in addition to any airline penalties.</p>
 
-          <h2 className="font-poppins text-[.95rem] font-bold text-[#0066FF] mt-5">3. Hotel Refunds</h2>
-          <p>Refund eligibility depends on the specific rate selected at the time of booking (e.g., &ldquo;Free Cancellation&rdquo; vs &ldquo;Non-Refundable&rdquo;). This is clearly displayed before you complete your booking.</p>
+          <h2 className="font-poppins text-[.95rem] font-bold text-[#0066FF] mt-5">3. Hotel Accommodations &amp; Stays</h2>
+          <p className="font-bold text-[#1A1D2B] mt-3">Rate Selection</p>
+          <p>Refund eligibility is determined by the specific rate selected at the time of booking (e.g., &ldquo;Free Cancellation&rdquo; vs &ldquo;Non-Refundable&rdquo;). These terms are clearly displayed on the checkout page.</p>
+          <p className="font-bold text-[#1A1D2B] mt-3">Non-Refundable Rates</p>
+          <p>If you book a &ldquo;Non-Refundable&rdquo; or &ldquo;Prepaid&rdquo; rate, you will not be entitled to a refund if you cancel or fail to arrive (No-Show).</p>
+          <p className="font-bold text-[#1A1D2B] mt-3">Cancellations by the Hotel</p>
+          <p>In the rare event that a hotel cannot fulfill your booking (e.g., overbooking or closure), JetMeAway will work with the provider to find comparable alternative accommodation or process a full refund.</p>
+          <p className="font-bold text-[#1A1D2B] mt-3">Early Check-out</p>
+          <p>If you choose to leave a hotel early, the hotel is not obligated to refund any unused nights. Any such requests must be negotiated directly with the hotel management.</p>
 
           <h2 className="font-poppins text-[.95rem] font-bold text-[#0066FF] mt-5">4. eSIM Refunds</h2>
           <p>Due to the nature of digital products, eSIMs are generally non-refundable once the QR code has been generated or the data plan has been activated, unless the service is technically faulty.</p>
