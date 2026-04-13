@@ -25,6 +25,7 @@ export default function Footer() {
             <Link href="/blog" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">Blog</Link>
             <Link href="/privacy" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">Privacy Policy</Link>
             <Link href="/terms" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">Terms of Service</Link>
+            <Link href="/refund" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">Refund Policy</Link>
             <Link href="/contact" className="block text-[.75rem] text-white/25 font-semibold mb-2.5 transition-colors hover:text-white">Contact Us</Link>
           </div>
           <div>
