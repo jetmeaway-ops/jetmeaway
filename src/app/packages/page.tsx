@@ -328,14 +328,14 @@ function buildTripUrl(dest: string, fromAirport: string, depDate: string, retDat
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const POPULAR_DESTS = [
-  { name: 'Tenerife', flag: '🇪🇸', est: 449, photo: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=400&h=300&fit=crop' },
-  { name: 'Antalya', flag: '🇹🇷', est: 399, photo: 'https://images.unsplash.com/photo-1568322503122-d237a9968485?w=400&h=300&fit=crop' },
-  { name: 'Palma', flag: '🇪🇸', est: 399, photo: 'https://images.unsplash.com/photo-1591970934008-b42acc22a339?w=400&h=300&fit=crop' },
-  { name: 'Dubai', flag: '🇦🇪', est: 599, photo: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=400&h=300&fit=crop' },
-  { name: 'Lanzarote', flag: '🇪🇸', est: 429, photo: 'https://images.unsplash.com/photo-1572099606223-6e29045d7de3?w=400&h=300&fit=crop' },
-  { name: 'Crete', flag: '🇬🇷', est: 449, photo: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=400&h=300&fit=crop' },
-  { name: 'Faro', flag: '🇵🇹', est: 349, photo: 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=400&h=300&fit=crop' },
-  { name: 'Cancun', flag: '🇲🇽', est: 799, photo: 'https://images.unsplash.com/photo-1510097467424-192d713fd8b2?w=400&h=300&fit=crop' },
+  { name: 'Tenerife', flag: '🇪🇸', est: 449, photo: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=400&h=300&fit=crop&fm=webp&q=75' },
+  { name: 'Antalya', flag: '🇹🇷', est: 399, photo: 'https://images.unsplash.com/photo-1568322503122-d237a9968485?w=400&h=300&fit=crop&fm=webp&q=75' },
+  { name: 'Palma', flag: '🇪🇸', est: 399, photo: 'https://images.unsplash.com/photo-1591970934008-b42acc22a339?w=400&h=300&fit=crop&fm=webp&q=75' },
+  { name: 'Dubai', flag: '🇦🇪', est: 599, photo: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=400&h=300&fit=crop&fm=webp&q=75' },
+  { name: 'Lanzarote', flag: '🇪🇸', est: 429, photo: 'https://images.unsplash.com/photo-1572099606223-6e29045d7de3?w=400&h=300&fit=crop&fm=webp&q=75' },
+  { name: 'Crete', flag: '🇬🇷', est: 449, photo: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=400&h=300&fit=crop&fm=webp&q=75' },
+  { name: 'Faro', flag: '🇵🇹', est: 349, photo: 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=400&h=300&fit=crop&fm=webp&q=75' },
+  { name: 'Cancun', flag: '🇲🇽', est: 799, photo: 'https://images.unsplash.com/photo-1510097467424-192d713fd8b2?w=400&h=300&fit=crop&fm=webp&q=75' },
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -349,14 +349,14 @@ const FAMILY_FROM_AIRPORT = 'London Heathrow (LHR)';
 const FAMILY_ADULTS = 4;
 
 const FAMILY_PACKAGES = [
-  { name: 'Tenerife',  flag: '🇪🇸', dep: '2026-07-18', ret: '2026-07-25', pp: 549, tag: 'Year-Round Sun', photo: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=600&h=400&fit=crop' },
-  { name: 'Palma',     flag: '🇪🇸', dep: '2026-07-25', ret: '2026-08-01', pp: 499, tag: 'School Holidays', photo: 'https://images.unsplash.com/photo-1591970934008-b42acc22a339?w=600&h=400&fit=crop' },
-  { name: 'Antalya',   flag: '🇹🇷', dep: '2026-08-01', ret: '2026-08-08', pp: 429, tag: 'All-Inclusive', photo: 'https://images.unsplash.com/photo-1568322503122-d237a9968485?w=600&h=400&fit=crop' },
-  { name: 'Crete',     flag: '🇬🇷', dep: '2026-08-08', ret: '2026-08-15', pp: 559, tag: 'Family Resorts', photo: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=600&h=400&fit=crop' },
-  { name: 'Faro',      flag: '🇵🇹', dep: '2026-07-18', ret: '2026-07-25', pp: 519, tag: 'Algarve Coast', photo: 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=600&h=400&fit=crop' },
-  { name: 'Lanzarote', flag: '🇪🇸', dep: '2026-08-15', ret: '2026-08-22', pp: 529, tag: 'Volcanic Beaches', photo: 'https://images.unsplash.com/photo-1572099606223-6e29045d7de3?w=600&h=400&fit=crop' },
-  { name: 'Malaga',    flag: '🇪🇸', dep: '2026-07-25', ret: '2026-08-01', pp: 489, tag: 'Costa del Sol', photo: 'https://images.unsplash.com/photo-1559627755-43c39e6c1a78?w=600&h=400&fit=crop' },
-  { name: 'Rhodes',    flag: '🇬🇷', dep: '2026-08-08', ret: '2026-08-15', pp: 569, tag: 'Greek Island', photo: 'https://images.unsplash.com/photo-1601581875309-fafbf2d3ed3a?w=600&h=400&fit=crop' },
+  { name: 'Tenerife',  flag: '🇪🇸', dep: '2026-07-18', ret: '2026-07-25', pp: 549, tag: 'Year-Round Sun', photo: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=600&h=400&fit=crop&fm=webp&q=75' },
+  { name: 'Palma',     flag: '🇪🇸', dep: '2026-07-25', ret: '2026-08-01', pp: 499, tag: 'School Holidays', photo: 'https://images.unsplash.com/photo-1591970934008-b42acc22a339?w=600&h=400&fit=crop&fm=webp&q=75' },
+  { name: 'Antalya',   flag: '🇹🇷', dep: '2026-08-01', ret: '2026-08-08', pp: 429, tag: 'All-Inclusive', photo: 'https://images.unsplash.com/photo-1568322503122-d237a9968485?w=600&h=400&fit=crop&fm=webp&q=75' },
+  { name: 'Crete',     flag: '🇬🇷', dep: '2026-08-08', ret: '2026-08-15', pp: 559, tag: 'Family Resorts', photo: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=600&h=400&fit=crop&fm=webp&q=75' },
+  { name: 'Faro',      flag: '🇵🇹', dep: '2026-07-18', ret: '2026-07-25', pp: 519, tag: 'Algarve Coast', photo: 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=600&h=400&fit=crop&fm=webp&q=75' },
+  { name: 'Lanzarote', flag: '🇪🇸', dep: '2026-08-15', ret: '2026-08-22', pp: 529, tag: 'Volcanic Beaches', photo: 'https://images.unsplash.com/photo-1572099606223-6e29045d7de3?w=600&h=400&fit=crop&fm=webp&q=75' },
+  { name: 'Malaga',    flag: '🇪🇸', dep: '2026-07-25', ret: '2026-08-01', pp: 489, tag: 'Costa del Sol', photo: 'https://images.unsplash.com/photo-1559627755-43c39e6c1a78?w=600&h=400&fit=crop&fm=webp&q=75' },
+  { name: 'Rhodes',    flag: '🇬🇷', dep: '2026-08-08', ret: '2026-08-15', pp: 569, tag: 'Greek Island', photo: 'https://images.unsplash.com/photo-1601581875309-fafbf2d3ed3a?w=600&h=400&fit=crop&fm=webp&q=75' },
 ];
 
 function FamilyPackages() {

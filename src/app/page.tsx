@@ -1,7 +1,6 @@
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import FlightSearch from './search';
-import { PopularDestinations, Testimonials } from './homepage-client';
+import { PopularDestinations, Testimonials, LazyFlightSearch } from './homepage-client';
 
 const jsonLd = [
   {
@@ -195,9 +194,9 @@ export default function Home() {
             ))}
           </div>
 
-          {/* Search form — client component */}
+          {/* Search form — lazy-loaded to avoid blocking LCP */}
           <div id="hero-search">
-            <FlightSearch />
+            <LazyFlightSearch />
           </div>
         </div>
       </section>

@@ -1,18 +1,32 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
+import Image from 'next/image';
+
+/* Lazy-load FlightSearch — keeps it out of the initial JS bundle so
+   the server-rendered hero h1 paints without waiting for search JS */
+export const LazyFlightSearch = dynamic(() => import('./search'), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 animate-pulse">
+      <div className="h-12 bg-white/10 rounded-xl mb-3" />
+      <div className="h-12 bg-white/10 rounded-xl" />
+    </div>
+  ),
+});
 
 /* ═══════════════════════════════════════════════════════════════════════════
    POPULAR DESTINATIONS — auto-scrolling carousel with drag/swipe
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const DESTINATIONS = [
-  { name: 'Dubai', country: 'UAE', price: 45, tag: 'Popular', img: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=640&h=860&fit=crop' },
-  { name: 'Barcelona', country: 'Spain', price: 38, tag: 'Trending', img: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=640&h=860&fit=crop' },
-  { name: 'Bali', country: 'Indonesia', price: 52, tag: 'Exotic', img: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=640&h=860&fit=crop' },
-  { name: 'Paris', country: 'France', price: 35, tag: 'Classic', img: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=640&h=860&fit=crop' },
-  { name: 'Istanbul', country: 'Turkey', price: 29, tag: 'Best Value', img: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=640&h=860&fit=crop' },
-  { name: 'Maldives', country: 'Maldives', price: 89, tag: 'Luxury', img: 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=640&h=860&fit=crop' },
+  { name: 'Dubai', country: 'UAE', price: 45, tag: 'Popular', img: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=500&h=665&fit=crop&fm=webp&q=75' },
+  { name: 'Barcelona', country: 'Spain', price: 38, tag: 'Trending', img: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=500&h=665&fit=crop&fm=webp&q=75' },
+  { name: 'Bali', country: 'Indonesia', price: 52, tag: 'Exotic', img: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=500&h=665&fit=crop&fm=webp&q=75' },
+  { name: 'Paris', country: 'France', price: 35, tag: 'Classic', img: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=500&h=665&fit=crop&fm=webp&q=75' },
+  { name: 'Istanbul', country: 'Turkey', price: 29, tag: 'Best Value', img: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=500&h=665&fit=crop&fm=webp&q=75' },
+  { name: 'Maldives', country: 'Maldives', price: 89, tag: 'Luxury', img: 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=500&h=665&fit=crop&fm=webp&q=75' },
 ];
 
 export function PopularDestinations() {
@@ -101,7 +115,7 @@ export function PopularDestinations() {
             onClick={(e) => { if (dragging) e.preventDefault(); }}
           >
             {/* Background image */}
-            <img src={d.img} alt={d.name} loading="lazy"
+            <img src={d.img} alt={d.name} loading="lazy" width={500} height={665}
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
 
             {/* Gradient overlay — darker on hover */}

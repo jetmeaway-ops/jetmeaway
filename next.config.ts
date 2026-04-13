@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
         hostname: "**",
       },
     ],
+    formats: ['image/avif', 'image/webp'],
   },
   async headers() {
     return [

@@ -319,14 +319,14 @@ function LoadingState({ loc }: { loc: string }) {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const CAR_CATEGORIES = [
-  { name: 'Mini', example: 'Fiat 500, VW Up', seats: 2, bags: 1, doors: 3, fromPrice: 8, img: 'https://images.unsplash.com/photo-1619767886558-efdc259cde1a?w=300&h=200&fit=crop' },
-  { name: 'Economy', example: 'Toyota Yaris, Ford Fiesta', seats: 4, bags: 1, doors: 5, fromPrice: 12, img: 'https://images.unsplash.com/photo-1609521263047-f8f205293f24?w=300&h=200&fit=crop' },
-  { name: 'Compact', example: 'VW Golf, Ford Focus', seats: 5, bags: 2, doors: 5, fromPrice: 18, img: 'https://images.unsplash.com/photo-1590362891991-f776e747a588?w=300&h=200&fit=crop' },
-  { name: 'Mid-size', example: 'Toyota Corolla, Skoda Octavia', seats: 5, bags: 3, doors: 5, fromPrice: 24, img: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0afa?w=300&h=200&fit=crop' },
-  { name: 'SUV', example: 'Nissan Qashqai, Hyundai Tucson', seats: 5, bags: 3, doors: 5, fromPrice: 30, img: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=300&h=200&fit=crop' },
-  { name: 'Premium', example: 'BMW 3 Series, Mercedes C-Class', seats: 5, bags: 3, doors: 5, fromPrice: 45, img: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=300&h=200&fit=crop' },
-  { name: 'People Carrier', example: 'VW Touran, Ford Galaxy', seats: 7, bags: 4, doors: 5, fromPrice: 35, img: 'https://images.unsplash.com/photo-1559416523-140ddc3d238c?w=300&h=200&fit=crop' },
-  { name: 'Convertible', example: 'BMW 2 Series, Audi A3', seats: 4, bags: 1, doors: 2, fromPrice: 50, img: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=300&h=200&fit=crop' },
+  { name: 'Mini', example: 'Fiat 500, VW Up', seats: 2, bags: 1, doors: 3, fromPrice: 8, img: 'https://images.unsplash.com/photo-1619767886558-efdc259cde1a?w=300&h=200&fit=crop&fm=webp&q=75' },
+  { name: 'Economy', example: 'Toyota Yaris, Ford Fiesta', seats: 4, bags: 1, doors: 5, fromPrice: 12, img: 'https://images.unsplash.com/photo-1609521263047-f8f205293f24?w=300&h=200&fit=crop&fm=webp&q=75' },
+  { name: 'Compact', example: 'VW Golf, Ford Focus', seats: 5, bags: 2, doors: 5, fromPrice: 18, img: 'https://images.unsplash.com/photo-1590362891991-f776e747a588?w=300&h=200&fit=crop&fm=webp&q=75' },
+  { name: 'Mid-size', example: 'Toyota Corolla, Skoda Octavia', seats: 5, bags: 3, doors: 5, fromPrice: 24, img: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0afa?w=300&h=200&fit=crop&fm=webp&q=75' },
+  { name: 'SUV', example: 'Nissan Qashqai, Hyundai Tucson', seats: 5, bags: 3, doors: 5, fromPrice: 30, img: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=300&h=200&fit=crop&fm=webp&q=75' },
+  { name: 'Premium', example: 'BMW 3 Series, Mercedes C-Class', seats: 5, bags: 3, doors: 5, fromPrice: 45, img: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=300&h=200&fit=crop&fm=webp&q=75' },
+  { name: 'People Carrier', example: 'VW Touran, Ford Galaxy', seats: 7, bags: 4, doors: 5, fromPrice: 35, img: 'https://images.unsplash.com/photo-1559416523-140ddc3d238c?w=300&h=200&fit=crop&fm=webp&q=75' },
+  { name: 'Convertible', example: 'BMW 2 Series, Audi A3', seats: 4, bags: 1, doors: 2, fromPrice: 50, img: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=300&h=200&fit=crop&fm=webp&q=75' },
 ];
 
 const BUDGET_OPTIONS = [

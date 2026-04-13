@@ -664,16 +664,16 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, checkin, c
   const displayRefundable = active ? active.refundable : h.refundable;
 
   const HOTEL_PHOTOS = [
-    'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=640&h=480&fit=crop',
-    'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=640&h=480&fit=crop',
-    'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=640&h=480&fit=crop',
-    'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=640&h=480&fit=crop',
-    'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=640&h=480&fit=crop',
-    'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=640&h=480&fit=crop',
-    'https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=640&h=480&fit=crop',
-    'https://images.unsplash.com/photo-1455587734955-081b22074882?w=640&h=480&fit=crop',
-    'https://images.unsplash.com/photo-1587213811864-46e59f6873b1?w=640&h=480&fit=crop',
-    'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=640&h=480&fit=crop',
+    'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=640&h=480&fit=crop&fm=webp&q=75',
+    'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=640&h=480&fit=crop&fm=webp&q=75',
+    'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=640&h=480&fit=crop&fm=webp&q=75',
+    'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=640&h=480&fit=crop&fm=webp&q=75',
+    'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=640&h=480&fit=crop&fm=webp&q=75',
+    'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=640&h=480&fit=crop&fm=webp&q=75',
+    'https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=640&h=480&fit=crop&fm=webp&q=75',
+    'https://images.unsplash.com/photo-1455587734955-081b22074882?w=640&h=480&fit=crop&fm=webp&q=75',
+    'https://images.unsplash.com/photo-1587213811864-46e59f6873b1?w=640&h=480&fit=crop&fm=webp&q=75',
+    'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=640&h=480&fit=crop&fm=webp&q=75',
   ];
   const photoUrl = h.thumbnail || HOTEL_PHOTOS[index % HOTEL_PHOTOS.length];
   const tripUrl = buildTripcomUrl(searchedDest, checkin, checkout, adults);

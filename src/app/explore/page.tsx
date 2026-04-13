@@ -138,14 +138,14 @@ const CURATED: Record<string, { name: string; type: string; from: number; provid
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const POPULAR = [
-  { name: 'Barcelona', photo: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=400&h=300&fit=crop', count: 2400 },
-  { name: 'Dubai', photo: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=400&h=300&fit=crop', count: 1800 },
-  { name: 'Rome', photo: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=400&h=300&fit=crop', count: 2100 },
-  { name: 'Paris', photo: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400&h=300&fit=crop', count: 3200 },
-  { name: 'Istanbul', photo: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=400&h=300&fit=crop', count: 1500 },
-  { name: 'Amsterdam', photo: 'https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=400&h=300&fit=crop', count: 1200 },
-  { name: 'Marrakech', photo: 'https://images.unsplash.com/photo-1597212618440-806262de4f6b?w=400&h=300&fit=crop', count: 800 },
-  { name: 'Bangkok', photo: 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=400&h=300&fit=crop', count: 1600 },
+  { name: 'Barcelona', photo: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=400&h=300&fit=crop&fm=webp&q=75', count: 2400 },
+  { name: 'Dubai', photo: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=400&h=300&fit=crop&fm=webp&q=75', count: 1800 },
+  { name: 'Rome', photo: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=400&h=300&fit=crop&fm=webp&q=75', count: 2100 },
+  { name: 'Paris', photo: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400&h=300&fit=crop&fm=webp&q=75', count: 3200 },
+  { name: 'Istanbul', photo: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=400&h=300&fit=crop&fm=webp&q=75', count: 1500 },
+  { name: 'Amsterdam', photo: 'https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=400&h=300&fit=crop&fm=webp&q=75', count: 1200 },
+  { name: 'Marrakech', photo: 'https://images.unsplash.com/photo-1597212618440-806262de4f6b?w=400&h=300&fit=crop&fm=webp&q=75', count: 800 },
+  { name: 'Bangkok', photo: 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=400&h=300&fit=crop&fm=webp&q=75', count: 1600 },
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════

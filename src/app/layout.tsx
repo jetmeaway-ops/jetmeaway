@@ -71,6 +71,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Preconnect + DNS prefetch to Font Awesome CDN (cheap, non-blocking) */}
         <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" />
+        <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://images.unsplash.com" />
         {/*
           Font Awesome is NOT loaded in the initial HTML — it would block first
           paint by ~200-400ms. Instead, it's injected client-side via a

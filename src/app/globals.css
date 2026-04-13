@@ -46,3 +46,13 @@ body {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
+
+/* Force font-display: swap on Font Awesome to prevent render-blocking */
+@font-face {
+  font-family: 'Font Awesome 6 Free';
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Font Awesome 6 Brands';
+  font-display: swap;
+}

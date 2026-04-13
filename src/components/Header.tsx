@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
 /**
@@ -63,7 +64,7 @@ export default function Header() {
               <span>Blog</span>
             </Link>
             <Link href="/" className="flex-shrink-0" aria-label="JetMeAway home">
-              <img src="/jetmeaway-logo.png" alt="Jetmeaway" className="h-9 rounded-none" width={120} height={36} />
+              <Image src="/jetmeaway-logo.png" alt="Jetmeaway" className="h-9 rounded-none" width={120} height={36} priority />
             </Link>
           </div>
 
