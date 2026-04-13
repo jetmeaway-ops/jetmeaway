@@ -14,6 +14,7 @@ export default function FlightsPage() {
     <>
       <Header />
 
+      <main>
       {/* Hero — server-rendered for instant LCP */}
       <section
         className="relative pt-36 pb-12 px-5 min-h-[600px] md:min-h-[700px]"
@@ -30,6 +31,7 @@ export default function FlightsPage() {
         {/* Search form + results — lazy-loaded */}
         <LazyFlightsContent />
       </section>
+      </main>
 
       <Footer />
     </>

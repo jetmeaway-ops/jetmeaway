@@ -161,6 +161,7 @@ export default function Home() {
       ))}
       <Header />
 
+      <main>
       {/* ── HERO — server-rendered for instant LCP ── */}
       <section className="relative pt-32 md:pt-40 pb-12 px-6 overflow-hidden min-h-[600px] md:min-h-[700px]" style={{ background: 'linear-gradient(160deg, #0a1628 0%, #1a2744 50%, #0f1e36 100%)' }}>
         {/* Floating decorations — no blur on mobile for faster LCP paint */}
@@ -207,6 +208,7 @@ export default function Home() {
       <HowItWorks />
       <LazyTestimonials />
       <CtaSection />
+      </main>
       <Footer />
     </>
   );

@@ -14,6 +14,7 @@ export default function ExplorePage() {
     <>
       <Header />
 
+      <main>
       <section className="pt-36 pb-10 px-5 bg-[radial-gradient(ellipse_at_top,#F0FDF4_0%,#fff_55%,#F8FAFC_100%)]">
         <div className="max-w-[860px] mx-auto text-center mb-8">
           <span className="inline-block bg-teal-50 text-teal-600 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4">🧭 Explore</span>
@@ -25,6 +26,7 @@ export default function ExplorePage() {
 
         <LazyExploreContent />
       </section>
+      </main>
 
       <Footer />
     </>

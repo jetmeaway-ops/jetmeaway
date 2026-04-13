@@ -14,6 +14,7 @@ export default function HotelsPage() {
     <>
       <Header />
 
+      <main>
       <section
         className="relative pt-36 pb-12 px-5 min-h-[600px] md:min-h-[700px]"
         style={{ background: 'linear-gradient(160deg, #1f1410 0%, #2c1a18 50%, #160a08 100%)' }}
@@ -28,6 +29,7 @@ export default function HotelsPage() {
 
         <LazyHotelsContent />
       </section>
+      </main>
 
       <Footer />
     </>
