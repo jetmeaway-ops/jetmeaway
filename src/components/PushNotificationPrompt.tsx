@@ -18,21 +18,24 @@ export default function PushNotificationPrompt() {
   const [subscribed, setSubscribed] = useState(false);
 
   useEffect(() => {
-    // Don't show if no VAPID key, no SW support, or already dismissed/subscribed
-    if (!VAPID_PUBLIC_KEY || !('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    // Don't show if no SW support or already dismissed
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
     if (localStorage.getItem('jma-push-dismissed')) return;
 
-    // Check if already subscribed
-    navigator.serviceWorker.ready.then((reg) => {
-      reg.pushManager.getSubscription().then((sub) => {
-        if (sub) {
-          setSubscribed(true);
-        } else {
-          // Show prompt after 5 seconds (don't interrupt initial page load)
-          setTimeout(() => setShow(true), 5000);
-        }
-      });
-    });
+    // Check if already subscribed (with timeout fallback — show anyway after 5s)
+    let shown = false;
+    const showPrompt = () => { if (!shown) { shown = true; setShow(true); } };
+
+    navigator.serviceWorker.ready
+      .then((reg) => reg.pushManager.getSubscription())
+      .then((sub) => {
+        if (sub) setSubscribed(true);
+        else showPrompt();
+      })
+      .catch(() => showPrompt());
+
+    // Fallback: show after 5s even if SW ready hasn't resolved yet
+    setTimeout(showPrompt, 5000);
   }, []);
 
   const handleSubscribe = useCallback(async () => {
