@@ -93,7 +93,7 @@ export default function PushNotificationPrompt() {
           </button>
           <button
             onClick={handleDismiss}
-            className="px-4 py-2.5 text-[#8E95A9] hover:text-[#5C6378] font-bold text-[.78rem] rounded-xl transition-all"
+            className="px-4 py-2.5 text-[#5C6378] hover:text-[#1A1D2B] font-bold text-[.78rem] rounded-xl transition-all"
           >
             Not now
           </button>

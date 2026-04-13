@@ -37,21 +37,21 @@ export default function Footer() {
         </div>
         <div className="h-px bg-white/[.06] mb-7"></div>
         <div className="max-w-[800px] mb-7">
-          <p className="text-[.72rem] text-white/50 leading-relaxed font-semibold">We may earn commissions when you book through our links at no extra cost to you. <Link href="/affiliate" className="text-white/70 hover:text-white underline">Read our Affiliate Disclosure</Link>.</p>
+          <p className="text-[.72rem] text-white/60 leading-relaxed font-semibold">We may earn commissions when you book through our links at no extra cost to you. <Link href="/affiliate" className="text-white/70 hover:text-white underline">Read our Affiliate Disclosure</Link>.</p>
         </div>
         <div className="max-w-[800px] mb-7">
-          <div className="text-[.55rem] uppercase tracking-[2.5px] font-extrabold text-white/50 mb-1.5">Booking Support</div>
+          <div className="text-[.55rem] uppercase tracking-[2.5px] font-extrabold text-white/60 mb-1.5">Booking Support</div>
           <a href="tel:+441174630606" className="inline-block font-poppins font-bold text-[.75rem] text-[#FFD700] hover:text-white transition-colors mb-1.5">
             +44 117 463 0606
           </a>
-          <p className="text-[.72rem] text-white/50 leading-relaxed font-semibold">24/7 for active bookings. Email <a href="mailto:contact@jetmeaway.co.uk" className="text-white/70 hover:text-white underline">contact@jetmeaway.co.uk</a> for other enquiries.</p>
+          <p className="text-[.72rem] text-white/60 leading-relaxed font-semibold">24/7 for active bookings. Email <a href="mailto:contact@jetmeaway.co.uk" className="text-white/70 hover:text-white underline">contact@jetmeaway.co.uk</a> for other enquiries.</p>
         </div>
         <div className="max-w-[800px] mb-7">
-          <p className="text-[.72rem] text-white/50 leading-relaxed font-semibold">Flight-inclusive packages are ATOL protected via Expedia (5788) &amp; Trip.com (11572). <Link href="/financial-protection" className="text-white/70 hover:text-white underline">Read our Financial Protection Notice</Link>.</p>
+          <p className="text-[.72rem] text-white/60 leading-relaxed font-semibold">Flight-inclusive packages are ATOL protected via Expedia (5788) &amp; Trip.com (11572). <Link href="/financial-protection" className="text-white/70 hover:text-white underline">Read our Financial Protection Notice</Link>.</p>
         </div>
         <div className="flex justify-between items-center flex-wrap gap-3">
-          <p className="text-[.6rem] text-white/40">© 2026 JETMEAWAY LTD (Company No: 17140522). 66 Paul Street, EC2A 4NA, London. All rights reserved.</p>
-          <div className="flex gap-4 opacity-40 hover:opacity-60 transition-opacity">
+          <p className="text-[.6rem] text-white/60">© 2026 JETMEAWAY LTD (Company No: 17140522). 66 Paul Street, EC2A 4NA, London. All rights reserved.</p>
+          <div className="flex gap-4 opacity-60 hover:opacity-80 transition-opacity">
             {['Expedia','Trip.com','Aviasales','GetYourGuide','Klook','Airalo'].map(p => (
               <span key={p} className="font-poppins font-extrabold text-[.65rem] text-white uppercase tracking-wider">{p}</span>
             ))}

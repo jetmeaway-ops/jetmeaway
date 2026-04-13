@@ -47,7 +47,7 @@ export default function DealAlertForm() {
           onChange={e => setEmail(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleJoin()}
           placeholder="Your email"
-          className="flex-1 bg-white/[.06] border-none py-3 px-3.5 font-[Nunito] text-[.78rem] text-white outline-none placeholder:text-white/30"
+          className="flex-1 bg-white/[.06] border-none py-3 px-3.5 font-[Nunito] text-[.78rem] text-white outline-none placeholder:text-white/50"
         />
         <button
           onClick={handleJoin}
@@ -57,7 +57,7 @@ export default function DealAlertForm() {
         </button>
       </div>
       {error && <p className="text-[.65rem] text-red-400 mt-1">{error}</p>}
-      <p className="text-[.68rem] mt-2 text-white/20">Get deal alerts and flash sales to your inbox.</p>
+      <p className="text-[.68rem] mt-2 text-white/60">Get deal alerts and flash sales to your inbox.</p>
     </>
   );
 }

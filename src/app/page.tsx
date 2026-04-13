@@ -36,7 +36,7 @@ function LogoScroll() {
     <section className="py-4 bg-[#C8D0E0] border-y border-[#b6c0d3] overflow-hidden">
       <div className="flex animate-scroll">
         {[...PROVIDERS, ...PROVIDERS].map((name, i) => (
-          <span key={i} className="flex-shrink-0 mx-8 font-[var(--font-dm-sans)] font-bold text-[.85rem] tracking-wide text-[#8E95A9] uppercase whitespace-nowrap">
+          <span key={i} className="flex-shrink-0 mx-8 font-[var(--font-dm-sans)] font-bold text-[.85rem] tracking-wide text-[#5C6378] uppercase whitespace-nowrap">
             {name}
           </span>
         ))}
@@ -63,7 +63,7 @@ function HowItWorks() {
   return (
     <section className="py-10 px-6 bg-white">
       <div className="max-w-[1100px] mx-auto">
-        <p className="text-center text-[.65rem] font-black uppercase tracking-[3px] text-orange-500 mb-1.5 font-[var(--font-dm-sans)]">Simple Process</p>
+        <p className="text-center text-[.65rem] font-black uppercase tracking-[3px] text-orange-700 mb-1.5 font-[var(--font-dm-sans)]">Simple Process</p>
         <h2 className="text-center font-[var(--font-playfair)] text-[1.8rem] md:text-[2.2rem] font-black text-[#0a1628] mb-6">How It Works</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {STEPS.map((s) => (
@@ -103,7 +103,7 @@ function WhatWeCompare() {
   return (
     <section className="py-10 px-6 bg-[#C8D0E0]">
       <div className="max-w-[1100px] mx-auto">
-        <p className="text-center text-[.65rem] font-black uppercase tracking-[3px] text-orange-500 mb-1.5 font-[var(--font-dm-sans)]">All In One Place</p>
+        <p className="text-center text-[.65rem] font-black uppercase tracking-[3px] text-orange-700 mb-1.5 font-[var(--font-dm-sans)]">All In One Place</p>
         <h2 className="text-center font-[var(--font-playfair)] text-[1.8rem] md:text-[2.2rem] font-black text-[#0a1628] mb-6">What We Compare</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {CATEGORIES.map((c) => (

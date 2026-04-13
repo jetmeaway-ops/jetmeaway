@@ -63,7 +63,7 @@ export default function PopularDestinations() {
     <section className="py-14 bg-[#C8D0E0] overflow-hidden">
       <div className="max-w-[1100px] mx-auto px-6 mb-10">
         <div className="flex items-center justify-center gap-2 mb-2">
-          <p className="text-[.65rem] font-black uppercase tracking-[3px] text-orange-500 font-[var(--font-dm-sans)]">Trending Now</p>
+          <p className="text-[.65rem] font-black uppercase tracking-[3px] text-orange-700 font-[var(--font-dm-sans)]">Trending Now</p>
           <span className="flex items-center gap-1.5 bg-green-50 border border-green-200 text-green-700 text-[.58rem] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
             <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
             Live prices

@@ -199,7 +199,7 @@ export default function Header() {
 
       {/* Mobile slide-out menu */}
       <div className={`fixed top-0 ${mobileOpen ? 'right-0' : '-right-full'} w-[300px] h-full bg-white z-[200] pt-20 px-5 transition-all duration-300 border-l border-slate-100 flex flex-col overflow-y-auto`}>
-        <p className="text-[.6rem] font-extrabold uppercase tracking-[2.5px] text-[#8E95A9] mb-3 px-2">Compare</p>
+        <p className="text-[.6rem] font-extrabold uppercase tracking-[2.5px] text-[#5C6378] mb-3 px-2">Compare</p>
         <div className="flex flex-col gap-0.5 mb-5">
           {NAV.map(item => {
             const active = isActive(item.href);
@@ -221,7 +221,7 @@ export default function Header() {
           })}
         </div>
 
-        <p className="text-[.6rem] font-extrabold uppercase tracking-[2.5px] text-[#8E95A9] mb-3 px-2">Discover</p>
+        <p className="text-[.6rem] font-extrabold uppercase tracking-[2.5px] text-[#5C6378] mb-3 px-2">Discover</p>
         <div className="flex flex-col gap-0.5 mb-5">
           <Link
             href="/blog"
@@ -248,7 +248,7 @@ export default function Header() {
           ))}
         </div>
 
-        <p className="text-[.6rem] font-extrabold uppercase tracking-[2.5px] text-[#8E95A9] mb-3 px-2">Company</p>
+        <p className="text-[.6rem] font-extrabold uppercase tracking-[2.5px] text-[#5C6378] mb-3 px-2">Company</p>
         <div className="flex flex-col gap-0.5">
           {[
             { href: '/', label: 'Home' },
