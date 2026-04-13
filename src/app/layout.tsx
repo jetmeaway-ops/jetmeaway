@@ -13,21 +13,22 @@ import { Analytics } from '@vercel/analytics/react';
 import DeferredWidgets from '@/components/DeferredWidgets';
 
 const poppins = Poppins({
-  weight: ['400', '600', '700', '800', '900'],
+  weight: ['400', '700', '900'],
   subsets: ['latin'],
   display: 'swap',
   variable: '--next-poppins',
 });
 
 const playfair = Playfair_Display({
-  weight: ['400', '700', '800', '900'],
+  weight: ['900'],
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-playfair',
+  preload: true,
 });
 
 const dmSans = DM_Sans({
-  weight: ['400', '500', '600', '700'],
+  weight: ['400', '500', '700'],
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-dm-sans',
