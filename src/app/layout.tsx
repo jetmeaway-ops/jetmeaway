@@ -10,9 +10,7 @@ import './globals.css';
 import Script from 'next/script';
 import { Poppins, Playfair_Display, DM_Sans } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/react';
-import ScoutChat from '@/components/ScoutChat';
-import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration';
-import PushNotificationPrompt from '@/components/PushNotificationPrompt';
+import DeferredWidgets from '@/components/DeferredWidgets';
 
 const poppins = Poppins({
   weight: ['400', '600', '700', '800', '900'],
@@ -94,20 +92,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         {children}
         <Analytics />
-        <ScoutChat />
-        <ServiceWorkerRegistration />
-        <PushNotificationPrompt />
+        <DeferredWidgets />
         {/* Font Awesome — injected client-side during idle time so it never
             blocks first paint. Icons (star ratings, step icons, etc) appear
             a moment after the rest of the page is already visible. */}
         <Script id="load-font-awesome" strategy="lazyOnload">
           {`(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css';l.crossOrigin='anonymous';document.head.appendChild(l);})();`}
         </Script>
-        {/* Travelpayouts tracking pixel — fires on every page */}
+        {/* Travelpayouts tracking pixel — deferred so it never blocks LCP */}
         <Script
           id="travelpayouts-tracker"
           src="https://tp-em.com/NTEyNjMz.js?t=512633"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
       </body>
     </html>
