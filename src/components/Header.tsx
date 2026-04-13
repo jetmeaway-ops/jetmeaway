@@ -63,7 +63,7 @@ export default function Header() {
               <span>Blog</span>
             </Link>
             <Link href="/" className="flex-shrink-0" aria-label="JetMeAway home">
-              <img src="/jetmeaway-logo.png" alt="Jetmeaway" className="h-9 rounded-none" />
+              <img src="/jetmeaway-logo.png" alt="Jetmeaway" className="h-9 rounded-none" width={120} height={36} />
             </Link>
           </div>
 

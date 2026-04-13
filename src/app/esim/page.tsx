@@ -301,7 +301,7 @@ export default function ESIMPage() {
 
       {/* eSIM identity: "cyber/connectivity" deep midnight + electric cyan */}
       <section
-        className="relative pt-36 pb-16 px-5"
+        className="relative pt-36 pb-16 px-5 min-h-[600px] md:min-h-[700px]"
         style={{ background: 'linear-gradient(160deg, #050c1f 0%, #0a1535 50%, #02071a 100%)' }}
       >
         {/* Ambient decoration — clipped to hero so it doesn't bleed, but lets popups overflow */}

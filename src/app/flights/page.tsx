@@ -1006,7 +1006,7 @@ function FlightsContent() {
 
       {/* ── Hero + Search ── Flights identity: "cabin at 30,000ft" deep cobalt sky with cyan accents */}
       <section
-        className="relative pt-36 pb-12 px-5"
+        className="relative pt-36 pb-12 px-5 min-h-[600px] md:min-h-[700px]"
         style={{ background: 'linear-gradient(160deg, #051327 0%, #0b2342 50%, #03101f 100%)' }}
       >
         {/* Ambient decoration — clipped to hero so it doesn't bleed, but lets popups overflow */}

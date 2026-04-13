@@ -80,7 +80,7 @@ export default function InsurancePage() {
 
       {/* Insurance identity: "safe haven" deep emerald forest with calm green glow */}
       <section
-        className="relative pt-36 pb-16 px-5"
+        className="relative pt-36 pb-16 px-5 min-h-[600px] md:min-h-[700px]"
         style={{ background: 'linear-gradient(160deg, #061a14 0%, #0b2820 50%, #03130c 100%)' }}
       >
         {/* Ambient decoration — clipped to hero so it doesn't bleed, but lets popups overflow */}

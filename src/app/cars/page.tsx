@@ -491,7 +491,7 @@ function CarsContent() {
 
       {/* ── Hero + Search Form ── Cars identity: "night drive" slate charcoal with emerald/electric headlights */}
       <section
-        className="relative pt-36 pb-16 px-5"
+        className="relative pt-36 pb-16 px-5 min-h-[600px] md:min-h-[700px]"
         style={{ background: 'linear-gradient(160deg, #0a0e1a 0%, #141a2c 50%, #06090f 100%)' }}
       >
         {/* Ambient decoration — clipped to hero so it doesn't bleed, but lets popups overflow */}

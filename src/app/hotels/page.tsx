@@ -1173,7 +1173,7 @@ function HotelsContent() {
       {/* ── Hero + Search ── Hotels gets its own identity: warm "luxury hotel lobby at night" palette
           (deep plum/chocolate) — distinct from the homepage navy so each page has its own personality. */}
       <section
-        className="relative pt-36 pb-12 px-5"
+        className="relative pt-36 pb-12 px-5 min-h-[600px] md:min-h-[700px]"
         style={{ background: 'linear-gradient(160deg, #1f1410 0%, #2c1a18 50%, #160a08 100%)' }}
       >
         {/* Ambient decoration — clipped to hero so it doesn't bleed, but lets popups overflow */}

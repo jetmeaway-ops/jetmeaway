@@ -566,7 +566,7 @@ function PackagesContent() {
 
       {/* ── Hero + Search ── Packages identity: "vacation sunset" wine/aubergine with pink/fuchsia */}
       <section
-        className="relative pt-36 pb-12 px-5"
+        className="relative pt-36 pb-12 px-5 min-h-[600px] md:min-h-[700px]"
         style={{ background: 'linear-gradient(160deg, #1c0a22 0%, #2e0d2c 50%, #160516 100%)' }}
       >
         {/* Ambient decoration — clipped to hero so it doesn't bleed, but lets popups overflow */}

@@ -7,7 +7,7 @@ export default function Footer() {
       <div className="max-w-[1100px] mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr_1fr_1.2fr] gap-9 mb-10">
           <div>
-            <img src="/jetmeaway-logo.png" alt="Jetmeaway" className="h-7 brightness-0 invert mb-2.5" loading="lazy" />
+            <img src="/jetmeaway-logo.png" alt="Jetmeaway" className="h-7 brightness-0 invert mb-2.5" loading="lazy" width={93} height={28} />
             <p className="text-[.75rem] text-white/25 leading-relaxed font-semibold">Your AI-powered travel scout. Compare flights, hotels, packages &amp; more from 15+ trusted providers.</p>
           </div>
           <div>

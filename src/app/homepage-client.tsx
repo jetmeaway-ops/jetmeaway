@@ -418,7 +418,7 @@ export default function HomepageClient() {
   return (
     <>
       {/* ── HERO ── */}
-      <section className="relative pt-32 md:pt-40 pb-12 px-6 overflow-hidden" style={{ background: 'linear-gradient(160deg, #0a1628 0%, #1a2744 50%, #0f1e36 100%)' }}>
+      <section className="relative pt-32 md:pt-40 pb-12 px-6 overflow-hidden min-h-[600px] md:min-h-[700px]" style={{ background: 'linear-gradient(160deg, #0a1628 0%, #1a2744 50%, #0f1e36 100%)' }}>
         {/* Floating glassmorphic decorations */}
         <div className="absolute top-20 left-[10%] w-64 h-64 rounded-full bg-orange-500/10 blur-3xl" />
         <div className="absolute bottom-10 right-[5%] w-80 h-80 rounded-full bg-blue-500/10 blur-3xl" />
