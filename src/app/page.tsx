@@ -190,7 +190,7 @@ export default function Home() {
             ].map(s => (
               <div key={s.label} className="text-center">
                 <div className="font-poppins font-black text-[1.6rem] md:text-[2rem] text-white leading-none">{s.prefix || ''}{s.val}</div>
-                <div className="font-[var(--font-dm-sans)] text-white/40 text-[.7rem] font-medium mt-1">{s.label}</div>
+                <div className="font-[var(--font-dm-sans)] text-white/60 text-[.7rem] font-medium mt-1">{s.label}</div>
               </div>
             ))}
           </div>
