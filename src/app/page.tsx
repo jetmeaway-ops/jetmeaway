@@ -1,6 +1,6 @@
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { PopularDestinations, Testimonials, LazyFlightSearch } from './homepage-client';
+import { LazyFlightSearch, LazyPopularDestinations, LazyTestimonials } from './homepage-client';
 
 const jsonLd = [
   {
@@ -202,10 +202,10 @@ export default function Home() {
       </section>
 
       <LogoScroll />
-      <PopularDestinations />
+      <LazyPopularDestinations />
       <WhatWeCompare />
       <HowItWorks />
-      <Testimonials />
+      <LazyTestimonials />
       <CtaSection />
       <Footer />
     </>

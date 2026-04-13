@@ -102,12 +102,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Script id="load-font-awesome" strategy="lazyOnload">
           {`(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css';l.crossOrigin='anonymous';document.head.appendChild(l);})();`}
         </Script>
-        {/* Travelpayouts tracking pixel — deferred so it never blocks LCP */}
-        <Script
-          id="travelpayouts-tracker"
-          src="https://tp-em.com/NTEyNjMz.js?t=512633"
-          strategy="lazyOnload"
-        />
+        {/* Travelpayouts tracker removed — causes CORS errors on tp-em.com
+            that hurt Best Practices score. Re-add if TP fixes their CORS. */}
       </body>
     </html>
   );
