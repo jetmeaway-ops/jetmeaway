@@ -40,6 +40,7 @@ export default function Testimonials() {
         <div className="flex justify-center gap-3 mt-6">
           {TESTIMONIALS.map((_, i) => (
             <button key={i} onClick={() => setActive(i)}
+              aria-label={`Show testimonial ${i + 1}`}
               className={`rounded-full transition-all duration-300 ${i === active ? 'bg-orange-500 w-8 h-3' : 'bg-white/25 hover:bg-white/50 w-3 h-3'}`} />
           ))}
         </div>
