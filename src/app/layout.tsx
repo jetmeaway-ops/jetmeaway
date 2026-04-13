@@ -12,6 +12,7 @@ import { Poppins, Playfair_Display, DM_Sans } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/react';
 import ScoutChat from '@/components/ScoutChat';
 import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration';
+import PushNotificationPrompt from '@/components/PushNotificationPrompt';
 
 const poppins = Poppins({
   weight: ['400', '600', '700', '800', '900'],
@@ -95,6 +96,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Analytics />
         <ScoutChat />
         <ServiceWorkerRegistration />
+        <PushNotificationPrompt />
         {/* Font Awesome — injected client-side during idle time so it never
             blocks first paint. Icons (star ratings, step icons, etc) appear
             a moment after the rest of the page is already visible. */}
