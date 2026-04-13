@@ -145,14 +145,14 @@ export default function FlightSearch() {
     // Load recent searches
     setRecentSearches(getRecentSearches());
 
-    // Check localStorage first
+    // Check localStorage first — includes previously detected or denied
     const saved = localStorage.getItem('jma_departure_airport');
     if (saved) {
       const found = AIRPORTS.find(a => a.code === saved);
       if (found) { setOrigin(found); return; }
     }
 
-    // Otherwise detect via geolocation
+    // Otherwise detect via geolocation (only once — result is cached)
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -160,7 +160,10 @@ export default function FlightSearch() {
           setOrigin(nearest);
           localStorage.setItem('jma_departure_airport', nearest.code);
         },
-        () => { /* denied — keep default LHR */ }
+        () => {
+          // Denied — save default so we never ask again
+          localStorage.setItem('jma_departure_airport', 'LHR');
+        }
       );
     }
   }, []);
