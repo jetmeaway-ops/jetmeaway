@@ -9,11 +9,9 @@ export const runtime = 'nodejs';
 const VAPID_PUBLIC = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
 const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY || '';
 
-webpush.setVapidDetails(
-  'mailto:waqar@jetmeaway.co.uk',
-  VAPID_PUBLIC,
-  VAPID_PRIVATE,
-);
+if (VAPID_PUBLIC && VAPID_PRIVATE) {
+  webpush.setVapidDetails('mailto:waqar@jetmeaway.co.uk', VAPID_PUBLIC, VAPID_PRIVATE);
+}
 
 /**
  * POST /api/push/send — Send a push notification to all subscribers.
