@@ -1,5 +1,6 @@
 import { kv } from '@vercel/kv';
 import { NextRequest, NextResponse } from 'next/server';
+// @ts-expect-error -- web-push has no type declarations
 import webpush from 'web-push';
 
 // This route uses Node.js runtime (web-push needs Node crypto)
