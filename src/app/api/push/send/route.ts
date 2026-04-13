@@ -1,17 +1,8 @@
 import { kv } from '@vercel/kv';
 import { NextRequest, NextResponse } from 'next/server';
-// @ts-expect-error -- web-push has no type declarations
-import webpush from 'web-push';
 
 // This route uses Node.js runtime (web-push needs Node crypto)
 export const runtime = 'nodejs';
-
-const VAPID_PUBLIC = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
-const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY || '';
-
-if (VAPID_PUBLIC && VAPID_PRIVATE) {
-  webpush.setVapidDetails('mailto:waqar@jetmeaway.co.uk', VAPID_PUBLIC, VAPID_PRIVATE);
-}
 
 /**
  * POST /api/push/send — Send a push notification to all subscribers.
@@ -26,6 +17,18 @@ export async function POST(req: NextRequest) {
   if (!secret || secret !== process.env.PUSH_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const VAPID_PUBLIC = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
+  const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY || '';
+
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
+    return NextResponse.json({ error: 'VAPID keys not configured' }, { status: 500 });
+  }
+
+  // Dynamic import — avoids build-time crash when env vars are missing
+  // @ts-expect-error -- web-push has no type declarations
+  const webpush = (await import('web-push')).default;
+  webpush.setVapidDetails('mailto:waqar@jetmeaway.co.uk', VAPID_PUBLIC, VAPID_PRIVATE);
 
   try {
     const { title, body, url } = await req.json();
@@ -59,7 +62,6 @@ export async function POST(req: NextRequest) {
           await webpush.sendNotification(sub, payload);
           sent++;
         } catch (err: any) {
-          // 404 or 410 = subscription expired/invalid
           if (err?.statusCode === 404 || err?.statusCode === 410) {
             staleKeys.push(key);
             await kv.del(key);
