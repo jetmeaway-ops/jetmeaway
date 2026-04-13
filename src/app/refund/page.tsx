@@ -44,7 +44,7 @@ export default function RefundPolicy() {
 
           <div className="mt-8 pt-6 border-t border-[#F1F3F7]">
             <p className="text-[.78rem] text-[#8E95A9]">
-              For refund enquiries, contact us at <a href="mailto:contact@jetmeaway.co.uk" className="text-[#0066FF] font-bold">contact@jetmeaway.co.uk</a> or call <a href="tel:+447398753885" className="text-[#0066FF] font-bold">07398 753 885</a>.
+              For refund enquiries, contact us at <a href="mailto:contact@jetmeaway.co.uk" className="text-[#0066FF] font-bold">contact@jetmeaway.co.uk</a>.
             </p>
           </div>
         </div>
