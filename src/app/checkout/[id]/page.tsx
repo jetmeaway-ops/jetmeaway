@@ -2,18 +2,12 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import dynamic from 'next/dynamic';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import StripeCardForm from '@/components/StripeCardForm';
 import { MARKUP_GBP } from '@/lib/travel-logic';
 
 export const runtime = 'edge';
-
-/* Load DuffelPayments only on client (it uses Stripe internally) */
-const DuffelPayments = dynamic(
-  () => import('@duffel/components').then(mod => mod.DuffelPayments),
-  { ssr: false },
-);
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPES
@@ -367,8 +361,8 @@ export default function CheckoutPage() {
   // Step management
   const [step, setStep] = useState<CheckoutStep>('passengers');
 
-  // Payment state
-  const [paymentClientToken, setPaymentClientToken] = useState<string | null>(null);
+  // Payment state — Stripe merchant-of-record
+  const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
@@ -436,7 +430,7 @@ export default function CheckoutPage() {
 
   // ── Build Duffel passenger array (shared by payment + order) ──
   // Lead passenger (contact email/phone) is the first ADULT in the offer.
-  // The server ({@link /api/create-order}) links infants to adults via
+  // The server ({@link /api/flights/book}) links infants to adults via
   // `infant_passenger_id` using the `type` we pass here.
   const leadIdx = offer
     ? Math.max(0, offer.passengers.findIndex((p) => p.type === 'adult'))
@@ -472,15 +466,18 @@ export default function CheckoutPage() {
     setPaymentError(null);
 
     try {
-      // Create payment intent for the TOTAL amount (all passengers, with markup)
-      const totalAmount = offer.totalForAll.toFixed(2);
+      // Merchant-of-record: create a Stripe PaymentIntent on OUR account.
+      // Amount MUST be in minor units (pence) for Stripe.
+      const amountPence = Math.round(offer.totalForAll * 100);
 
-      const res = await fetch('/api/payment-intent', {
+      const res = await fetch('/api/stripe/payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: totalAmount,
-          currency: offer.currency || 'GBP',
+          amount: amountPence,
+          currency: (offer.currency || 'GBP').toLowerCase(),
+          offerId: offer.id,
+          sessionId: typeof window !== 'undefined' ? (localStorage.getItem('jma_sid') || 'anon') : 'anon',
         }),
       });
 
@@ -491,7 +488,7 @@ export default function CheckoutPage() {
         return;
       }
 
-      setPaymentClientToken(data.clientToken);
+      setPaymentClientSecret(data.clientSecret);
       setPaymentIntentId(data.paymentIntentId);
       setStep('payment');
 
@@ -516,17 +513,22 @@ export default function CheckoutPage() {
 
     try {
       const duffelPassengers = buildDuffelPassengers();
-      const baseTotal = (offer.basePerPerson * offer.passengerCount).toFixed(2);
 
-      const res = await fetch('/api/create-order', {
+      // Call the merchant-of-record orchestrator.
+      // It verifies the Stripe charge, writes a pending booking, re-quotes,
+      // checks balance, then issues a Duffel balance order. Refunds on any
+      // downstream failure.
+      const res = await fetch('/api/flights/book', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           offerId: offer.id,
           passengers: duffelPassengers,
           paymentIntentId,
-          totalAmount: baseTotal,
-          currency: offer.currency || 'GBP',
+          destination: offer.destinationCity || offer.destination,
+          departureDate: offer.departureAt,
+          returnDate: offer.returnDepartureAt,
+          title: `${offer.airline} ${offer.origin} → ${offer.destination}`,
           sessionId: typeof window !== 'undefined' ? (localStorage.getItem('jma_sid') || 'anon') : 'anon',
         }),
       });
@@ -535,16 +537,16 @@ export default function CheckoutPage() {
 
       if (!res.ok || data.error) {
         setOrderError(data.error || 'Booking failed. Please contact support.');
-        setStep('payment'); // allow retry
+        setStep('payment'); // allow retry / show refund notice
         return;
       }
 
       setConfirmation({
         bookingReference: data.bookingReference,
-        documentsUrl: data.documentsUrl,
-        emailSent: data.emailSent,
-        totalPerPerson: data.totalPerPerson,
-        totalAll: data.totalAll,
+        documentsUrl: null,
+        emailSent: false,
+        totalPerPerson: offer.basePerPerson + MARKUP_GBP,
+        totalAll: offer.totalForAll,
       });
       setStep('confirmed');
     } catch {
@@ -556,10 +558,9 @@ export default function CheckoutPage() {
   };
 
   // ── Step 2c: Payment failed ──
-  const handlePaymentFailure = (error: any) => {
-    console.error('Payment failed:', error);
-    const message = error?.message || error?.decline_code || 'Your card was declined. Please try a different card.';
-    setPaymentError(message);
+  const handlePaymentFailure = (message: string) => {
+    console.error('Payment failed:', message);
+    setPaymentError(message || 'Your card was declined. Please try a different card.');
   };
 
   // ── Go back to passenger step ──
@@ -919,7 +920,7 @@ export default function CheckoutPage() {
                   )}
 
                   {/* Safe Checkout — non-refundable acknowledgement */}
-                  {step === 'payment' && paymentClientToken && offer && !offer.refundable && (
+                  {step === 'payment' && paymentClientSecret && offer && !offer.refundable && (
                     <label className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 cursor-pointer select-none">
                       <input
                         type="checkbox"
@@ -933,8 +934,8 @@ export default function CheckoutPage() {
                     </label>
                   )}
 
-                  {/* Duffel Payments Card Element */}
-                  {step === 'payment' && paymentClientToken && (
+                  {/* Stripe Payment Element (merchant-of-record) */}
+                  {step === 'payment' && paymentClientSecret && (
                     <div className={`bg-white border border-[#E8ECF4] rounded-2xl p-6 shadow-[0_2px_16px_rgba(0,102,255,0.06)] ${!offer?.refundable && !fareAcknowledged ? 'opacity-50 pointer-events-none' : ''}`}>
                       <div className="flex items-center gap-2 mb-5">
                         <span className="text-lg">💳</span>
@@ -947,15 +948,12 @@ export default function CheckoutPage() {
                         Total charge: <span className="text-[#1A1D2B] font-black">£{offer.totalForAll.toFixed(2)}</span>
                       </div>
 
-                      <DuffelPayments
-                        paymentIntentClientToken={paymentClientToken}
-                        onSuccessfulPayment={handlePaymentSuccess}
-                        onFailedPayment={handlePaymentFailure}
-                        styles={{
-                          accentColor: '#0066FF',
-                          fontFamily: 'Poppins, system-ui, sans-serif',
-                          buttonCornerRadius: '12px',
-                        }}
+                      <StripeCardForm
+                        clientSecret={paymentClientSecret}
+                        onSucceeded={handlePaymentSuccess}
+                        onError={handlePaymentFailure}
+                        disabled={!offer?.refundable && !fareAcknowledged}
+                        amountLabel={`£${offer.totalForAll.toFixed(2)}`}
                       />
 
                       <div className="mt-4 pt-4 border-t border-[#F1F3F7] flex items-center gap-2 text-[.65rem] text-[#8E95A9] font-semibold">
