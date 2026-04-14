@@ -793,16 +793,32 @@ export async function GET(req: NextRequest) {
       rank: i,
     }));
 
-  // Await both APIs, merge and deduplicate by hotel name (cheapest wins)
+  // Await both APIs, merge and deduplicate by hotel name (cheapest wins).
+  //
+  // Normalisation catches common cross-supplier formatting variance:
+  //   "Hilton-London" vs "Hilton London"    → same key
+  //   "Ritz-Carlton" vs "Ritz Carlton"      → same key
+  //   "The Savoy, London" vs "The Savoy London" → same key
+  //
+  // When WebBeds goes live and returns GIATA / mapping IDs, switch this
+  // to an ID-based match for higher confidence.
+  const normaliseKey = (name: string) =>
+    name
+      .toLowerCase()
+      .replace(/[-–—]/g, ' ')   // all hyphen variants → space
+      .replace(/[^\w\s]/g, '')  // strip punctuation (commas, periods, &, etc.)
+      .replace(/\s+/g, ' ')     // collapse whitespace
+      .trim();
+
   const mergeApis = async () => {
     const [liteResults, rhResults] = await Promise.all([liteApiPromise, rateHawkPromise]);
     const liteNorm = normaliseLiteApi(liteResults);
     const rhNorm = normaliseRateHawk(rhResults);
     const all = [...liteNorm, ...rhNorm];
-    // Deduplicate: if same hotel name, keep the cheaper one
+    // Deduplicate: if same normalised hotel name, keep the cheaper one
     const seen = new Map<string, typeof all[0]>();
     for (const h of all) {
-      const key = h.name.toLowerCase().trim();
+      const key = normaliseKey(h.name);
       const existing = seen.get(key);
       if (!existing || h.pricePerNight < existing.pricePerNight) {
         seen.set(key, h);
