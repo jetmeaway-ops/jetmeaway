@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import PasswordInput from './PasswordInput';
 
 export const runtime = 'nodejs';
 
@@ -54,13 +55,7 @@ export default async function AdminLoginPage({
             <label className="block text-xs font-semibold text-[#5C6378] uppercase tracking-wide mb-2">
               Password
             </label>
-            <input
-              type="password"
-              name="password"
-              required
-              autoFocus
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:border-[#0066FF] focus:outline-none focus:ring-2 focus:ring-[#0066FF]/20"
-            />
+            <PasswordInput />
           </div>
 
           {error === 'wrong' && (
