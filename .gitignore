@@ -54,3 +54,5 @@ mobile/ios/
 .claude/
 
 .env*.local
+flights.json
+offer.json
