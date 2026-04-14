@@ -5,7 +5,6 @@ import { useParams } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import StripeCardForm from '@/components/StripeCardForm';
-import { MARKUP_GBP } from '@/lib/travel-logic';
 
 export const runtime = 'edge';
 
@@ -267,7 +266,7 @@ function PriceSidebar({
             </div>
             <div className="flex justify-between">
               <span className="text-[#5C6378] font-semibold">JetMeAway fee</span>
-              <span className="font-bold text-[#1A1D2B]">£{MARKUP_GBP.toFixed(2)}</span>
+              <span className="font-bold text-[#1A1D2B]">£{offer.pricing.markup.toFixed(2)}</span>
             </div>
             <div className="border-t border-[#F1F3F7] pt-2.5 flex justify-between">
               <span className="font-poppins font-black text-[#1A1D2B]">Per person</span>
@@ -545,7 +544,7 @@ export default function CheckoutPage() {
         bookingReference: data.bookingReference,
         documentsUrl: null,
         emailSent: false,
-        totalPerPerson: offer.basePerPerson + MARKUP_GBP,
+        totalPerPerson: offer.pricing.total,
         totalAll: offer.totalForAll,
       });
       setStep('confirmed');

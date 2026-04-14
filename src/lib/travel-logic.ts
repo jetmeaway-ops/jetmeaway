@@ -9,12 +9,45 @@
    MARKUP
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/** Fixed markup added to every Duffel flight price (GBP) */
-export const MARKUP_GBP = 15;
+/**
+ * Percentage markup applied to every Duffel flight price.
+ * 0.10 = 10 % — scales fairly across budget & premium fares.
+ */
+export const MARKUP_PCT = 0.10;
+
+/** Minimum markup per passenger (GBP) — covers Stripe fees + chargeback reserve. */
+export const MARKUP_MIN_GBP = 4;
+
+/**
+ * @deprecated Legacy fixed markup (£). Kept as a fallback for any code still
+ * importing it — treat as the *typical* per-person markup for display only.
+ * Prefer {@link markupFor} for accurate per-price markup.
+ */
+export const MARKUP_GBP = MARKUP_MIN_GBP;
+
+/** Per-passenger markup in GBP for a given raw airline price. */
+export function markupFor(basePrice: number): number {
+  const pct = basePrice * MARKUP_PCT;
+  return Math.round(Math.max(pct, MARKUP_MIN_GBP) * 100) / 100;
+}
 
 /** Apply markup to a raw airline price and return the customer-facing total */
 export function applyMarkup(basePrice: number): number {
-  return Math.round((basePrice + MARKUP_GBP) * 100) / 100;
+  return Math.round((basePrice + markupFor(basePrice)) * 100) / 100;
+}
+
+/**
+ * Given a customer-facing (post-markup) per-passenger price, return the
+ * original base airline price. Used by the orchestrator to reverse-engineer
+ * what the customer paid vs the airline quote for drift detection.
+ *
+ * At base = MARKUP_MIN / MARKUP_PCT the two branches meet, so `Math.min`
+ * picks the correct one either side.
+ */
+export function reverseMarkup(paidPerPerson: number): number {
+  const pctPath = paidPerPerson / (1 + MARKUP_PCT);
+  const floorPath = paidPerPerson - MARKUP_MIN_GBP;
+  return Math.min(pctPath, floorPath);
 }
 
 /** Format a GBP price for display (e.g. "£142.50") */
@@ -24,10 +57,11 @@ export function formatPrice(amount: number): string {
 
 /** Return a breakdown object for transparency / debugging */
 export function priceBreakdown(basePrice: number) {
-  const total = applyMarkup(basePrice);
+  const markup = markupFor(basePrice);
+  const total = Math.round((basePrice + markup) * 100) / 100;
   return {
     airline: basePrice,
-    markup: MARKUP_GBP,
+    markup,
     total,
     display: formatPrice(total),
   };

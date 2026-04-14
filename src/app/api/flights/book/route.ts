@@ -8,7 +8,7 @@ import {
 } from '@/lib/duffel';
 import { upsertBooking, type Booking } from '@/lib/bookings';
 import { buildDuffelPassengers, pickLeadPassenger } from '@/lib/duffel-passengers';
-import { applyMarkup, MARKUP_GBP } from '@/lib/travel-logic';
+import { reverseMarkup } from '@/lib/travel-logic';
 
 export const runtime = 'nodejs';
 
@@ -112,9 +112,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Offer no longer available — refunded' }, { status: 410 });
   }
 
-  const quotedGbp = paidGbp - MARKUP_GBP * passengers.length;
+  // Invert the percentage markup to recover the airline-quoted base price.
+  const paidPerPerson = paidGbp / passengers.length;
+  const quotedBasePerPerson = reverseMarkup(paidPerPerson);
   const actualPerPerson = refreshed.total / passengers.length;
-  const driftPerPerson = actualPerPerson - (quotedGbp / passengers.length);
+  const driftPerPerson = actualPerPerson - quotedBasePerPerson;
 
   if (driftPerPerson > PRICE_DRIFT_TOLERANCE_GBP) {
     await refundAndFail(
