@@ -6,7 +6,7 @@ export const runtime = 'edge';
 
 const DUFFEL_KEY = process.env.DUFFEL_TEST_TOKEN || process.env.DUFFEL_ACCESS_TOKEN || process.env.DUFFEL_API_KEY || '';
 const TP_TOKEN = 'f797fbb7074a15838d5536c10be6f7b5';
-const KV_TTL = 10800; // 3 hours cache for frequently-searched routes
+const KV_TTL = 1800; // 30 min — keeps Duffel prices fresh vs aggregator staleness
 
 /* ═══════════════════════════════════════════════════════════════════════════
    AIRLINES LOOKUP
