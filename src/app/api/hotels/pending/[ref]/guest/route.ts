@@ -5,6 +5,10 @@ import type { PendingBooking } from '../../../start-booking/route';
 export const runtime = 'edge';
 
 export interface PendingGuest {
+  /** Mr / Mrs / Ms / Miss / Mstr — required by DOTW confirmbooking. Optional
+   *  so pre-DOTW LiteAPI records stay compatible; the DOTW path defaults
+   *  to "Mr" when unset. */
+  title?: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -28,7 +32,7 @@ export async function POST(
 
   try {
     const body = await req.json();
-    const { firstName, lastName, email, phone, nationality } = body || {};
+    const { title, firstName, lastName, email, phone, nationality } = body || {};
 
     if (!firstName || !lastName || !email) {
       return NextResponse.json({ success: false, error: 'firstName, lastName and email are required' }, { status: 400 });
@@ -39,9 +43,16 @@ export async function POST(
       return NextResponse.json({ success: false, error: 'Booking not found or expired' }, { status: 404 });
     }
 
+    // Whitelist titles so a malformed client can't write junk into KV.
+    const allowedTitles = new Set(['Mr', 'Mrs', 'Ms', 'Miss', 'Mstr']);
+    const safeTitle = typeof title === 'string' && allowedTitles.has(title.trim())
+      ? title.trim()
+      : 'Mr';
+
     const updated = {
       ...record,
       guest: {
+        title: safeTitle,
         firstName: String(firstName).trim(),
         lastName: String(lastName).trim(),
         email: String(email).trim(),

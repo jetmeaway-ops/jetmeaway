@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
+import StripeCardForm from '@/components/StripeCardForm';
 
 interface PendingSummary {
   ref: string;
@@ -19,6 +20,8 @@ interface PendingSummary {
   refundable?: boolean | null;
   cancellationDeadline?: string | null;
   state: 'pending' | 'paid' | 'confirmed' | 'failed';
+  /** Which wholesale supplier owns this offer. Drives the payment + book flow. */
+  supplier?: 'liteapi' | 'dotw';
 }
 
 /**
@@ -78,6 +81,7 @@ export default function HotelCheckoutPage() {
   const [booking, setBooking] = useState<PendingSummary | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  const [title, setTitle] = useState('Mr');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -108,6 +112,11 @@ export default function HotelCheckoutPage() {
   const [payingNow, setPayingNow] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
+  // DOTW/Stripe path — Stripe PaymentIntent client secret for merchant-of-record checkout.
+  const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
+  const router = useRouter();
+  const isDotw = booking?.supplier === 'dotw';
+
   // Load booking summary
   useEffect(() => {
     let cancelled = false;
@@ -125,10 +134,19 @@ export default function HotelCheckoutPage() {
     return () => { cancelled = true; };
   }, [ref]);
 
-  // Fire prebook as soon as booking loads — locks the rate before guest fills form
+  // Fire prebook as soon as booking loads — locks the rate before guest fills form.
+  // DOTW skips this step: it has no prebook endpoint. Instead we do getrooms(block)
+  // server-side at the moment of payment, and wrap the whole thing inside the 3-min lock.
   useEffect(() => {
     if (!booking || prebookFiredRef.current) return;
     prebookFiredRef.current = true;
+
+    if (booking.supplier === 'dotw') {
+      // DOTW path: jump straight to guest form. Rate lock happens server-side
+      // during the book call (getrooms(block) → confirmbooking) after Stripe pays.
+      setStep('guest');
+      return;
+    }
 
     (async () => {
       try {
@@ -268,9 +286,12 @@ export default function HotelCheckoutPage() {
     }
   };
 
-  // Now only saves guest details + inits payment (prebook already done on load)
+  // Saves guest details + inits payment. Two paths:
+  //   LiteAPI: inits the LiteAPI Payment SDK (prebook already done on load)
+  //   DOTW: creates a Stripe PaymentIntent and renders <StripeCardForm>
   const handleContinueToPayment = async () => {
-    if (!booking || !formOk || !prebookResult) return;
+    if (!booking || !formOk) return;
+    if (!isDotw && !prebookResult) return;
     setStep('saving');
     setStepError(null);
 
@@ -279,6 +300,7 @@ export default function HotelCheckoutPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          title,
           firstName: firstName.trim(),
           lastName: lastName.trim(),
           email: email.trim(),
@@ -289,10 +311,49 @@ export default function HotelCheckoutPage() {
       const saveData = await saveRes.json();
       if (!saveData.success) throw new Error(saveData.error || 'Could not save guest details');
 
-      initPaymentSdk(prebookResult.secretKey, prebookResult.prebookId, prebookResult.transactionId);
+      if (isDotw) {
+        // Create a Stripe PaymentIntent for the full stay total (pence).
+        const total = (booking.totalPrice || 0) * 100;
+        const piRes = await fetch('/api/stripe/payment-intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: Math.round(total),
+            currency: (booking.currency || 'gbp').toLowerCase(),
+            offerId: `dotw:${ref}`,
+            sessionId: ref,
+          }),
+        });
+        const piData = await piRes.json();
+        if (!piData.clientSecret) throw new Error(piData.error || 'Could not create Stripe PaymentIntent');
+        setStripeClientSecret(piData.clientSecret);
+        setStep('payment');
+        return;
+      }
+
+      initPaymentSdk(prebookResult!.secretKey, prebookResult!.prebookId, prebookResult!.transactionId);
     } catch (e: unknown) {
       setStepError(e instanceof Error ? e.message : 'Unexpected error');
       setStep('guest');
+    }
+  };
+
+  /** Called after Stripe succeeds on a DOTW booking — fires the server-side
+   *  block+confirm, then navigates to /success. */
+  const handleDotwStripeSuccess = async () => {
+    setPayingNow(true);
+    try {
+      const res = await fetch('/api/hotels/book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ref }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Booking failed');
+      router.push(`/success?ref=${encodeURIComponent(ref)}`);
+    } catch (e: unknown) {
+      setPaymentError(e instanceof Error ? e.message : 'Could not finalise booking');
+      setPayingNow(false);
     }
   };
 
@@ -413,6 +474,20 @@ export default function HotelCheckoutPage() {
                 </p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="block sm:col-span-2">
+                  <span className="text-[.7rem] font-bold text-[#5C6378] uppercase tracking-wide">Title</span>
+                  <select
+                    value={title}
+                    onChange={e => setTitle(e.target.value)}
+                    className="w-36 mt-1 px-3 py-3 sm:py-2.5 rounded-lg border border-[#E8ECF4] bg-white text-[16px] sm:text-[.88rem] font-semibold text-[#1A1D2B] outline-none focus:border-[#0066FF]"
+                  >
+                    <option value="Mr">Mr</option>
+                    <option value="Mrs">Mrs</option>
+                    <option value="Ms">Ms</option>
+                    <option value="Miss">Miss</option>
+                    <option value="Mstr">Master</option>
+                  </select>
+                </label>
                 <label className="block">
                   <span className="text-[.7rem] font-bold text-[#5C6378] uppercase tracking-wide">First name</span>
                   <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)}
@@ -508,25 +583,47 @@ export default function HotelCheckoutPage() {
               )}
 
               <div className={booking.refundable === false && !fareAcknowledged ? 'opacity-50 pointer-events-none' : ''}>
-                <div id="liteapi-payment-form" ref={paymentContainerRef} className="min-h-[120px]" />
-                <button
-                  type="button"
-                  onClick={handlePayNow}
-                  disabled={payingNow}
-                  className="w-full mt-5 bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-60 disabled:cursor-not-allowed text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(0,102,255,0.3)] flex items-center justify-center gap-2"
-                >
-                  {payingNow ? (
-                    <>
-                      <span className="inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                      Processing…
-                    </>
+                {isDotw ? (
+                  // DOTW / merchant-of-record path: Stripe Elements card form.
+                  // On success we call /api/hotels/book which does the 3-minute
+                  // getrooms(block) → confirmbooking sequence server-side.
+                  stripeClientSecret ? (
+                    <StripeCardForm
+                      clientSecret={stripeClientSecret}
+                      amountLabel={fmtPrice(booking.totalPrice)}
+                      onSucceeded={handleDotwStripeSuccess}
+                      onError={(msg) => setPaymentError(msg)}
+                      disabled={booking.refundable === false && !fareAcknowledged}
+                    />
                   ) : (
-                    <>
-                      <i className="fa-solid fa-lock text-[.8rem]" />
-                      Pay {prebookResult?.price ? fmtPrice(prebookResult.price) : booking ? fmtPrice(booking.totalPrice) : ''} now
-                    </>
-                  )}
-                </button>
+                    <div className="py-6 text-center text-[.78rem] text-[#5C6378] font-semibold">
+                      <span className="inline-block w-5 h-5 border-2 border-[#E8ECF4] border-t-[#0066FF] rounded-full animate-spin mr-2 align-middle" />
+                      Preparing secure payment…
+                    </div>
+                  )
+                ) : (
+                  <>
+                    <div id="liteapi-payment-form" ref={paymentContainerRef} className="min-h-[120px]" />
+                    <button
+                      type="button"
+                      onClick={handlePayNow}
+                      disabled={payingNow}
+                      className="w-full mt-5 bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-60 disabled:cursor-not-allowed text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(0,102,255,0.3)] flex items-center justify-center gap-2"
+                    >
+                      {payingNow ? (
+                        <>
+                          <span className="inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                          Processing…
+                        </>
+                      ) : (
+                        <>
+                          <i className="fa-solid fa-lock text-[.8rem]" />
+                          Pay {prebookResult?.price ? fmtPrice(prebookResult.price) : booking ? fmtPrice(booking.totalPrice) : ''} now
+                        </>
+                      )}
+                    </button>
+                  </>
+                )}
                 <p className="text-[.65rem] text-[#8E95A9] font-semibold text-center mt-2">
                   By paying you agree to our <a href="/terms" className="underline">Terms of Service</a>
                 </p>

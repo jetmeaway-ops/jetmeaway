@@ -1,52 +1,94 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
+import Stripe from 'stripe';
 import { bookWithTransactionId } from '@/lib/liteapi';
+import { getRooms as dotwGetRooms, confirmBooking as dotwConfirmBooking } from '@/lib/dotw';
+import {
+  dotwRoomsToDetail,
+  dotwConfirmToBookingRef,
+} from '@/lib/suppliers/dotw-adapter';
 import type { PendingBooking } from '../start-booking/route';
 import type { PendingGuest } from '../pending/[ref]/guest/route';
 
-// Node runtime — LiteAPI book can take 15-25s, Edge times out too early
+// Node runtime — LiteAPI book can take 15-25s, DOTW block→confirm must
+// complete inside 3 minutes with MD5+gzip via `node:crypto`/`node:zlib`.
+export const runtime = 'nodejs';
 export const maxDuration = 60;
+
+/** £2 price-drift tolerance — matches the flights orchestrator constant. */
+const PRICE_DRIFT_TOLERANCE_GBP = 2;
+
+/** Optional auto-refund helper. Mirrors flights/book pattern. */
+async function refundPaymentIntent(
+  paymentIntentId: string | undefined,
+  reason: string,
+): Promise<void> {
+  if (!paymentIntentId) return;
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) {
+    console.warn('[hotels/book] STRIPE_SECRET_KEY unset — cannot refund', paymentIntentId);
+    return;
+  }
+  try {
+    const stripe = new Stripe(key);
+    const refund = await stripe.refunds.create({
+      payment_intent: paymentIntentId,
+      reason: 'requested_by_customer',
+      metadata: { failure_reason: reason.slice(0, 500) },
+    });
+    console.log('[hotels/book] auto-refund issued', refund.id, 'for', paymentIntentId);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[hotels/book] refund failed for', paymentIntentId, msg);
+  }
+}
 
 /**
  * POST /api/hotels/book
  *
- * Body: { ref: string, prebookId: string, transactionId: string }
+ * LiteAPI path (existing):
+ *   Body: { ref, prebookId, transactionId }
+ *   Called after the customer pays via the LiteAPI Payment SDK.
  *
- * Called after the customer has paid via the LiteAPI Payment SDK.
- * Reads guest details from the KV pending-booking record and confirms
- * the booking with LiteAPI using the TRANSACTION_ID payment method.
+ * DOTW path (new):
+ *   Body: { ref }
+ *   Called after the customer pays via our Stripe Elements form. We then
+ *   do getrooms(block) → price-drift check → confirmbooking inside a
+ *   single server action to stay inside DOTW's 3-minute rate lock.
+ *   On ANY failure after a successful Stripe charge, auto-refunds via
+ *   `refundPaymentIntent`.
  */
 export async function POST(req: NextRequest) {
   let body: any;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json(
-      { success: false, error: 'Invalid JSON body' },
-      { status: 400 },
-    );
+    return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { ref, prebookId, transactionId } = body || {};
-
+  const { ref } = body || {};
   if (!ref || typeof ref !== 'string') {
     return NextResponse.json({ success: false, error: 'ref is required' }, { status: 400 });
   }
-  if (!prebookId || typeof prebookId !== 'string') {
-    return NextResponse.json({ success: false, error: 'prebookId is required' }, { status: 400 });
-  }
-  if (!transactionId || typeof transactionId !== 'string') {
-    return NextResponse.json({ success: false, error: 'transactionId is required' }, { status: 400 });
+
+  const record = await kv.get<PendingBooking & { guest?: PendingGuest }>(`pending-booking:${ref}`);
+  if (!record) {
+    return NextResponse.json({ success: false, error: 'Booking not found or expired' }, { status: 404 });
   }
 
-  try {
-    const record = await kv.get<PendingBooking & { guest?: PendingGuest }>(`pending-booking:${ref}`);
-    if (!record) {
-      return NextResponse.json({ success: false, error: 'Booking not found or expired' }, { status: 404 });
+  // Idempotency: if already confirmed, return success immediately.
+  if (record.state === 'confirmed') {
+    if (record.supplier === 'dotw' && record.dotwBookingRef) {
+      return NextResponse.json({
+        success: true,
+        booking: {
+          bookingId: record.dotwBookingRef,
+          status: record.dotwStatus,
+          confirmationCode: record.dotwBookingRef,
+        },
+      });
     }
-
-    // Idempotency: if already confirmed, return success
-    if (record.state === 'confirmed' && record.liteapiBookingId) {
+    if (record.liteapiBookingId) {
       return NextResponse.json({
         success: true,
         booking: {
@@ -56,24 +98,39 @@ export async function POST(req: NextRequest) {
         },
       });
     }
+  }
 
-    // Prevent double-booking: if already being processed, reject
-    if (record.state === 'booking') {
-      return NextResponse.json({ success: false, error: 'Booking is already being processed' }, { status: 409 });
-    }
+  // Prevent double-booking: if already being processed, reject
+  if (record.state === 'booking') {
+    return NextResponse.json({ success: false, error: 'Booking is already being processed' }, { status: 409 });
+  }
 
-    // Verify transactionId matches what was stored during prebook
-    if (record.transactionId && record.transactionId !== transactionId) {
-      return NextResponse.json({ success: false, error: 'Transaction ID mismatch' }, { status: 400 });
-    }
+  // Mark as 'booking' so concurrent calls can't race.
+  await kv.set(`pending-booking:${ref}`, { ...record, state: 'booking' }, { ex: 4 * 60 * 60 });
 
-    // Mark as 'booking' to prevent concurrent requests
-    await kv.set(`pending-booking:${ref}`, { ...record, state: 'booking' }, { ex: 4 * 60 * 60 });
+  if (!record.guest) {
+    return NextResponse.json({ success: false, error: 'Guest details missing' }, { status: 400 });
+  }
 
-    if (!record.guest) {
-      return NextResponse.json({ success: false, error: 'Guest details missing' }, { status: 400 });
-    }
+  /* ──────────────────────────── DOTW PATH ─────────────────────────── */
+  if (record.supplier === 'dotw') {
+    return bookDotw(ref, record as PendingBooking & { guest: PendingGuest });
+  }
 
+  /* ───────────────────────── LiteAPI (existing) ───────────────────── */
+  const { prebookId, transactionId } = body;
+  if (!prebookId || typeof prebookId !== 'string') {
+    return NextResponse.json({ success: false, error: 'prebookId is required' }, { status: 400 });
+  }
+  if (!transactionId || typeof transactionId !== 'string') {
+    return NextResponse.json({ success: false, error: 'transactionId is required' }, { status: 400 });
+  }
+  // Verify transactionId matches what was stored during prebook
+  if (record.transactionId && record.transactionId !== transactionId) {
+    return NextResponse.json({ success: false, error: 'Transaction ID mismatch' }, { status: 400 });
+  }
+
+  try {
     const booking = await bookWithTransactionId({
       prebookId,
       transactionId,
@@ -87,7 +144,6 @@ export async function POST(req: NextRequest) {
       clientReference: ref,
     });
 
-    // Update KV record to confirmed
     const updated = {
       ...record,
       state: 'confirmed' as const,
@@ -108,15 +164,129 @@ export async function POST(req: NextRequest) {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Booking failed';
     console.error('[hotels/book]', message);
-
-    // Update KV to failed state
     try {
-      const record = await kv.get<PendingBooking>(`pending-booking:${ref}`);
-      if (record && record.state !== 'confirmed') {
-        await kv.set(`pending-booking:${ref}`, { ...record, state: 'failed', error: message }, { ex: 24 * 60 * 60 });
+      const cur = await kv.get<PendingBooking>(`pending-booking:${ref}`);
+      if (cur && cur.state !== 'confirmed') {
+        await kv.set(`pending-booking:${ref}`, { ...cur, state: 'failed', error: message }, { ex: 24 * 60 * 60 });
       }
     } catch { /* KV update failure is ok */ }
 
     return NextResponse.json({ success: false, error: message }, { status: 500 });
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────── */
+/*  DOTW booking flow                                                   */
+/*  getrooms(block:true) → price-drift check → confirmbooking.          */
+/*  All inside the 3-minute rate lock window.                           */
+/* ──────────────────────────────────────────────────────────────────── */
+
+async function bookDotw(
+  ref: string,
+  record: PendingBooking & { guest: PendingGuest },
+): Promise<NextResponse> {
+  const fail = async (reason: string, httpStatus = 500) => {
+    try {
+      const cur = await kv.get<PendingBooking>(`pending-booking:${ref}`);
+      if (cur && cur.state !== 'confirmed') {
+        await kv.set(`pending-booking:${ref}`, { ...cur, state: 'failed', error: reason }, { ex: 24 * 60 * 60 });
+      }
+    } catch { /* noop */ }
+    // Auto-refund the Stripe charge we captured at checkout.
+    await refundPaymentIntent(record.stripePaymentIntentId, reason);
+    return NextResponse.json({ success: false, error: reason }, { status: httpStatus });
+  };
+
+  try {
+    // DOTW `offerId` format is `dotw:{hotelId}`
+    const hotelId = (record.offerId || '').replace(/^dotw:/, '');
+    if (!hotelId) return fail('Missing DOTW hotel id on booking', 400);
+
+    // Build multi-room occupancy from the booking record — same split rule
+    // search uses (adults spread across rooms, children all in first room).
+    const safeAdults = Math.max(1, Math.min(10, record.adults || 2));
+    const safeRooms = Math.max(1, Math.min(5, record.rooms || 1));
+    const safeChildren = Math.max(0, Math.min(10, record.children || 0));
+    const ages: number[] = Array.isArray(record.childAges)
+      ? record.childAges.slice(0, safeChildren)
+      : [];
+    while (ages.length < safeChildren) ages.push(8);
+    const adultsPerRoom: number[] = [];
+    {
+      let remaining = safeAdults;
+      for (let i = 0; i < safeRooms; i++) {
+        const a = i === safeRooms - 1 ? remaining : Math.max(1, Math.floor(safeAdults / safeRooms));
+        adultsPerRoom.push(a);
+        remaining -= a;
+      }
+    }
+    const nationality = record.guest.nationality || 'GB';
+
+    // Step 1: blocking getrooms — locks rate for 3 minutes, gives us the
+    // freshest allocationDetails token that confirmbooking must receive.
+    const getRoomsParams = {
+      hotelId,
+      fromDate: record.checkIn,
+      toDate: record.checkOut,
+      currency: record.currency || 'GBP',
+      rooms: adultsPerRoom.map((adultsCode, idx) => ({
+        adultsCode,
+        childAges: idx === 0 ? ages : [],
+        passengerNationality: nationality,
+        passengerCountryOfResidence: nationality,
+      })),
+      block: true,
+    };
+    const getRoomsResp = await dotwGetRooms(getRoomsParams);
+    const detail = dotwRoomsToDetail(getRoomsResp, getRoomsParams);
+    if (!detail) return fail('DOTW getrooms(block) returned no rooms — rate no longer available');
+
+    // Step 2: price-drift check against the £ we quoted at start-booking.
+    const drift = detail.total - record.totalPrice;
+    if (Math.abs(drift) > PRICE_DRIFT_TOLERANCE_GBP) {
+      return fail(
+        `Rate changed during checkout (quoted £${record.totalPrice.toFixed(2)}, supplier now £${detail.total.toFixed(2)}). Refunded.`,
+        409,
+      );
+    }
+
+    // Step 3: confirmbooking with the fresh allocationDetails token.
+    const confirmResp = await dotwConfirmBooking({
+      allocationDetails: detail.allocationDetails,
+      customerReference: ref,
+      leadGuest: {
+        title: record.guest.title || 'Mr',
+        firstName: record.guest.firstName,
+        lastName: record.guest.lastName,
+        email: record.guest.email,
+        phone: record.guest.phone || '',
+        nationality,
+      },
+    });
+    const confirmed = dotwConfirmToBookingRef(confirmResp);
+    if (!confirmed) return fail('DOTW did not return a confirmed booking reference');
+
+    // Step 4: stamp as confirmed. Drop the allocationDetails — it's single-use.
+    const updated: PendingBooking = {
+      ...record,
+      state: 'confirmed',
+      dotwBookingRef: confirmed.bookingRef,
+      dotwStatus: confirmed.status,
+      dotwAllocationDetails: undefined,
+    };
+    await kv.set(`pending-booking:${ref}`, updated, { ex: 30 * 24 * 60 * 60 });
+
+    return NextResponse.json({
+      success: true,
+      booking: {
+        bookingId: confirmed.bookingRef,
+        status: confirmed.status,
+        confirmationCode: confirmed.bookingRef,
+      },
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'DOTW booking failed';
+    console.error('[hotels/book][dotw]', msg);
+    return fail(msg);
   }
 }

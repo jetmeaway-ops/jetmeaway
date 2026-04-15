@@ -42,8 +42,10 @@ export async function GET(
         refundable: typeof record.refundable === 'boolean' ? record.refundable : null,
         cancellationDeadline: record.cancellationDeadline ?? null,
         state: record.state,
+        supplier: record.supplier ?? 'liteapi',
         liteapiBookingId: record.liteapiBookingId ?? null,
         liteapiConfirmationCode: record.liteapiConfirmationCode ?? null,
+        dotwBookingRef: record.dotwBookingRef ?? null,
       },
     });
   } catch (err: unknown) {

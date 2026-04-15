@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import { getHotels as liteapiGetHotels, type HotelOffer } from '@/lib/liteapi';
+import { dedupeKey } from '@/lib/giata';
 
+// Stays on edge for low-latency search. DOTW's node-only transport
+// (MD5 + gzip) is proxied through `/api/hotels/dotw-search` (nodejs runtime).
 export const runtime = 'edge';
 
 const KV_TTL = 43200; // 12 hours
@@ -193,6 +196,53 @@ async function fetchRateHawkHotels(
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.warn(`[ratehawk] fetch failed:`, message);
+    return [];
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DOTW / WEBBEDS API (third racer alongside LiteAPI + RateHawk)
+   Proxied through `/api/hotels/dotw-search` (Node runtime) because DOTW
+   needs MD5 + gzip. Keeps this handler on Edge. Mock fixtures still feed
+   the pipeline end-to-end before live creds arrive — the sub-route does
+   the same auto-fallback on `DOTW_USERNAME`.
+   ═══════════════════════════════════════════════════════════════════════════ */
+async function fetchDotwHotels(
+  origin: string,
+  cityKey: string,
+  checkin: string,
+  checkout: string,
+  adults: number,
+  childrenCount: number,
+  childAgesParam: number[],
+  rooms: number,
+  timeoutMs: number = 12000,
+): Promise<(HotelOffer & { giataId?: string | null; source: string })[]> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+    const res = await fetch(`${origin}/api/hotels/dotw-search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cityKey, checkin, checkout,
+        adults, children: childrenCount, childAges: childAgesParam, rooms,
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) {
+      console.warn(`[dotw] sub-route returned ${res.status}`);
+      return [];
+    }
+    const data = await res.json();
+    const offers = Array.isArray(data?.offers) ? data.offers : [];
+    console.log(`[dotw] ${cityKey} ${checkin}→${checkout}: ${offers.length} offers`);
+    return offers;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`[dotw] fetch failed:`, message);
     return [];
   }
 }
@@ -759,9 +809,15 @@ export async function GET(req: NextRequest) {
       excludedTaxes: o.excludedTaxes ?? null,
     }));
 
-  // Kick off LiteAPI + RateHawk in parallel (dual API racing)
+  // Kick off LiteAPI + RateHawk + DOTW in parallel (triple API racing).
+  // DOTW uses mocked fixtures when DOTW_USERNAME is unset — still gives us a
+  // Giata-tagged result set to exercise the de-dupe path in dev.
   const liteApiPromise = fetchLiteApiHotels(cityKey, checkin, checkout, adultsNum, childrenNum, roomsNum, childAges, 12000, placeId || undefined);
   const rateHawkPromise = fetchRateHawkHotels(cityKey, checkin, checkout, adultsNum, roomsNum);
+  // Absolute-origin proxy to the nodejs DOTW sub-route — Vercel requires
+  // absolute URLs for edge → node internal fetches.
+  const origin = new URL(req.url).origin;
+  const dotwPromise = fetchDotwHotels(origin, cityKey, checkin, checkout, adultsNum, childrenNum, childAges, roomsNum);
 
   // Apply server-side minStars filter. minStars === 5 means exactly 5; else >=.
   const passesStars = <T extends { stars: number }>(h: T) => {
@@ -793,32 +849,58 @@ export async function GET(req: NextRequest) {
       rank: i,
     }));
 
-  // Await both APIs, merge and deduplicate by hotel name (cheapest wins).
-  //
-  // Normalisation catches common cross-supplier formatting variance:
-  //   "Hilton-London" vs "Hilton London"    → same key
-  //   "Ritz-Carlton" vs "Ritz Carlton"      → same key
-  //   "The Savoy, London" vs "The Savoy London" → same key
-  //
-  // When WebBeds goes live and returns GIATA / mapping IDs, switch this
-  // to an ID-based match for higher confidence.
-  const normaliseKey = (name: string) =>
-    name
-      .toLowerCase()
-      .replace(/[-–—]/g, ' ')   // all hyphen variants → space
-      .replace(/[^\w\s]/g, '')  // strip punctuation (commas, periods, &, etc.)
-      .replace(/\s+/g, ' ')     // collapse whitespace
-      .trim();
+  // Normalise DOTW offers into the same row shape — stamps the Giata ID so
+  // the merge step can use it for de-dup when both sides expose it.
+  const normaliseDotw = (
+    offers: (HotelOffer & { giataId?: string | null; source: string })[],
+  ) =>
+    offers.map((o, i) => ({
+      id: `dotw_${o.hotelId}`,
+      name: o.hotelName,
+      stars: o.stars ?? 0,
+      pricePerNight: Math.round((o.pricePerNight ?? o.price / nights) * 100) / 100,
+      totalPrice: Math.round(o.price * 100) / 100,
+      currency: o.currency || 'GBP',
+      location: o.city || city,
+      district: null,
+      lat: o.latitude ?? undefined,
+      lng: o.longitude ?? undefined,
+      thumbnail: o.thumbnail || null,
+      refundable: o.refundable,
+      boardType: o.boardType,
+      boardOptions: o.boardOptions || undefined,
+      source: 'dotw' as const,
+      bookable: true,          // DOTW is merchant-of-record via our Stripe checkout
+      offerId: o.offerId,      // `dotw:{hotelId}` — resolved at book time
+      giataId: o.giataId ?? null,
+      rank: i,
+    }));
 
+  // Await all three APIs, merge and deduplicate.
+  //
+  // De-dupe priority:
+  //   1. Giata ID (cross-supplier canonical key — DOTW embeds natively)
+  //   2. Normalised hotel name (LiteAPI fallback until Phase 2 mapping lands)
+  //
+  // Within a dedupe group: cheapest per-night wins. The other offers go on
+  // `boardOptions` so the detail page can still show alternative suppliers.
   const mergeApis = async () => {
-    const [liteResults, rhResults] = await Promise.all([liteApiPromise, rateHawkPromise]);
+    const [liteResults, rhResults, dotwResults] = await Promise.all([
+      liteApiPromise,
+      rateHawkPromise,
+      dotwPromise,
+    ]);
     const liteNorm = normaliseLiteApi(liteResults);
     const rhNorm = normaliseRateHawk(rhResults);
-    const all = [...liteNorm, ...rhNorm];
-    // Deduplicate: if same normalised hotel name, keep the cheaper one
-    const seen = new Map<string, typeof all[0]>();
+    const dotwNorm = normaliseDotw(dotwResults);
+    // Tag each LiteAPI row with its own normalised-name dedupe key (no Giata
+    // until Phase 2). DOTW rows use Giata when present.
+    type Row = (typeof liteNorm)[0] | (typeof rhNorm)[0] | (typeof dotwNorm)[0];
+    const all: Row[] = [...liteNorm, ...rhNorm, ...dotwNorm];
+    const seen = new Map<string, Row>();
     for (const h of all) {
-      const key = normaliseKey(h.name);
+      const giata = (h as { giataId?: string | null }).giataId ?? null;
+      const key = dedupeKey(giata, h.name);
       const existing = seen.get(key);
       if (!existing || h.pricePerNight < existing.pricePerNight) {
         seen.set(key, h);
