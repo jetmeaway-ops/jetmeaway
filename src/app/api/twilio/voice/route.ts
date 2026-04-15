@@ -178,38 +178,80 @@ function stepNonHotelDept(lang: Lang, dept: string) {
   );
 }
 
+/** Speak digits one at a time so the caller can confirm what was entered.
+ *  "1234" becomes "1. 2. 3. 4." — Twilio's TTS naturally pauses at full stops. */
+function spellDigits(digits: string): string {
+  return digits.split('').join('. ') + '.';
+}
+
 async function stepLookupRef(lang: Lang, dept: string, digits: string) {
   const m = MSG[lang];
 
-  // Try to look up booking in KV
-  const ref = `JMA-H-${digits}`;
-  let bookingInfo = '';
-  try {
-    const record = await kv.get<any>(`pending-booking:${ref}`);
-    if (record) {
-      if (lang === 'en') {
-        bookingInfo = `Your booking reference is ${ref}. ` +
-          (record.hotelName ? `Hotel: ${record.hotelName}. ` : '') +
-          (record.checkin ? `Check-in date: ${record.checkin}. ` : '') +
-          (record.checkout ? `Check-out date: ${record.checkout}. ` : '') +
-          (record.guests ? `Number of guests: ${record.guests}. ` : '') +
-          (record.totalPrice ? `Total amount: ${record.totalPrice} pounds. ` : '') +
-          (record.state === 'confirmed' ? 'Booking status: confirmed.' : 'Booking status: pending.');
-      } else {
-        bookingInfo = `Aap ka booking reference hai ${ref}. ` +
-          (record.hotelName ? `Hotel: ${record.hotelName}. ` : '') +
-          (record.checkin ? `Check-in: ${record.checkin}. ` : '') +
-          (record.checkout ? `Check-out: ${record.checkout}. ` : '') +
-          (record.guests ? `Mehmaan: ${record.guests}. ` : '') +
-          (record.totalPrice ? `Kul raqam: ${record.totalPrice} pounds. ` : '') +
-          (record.state === 'confirmed' ? 'Booking ki halat: confirmed.' : 'Booking ki halat: pending.');
+  // Try multiple KV key shapes so the same prompt works for hotel, flight
+  // and any future booking types. First match wins.
+  const currentYear = new Date().getFullYear();
+  const candidateRefs = [
+    `JMA-H-${digits}`,                  // hotel (historical)
+    `JMA-${digits}`,                    // generic
+    `JMA-${currentYear}-${digits}`,     // flight (current-year)
+    `JMA-${currentYear - 1}-${digits}`, // flight (last-year, edge case Jan)
+  ];
+
+  let record: any = null;
+  let ref = candidateRefs[0];
+  for (const candidate of candidateRefs) {
+    try {
+      const r = await kv.get<any>(`pending-booking:${candidate}`);
+      if (r) {
+        record = r;
+        ref = candidate;
+        break;
       }
+    } catch { /* try next */ }
+  }
+
+  let bookingInfo = '';
+  if (record) {
+    if (lang === 'en') {
+      bookingInfo = `Your booking reference is ${ref}. ` +
+        (record.hotelName ? `Hotel: ${record.hotelName}. ` : '') +
+        (record.destination ? `Destination: ${record.destination}. ` : '') +
+        (record.airline ? `Airline: ${record.airline}. ` : '') +
+        (record.checkin ? `Check-in date: ${record.checkin}. ` : '') +
+        (record.checkout ? `Check-out date: ${record.checkout}. ` : '') +
+        (record.departureDate ? `Departure date: ${record.departureDate}. ` : '') +
+        (record.returnDate ? `Return date: ${record.returnDate}. ` : '') +
+        (record.guests ? `Number of guests: ${record.guests}. ` : '') +
+        (record.passengers ? `Number of passengers: ${record.passengers}. ` : '') +
+        (record.totalPrice ? `Total amount: ${record.totalPrice} pounds. ` : '') +
+        (record.state === 'confirmed' ? 'Booking status: confirmed.' : 'Booking status: pending.');
+    } else {
+      bookingInfo = `Aap ka booking reference hai ${ref}. ` +
+        (record.hotelName ? `Hotel: ${record.hotelName}. ` : '') +
+        (record.destination ? `Manzil: ${record.destination}. ` : '') +
+        (record.airline ? `Airline: ${record.airline}. ` : '') +
+        (record.checkin ? `Check-in: ${record.checkin}. ` : '') +
+        (record.checkout ? `Check-out: ${record.checkout}. ` : '') +
+        (record.departureDate ? `Rawangi: ${record.departureDate}. ` : '') +
+        (record.returnDate ? `Wapsi: ${record.returnDate}. ` : '') +
+        (record.guests ? `Mehmaan: ${record.guests}. ` : '') +
+        (record.passengers ? `Musafir: ${record.passengers}. ` : '') +
+        (record.totalPrice ? `Kul raqam: ${record.totalPrice} pounds. ` : '') +
+        (record.state === 'confirmed' ? 'Booking ki halat: confirmed.' : 'Booking ki halat: pending.');
     }
-  } catch { /* KV lookup failed — continue without booking info */ }
+  }
+
+  // Always read the entered digits back to the caller so they can hear what
+  // we received, whether or not we matched a booking.
+  const readBack = lang === 'en'
+    ? `You entered ${spellDigits(digits)}`
+    : `Aap ne darj kiya ${spellDigits(digits)}`;
 
   if (bookingInfo) {
     const g = gather(`/api/twilio/voice?step=problem&lang=${lang}&dept=${dept}&ref=${digits}`, { numDigits: 1, timeout: 8 });
     return twiml(
+      say(readBack, lang) +
+      pause(1) +
       say(m.bookingFound, lang) +
       pause(1) +
       say(bookingInfo, lang) +
@@ -222,9 +264,11 @@ async function stepLookupRef(lang: Lang, dept: string, digits: string) {
     );
   }
 
-  // Booking not found — ask again or continue
+  // Booking not found — read digits back then let caller try again or continue
   const g = gather(`/api/twilio/voice?step=ref&lang=${lang}&dept=${dept}`, { finishOnKey: '#', timeout: 10 });
   return twiml(
+    say(readBack, lang) +
+    pause(1) +
     say(m.bookingNotFound, lang) +
     pause(1) +
     g.open +
@@ -389,8 +433,9 @@ export async function POST(req: NextRequest) {
     }
 
     case 'dept':
-      // Hotel bookings (1) go to full flow, others get quick info
-      if (digits === '1') return step3EnterRef(lang, digits);
+      // Hotel (1) and flight (2) both go through the full flow — enter
+      // booking reference, read it back, look up, route to problem menu.
+      if (digits === '1' || digits === '2') return step3EnterRef(lang, digits);
       return stepNonHotelDept(lang, digits || '6');
 
     case 'ref':
