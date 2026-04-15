@@ -9,23 +9,46 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "backgroundColor": "#0066FF"
+      "image": "./assets/images/splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#0A1230"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "uk.co.jetmeaway.app"
+      "bundleIdentifier": "uk.co.jetmeaway.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "JetMeAway uses your location to suggest the nearest airport and map the neighbourhood around your hotel. Location is never shared or sold.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#0066FF"
       },
-      "package": "uk.co.jetmeaway.app"
+      "package": "uk.co.jetmeaway.app",
+      "versionCode": 1,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {},
     "primaryColor": "#0066FF",
     "plugins": [
-      "expo-asset"
-    ]
+      "expo-asset",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "JetMeAway uses your location to suggest the nearest airport and map the neighbourhood around your hotel. Location is never shared or sold."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_AFTER_EAS_INIT"
+      }
+    },
+    "owner": "REPLACE_WITH_YOUR_EXPO_USERNAME"
   }
 }

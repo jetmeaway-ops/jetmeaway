@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Adaptive icon foreground: transparent background, content sits in the safe 66% centre area -->
+  <g transform="translate(512 512)">
+    <!-- paper plane body, pure white so it pops on the blue adaptive background -->
+    <path d="M -180 100 L 220 -180 L 180 220 L 30 50 Z" fill="#FFFFFF"/>
+    <path d="M -180 100 L 30 50 L 100 200 Z" fill="#E4ECFF"/>
+    <!-- scout pin -->
+    <circle cx="220" cy="-180" r="24" fill="#00D0A4"/>
+  </g>
+</svg>

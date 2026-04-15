@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0A1230"/>
+      <stop offset="60%" stop-color="#0052CC"/>
+      <stop offset="100%" stop-color="#0066FF"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.25" cy="0.15" r="0.9">
+      <stop offset="0%" stop-color="#3A7BFF" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#0A1230" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <rect width="1024" height="1024" fill="url(#glow)"/>
+  <!-- stylised paper-plane / scout compass -->
+  <g transform="translate(512 512)">
+    <!-- outer pulse ring -->
+    <circle cx="0" cy="0" r="340" fill="none" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="6"/>
+    <circle cx="0" cy="0" r="260" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="4"/>
+    <!-- paper plane body -->
+    <path d="M -220 120 L 260 -220 L 220 260 L 40 60 Z" fill="#FFFFFF"/>
+    <path d="M -220 120 L 40 60 L 120 240 Z" fill="#C7D5F5"/>
+    <!-- scout pin -->
+    <circle cx="260" cy="-220" r="28" fill="#00D0A4"/>
+    <circle cx="260" cy="-220" r="50" fill="#00D0A4" fill-opacity="0.25"/>
+  </g>
+</svg>
