@@ -1,10 +1,29 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <!-- Adaptive icon foreground: transparent background, content sits in the safe 66% centre area -->
-  <g transform="translate(512 512)">
-    <!-- paper plane body, pure white so it pops on the blue adaptive background -->
-    <path d="M -180 100 L 220 -180 L 180 220 L 30 50 Z" fill="#FFFFFF"/>
-    <path d="M -180 100 L 30 50 L 100 200 Z" fill="#E4ECFF"/>
-    <!-- scout pin -->
-    <circle cx="220" cy="-180" r="24" fill="#00D0A4"/>
+  <!-- Adaptive foreground: sits inside the 66% safe zone on the blue Android background.
+       Same swoosh + plane mark as the main icon, no circle (Android provides the shape). -->
+  <defs>
+    <linearGradient id="swoosh" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#F9B437"/>
+      <stop offset="50%" stop-color="#F58220"/>
+      <stop offset="100%" stop-color="#D95F0B"/>
+    </linearGradient>
+  </defs>
+
+  <path d="M 260 620 Q 500 700 800 500"
+        stroke="url(#swoosh)"
+        stroke-width="56"
+        stroke-linecap="round"
+        fill="none"/>
+  <path d="M 300 700 Q 500 760 740 600"
+        stroke="#F9B437"
+        stroke-opacity="0.55"
+        stroke-width="30"
+        stroke-linecap="round"
+        fill="none"/>
+
+  <g transform="translate(512 512) rotate(-35)">
+    <path d="M -160 120 L 240 -150 L 90 40 Z" fill="#FFFFFF"/>
+    <path d="M 90 40 L 240 -150 L 170 180 Z" fill="#E8EEFF"/>
+    <path d="M -160 120 L 90 40 L 50 180 Z" fill="#C7D5F5"/>
   </g>
 </svg>

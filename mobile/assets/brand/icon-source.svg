@@ -1,27 +1,46 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0A1230"/>
-      <stop offset="60%" stop-color="#0052CC"/>
-      <stop offset="100%" stop-color="#0066FF"/>
+    <!-- Brand blue circle gradient -->
+    <linearGradient id="circle" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2A7BD8"/>
+      <stop offset="60%" stop-color="#1458B5"/>
+      <stop offset="100%" stop-color="#0A3B8A"/>
     </linearGradient>
-    <radialGradient id="glow" cx="0.25" cy="0.15" r="0.9">
-      <stop offset="0%" stop-color="#3A7BFF" stop-opacity="0.55"/>
-      <stop offset="100%" stop-color="#0A1230" stop-opacity="0"/>
+    <!-- Brand orange/yellow swoosh gradient -->
+    <linearGradient id="swoosh" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#F9B437"/>
+      <stop offset="50%" stop-color="#F58220"/>
+      <stop offset="100%" stop-color="#D95F0B"/>
+    </linearGradient>
+    <radialGradient id="shine" cx="0.3" cy="0.25" r="0.6">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
     </radialGradient>
   </defs>
-  <rect width="1024" height="1024" fill="url(#bg)"/>
-  <rect width="1024" height="1024" fill="url(#glow)"/>
-  <!-- stylised paper-plane / scout compass -->
-  <g transform="translate(512 512)">
-    <!-- outer pulse ring -->
-    <circle cx="0" cy="0" r="340" fill="none" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="6"/>
-    <circle cx="0" cy="0" r="260" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="4"/>
-    <!-- paper plane body -->
-    <path d="M -220 120 L 260 -220 L 220 260 L 40 60 Z" fill="#FFFFFF"/>
-    <path d="M -220 120 L 40 60 L 120 240 Z" fill="#C7D5F5"/>
-    <!-- scout pin -->
-    <circle cx="260" cy="-220" r="28" fill="#00D0A4"/>
-    <circle cx="260" cy="-220" r="50" fill="#00D0A4" fill-opacity="0.25"/>
+
+  <!-- Solid blue circle -->
+  <circle cx="512" cy="512" r="470" fill="url(#circle)"/>
+  <circle cx="512" cy="512" r="470" fill="url(#shine)"/>
+
+  <!-- Orange/yellow swoosh curving up under the plane -->
+  <path d="M 200 640 Q 480 720 820 520"
+        stroke="url(#swoosh)"
+        stroke-width="60"
+        stroke-linecap="round"
+        fill="none"/>
+
+  <!-- Secondary lower swoosh (yellow shadow) -->
+  <path d="M 260 720 Q 500 780 760 620"
+        stroke="#F9B437"
+        stroke-opacity="0.55"
+        stroke-width="32"
+        stroke-linecap="round"
+        fill="none"/>
+
+  <!-- White paper plane — pointing up and to the right -->
+  <g transform="translate(512 512) rotate(-35)">
+    <path d="M -180 140 L 260 -160 L 100 40 Z" fill="#FFFFFF"/>
+    <path d="M 100 40 L 260 -160 L 180 200 Z" fill="#E8EEFF"/>
+    <path d="M -180 140 L 100 40 L 60 200 Z" fill="#C7D5F5"/>
   </g>
 </svg>

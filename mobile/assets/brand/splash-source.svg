@@ -2,17 +2,38 @@
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#0A1230"/>
-      <stop offset="60%" stop-color="#0052CC"/>
-      <stop offset="100%" stop-color="#0066FF"/>
+      <stop offset="60%" stop-color="#0A3B8A"/>
+      <stop offset="100%" stop-color="#1458B5"/>
+    </linearGradient>
+    <linearGradient id="circle" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2A7BD8"/>
+      <stop offset="60%" stop-color="#1458B5"/>
+      <stop offset="100%" stop-color="#0A3B8A"/>
+    </linearGradient>
+    <linearGradient id="swoosh" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#F9B437"/>
+      <stop offset="50%" stop-color="#F58220"/>
+      <stop offset="100%" stop-color="#D95F0B"/>
     </linearGradient>
   </defs>
+
   <rect width="1284" height="2778" fill="url(#bg)"/>
-  <g transform="translate(642 1389)">
-    <circle cx="0" cy="0" r="260" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="4"/>
-    <path d="M -180 100 L 220 -180 L 180 220 L 30 50 Z" fill="#FFFFFF"/>
-    <path d="M -180 100 L 30 50 L 100 200 Z" fill="#C7D5F5"/>
-    <circle cx="220" cy="-180" r="24" fill="#00D0A4"/>
+
+  <!-- Brand mark, centred -->
+  <g transform="translate(642 1250)">
+    <circle cx="0" cy="0" r="260" fill="url(#circle)" stroke="#FFFFFF" stroke-opacity="0.15" stroke-width="4"/>
+    <path d="M -180 60 Q 0 120 180 20"
+          stroke="url(#swoosh)" stroke-width="28" stroke-linecap="round" fill="none"/>
+    <path d="M -160 110 Q 0 150 150 70"
+          stroke="#F9B437" stroke-opacity="0.55" stroke-width="16" stroke-linecap="round" fill="none"/>
+    <g transform="rotate(-35)">
+      <path d="M -90 70 L 130 -90 L 50 20 Z" fill="#FFFFFF"/>
+      <path d="M 50 20 L 130 -90 L 90 100 Z" fill="#E8EEFF"/>
+      <path d="M -90 70 L 50 20 L 30 100 Z" fill="#C7D5F5"/>
+    </g>
   </g>
-  <text x="642" y="1820" font-family="Poppins, system-ui, sans-serif" font-size="72" font-weight="900" fill="#FFFFFF" text-anchor="middle" letter-spacing="-2">JetMeAway</text>
-  <text x="642" y="1880" font-family="Poppins, system-ui, sans-serif" font-size="28" font-weight="600" fill="#7FB2FF" text-anchor="middle" letter-spacing="4">LIFE · NOT JUST LODGING</text>
+
+  <!-- Wordmark -->
+  <text x="642" y="1720" font-family="Poppins, system-ui, sans-serif" font-size="96" font-weight="900" fill="#FFFFFF" text-anchor="middle" letter-spacing="-3">JetMeAway</text>
+  <text x="642" y="1790" font-family="Poppins, system-ui, sans-serif" font-size="28" font-weight="600" fill="#F9B437" text-anchor="middle" letter-spacing="6">LIFE · NOT JUST LODGING</text>
 </svg>
