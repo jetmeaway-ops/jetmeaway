@@ -36,9 +36,9 @@ export default function About() {
         <Card title="✈️ Who We Are">
           <p>
             <strong className="text-[#1A1D2B]">JETMEAWAY LTD</strong> (Company No: 17140522) is a UK-based travel
-            technology platform registered at 66 Paul Street, London. We&apos;re not a travel agent — we&apos;re an
-            engineering-first comparison engine that brings together live prices from 15+ trusted providers in one
-            place.
+            technology platform registered at 66 Paul Street, London. We&apos;re an engineering-first comparison engine
+            that brings together live prices from 15+ trusted providers in one place — and, for selected flight and
+            hotel inventory, we act as a disclosed booking agent so you can complete the booking with us directly.
           </p>
           <p>
             Whether you&apos;re searching for hotels, flights, packages, car hire, activities, transfers, eSIM data, or

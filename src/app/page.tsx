@@ -177,7 +177,7 @@ export default function Home() {
             <span className="bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent">Less</span>
           </h1>
           <p className="font-[var(--font-dm-sans)] text-white/60 text-[1.05rem] mb-8 max-w-[550px] mx-auto">
-            Compare flights, hotels, car hire and more from 15+ trusted providers. Zero fees, real prices.
+            Compare flights, hotels, car hire and more from 15+ trusted providers. Real prices, in seconds.
           </p>
 
           {/* Stats bar */}
@@ -185,11 +185,11 @@ export default function Home() {
             {[
               { val: '15+', label: 'Providers' },
               { val: '2M+', label: 'Hotels' },
-              { val: '0', label: 'Booking Fees', prefix: '\u00A3' },
+              { val: '90s', label: 'Avg. Checkout' },
               { val: '24/7', label: 'AI Assistant' },
             ].map(s => (
               <div key={s.label} className="text-center">
-                <div className="font-poppins font-black text-[1.6rem] md:text-[2rem] text-white leading-none">{s.prefix || ''}{s.val}</div>
+                <div className="font-poppins font-black text-[1.6rem] md:text-[2rem] text-white leading-none">{s.val}</div>
                 <div className="font-[var(--font-dm-sans)] text-white/60 text-[.7rem] font-medium mt-1">{s.label}</div>
               </div>
             ))}
