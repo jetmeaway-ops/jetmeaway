@@ -38,7 +38,7 @@ const MSG = {
     welcome: 'Thank you for calling JetMeAway, your trusted travel comparison engine. Please note, this support line is available 24 hours a day, 7 days a week, and is reserved exclusively for customers with an active JetMeAway booking. To speak with an agent, you must have your booking reference or confirmation number ready. If you do not have an active booking with us, please hang up now and email contact at jetmeaway dot co dot uk, and our team will respond within 24 hours.',
     langSelect: 'For English, press 1. Urdu ke liye, 2 dabayein.',
     dept: 'Please select from the following options. Press 1 for hotel bookings. Press 2 for flight enquiries. Press 3 for car hire. Press 4 for holiday packages. Press 5 for insurance or e-sim. Press 6 for general enquiry.',
-    enterRef: 'Please enter your booking reference number using your keypad, followed by the hash key. If you do not have a reference number, press hash.',
+    enterRef: 'Please enter your booking reference using your keypad followed by the hash key, or, after the beep, simply say your booking reference out loud — one letter or number at a time. For example, J, M, A, 2, 0, 2, 6, A, B, C, 1, 2, 3. If you do not have a reference, press hash.',
     noRef: 'No worries. Please note, you can find your booking reference in your confirmation email.',
     bookingFound: 'We found your booking.',
     bookingNotFound: 'Sorry, we could not find a booking with that reference. Please check and try again, or press hash to continue without a reference.',
@@ -66,7 +66,7 @@ const MSG = {
     welcome: 'JetMeAway mein call karne ka shukriya. Baraye meherbani note karein, yeh support line 24 ghante, haftay ke saaton din available hai, aur sirf un customers ke liye hai jin ki JetMeAway ke saath active booking hai. Agent se baat karne ke liye aap ke paas booking reference ya confirmation number hona lazmi hai. Agar aap ki humare saath koi active booking nahi hai, toh baraye meherbani abhi call band karein aur contact at jetmeaway dot co dot uk par email karein. Hamari team 24 ghanton mein jawab degi.',
     langSelect: 'For English, press 1. Urdu ke liye, 2 dabayein.',
     dept: 'Baraye meherbani apna option chunein. Hotel booking ke liye 1 dabayein. Flight ke liye 2 dabayein. Car hire ke liye 3 dabayein. Holiday packages ke liye 4 dabayein. Insurance ya e-sim ke liye 5 dabayein. Aam sawal ke liye 6 dabayein.',
-    enterRef: 'Baraye meherbani apna booking reference number keypad se darj karein, phir hash key dabayein. Agar reference number nahi hai, toh hash dabayein.',
+    enterRef: 'Baraye meherbani apna booking reference keypad se darj karein aur hash dabayein, ya, beep ke baad, apna reference bol kar bata dein — ek ek letter ya number alag alag. Misaal ke taur par, J, M, A, 2, 0, 2, 6, A, B, C, 1, 2, 3. Agar reference nahi hai, toh hash dabayein.',
     noRef: 'Koi baat nahi. Aap ka booking reference aap ki confirmation email mein mojood hai.',
     bookingFound: 'Humne aap ki booking dhundh li hai.',
     bookingNotFound: 'Maaf kijiye, is reference se koi booking nahi mili. Baraye meherbani dobara check karein, ya hash dabayein.',
@@ -109,11 +109,18 @@ function say(text: string, lang: Lang = 'en') {
   return `<Say voice="${voice}" language="${language}">${escXml(text)}</Say>`;
 }
 
-function gather(action: string, opts: { numDigits?: number; finishOnKey?: string; timeout?: number } = {}) {
+function gather(action: string, opts: { numDigits?: number; finishOnKey?: string; timeout?: number; speech?: boolean; speechTimeout?: number | 'auto' } = {}) {
   const nd = opts.numDigits ? ` numDigits="${opts.numDigits}"` : '';
   const fk = opts.finishOnKey !== undefined ? ` finishOnKey="${opts.finishOnKey}"` : '';
   const to = ` timeout="${opts.timeout || 5}"`;
-  return { open: `<Gather action="${escXml(action)}"${nd}${fk}${to} input="dtmf">`, close: '</Gather>' };
+  const input = opts.speech ? 'speech dtmf' : 'dtmf';
+  // speechTimeout="auto" tells Twilio to end the speech recognition when the
+  // caller stops talking — perfect for booking refs of unknown length.
+  const st = opts.speech ? ` speechTimeout="${opts.speechTimeout ?? 'auto'}"` : '';
+  // 'numbers_and_commands' model is more accurate for short alphanumerics
+  // than the default 'phone_call' general-purpose model.
+  const model = opts.speech ? ` speechModel="numbers_and_commands"` : '';
+  return { open: `<Gather action="${escXml(action)}"${nd}${fk}${to}${st}${model} input="${input}">`, close: '</Gather>' };
 }
 
 function escXml(s: string) {
@@ -152,7 +159,15 @@ function step2Dept(lang: Lang) {
 
 function step3EnterRef(lang: Lang, dept: string) {
   const m = MSG[lang];
-  const g = gather(`/api/twilio/voice?step=ref&lang=${lang}&dept=${dept}`, { finishOnKey: '#', timeout: 10 });
+  // Accept BOTH keypad and speech. Callers with letter-containing refs
+  // (e.g. JMA-2026-ABC123) can't type letters on a phone keypad, so we
+  // let them speak the reference instead.
+  const g = gather(`/api/twilio/voice?step=ref&lang=${lang}&dept=${dept}`, {
+    finishOnKey: '#',
+    timeout: 10,
+    speech: true,
+    speechTimeout: 'auto',
+  });
   return twiml(
     g.open +
     say(m.enterRef, lang) +
@@ -178,24 +193,59 @@ function stepNonHotelDept(lang: Lang, dept: string) {
   );
 }
 
-/** Speak digits one at a time so the caller can confirm what was entered.
- *  "1234" becomes "1. 2. 3. 4." — Twilio's TTS naturally pauses at full stops. */
-function spellDigits(digits: string): string {
-  return digits.split('').join('. ') + '.';
+/** Speak each character one at a time so the caller can confirm what was
+ *  entered or recognised. "JMA2026ABC" becomes "J. M. A. 2. 0. 2. 6. A. B. C."
+ *  — Twilio's TTS naturally pauses at full stops. */
+function spellDigits(input: string): string {
+  return input.split('').join('. ') + '.';
+}
+
+/** Normalise a spoken or typed booking reference into a canonical form we
+ *  can look up. Strips whitespace, punctuation and common spoken fillers
+ *  ("jay em ay" → "JMA", etc), uppercases everything, and returns both
+ *  the raw alphanumeric string and a hyphenated JMA-YYYY-CODE guess. */
+function normaliseSpokenRef(raw: string): { alnum: string; shaped: string | null } {
+  if (!raw) return { alnum: '', shaped: null };
+  // Expand common phonetic spellings Twilio sometimes returns.
+  const phoneticMap: Record<string, string> = {
+    'jay': 'J', 'em': 'M', 'en': 'N', 'bee': 'B', 'see': 'C', 'dee': 'D',
+    'eff': 'F', 'gee': 'G', 'aitch': 'H', 'jay.': 'J', 'kay': 'K', 'ell': 'L',
+    'oh': '0', 'ohh': '0', 'zero': '0', 'one': '1', 'two': '2', 'three': '3',
+    'four': '4', 'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9',
+    'ay': 'A', 'ey': 'A', 'bi': 'B', 'si': 'C', 'ar': 'R', 'ess': 'S',
+    'tee': 'T', 'you': 'U', 'vee': 'V', 'double-you': 'W', 'ex': 'X',
+    'why': 'Y', 'wye': 'Y', 'zed': 'Z', 'zee': 'Z',
+  };
+  const expanded = raw
+    .toLowerCase()
+    .split(/[\s,.\-_/]+/)
+    .map(tok => phoneticMap[tok] ?? tok)
+    .join('');
+  const alnum = expanded.toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+  // Try to shape into JMA-YYYY-CODE.
+  const match = alnum.match(/^JMA(\d{4})([A-Z0-9]+)$/);
+  const shaped = match ? `JMA-${match[1]}-${match[2]}` : null;
+  return { alnum, shaped };
 }
 
 async function stepLookupRef(lang: Lang, dept: string, digits: string) {
   const m = MSG[lang];
 
+  const { alnum, shaped } = normaliseSpokenRef(digits);
+  const lookupKey = alnum || digits;
+
   // Try multiple KV key shapes so the same prompt works for hotel, flight
   // and any future booking types. First match wins.
   const currentYear = new Date().getFullYear();
   const candidateRefs = [
-    `JMA-H-${digits}`,                  // hotel (historical)
-    `JMA-${digits}`,                    // generic
-    `JMA-${currentYear}-${digits}`,     // flight (current-year)
-    `JMA-${currentYear - 1}-${digits}`, // flight (last-year, edge case Jan)
-  ];
+    shaped,                                 // JMA-2026-ABC123 (shaped from speech)
+    `JMA-H-${lookupKey}`,                   // hotel (historical)
+    `JMA-${lookupKey}`,                     // generic
+    `JMA-${currentYear}-${lookupKey}`,      // flight (current-year)
+    `JMA-${currentYear - 1}-${lookupKey}`,  // flight (last-year, edge case Jan)
+    alnum && alnum.startsWith('JMA') ? alnum.replace(/^JMA/, 'JMA-').replace(/-(\d{4})/, '-$1-') : null,
+  ].filter((x): x is string => !!x);
 
   let record: any = null;
   let ref = candidateRefs[0];
@@ -241,11 +291,13 @@ async function stepLookupRef(lang: Lang, dept: string, digits: string) {
     }
   }
 
-  // Always read the entered digits back to the caller so they can hear what
-  // we received, whether or not we matched a booking.
+  // Always read what we received back to the caller so they can confirm,
+  // whether we matched a booking or not. Prefer the normalised alphanumeric
+  // form (works for both spoken "jay em ay two oh two six" and typed digits).
+  const spokenBack = alnum || digits;
   const readBack = lang === 'en'
-    ? `You entered ${spellDigits(digits)}`
-    : `Aap ne darj kiya ${spellDigits(digits)}`;
+    ? `I heard ${spellDigits(spokenBack)}`
+    : `Mujhe sunai diya ${spellDigits(spokenBack)}`;
 
   if (bookingInfo) {
     const g = gather(`/api/twilio/voice?step=problem&lang=${lang}&dept=${dept}&ref=${digits}`, { numDigits: 1, timeout: 8 });
@@ -418,7 +470,10 @@ export async function POST(req: NextRequest) {
   // Parse Twilio form body
   const body = await req.text();
   const params = new URLSearchParams(body);
-  const digits = params.get('Digits') || '';
+  // Prefer spoken input when present — SpeechResult is only set when the
+  // caller actually spoke. Otherwise fall back to DTMF digits.
+  const speech = params.get('SpeechResult') || '';
+  const digits = speech.trim() || params.get('Digits') || '';
 
   switch (step) {
     case 'start':
