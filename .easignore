@@ -1,0 +1,50 @@
+# EAS Build only needs the mobile/ Expo project, not the Next.js web app.
+# Excluding the web app avoids tar extraction failures on the Linux build
+# server caused by dynamic-route folders with square brackets in their names
+# (e.g. src/app/api/hotels/pending/[ref]/).
+
+# Next.js web app
+/src/
+/public/
+/docs/
+/scripts/
+/.next/
+/out/
+/coverage/
+
+# Root-level web app config
+/package.json
+/package-lock.json
+/next.config.*
+/next-env.d.ts
+/tsconfig.json
+/tailwind.config.*
+/postcss.config.*
+/vercel.json
+/README.md
+/AGENTS.md
+/CLAUDE.md
+/middleware.ts
+/middleware.js
+
+# Node modules (always)
+node_modules/
+
+# Vercel / environment
+.vercel/
+.env*
+
+# Claude Code local state
+.claude/
+
+# Git
+.git/
+
+# Build artefacts
+/build/
+/dist/
+
+# Misc web-only data files
+flights.json
+offer.json
+*.tsbuildinfo
