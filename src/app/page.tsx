@@ -5,12 +5,36 @@ import { LazyFlightSearch, LazyPopularDestinations, LazyTestimonials } from './h
 const jsonLd = [
   {
     '@context': 'https://schema.org',
-    '@type': 'Organization',
+    '@type': ['TravelAgency', 'Organization'],
     name: 'JetMeAway',
+    legalName: 'JETMEAWAY LTD',
     url: 'https://jetmeaway.co.uk',
     logo: 'https://jetmeaway.co.uk/jetmeaway-logo.png',
-    description: 'UK travel price comparison platform',
-    sameAs: [],
+    email: 'contact@jetmeaway.co.uk',
+    telephone: '+44-117-463-0606',
+    description:
+      'JetMeAway is a UK-registered travel comparison and booking platform. Prices are locked at booking — we never call or email to demand additional payment.',
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: '66 Paul Street',
+      addressLocality: 'London',
+      postalCode: 'EC2A 4NA',
+      addressCountry: 'GB',
+    },
+    contactPoint: {
+      '@type': 'ContactPoint',
+      email: 'contact@jetmeaway.co.uk',
+      telephone: '+44-117-463-0606',
+      contactType: 'customer support',
+      areaServed: 'GB',
+      availableLanguage: ['English'],
+    },
+    identifier: '17140522',
+    sameAs: [
+      'https://find-and-update.company-information.service.gov.uk/company/17140522',
+    ],
+    areaServed: 'GB',
+    priceRange: '££',
   },
   {
     '@context': 'https://schema.org',
@@ -199,6 +223,17 @@ export default function Home() {
           <div id="hero-search">
             <LazyFlightSearch />
           </div>
+        </div>
+      </section>
+
+      {/* ── TRUST STRIP — crushes scam-lookalike AI pattern matches ── */}
+      <section className="bg-[#0a1628] text-white/90 border-y border-white/10">
+        <div className="max-w-[1100px] mx-auto px-6 py-3 flex items-center justify-center gap-3 text-center">
+          <span className="text-emerald-400 text-base" aria-hidden>🛡️</span>
+          <p className="font-[var(--font-dm-sans)] text-[.78rem] md:text-[.85rem] font-semibold leading-snug">
+            <span className="text-white font-bold">Prices locked at booking.</span>{' '}
+            <span className="text-white/70">We never call or email you for extra payment. JETMEAWAY LTD · Company No. 17140522 · London, UK.</span>
+          </p>
         </div>
       </section>
 
