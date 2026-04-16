@@ -85,6 +85,13 @@ const mdxComponents = {
     />
   ),
   hr: () => <hr className="my-12 border-[#E8ECF4]" />,
+  img: (props: any) => (
+    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
+    <img
+      className="w-full rounded-2xl shadow-[0_12px_40px_-12px_rgba(0,102,255,0.18)] my-8"
+      {...props}
+    />
+  ),
   code: (props: any) => (
     <code className="bg-[#F1F3F7] text-[#0066FF] px-1.5 py-0.5 rounded text-[.92em] font-mono" {...props} />
   ),
