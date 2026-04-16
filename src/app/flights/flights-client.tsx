@@ -270,6 +270,10 @@ const DESTINATIONS = [
   { code: 'ACC', city: 'Accra', country: 'Ghana', flag: '🇬🇭' },
   { code: 'ADD', city: 'Addis Ababa', country: 'Ethiopia', flag: '🇪🇹' },
   { code: 'DAR', city: 'Dar es Salaam', country: 'Tanzania', flag: '🇹🇿' },
+  { code: 'SID', city: 'Sal', country: 'Cabo Verde', flag: '🇨🇻' },
+  { code: 'BVC', city: 'Boa Vista', country: 'Cabo Verde', flag: '🇨🇻' },
+  { code: 'RAI', city: 'Praia', country: 'Cabo Verde', flag: '🇨🇻' },
+  { code: 'VXE', city: 'Mindelo', country: 'Cabo Verde', flag: '🇨🇻' },
   // Caribbean
   { code: 'BGI', city: 'Barbados', country: 'Barbados', flag: '🇧🇧' },
   { code: 'MBJ', city: 'Jamaica', country: 'Jamaica', flag: '🇯🇲' },

@@ -88,6 +88,7 @@ const DESTINATIONS = [
   // Africa
   'Cape Town', 'Johannesburg', 'Nairobi', 'Lagos', 'Accra', 'Addis Ababa',
   'Dar es Salaam', 'Dakar', 'Kigali', 'Victoria Falls',
+  'Sal', 'Boa Vista', 'Praia', 'Mindelo',
   // Caribbean
   'Barbados', 'Jamaica', 'St Lucia', 'Punta Cana', 'Turks and Caicos',
   'Antigua', 'Aruba', 'Trinidad',
