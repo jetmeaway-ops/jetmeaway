@@ -1098,17 +1098,21 @@ function FlightsContent() {
       });
     }
 
-    // Sort
-    list.sort((a, b) => {
+    // Sort within each bookability tier
+    const cmp = (a: FlightResult, b: FlightResult) => {
       switch (sortBy) {
         case 'price-asc': return a.price - b.price;
         case 'price-desc': return b.price - a.price;
         case 'duration-asc': return a.duration_to - b.duration_to;
         case 'duration-desc': return b.duration_to - a.duration_to;
       }
-    });
+    };
 
-    return list;
+    // Partition: direct-bookable (Duffel, has offer_id) first, redirect providers second.
+    // Keeps commission-earning bookings at the top of the page regardless of price.
+    const direct = list.filter(f => f.source === 'duffel' && f.offer_id).sort(cmp);
+    const redirect = list.filter(f => !(f.source === 'duffel' && f.offer_id)).sort(cmp);
+    return [...direct, ...redirect];
   }, [flights, sortBy, stopsFilter, selectedAirlines, flightNumFilter, takeoffMin, takeoffMax, landingMin, landingMax]);
 
   const filtersActive =
