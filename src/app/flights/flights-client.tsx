@@ -314,6 +314,27 @@ const DESTINATIONS = [
   { code: 'DYU', city: 'Dushanbe', country: 'Tajikistan', flag: '🇹🇯' },
 ];
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   CITY GROUPS — metro codes covering multiple airports
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const CITY_GROUPS = [
+  { code: 'LON', name: 'London (Any)', country: 'United Kingdom', flag: '🇬🇧', airports: ['LHR','LGW','STN','LTN','LCY','SEN'] },
+  { code: 'NYC', name: 'New York (Any)', country: 'United States', flag: '🇺🇸', airports: ['JFK','EWR','LGA'] },
+  { code: 'PAR', name: 'Paris (Any)', country: 'France', flag: '🇫🇷', airports: ['CDG','ORY','BVA'] },
+  { code: 'MIL', name: 'Milan (Any)', country: 'Italy', flag: '🇮🇹', airports: ['MXP','LIN','BGY'] },
+  { code: 'TYO', name: 'Tokyo (Any)', country: 'Japan', flag: '🇯🇵', airports: ['HND','NRT'] },
+  { code: 'BUE', name: 'Buenos Aires (Any)', country: 'Argentina', flag: '🇦🇷', airports: ['EZE','AEP'] },
+  { code: 'STO', name: 'Stockholm (Any)', country: 'Sweden', flag: '🇸🇪', airports: ['ARN','BMA','NYO'] },
+  { code: 'DXB', name: 'Dubai (Any)', country: 'UAE', flag: '🇦🇪', airports: ['DXB','DWC'] },
+  { code: 'SYD', name: 'Sydney (Any)', country: 'Australia', flag: '🇦🇺', airports: ['SYD'] },
+  { code: 'MOW', name: 'Moscow (Any)', country: 'Russia', flag: '🇷🇺', airports: ['SVO','DME','VKO'] },
+  { code: 'SAO', name: 'São Paulo (Any)', country: 'Brazil', flag: '🇧🇷', airports: ['GRU','CGH','VCP'] },
+  { code: 'JKT', name: 'Jakarta (Any)', country: 'Indonesia', flag: '🇮🇩', airports: ['CGK','HLP'] },
+  { code: 'WAS', name: 'Washington (Any)', country: 'United States', flag: '🇺🇸', airports: ['IAD','DCA','BWI'] },
+];
+type CityGroup = typeof CITY_GROUPS[number];
+
 type UKAirport = typeof UK_AIRPORTS[number];
 type Dest = typeof DESTINATIONS[number];
 
@@ -429,6 +450,8 @@ type CalendarDay = {
    HELPER COMPONENTS
    ═══════════════════════════════════════════════════════════════════════════ */
 
+type AnyAirport = { code: string; name: string; city?: string; country?: string; flag?: string; isGroup?: boolean };
+
 function AutocompleteFrom({ value, onChange, initialCode }: {
   value: string;
   onChange: (code: string, name: string) => void;
@@ -436,7 +459,7 @@ function AutocompleteFrom({ value, onChange, initialCode }: {
 }) {
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
-  const [chosen, setChosen] = useState<UKAirport | null>(null);
+  const [chosen, setChosen] = useState<AnyAirport | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
@@ -449,25 +472,37 @@ function AutocompleteFrom({ value, onChange, initialCode }: {
 
   useEffect(() => {
     if (!initialCode) return;
-    const ap = UK_AIRPORTS.find(a => a.code === initialCode.toUpperCase());
-    if (ap && (!chosen || chosen.code !== ap.code)) {
-      setQ(`${ap.name} (${ap.code})`);
-      setChosen(ap);
-      onChangeRef.current(ap.code, ap.city);
-    }
+    const code = initialCode.toUpperCase();
+    const grp = CITY_GROUPS.find(g => g.code === code);
+    if (grp) { setQ(`${grp.name} (${grp.code})`); setChosen({ ...grp, isGroup: true }); onChangeRef.current(grp.code, grp.name); return; }
+    const uk = UK_AIRPORTS.find(a => a.code === code);
+    if (uk) { setQ(`${uk.name} (${uk.code})`); setChosen(uk); onChangeRef.current(uk.code, uk.city); return; }
+    const dest = DESTINATIONS.find(d => d.code === code);
+    if (dest) { setQ(`${dest.city} (${dest.code})`); setChosen({ code: dest.code, name: dest.city, country: dest.country, flag: dest.flag }); onChangeRef.current(dest.code, dest.city); }
   }, [initialCode]);
 
-  const filtered = q.length >= 1
-    ? UK_AIRPORTS.filter(a =>
-      a.code.toLowerCase().includes(q.toLowerCase()) ||
-      a.name.toLowerCase().includes(q.toLowerCase()) ||
-      a.city.toLowerCase().includes(q.toLowerCase())
-    ).slice(0, 8)
-    : UK_AIRPORTS;
+  const lq = q.toLowerCase();
+  let filtered: AnyAirport[];
+  if (q.length >= 1) {
+    const groups: AnyAirport[] = CITY_GROUPS
+      .filter(g => g.code.toLowerCase().includes(lq) || g.name.toLowerCase().includes(lq) || g.country.toLowerCase().includes(lq))
+      .map(g => ({ ...g, isGroup: true }));
+    const ukAps: AnyAirport[] = UK_AIRPORTS
+      .filter(a => a.code.toLowerCase().includes(lq) || a.name.toLowerCase().includes(lq) || a.city.toLowerCase().includes(lq));
+    const globalAps: AnyAirport[] = DESTINATIONS
+      .filter(d => d.code.toLowerCase().startsWith(lq) || d.city.toLowerCase().includes(lq) || d.country.toLowerCase().includes(lq))
+      .map(d => ({ code: d.code, name: d.city, country: d.country, flag: d.flag }));
+    filtered = [...groups, ...ukAps, ...globalAps].slice(0, 10);
+  } else {
+    filtered = [
+      ...CITY_GROUPS.map(g => ({ ...g, isGroup: true })),
+      ...UK_AIRPORTS.slice(0, 6),
+    ];
+  }
 
   return (
     <div ref={ref} className="relative">
-      <input type="text" placeholder="City or airport — e.g. Manchester, MAN" value={q} autoComplete="off"
+      <input type="text" placeholder="City or airport — e.g. London, DXB, MAN" value={q} autoComplete="off"
         onChange={e => { setQ(e.target.value); setChosen(null); onChange('', ''); setOpen(true); }}
         onFocus={() => setOpen(true)}
         className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-[#0066FF] focus:bg-white transition-all placeholder:text-[#B0B8CC]" />
@@ -476,14 +511,36 @@ function AutocompleteFrom({ value, onChange, initialCode }: {
           <span className="text-[.7rem] font-black text-[#0066FF] bg-blue-50 px-2 py-0.5 rounded-md">{chosen.code}</span>
         </div>
       )}
-      {open && (
+      {open && filtered.length > 0 && (
         <ul className="absolute z-50 w-full mt-1.5 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl overflow-auto max-h-64">
           {filtered.map(a => (
             <li key={a.code}
-              onMouseDown={() => { setQ(`${a.name} (${a.code})`); setChosen(a); onChange(a.code, a.city); setOpen(false); }}
+              onMouseDown={() => { setQ(`${a.name} (${a.code})`); setChosen(a); onChange(a.code, a.name ?? ''); setOpen(false); }}
               className={`flex items-center gap-3 px-4 py-3 hover:bg-blue-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 ${chosen?.code === a.code ? 'bg-blue-50' : ''}`}>
-              <span className="font-black text-[.75rem] text-[#0066FF] w-10 flex-shrink-0 bg-blue-50 px-1.5 py-0.5 rounded text-center">{a.code}</span>
-              <span className="font-poppins font-bold text-[.83rem] text-[#1A1D2B]">{a.name}</span>
+              {a.isGroup ? (
+                <>
+                  <span className="text-xl flex-shrink-0">{a.flag ?? '🌍'}</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="font-poppins font-bold text-[.85rem] text-[#1A1D2B]">{a.name}</span>
+                    <span className="text-[.7rem] text-[#8E95A9] ml-1.5">All airports</span>
+                  </div>
+                  <span className="font-mono text-[.68rem] font-bold text-[#8E95A9]">{a.code}</span>
+                </>
+              ) : a.flag ? (
+                <>
+                  <span className="text-xl flex-shrink-0">{a.flag}</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="font-poppins font-bold text-[.85rem] text-[#1A1D2B]">{a.name}</span>
+                    {a.country && <span className="text-[.72rem] text-[#8E95A9] ml-1.5">{a.country}</span>}
+                  </div>
+                  <span className="font-mono text-[.68rem] font-bold text-[#8E95A9]">{a.code}</span>
+                </>
+              ) : (
+                <>
+                  <span className="font-black text-[.75rem] text-[#0066FF] w-10 flex-shrink-0 bg-blue-50 px-1.5 py-0.5 rounded text-center">{a.code}</span>
+                  <span className="font-poppins font-bold text-[.83rem] text-[#1A1D2B]">{a.name}</span>
+                </>
+              )}
             </li>
           ))}
         </ul>
@@ -531,17 +588,25 @@ function AutocompleteTo({ value, onChange, initialCode }: {
   }, [value]);
 
   const lq = q.toLowerCase();
-  const filtered = q.length >= 1
-    ? DESTINATIONS.filter(d =>
-      d.city.toLowerCase().includes(lq) ||
-      d.country.toLowerCase().includes(lq) ||
-      d.code.toLowerCase().startsWith(lq)
-    ).slice(0, 8)
-    : DESTINATIONS.slice(0, 10);
+  type ToItem = { code: string; city: string; country: string; flag: string; isGroup?: boolean };
+  let toFiltered: ToItem[];
+  if (q.length >= 1) {
+    const groups: ToItem[] = CITY_GROUPS
+      .filter(g => g.code.toLowerCase().includes(lq) || g.name.toLowerCase().includes(lq) || g.country.toLowerCase().includes(lq))
+      .map(g => ({ code: g.code, city: g.name, country: g.country, flag: g.flag, isGroup: true }));
+    const dests: ToItem[] = DESTINATIONS
+      .filter(d => d.city.toLowerCase().includes(lq) || d.country.toLowerCase().includes(lq) || d.code.toLowerCase().startsWith(lq));
+    toFiltered = [...groups, ...dests].slice(0, 10);
+  } else {
+    toFiltered = [
+      ...CITY_GROUPS.map(g => ({ code: g.code, city: g.name, country: g.country, flag: g.flag, isGroup: true as const })),
+      ...DESTINATIONS.slice(0, 3),
+    ];
+  }
 
   return (
     <div ref={ref} className="relative">
-      <input type="text" placeholder="City or airport — e.g. Barcelona, BCN" value={q} autoComplete="off"
+      <input type="text" placeholder="City or airport — e.g. Barcelona, BCN, DXB" value={q} autoComplete="off"
         onChange={e => { setQ(e.target.value); setChosen(null); onChange('', ''); setOpen(true); }}
         onFocus={() => setOpen(true)}
         className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-[#0066FF] focus:bg-white transition-all placeholder:text-[#B0B8CC]" />
@@ -552,14 +617,14 @@ function AutocompleteTo({ value, onChange, initialCode }: {
       )}
       {open && (
         <ul className="absolute z-50 w-full mt-1.5 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl overflow-auto max-h-64">
-          {filtered.map(d => (
+          {toFiltered.map(d => (
             <li key={d.code}
-              onMouseDown={() => { setQ(`${d.city} (${d.code})`); setChosen(d); onChange(d.code, d.city); setOpen(false); }}
+              onMouseDown={() => { setQ(`${d.city} (${d.code})`); setChosen(DESTINATIONS.find(x => x.code === d.code) ?? null); onChange(d.code, d.city); setOpen(false); }}
               className={`flex items-center gap-3 px-4 py-3 hover:bg-blue-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 ${chosen?.code === d.code ? 'bg-blue-50' : ''}`}>
               <span className="text-xl">{d.flag}</span>
               <div className="flex-1">
                 <span className="font-poppins font-bold text-[.85rem] text-[#1A1D2B]">{d.city}</span>
-                <span className="text-[.72rem] text-[#8E95A9] ml-1.5">{d.country}</span>
+                <span className="text-[.72rem] text-[#8E95A9] ml-1.5">{d.isGroup ? 'All airports' : d.country}</span>
               </div>
               <span className="font-mono text-[.68rem] font-bold text-[#8E95A9]">{d.code}</span>
             </li>
