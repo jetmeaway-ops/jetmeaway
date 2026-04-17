@@ -50,7 +50,7 @@ export default function Footer() {
           <p className="text-[.72rem] text-white/60 leading-relaxed font-semibold">Flight-inclusive packages are ATOL protected via Expedia (5788) &amp; Trip.com (11572). <Link href="/financial-protection" className="text-white/70 hover:text-white underline">Read our Financial Protection Notice</Link>.</p>
         </div>
         <div className="flex justify-between items-center flex-wrap gap-3">
-          <p className="text-[.6rem] text-white/60">© 2026 JETMEAWAY LTD (Company No: 17140522). 66 Paul Street, EC2A 4NA, London. All rights reserved.</p>
+          <p className="text-[.6rem] text-white/60">© 2026 JETMEAWAY LTD (Company No: 17140522 · DUNS: 234726109). 66 Paul Street, EC2A 4NA, London. All rights reserved.</p>
           <div className="flex gap-4 opacity-60 hover:opacity-80 transition-opacity">
             {['Expedia','Trip.com','Aviasales','GetYourGuide','Klook','Airalo'].map(p => (
               <span key={p} className="font-poppins font-extrabold text-[.65rem] text-white uppercase tracking-wider">{p}</span>

@@ -105,11 +105,23 @@ const organizationSchema = {
     '@type': 'PostalAddress',
     addressCountry: 'GB',
   },
-  identifier: {
-    '@type': 'PropertyValue',
-    name: 'Companies House',
-    value: '17140522',
-  },
+  // Multiple legitimacy identifiers — partner due-diligence tools
+  // (RateHawk, Webbeds, ATOL umbrella providers) scrape these to
+  // cross-check the entity against public registries before approval.
+  identifier: [
+    {
+      '@type': 'PropertyValue',
+      name: 'Companies House',
+      propertyID: 'UK Companies House Registration Number',
+      value: '17140522',
+    },
+    {
+      '@type': 'PropertyValue',
+      name: 'DUNS',
+      propertyID: 'Dun & Bradstreet DUNS Number',
+      value: '234726109',
+    },
+  ],
   sameAs: [
     // Keep this list short and factual. Add profiles only as they
     // go live so the schema never advertises dead links.
