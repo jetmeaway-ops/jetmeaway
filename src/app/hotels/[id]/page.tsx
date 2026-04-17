@@ -409,7 +409,21 @@ export default function HotelDetailPage() {
               </button>
             ) : (
               <a
-                href="/hotels"
+                href={(() => {
+                  // Forward the current query params (checkin/checkout/adults/children/rooms)
+                  // to /hotels so the search form arrives pre-filled. Also carry the city
+                  // name as `destination` so the autocomplete resolves.
+                  const p = new URLSearchParams();
+                  const carry = ['checkin', 'checkout', 'adults', 'children', 'rooms'];
+                  for (const k of carry) {
+                    const v = sp?.get(k);
+                    if (v) p.set(k, v);
+                  }
+                  const dest = sp?.get('city') || city || '';
+                  if (dest) p.set('destination', dest);
+                  const qs = p.toString();
+                  return qs ? `/hotels?${qs}` : '/hotels';
+                })()}
                 className="block text-center w-full mt-5 bg-orange-500 hover:bg-orange-600 text-white font-poppins font-black text-[.9rem] py-3.5 rounded-xl transition-all"
               >
                 Search dates to book

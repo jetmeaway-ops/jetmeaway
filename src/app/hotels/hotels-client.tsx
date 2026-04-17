@@ -992,6 +992,7 @@ function HotelsContent() {
   // Hot deals state
   const [deals, setDeals] = useState<DealDestination[] | null>(null);
   const [dealsLoading, setDealsLoading] = useState(true);
+  const [dealBookingId, setDealBookingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/hotels/deals')
@@ -999,6 +1000,55 @@ function HotelsContent() {
       .then(d => { setDeals(d.deals || []); setDealsLoading(false); })
       .catch(() => setDealsLoading(false));
   }, []);
+
+  // Click a deal card → start booking and jump straight to checkout
+  // (instead of opening the detail page). Falls back to detail-page
+  // navigation when we don't have an offerId or start-booking fails.
+  const handleDealClick = async (
+    e: React.MouseEvent,
+    deal: DealDestination,
+    hotel: DealHotel,
+    fallbackHref: string,
+  ) => {
+    if (!hotel.offerId) return; // let the link navigate normally
+    e.preventDefault();
+    if (dealBookingId) return;
+    setDealBookingId(hotel.id);
+    try {
+      const nights = Math.max(
+        1,
+        Math.round(
+          (new Date(deal.checkout).getTime() - new Date(deal.checkin).getTime()) /
+            86400000,
+        ),
+      );
+      const res = await fetch('/api/hotels/start-booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          offerId: hotel.offerId,
+          hotelName: hotel.name,
+          stars: hotel.stars ?? 0,
+          totalPrice: hotel.totalPrice,
+          currency: 'GBP',
+          checkIn: deal.checkin,
+          checkOut: deal.checkout,
+          city: deal.city,
+          adults: 2,
+          nights,
+          thumbnail: hotel.thumbnail || null,
+          refundable: hotel.refundable,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success || !data.ref) throw new Error(data.error || 'Could not start booking');
+      window.location.assign(`/hotels/checkout/${encodeURIComponent(data.ref)}`);
+    } catch {
+      // Network/API failure — fall back to the detail page so the user
+      // still gets somewhere useful.
+      window.location.assign(fallbackHref);
+    }
+  };
 
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -1299,12 +1349,23 @@ function HotelsContent() {
                 const dealHref = hotel?.id
                   ? `/hotels/${encodeURIComponent(hotel.id)}?checkin=${deal.checkin}&checkout=${deal.checkout}&adults=2&children=0&rooms=1&city=${encodeURIComponent(deal.city)}&price=${hotel.totalPrice}&currency=GBP${hotel.offerId ? `&offerId=${encodeURIComponent(hotel.offerId)}` : ''}${hotel.boardType ? `&board=${encodeURIComponent(hotel.boardType)}` : ''}${hotel.refundable ? '&refundable=1' : '&refundable=0'}`
                   : `/hotels?destination=${encodeURIComponent(deal.city)}&checkin=${deal.checkin}&checkout=${deal.checkout}`;
+                const isBooking = hotel ? dealBookingId === hotel.id : false;
                 return (
                   <a
                     key={deal.city}
                     href={dealHref}
-                    className="group bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden hover:shadow-[0_8px_30px_rgba(245,158,11,0.12)] hover:border-orange-200 transition-all text-left"
+                    onClick={hotel ? (e) => handleDealClick(e, deal, hotel, dealHref) : undefined}
+                    aria-busy={isBooking}
+                    className="group bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden hover:shadow-[0_8px_30px_rgba(245,158,11,0.12)] hover:border-orange-200 transition-all text-left relative"
                   >
+                    {isBooking && (
+                      <div className="absolute inset-0 z-10 bg-white/70 backdrop-blur-sm flex items-center justify-center">
+                        <span className="inline-flex items-center gap-2 text-[.72rem] font-black text-orange-600">
+                          <span className="inline-block w-3.5 h-3.5 border-2 border-orange-300 border-t-orange-600 rounded-full animate-spin" />
+                          Starting booking…
+                        </span>
+                      </div>
+                    )}
                     {/* Photo — prefer real hotel thumbnail over destination photo */}
                     <div className="relative h-36 overflow-hidden">
                       <img
@@ -1404,9 +1465,15 @@ function HotelsContent() {
                   href={h.id
                     ? `/hotels/${encodeURIComponent(h.id)}?checkin=${bestDeal.checkin}&checkout=${bestDeal.checkout}&adults=2&children=0&rooms=1&city=${encodeURIComponent(bestDeal.city)}&price=${h.totalPrice}&currency=GBP${h.offerId ? `&offerId=${encodeURIComponent(h.offerId)}` : ''}${h.boardType ? `&board=${encodeURIComponent(h.boardType)}` : ''}${h.refundable ? '&refundable=1' : '&refundable=0'}`
                     : `/hotels?destination=${encodeURIComponent(bestDeal.city)}&checkin=${bestDeal.checkin}&checkout=${bestDeal.checkout}`}
-                  className="flex-shrink-0 bg-orange-500 hover:bg-orange-600 text-white font-poppins font-black text-[.85rem] px-6 py-3 rounded-xl transition-all shadow-[0_4px_20px_rgba(245,158,11,0.3)]"
+                  onClick={(e) => handleDealClick(
+                    e,
+                    bestDeal,
+                    h,
+                    `/hotels/${encodeURIComponent(h.id)}?checkin=${bestDeal.checkin}&checkout=${bestDeal.checkout}&adults=2&children=0&rooms=1&city=${encodeURIComponent(bestDeal.city)}&price=${h.totalPrice}&currency=GBP${h.offerId ? `&offerId=${encodeURIComponent(h.offerId)}` : ''}${h.boardType ? `&board=${encodeURIComponent(h.boardType)}` : ''}${h.refundable ? '&refundable=1' : '&refundable=0'}`,
+                  )}
+                  className="flex-shrink-0 bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-poppins font-black text-[.85rem] px-6 py-3 rounded-xl transition-all shadow-[0_4px_20px_rgba(245,158,11,0.3)]"
                 >
-                  View Deal →
+                  {dealBookingId === h.id ? 'Starting…' : 'View Deal →'}
                 </a>
               </div>
             );
