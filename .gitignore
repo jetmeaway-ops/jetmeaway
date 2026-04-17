@@ -56,3 +56,8 @@ mobile/ios/
 .env*.local
 flights.json
 offer.json
+
+# Broadcast scripts — customer PII must never be committed
+scripts/*.local.json
+scripts/broadcast-contacts*.json
+!scripts/broadcast-contacts.example.json

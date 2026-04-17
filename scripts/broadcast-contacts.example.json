@@ -1,0 +1,8 @@
+{
+  "_comment": "Copy this file to broadcast-contacts.local.json and populate with real numbers. The .local.json variant is gitignored.",
+  "testNumber": "+447000000000",
+  "contacts": [
+    ["First Name", "+447000000001"],
+    ["Second Name", "+447000000002"]
+  ]
+}
