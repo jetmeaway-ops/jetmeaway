@@ -120,7 +120,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     description: post.excerpt,
     image: post.heroImage,
     datePublished: post.date,
-    dateModified: post.date,
+    // If a post has a liveAlert timestamp, treat it as the most recent
+    // modification — this tells Google/LLMs the content was freshly updated.
+    dateModified: post.liveAlert ? new Date().toISOString() : post.date,
     author: {
       '@type': 'Organization',
       name: post.author ?? 'JetMeAway',
@@ -181,9 +183,20 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           >
             <i className="fa-solid fa-arrow-left text-[.65rem]" /> Back to Blog
           </Link>
-          <span className="inline-block bg-blue-50 text-[#0066FF] text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4">
-            {post.category}
-          </span>
+          <div className="flex items-center justify-center flex-wrap gap-2 mb-4">
+            <span className="inline-block bg-blue-50 text-[#0066FF] text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full">
+              {post.category}
+            </span>
+            {post.liveAlert && (
+              <span className="inline-flex items-center gap-1.5 bg-red-50 text-[#D9281B] text-[.65rem] font-black uppercase tracking-[2px] px-3.5 py-1.5 rounded-full border border-red-200">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-600" />
+                </span>
+                Live Alert · Updated {post.liveAlert}
+              </span>
+            )}
+          </div>
           <h1 className="font-poppins text-[2.2rem] md:text-[3rem] font-black text-[#1A1D2B] leading-[1.1] tracking-tight mb-5">
             {post.title}
           </h1>

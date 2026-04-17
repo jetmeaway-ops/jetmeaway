@@ -35,6 +35,10 @@ export interface BlogPostFrontmatter {
    *  the post page emits FAQPage JSON-LD for richer Google results
    *  and direct citation by Perplexity / ChatGPT Search. */
   faqs?: FAQ[];
+  /** Optional — timely posts can flag themselves with a live-alert
+   *  timestamp (e.g. "April 17, 2026 — 21:00 BST"). Rendered as a red
+   *  pill near the article header and used as `dateModified` in JSON-LD. */
+  liveAlert?: string;
 }
 
 export type BlogPost = BlogPostFrontmatter & {
@@ -63,6 +67,7 @@ export function getAllPosts(): BlogPost[] {
       heroImage: data.heroImage as string,
       author: data.author as string | undefined,
       faqs: Array.isArray(data.faqs) ? (data.faqs as FAQ[]) : undefined,
+      liveAlert: (data.liveAlert as string | undefined) ?? undefined,
       content,
     };
   });
