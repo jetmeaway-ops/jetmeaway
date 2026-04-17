@@ -16,6 +16,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import matter from 'gray-matter';
 
+/** One Q&A pair surfaced to FAQPage JSON-LD. */
+export interface FAQ {
+  q: string;
+  a: string;
+}
+
 export interface BlogPostFrontmatter {
   title: string;
   slug: string;
@@ -25,6 +31,10 @@ export interface BlogPostFrontmatter {
   readTime: string;
   heroImage: string;
   author?: string;
+  /** Optional — posts can declare FAQs in frontmatter. When present,
+   *  the post page emits FAQPage JSON-LD for richer Google results
+   *  and direct citation by Perplexity / ChatGPT Search. */
+  faqs?: FAQ[];
 }
 
 export type BlogPost = BlogPostFrontmatter & {
@@ -52,6 +62,7 @@ export function getAllPosts(): BlogPost[] {
       readTime: (data.readTime as string) ?? '5 min read',
       heroImage: data.heroImage as string,
       author: data.author as string | undefined,
+      faqs: Array.isArray(data.faqs) ? (data.faqs as FAQ[]) : undefined,
       content,
     };
   });

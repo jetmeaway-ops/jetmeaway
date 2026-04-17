@@ -1,3 +1,114 @@
+# JetMeAway — robots directives
+#
+# Public travel comparison site. We want BOTH search crawlers
+# and LLM retrieval bots to read everything. Explicit allows are
+# spelled out because some AI crawlers default to blocked unless
+# the site opts in.
+
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /checkout/
+Disallow: /hotels/checkout/
+Disallow: /thank-you
+Disallow: /success
+Disallow: /redirect
+
+# ───────────────────────────────────────────────────────────
+# LLM / AI retrieval bots — explicitly allowed
+# ───────────────────────────────────────────────────────────
+
+# OpenAI — ChatGPT retrieval + training
+User-agent: GPTBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /checkout/
+Disallow: /hotels/checkout/
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+# Anthropic — Claude
+User-agent: ClaudeBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+User-agent: Claude-Web
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+User-agent: anthropic-ai
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+# Perplexity
+User-agent: PerplexityBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+User-agent: Perplexity-User
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+# Google — Gemini / AI Overviews training
+User-agent: Google-Extended
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+# Apple Intelligence
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+# Common Crawl — used as training input for many models
+User-agent: CCBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+# Meta AI
+User-agent: FacebookBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+User-agent: Meta-ExternalAgent
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+# DuckDuckGo AI
+User-agent: DuckAssistBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+# You.com
+User-agent: YouBot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+# Amazon Bedrock
+User-agent: Amazonbot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
 Sitemap: https://jetmeaway.co.uk/sitemap.xml

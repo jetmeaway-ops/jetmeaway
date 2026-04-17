@@ -63,12 +63,104 @@ export const metadata = {
   },
 };
 
+/**
+ * Site-wide JSON-LD. Two schemas injected into every page:
+ *
+ *  • Organization — who we are. Picked up by Google's Knowledge Panel,
+ *    partner due-diligence tools (RateHawk, Webbeds etc. scrape this
+ *    during approval checks), and LLM retrieval bots to establish
+ *    E-E-A-T authority.
+ *  • WebSite — enables the SearchAction sitelinks-search-box in Google
+ *    and gives LLMs a canonical site name + search intent.
+ *
+ * These render in the <head> so they load before any client JS.
+ */
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'TravelAgency',
+  '@id': 'https://jetmeaway.co.uk/#organization',
+  name: 'JetMeAway',
+  alternateName: 'JetMeAway Travel Comparison',
+  url: 'https://jetmeaway.co.uk',
+  logo: {
+    '@type': 'ImageObject',
+    url: 'https://jetmeaway.co.uk/jetmeaway-logo.png',
+    width: 512,
+    height: 512,
+  },
+  image: 'https://jetmeaway.co.uk/jetmeaway-logo.png',
+  description:
+    'UK travel comparison engine for flights, hotels, car hire, holiday packages, travel insurance and eSIM data. Founded 2026, registered in England & Wales.',
+  email: 'contact@jetmeaway.co.uk',
+  founder: {
+    '@type': 'Person',
+    name: 'Waqar Ul Hassan',
+  },
+  foundingDate: '2026',
+  areaServed: {
+    '@type': 'Country',
+    name: 'United Kingdom',
+  },
+  address: {
+    '@type': 'PostalAddress',
+    addressCountry: 'GB',
+  },
+  identifier: {
+    '@type': 'PropertyValue',
+    name: 'Companies House',
+    value: '17140522',
+  },
+  sameAs: [
+    // Keep this list short and factual. Add profiles only as they
+    // go live so the schema never advertises dead links.
+    'https://find-and-update.company-information.service.gov.uk/company/17140522',
+  ],
+  contactPoint: {
+    '@type': 'ContactPoint',
+    contactType: 'customer support',
+    email: 'contact@jetmeaway.co.uk',
+    availableLanguage: ['English'],
+    areaServed: 'GB',
+  },
+};
+
+const websiteSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  '@id': 'https://jetmeaway.co.uk/#website',
+  url: 'https://jetmeaway.co.uk',
+  name: 'JetMeAway',
+  description:
+    'Compare flights, hotels, car hire and holiday packages from trusted UK providers.',
+  publisher: { '@id': 'https://jetmeaway.co.uk/#organization' },
+  inLanguage: 'en-GB',
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: {
+      '@type': 'EntryPoint',
+      urlTemplate:
+        'https://jetmeaway.co.uk/hotels?destination={search_term_string}',
+    },
+    'query-input': 'required name=search_term_string',
+  },
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${poppins.variable} ${playfair.variable} ${dmSans.variable}`}>
       <head>
         <meta name="theme-color" content="#0066FF" />
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
+        {/* Site-wide structured data — Organization + WebSite. Loaded in <head>
+            so crawlers see it before any client JS runs. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+        />
         {/* Preconnect + DNS prefetch to Font Awesome CDN (cheap, non-blocking) */}
         <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" />

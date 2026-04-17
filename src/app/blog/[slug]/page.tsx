@@ -140,6 +140,22 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     },
   };
 
+  // Optional FAQPage JSON-LD — emitted only when the post declares
+  // `faqs:` in its frontmatter. This is the richest-citation signal
+  // for Perplexity / ChatGPT Search, and unlocks Google FAQ rich
+  // results in the SERP.
+  const faqJsonLd = post.faqs && post.faqs.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: post.faqs.map(f => ({
+          '@type': 'Question',
+          name: f.q,
+          acceptedAnswer: { '@type': 'Answer', text: f.a },
+        })),
+      }
+    : null;
+
   return (
     <>
       <Header />
@@ -149,6 +165,12 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      {faqJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        />
+      )}
 
       <article className="pt-32 pb-16 bg-white">
         {/* Article header */}

@@ -32,9 +32,87 @@ export default function Contact() {
     }
   }
 
+  // FAQPage JSON-LD — mirrors the Q&As rendered below. Both
+  // Google (rich-result accordions) and Perplexity/ChatGPT (direct
+  // citation) prefer structured FAQ data over free-text prose.
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: 'Is JetMeAway free to use?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Yes. JetMeAway is 100% free for travellers. We earn a commission from our partner providers when you book, but this never affects the price you pay.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Can I book a flight or hotel directly on JetMeAway?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'For most inventory we are a comparison engine — we redirect you to the trusted partner (Booking.com, Expedia, Trip.com, Skyscanner and others) to complete your booking securely on their site.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Is JetMeAway a registered UK company?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Yes. JetMeAway is registered in England & Wales with Companies House number 17140522. We are a UK travel comparison site operating under UK consumer law.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Who do I contact if I have a problem with my booking?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Because your booking contract is with the travel provider, please contact them first for cancellations, changes, refunds or complaints. If the provider is unresponsive, email us at contact@jetmeaway.co.uk and we will help you escalate.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'How quickly does JetMeAway reply to messages?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Monday to Friday we aim to reply within 24 hours. Weekend messages are answered within 48 hours. For urgent booking issues we recommend contacting the provider directly for the fastest response.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Does JetMeAway sell my personal data?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'No. We never sell user data. We only share the minimum details required to complete a search or booking with the partner you choose. See our Privacy Policy for full details.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'How does JetMeAway make money?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'We receive a referral commission from travel providers when a traveller books through a link on our site. This keeps JetMeAway free to use and does not change the price you pay the provider.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Which UK airports and cities does JetMeAway cover?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'We cover 20+ UK departure airports including London (Heathrow, Gatwick, Stansted, Luton, City, Southend), Manchester, Birmingham, Edinburgh, Glasgow, Bristol, Newcastle, Liverpool, Leeds-Bradford and Belfast. Our destination coverage is 250+ airports and 160+ hotel cities worldwide.',
+        },
+      },
+    ],
+  };
+
   return (
     <>
       <Header />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
       <section className="pt-36 pb-10 px-5 text-center">
         <h1 className="font-poppins text-[2.4rem] font-black tracking-tight mb-2.5">📩 <span className="text-[#0066FF]">Contact</span> Us</h1>
         <p className="text-[.95rem] text-[#8E95A9] max-w-[500px] mx-auto">Got a question, feedback, or need help? We&apos;d love to hear from you.</p>
@@ -79,9 +157,14 @@ export default function Contact() {
         <div className="bg-white border border-[#F1F3F7] rounded-3xl p-7 mt-4">
           <h2 className="font-poppins font-bold text-[1rem] text-[#0066FF] mb-4">❓ FAQ</h2>
           <div className="space-y-3.5">
-            <FAQ q="Is Jetmeaway free?" a="Yes, 100% free. We earn commission from partners when you book, but this never affects your price." />
-            <FAQ q="Can I book through Jetmeaway?" a="We're a comparison site. When you find a deal, we redirect you to the provider to complete the booking." />
-            <FAQ q="I have a booking issue." a="Since bookings are made with the provider, contact them directly for cancellations, changes, or refunds." />
+            <FAQ q="Is JetMeAway free to use?" a="Yes. JetMeAway is 100% free for travellers. We earn a commission from our partner providers when you book, but this never affects the price you pay." />
+            <FAQ q="Can I book a flight or hotel directly on JetMeAway?" a="For most inventory we are a comparison engine — we redirect you to the trusted partner (Booking.com, Expedia, Trip.com, Skyscanner and others) to complete your booking securely on their site." />
+            <FAQ q="Is JetMeAway a registered UK company?" a="Yes. JetMeAway is registered in England & Wales with Companies House number 17140522. We are a UK travel comparison site operating under UK consumer law." />
+            <FAQ q="Who do I contact if I have a problem with my booking?" a="Because your booking contract is with the travel provider, please contact them first for cancellations, changes, refunds or complaints. If the provider is unresponsive, email us at contact@jetmeaway.co.uk and we will help you escalate." />
+            <FAQ q="How quickly does JetMeAway reply to messages?" a="Monday to Friday we aim to reply within 24 hours. Weekend messages are answered within 48 hours. For urgent booking issues we recommend contacting the provider directly for the fastest response." />
+            <FAQ q="Does JetMeAway sell my personal data?" a="No. We never sell user data. We only share the minimum details required to complete a search or booking with the partner you choose. See our Privacy Policy for full details." />
+            <FAQ q="How does JetMeAway make money?" a="We receive a referral commission from travel providers when a traveller books through a link on our site. This keeps JetMeAway free to use and does not change the price you pay the provider." />
+            <FAQ q="Which UK airports and cities does JetMeAway cover?" a="We cover 20+ UK departure airports including London (Heathrow, Gatwick, Stansted, Luton, City, Southend), Manchester, Birmingham, Edinburgh, Glasgow, Bristol, Newcastle, Liverpool, Leeds-Bradford and Belfast. Our destination coverage is 250+ airports and 160+ hotel cities worldwide." />
           </div>
         </div>
       </div>
