@@ -107,15 +107,18 @@ const PROVIDERS = [
     name: 'Airalo',
     logo: '📡',
     badge: 'Most Popular',
-    getUrl: (country: string) =>
-      `https://www.airalo.com/${country.toLowerCase().replace(/ /g, '-')}?ref=jetmeaway`,
+    // Travelpayouts smart link — tracks clicks + conversions. Lands on
+    // Airalo's home where the user picks country. We keep `country` in the
+    // referring URL so the page still renders contextual copy around it.
+    getUrl: (_country: string) =>
+      `https://airalo.tpk.lu/MzK1zzie`,
   },
   {
     name: 'Yesim',
     logo: '✅',
     badge: 'Unlimited Plans',
-    getUrl: (country: string) =>
-      `https://www.yesim.app/esim-${country.toLowerCase().replace(/ /g, '-')}/`,
+    getUrl: (_country: string) =>
+      `https://yesim.tpk.lu/jSzl98ZQ`,
   },
   {
     name: 'Holafly',
