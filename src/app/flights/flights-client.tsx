@@ -1147,6 +1147,11 @@ function FlightsContent() {
     const meta = option.metadata as { dep: string; ret: string | null } | undefined;
     if (!meta) return;
     const { dep: newDep, ret: newRet } = meta;
+    // Scroll results into view immediately. handleSearch only scrolls
+    // AFTER the Duffel response lands, which on a slow network looks
+    // like the click did nothing. Getting the spinner into view now
+    // gives the user instant feedback that something is happening.
+    resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     setDepDate(newDep);
     if (newRet) {
       setRetDate(newRet);
@@ -1182,6 +1187,9 @@ function FlightsContent() {
       d.setUTCDate(d.getUTCDate() + intendedNights);
       newRet = d.toISOString().slice(0, 10);
     }
+    // Scroll results into view immediately (same UX reason as the
+    // cell-click handler above).
+    resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     setDepDate(newDep);
     if (newRet) {
       setRetDate(newRet);
