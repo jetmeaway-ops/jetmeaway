@@ -313,12 +313,18 @@ export async function GET(req: NextRequest) {
     if (!depDate) {
       return NextResponse.json({ error: 'Missing departure date' }, { status: 400 });
     }
-    // v4 — annotate each cell with return_at + nights so the UI can
-    // show when a cheap cache entry is for a different stay length
-    // than the user intended (TP's trip_duration param is ignored so
-    // honesty-in-labels is the only real apples-to-apples lever).
-    // Also adds scoutTip surfacing the cheapest date outside ±3.
-    const stripKey = `flights:strip:v4:${origin}:${destination}:${depDate}:${retDate || 'ow'}`;
+    // v5 — cache key now keys on intended trip length. A user looking
+    // at a 14n trip from LHR→DXB must not be served a cached strip
+    // populated for someone's 3n trip — the scoutTip + subLabels are
+    // duration-relative and would mislead. Compute nights up-front.
+    const intendedNightsForKey = retDate
+      ? Math.round(
+          (new Date(retDate + 'T00:00:00Z').getTime() -
+            new Date(depDate + 'T00:00:00Z').getTime()) /
+            86400000,
+        )
+      : 0;
+    const stripKey = `flights:strip:v5:${origin}:${destination}:${depDate}:${retDate || 'ow'}:${intendedNightsForKey}n`;
     try {
       const cached = await kv.get<any>(stripKey);
       if (cached) return NextResponse.json({ ...cached, cached: true });

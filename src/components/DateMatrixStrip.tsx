@@ -275,8 +275,14 @@ export default function DateMatrixStrip({
             that window is meaningfully cheaper (≥15% savings), surface
             it as a single-line nudge the user can one-click to shift
             to. Clicking fires onScoutTip which the caller turns into
-            a full re-search at that date. */}
-        {scoutTip && onScoutTip && (
+            a full re-search at that date.
+
+            Belt-and-braces 15% threshold: the API side already filters
+            at 0.85× basePrice, but we re-check here so a future API
+            loosening never accidentally clutters the UI with £2-off
+            "tips" — the bar stays clean-and-fast. */}
+        {scoutTip && onScoutTip && selectedPrice !== null &&
+          scoutTip.savings >= selectedPrice * 0.15 && (
           <button
             type="button"
             onClick={() => onScoutTip(scoutTip)}

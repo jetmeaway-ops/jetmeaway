@@ -1100,12 +1100,22 @@ function FlightsContent() {
               ) {
                 subLabel = `${c.actual_nights}n trip`;
               }
+              // If the cached cheapest fare is for a different stay
+              // length than what the user asked for, metadata.ret
+              // should point to that actual return date — otherwise
+              // clicking would re-search with the user's intended
+              // nights and they'd see a price jump (e.g. cell shows
+              // £38 "5n trip" but click fires a 7n search → £80+).
+              // Honour the cache shape on click; main-search shape
+              // stays preserved on the selected cell.
+              const clickRet =
+                subLabel && c.actual_return ? c.actual_return : c.ret;
               return {
                 id: c.dep,
                 label,
                 price: c.cheapest_price_gbp,
                 isSelected: c.dep === depDate && (c.ret || null) === (effectiveRet || null),
-                metadata: { dep: c.dep, ret: c.ret },
+                metadata: { dep: c.dep, ret: clickRet },
                 subLabel,
               };
             });
