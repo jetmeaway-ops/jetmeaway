@@ -127,6 +127,11 @@ export const DESTINATIONS: Destination[] = [
         a: 'Three full days covers the headline sights. Four or five lets you slow down, cross to the Asian side, and eat properly.',
       },
     ],
+    scout: {
+      morningRitual: 'Skip the hotel breakfast. Head to the Karak\u00F6y waterfront by 7:30 AM for a \u2018Simit and Sea\u2019 ritual \u2014 watching the ferries cross the Bosphorus while the city wakes up in the mist.',
+      wellness: 'Experience the H\u00FCrrem Sultan Hamam for a royal Ottoman ritual, or run the Bosphorus Promenade from Bebek to Rumeli Hisar\u0131 \u2014 the most scenic 5km flat run in Europe (and Asia).',
+      privacy: 'We recommend staying in Ni\u015Fanta\u015F\u0131. It\u2019s the \u2018Upper East Side\u2019 of Istanbul \u2014 quiet, upscale, and home to the city\u2019s best private wellness boutiques.',
+    },
   },
   {
     slug: 'baku',
@@ -175,6 +180,11 @@ export const DESTINATIONS: Destination[] = [
         a: 'Very. Baku is one of the safest capitals in the region. Violent crime against tourists is rare and the old city is well policed.',
       },
     ],
+    scout: {
+      morningRitual: 'A sunrise walk on the Baku Boulevard. The air off the Caspian Sea is crisp, and you can watch the Flame Towers catch the first light before the city heat kicks in.',
+      wellness: 'Visit the Hamambath for an authentic Azeri scrub, or head to the Fairmont Spa in the Flame Towers for the best high-altitude sky-pool workout in the region.',
+      privacy: 'The White City district is our top scout pick for 2026 \u2014 modern, spacious, and away from the noise of the Old City tourists.',
+    },
   },
   {
     slug: 'islamabad',
@@ -593,6 +603,11 @@ export const DESTINATIONS: Destination[] = [
         a: 'A riad, at least for the first night. It\u2019s the authentic Marrakech experience \u2014 courtyards, rooftop breakfasts, hand-crafted everything. Boutique hotels in Gueliz work well for longer stays.',
       },
     ],
+    scout: {
+      morningRitual: 'Early morning at Le Jardin Secret in the Medina. Being there right at opening (9:00 AM) lets you experience the Islamic gardens in total silence before the midday bustle.',
+      wellness: 'Indulge in a traditional Beldi Soap scrub at a neighbourhood hammam, or head to the Agafay Desert (45 mins away) for sunrise yoga on the dunes.',
+      privacy: 'We scout for riads in the Bab Doukkala area. It\u2019s authentic and quiet, yet just a 10-minute walk to the main square.',
+    },
   },
   {
     slug: 'london',
@@ -677,6 +692,11 @@ export const DESTINATIONS: Destination[] = [
     ],
     seoTitle: 'Scout Sharm El Sheikh: Red Sea Vitality & Desert Rituals',
     metaDescription: 'Red Sea wellness, reef diving rituals and Sinai desert fitness from the UK. Compare Sharm El Sheikh hotels and flights with Scout-grade neighbourhood intel.',
+    scout: {
+      morningRitual: 'A sunrise meditation at Farsha Mountain Lounge before it gets busy. Watching the sun hit the cliffs of Hadaba is the ultimate Sinai start.',
+      wellness: 'Scout the Ras Muhammad National Park for drift diving \u2014 the ultimate \u2018Blue Health\u2019 ritual. For land-based recovery, the Turkish Hammams in the Old Market offer the best salt-scrub treatments.',
+      privacy: 'We recommend the Shark\u2019s Bay area. It\u2019s closer to the airport but much quieter and more private than the crowded Naama Bay centre.',
+    },
   },
   {
     slug: 'budapest',
@@ -705,6 +725,11 @@ export const DESTINATIONS: Destination[] = [
     ],
     seoTitle: 'Scout Budapest: Thermal Rituals & Morning Wellness',
     metaDescription: 'Budapest thermal baths, Danube morning runs and Buda hills wellness stays for UK travellers. Compare hotels and direct flights with Scout-grade neighbourhood notes.',
+    scout: {
+      morningRitual: 'The \u2018Gell\u00E9rt Rise.\u2019 Hike up Gell\u00E9rt Hill at 6:30 AM for a panoramic view of the Danube, then head straight down into the Gell\u00E9rt Thermal Baths as they open.',
+      wellness: 'Beyond the famous baths, use Margitsziget (Margaret Island) \u2014 a 5km car-free island in the middle of the river dedicated entirely to running, swimming and outdoor fitness.',
+      privacy: 'Stay on the Buda side (District I or II). It\u2019s residential, green, and feels worlds away from the \u2018ruin bar\u2019 noise of the Pest side.',
+    },
   },
   {
     slug: 'lisbon',
