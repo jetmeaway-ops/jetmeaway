@@ -23,7 +23,7 @@ const NAV = [
 const DISCOVER_ITEMS = [
   { href: '/cars', label: 'Car Hire', icon: '🚗' },
   { href: '/esim', label: 'eSIM', icon: '📱' },
-  { href: '/explore', label: 'Destinations', icon: '🧭' },
+  { href: '/destinations', label: 'Destinations', icon: '🧭' },
   { href: '/about', label: 'About Us', icon: 'ℹ️' },
 ];
 

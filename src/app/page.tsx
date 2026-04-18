@@ -151,6 +151,64 @@ function WhatWeCompare() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   SCOUT DESTINATIONS — homepage card that passes link equity to /destinations
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function ScoutDestinations() {
+  const highlights = [
+    { slug: 'dubai',      city: 'Dubai',      country: 'UAE' },
+    { slug: 'istanbul',   city: 'Istanbul',   country: 'Turkey' },
+    { slug: 'islamabad',  city: 'Islamabad',  country: 'Pakistan' },
+    { slug: 'lahore',     city: 'Lahore',     country: 'Pakistan' },
+    { slug: 'budapest',   city: 'Budapest',   country: 'Hungary' },
+    { slug: 'lisbon',     city: 'Lisbon',     country: 'Portugal' },
+    { slug: 'rome',       city: 'Rome',       country: 'Italy' },
+    { slug: 'marrakech',  city: 'Marrakech',  country: 'Morocco' },
+  ];
+  return (
+    <section className="py-14 px-6 bg-gradient-to-br from-[#0a1628] via-[#0F1119] to-[#0a1628] text-white">
+      <div className="max-w-[1100px] mx-auto">
+        <div className="text-center mb-8">
+          <span className="inline-block bg-[#FFD700]/15 text-[#FFD700] text-[.6rem] font-black uppercase tracking-[2.5px] px-3 py-1.5 rounded-full border border-[#FFD700]/30 mb-3">
+            🔍 Scout Reports
+          </span>
+          <h2 className="font-[var(--font-playfair)] text-[2rem] md:text-[2.6rem] font-black leading-tight mb-3">
+            Scout Your Next Destination
+          </h2>
+          <p className="font-[var(--font-dm-sans)] text-white/70 text-[.95rem] max-w-[620px] mx-auto">
+            Deep neighbourhood intelligence for 19+ cities. Morning rituals, wellness ecosystems and private-stay picks, vetted by our scouts.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+          {highlights.map(h => (
+            <a
+              key={h.slug}
+              href={`/destinations/${h.slug}`}
+              className="group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#FFD700]/40 rounded-2xl p-4 transition-all"
+            >
+              <div className="text-[.58rem] font-black uppercase tracking-[2px] text-white/50 mb-1 group-hover:text-[#FFD700] transition-colors">
+                {h.country}
+              </div>
+              <div className="font-poppins font-bold text-[1rem] text-white group-hover:text-[#FFD700] transition-colors">
+                {h.city} →
+              </div>
+            </a>
+          ))}
+        </div>
+        <div className="text-center">
+          <a
+            href="/destinations"
+            className="inline-flex items-center gap-2 bg-[#FFD700] hover:bg-[#FFC700] text-[#0a1628] font-poppins font-black text-[.95rem] px-7 py-3.5 rounded-full transition-all shadow-[0_8px_30px_rgba(255,215,0,0.25)] hover:-translate-y-0.5"
+          >
+            Explore All Destinations →
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    CTA — warm gradient, prominent button
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -239,6 +297,7 @@ export default function Home() {
 
       <LogoScroll />
       <LazyPopularDestinations />
+      <ScoutDestinations />
       <WhatWeCompare />
       <HowItWorks />
       <LazyTestimonials />
