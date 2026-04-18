@@ -1,3 +1,5 @@
+import TrustpilotReviewCollector from '@/components/TrustpilotReviewCollector';
+
 const TRUSTPILOT_URL = 'https://uk.trustpilot.com/review/jetmeaway.co.uk';
 const SCORE = 4.0;
 const REVIEW_COUNT = 3;
@@ -96,6 +98,13 @@ export default function Testimonials() {
           Read all reviews on Trustpilot
           <i className="fa-solid fa-arrow-right text-[.8rem]" />
         </a>
+
+        {/* Trustpilot Review Collector — lets happy travellers leave a
+            public review straight from the page. The loader lives in
+            the root layout with lazyOnload so it never blocks LCP. */}
+        <div className="mt-10 max-w-[420px] mx-auto">
+          <TrustpilotReviewCollector />
+        </div>
       </div>
     </section>
   );

@@ -212,6 +212,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Script id="load-font-awesome" strategy="lazyOnload">
           {`(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css';l.crossOrigin='anonymous';document.head.appendChild(l);})();`}
         </Script>
+        {/* Trustpilot TrustBox bootstrap — loads lazily so it never blocks
+            first paint. Any <TrustpilotReviewCollector /> (or future
+            TrustBox) rendered on a page will bind automatically once this
+            script finishes loading. */}
+        <Script
+          id="trustpilot-bootstrap"
+          src="https://widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js"
+          strategy="lazyOnload"
+        />
         {/* Travelpayouts tracker removed — causes CORS errors on tp-em.com
             that hurt Best Practices score. Re-add if TP fixes their CORS. */}
       </body>
