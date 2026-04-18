@@ -368,9 +368,11 @@ export async function GET(req: NextRequest) {
           const p = typeof row.price === 'number' ? row.price : Number(row.price);
           if (p > 0 && (minPrice === null || p < minPrice)) minPrice = p;
         }
-        // Selected cell fallback: if TP's cache has no hit but the
-        // client already found a price in the main search, use it.
-        if (minPrice === null && c.offset === 0 && basePriceNum && basePriceNum > 0) {
+        // Selected cell (offset 0) is authoritatively the live price the
+        // main search just found — TP's cache can lag by a few minutes
+        // and we never want the strip contradicting the results below.
+        // Neighbour cells still come from TP's cache (best we've got).
+        if (c.offset === 0 && basePriceNum && basePriceNum > 0) {
           minPrice = basePriceNum;
         }
         return { ...c, cheapest_price_gbp: minPrice };

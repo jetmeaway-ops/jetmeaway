@@ -830,7 +830,11 @@ export async function GET(req: NextRequest) {
           const p = Number(o.priceFrom ?? o.priceAvg ?? 0);
           if (p > 0 && (minPrice === null || p < minPrice)) minPrice = p;
         }
-        if (minPrice === null && c.offset === 0 && baseTotalNum && baseTotalNum > 0) {
+        // Selected cell is authoritatively the live LiteAPI total-stay
+        // price. Hotellook's cache lags and occasionally undercuts real
+        // LiteAPI inventory — never let the strip contradict the main
+        // search for the date the user is actually looking at.
+        if (c.offset === 0 && baseTotalNum && baseTotalNum > 0) {
           minPrice = baseTotalNum;
         }
         return { ...c, total_price_gbp: minPrice };
