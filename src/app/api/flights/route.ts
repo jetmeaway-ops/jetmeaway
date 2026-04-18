@@ -294,19 +294,28 @@ export async function GET(req: NextRequest) {
 
   const headers = { Accept: 'application/json' };
 
-  // ── Date-strip mode (D−3 … D+3 cheapest per date, Travelpayouts only) ──
-  // Used by the <DateMatrixStrip /> on the flight results page so users can
-  // see how much they'd save by shifting +/- 3 days without re-running the
-  // full Duffel flow (which would 7× API usage). Return-date-aware: if a
-  // retDate is provided we shift it by the same delta so each cell is a
-  // like-for-like round-trip price; otherwise we query one-way.
+  // ── Date-strip mode (D−3 … D+3 cheapest per date) ──
+  // Used by the <DateMatrixStrip /> on the flight results page so users
+  // can see how much they'd save by shifting +/- 3 days without
+  // re-running the full Duffel flow (which would 7× API usage).
+  //
+  // Previously did 7 parallel `prices_for_dates` calls. That endpoint
+  // is a round-trip cache and was sparse for almost every OD — popular
+  // routes like LHR→DXB returned data for the exact selected pair only,
+  // 6/7 cells showed "—".
+  //
+  // Now we hit `/v1/prices/calendar` — a whole-month cheapest-per-date
+  // matrix built for this exact use case. One call (or two when the
+  // ±3 window crosses a month boundary) covers the whole strip with
+  // ~15-25× more hit-rate. Selected cell still forced to the live
+  // main-search price so the strip never contradicts results below.
   if (mode === 'datestrip') {
     if (!depDate) {
       return NextResponse.json({ error: 'Missing departure date' }, { status: 400 });
     }
-    // v2 — bumped 2026-04-18 when strip limit went 1→30 (fixes
-    // widespread — cells on popular ODs) + basePrice fallback added.
-    const stripKey = `flights:strip:v2:${origin}:${destination}:${depDate}:${retDate || 'ow'}`;
+    // v3 — swapped prices_for_dates → prices/calendar for much better
+    // coverage across neighbour dates.
+    const stripKey = `flights:strip:v3:${origin}:${destination}:${depDate}:${retDate || 'ow'}`;
     try {
       const cached = await kv.get<any>(stripKey);
       if (cached) return NextResponse.json({ ...cached, cached: true });
@@ -328,65 +337,93 @@ export async function GET(req: NextRequest) {
         offset: off,
         dep: d.toISOString().slice(0, 10),
         ret: r ? r.toISOString().slice(0, 10) : null,
-        // Any date in the past — skip the API call and render the cell blank.
         past: d < today,
       };
     });
 
-    // Per-fetch 4 s timeout. Travelpayouts usually answers in <300 ms, but
-    // if one cell hangs we don't want the whole strip (and the Edge
-    // function's time budget) held hostage — the Promise.all resolves as
-    // soon as the slow cell aborts, and that cell just renders `—`.
+    // Collect the months we need (usually 1, sometimes 2 if ±3 spans
+    // a month boundary, very rarely 3 if selected date is e.g. 30 Apr
+    // with long return — but ret doesn't affect depart_date lookup).
+    const depMonths = new Set<string>();
+    const retMonths = new Set<string>();
+    for (const c of cells) {
+      if (c.past) continue;
+      depMonths.add(c.dep.slice(0, 7));
+      if (c.ret) retMonths.add(c.ret.slice(0, 7));
+    }
+
     const STRIP_TIMEOUT_MS = 4000;
 
-    // Optional hint from the client: the cheapest price the main search
-    // already found for the base date. Lets us always show a price for
-    // the selected cell even if the TP cache misses for that exact pair.
+    // Optional hint from the client — the cheapest price the live main
+    // search just found. Forced onto the selected cell so the strip
+    // never contradicts the results below even if TP's cache lags.
     const basePriceHint = searchParams.get('basePrice');
     const basePriceNum = basePriceHint ? parseFloat(basePriceHint) : null;
 
-    const results = await Promise.all(cells.map(async (c) => {
-      if (c.past) {
-        return { ...c, cheapest_price_gbp: null };
-      }
+    // Fetch the calendar for each (depMonth, retMonth) pair in parallel.
+    // Round-trip: we iterate depMonth × retMonth so TP filters to pairs
+    // where both sides fall in the right months. One-way: just depMonth.
+    type CalEntry = { price: number; return_at?: string };
+    const calendarMap = new Map<string, CalEntry>(); // key = dep date YYYY-MM-DD
+
+    const fetchCalendar = async (depMonth: string, retMonth: string | null) => {
       const ac = new AbortController();
       const timer = setTimeout(() => ac.abort(), STRIP_TIMEOUT_MS);
       try {
-        // limit=30 mirrors what the main search uses — TP's
-        // prices_for_dates groups by cheapest-per-flight-number, so
-        // limit=1 silently hid direct routes on popular ODs. 30 gives
-        // us the full tail; we take min ourselves.
-        const url = c.ret
-          ? `https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${c.dep}&return_at=${c.ret}&currency=gbp&sorting=price&limit=30&market=gb&token=${TP_TOKEN}`
-          : `https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${c.dep}&currency=gbp&sorting=price&limit=30&market=gb&one_way=true&token=${TP_TOKEN}`;
+        const params = new URLSearchParams({
+          origin,
+          destination,
+          depart_date: depMonth,
+          calendar_type: 'departure_date',
+          currency: 'gbp',
+          token: TP_TOKEN,
+        });
+        if (retMonth) params.set('return_date', retMonth);
+        const url = `https://api.travelpayouts.com/v1/prices/calendar?${params}`;
         const r = await fetch(url, { headers, signal: ac.signal });
-        if (!r.ok) return { ...c, cheapest_price_gbp: null };
+        if (!r.ok) return;
         const j = await r.json();
-        const arr: Array<{ price?: number }> = Array.isArray(j?.data) ? j.data : [];
-        let minPrice: number | null = null;
-        for (const row of arr) {
-          const p = typeof row.price === 'number' ? row.price : Number(row.price);
-          if (p > 0 && (minPrice === null || p < minPrice)) minPrice = p;
+        const data = (j?.data && typeof j.data === 'object') ? j.data : {};
+        for (const [dateKey, val] of Object.entries(data as Record<string, any>)) {
+          const priceNum = typeof val?.price === 'number' ? val.price : Number(val?.price);
+          if (!(priceNum > 0)) continue;
+          const existing = calendarMap.get(dateKey);
+          // If multiple retMonths produce entries for the same depDate,
+          // keep the cheaper one — still round-trip, still honest.
+          if (!existing || priceNum < existing.price) {
+            calendarMap.set(dateKey, { price: priceNum, return_at: val?.return_at });
+          }
         }
-        // Selected cell (offset 0) is authoritatively the live price the
-        // main search just found — TP's cache can lag by a few minutes
-        // and we never want the strip contradicting the results below.
-        // Neighbour cells still come from TP's cache (best we've got).
-        if (c.offset === 0 && basePriceNum && basePriceNum > 0) {
-          minPrice = basePriceNum;
-        }
-        return { ...c, cheapest_price_gbp: minPrice };
       } catch {
-        // Aborted or network error — still honour the base-price hint
-        // so the selected cell never goes empty on the user.
-        if (c.offset === 0 && basePriceNum && basePriceNum > 0) {
-          return { ...c, cheapest_price_gbp: basePriceNum };
-        }
-        return { ...c, cheapest_price_gbp: null };
+        // Timeout or network — just let the relevant cells stay empty.
       } finally {
         clearTimeout(timer);
       }
-    }));
+    };
+
+    const tasks: Array<Promise<void>> = [];
+    if (retMonths.size > 0) {
+      for (const dm of depMonths) {
+        for (const rm of retMonths) {
+          tasks.push(fetchCalendar(dm, rm));
+        }
+      }
+    } else {
+      for (const dm of depMonths) {
+        tasks.push(fetchCalendar(dm, null));
+      }
+    }
+    await Promise.all(tasks);
+
+    const results = cells.map(c => {
+      if (c.past) return { ...c, cheapest_price_gbp: null };
+      const hit = calendarMap.get(c.dep);
+      let price: number | null = hit ? hit.price : null;
+      if (c.offset === 0 && basePriceNum && basePriceNum > 0) {
+        price = basePriceNum;
+      }
+      return { ...c, cheapest_price_gbp: price };
+    });
 
     const response = { success: true, dates: results, origin, destination, depDate, retDate };
     try { await kv.set(stripKey, response, { ex: 3600 }); } catch {}
