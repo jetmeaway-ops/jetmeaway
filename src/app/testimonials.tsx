@@ -1,14 +1,32 @@
 const TRUSTPILOT_URL = 'https://uk.trustpilot.com/review/jetmeaway.co.uk';
-const SCORE = 3.8;
+const SCORE = 4.0;
 const REVIEW_COUNT = 3;
 
-const REAL_REVIEW = {
-  quote: "Usually, after I search for a flight, I get followed by ads for weeks. JetMeAway was different — super quick results and I didn't feel like my data was being sold the second I clicked \u201csearch.\u201d The neighborhood info is a huge bonus too.",
-  name: 'Matty Smith',
-  title: 'Super fast',
-  date: 'April 4, 2026',
-  stars: 5,
-};
+const REVIEWS = [
+  {
+    quote:
+      "Usually, after I search for a flight, I get followed by ads for weeks. JetMeAway was different \u2014 super quick results and I didn't feel like my data was being sold the second I clicked \u201csearch.\u201d The neighborhood info is a huge bonus too.",
+    name: 'Matty Smith',
+    title: 'Super fast',
+    date: 'April 4, 2026',
+    stars: 5,
+  },
+  {
+    quote:
+      "I recently booked a holiday through your website and had a great experience overall. The booking process was smooth and easy to follow, and I found the pricing very competitive. One thing I particularly liked was how clearly the package details were presented, which made it easy to compare options. Overall, I\u2019m very satisfied with your service and would happily use your platform again.",
+    name: 'Hamza Hassan',
+    title: 'A great experience overall',
+    date: 'April 13, 2026',
+    stars: 5,
+  },
+  {
+    quote: 'Amazing website that helped navigating holidays become easier.',
+    name: 'Rosalind',
+    title: 'Quick and efficient website',
+    date: 'April 10, 2026',
+    stars: 5,
+  },
+];
 
 function Stars({ value, size = '.95rem' }: { value: number; size?: string }) {
   return (
@@ -27,7 +45,7 @@ function Stars({ value, size = '.95rem' }: { value: number; size?: string }) {
 export default function Testimonials() {
   return (
     <section className="py-16 px-6 bg-[#0a1628]">
-      <div className="max-w-[780px] mx-auto text-center">
+      <div className="max-w-[1120px] mx-auto text-center">
         <p className="text-[.65rem] font-black uppercase tracking-[3px] text-[#00B67A] mb-2 font-[var(--font-dm-sans)]">
           Verified on Trustpilot
         </p>
@@ -48,19 +66,26 @@ export default function Testimonials() {
           </span>
         </a>
 
-        <figure className="bg-white/5 border border-white/10 rounded-2xl p-8 md:p-10 text-left">
-          <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
-            <Stars value={REAL_REVIEW.stars} />
-            <span className="font-[var(--font-dm-sans)] text-white/50 text-[.75rem]">{REAL_REVIEW.date}</span>
-          </div>
-          <p className="font-poppins font-bold text-white text-[1rem] mb-3">{REAL_REVIEW.title}</p>
-          <blockquote className="font-[var(--font-playfair)] italic text-white/90 text-[1.1rem] md:text-[1.25rem] leading-relaxed mb-6">
-            &ldquo;{REAL_REVIEW.quote}&rdquo;
-          </blockquote>
-          <figcaption className="font-poppins text-white/70 text-[.85rem]">
-            &mdash; {REAL_REVIEW.name}
-          </figcaption>
-        </figure>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-left">
+          {REVIEWS.map(r => (
+            <figure
+              key={r.name}
+              className="bg-white/5 border border-white/10 rounded-2xl p-7 flex flex-col"
+            >
+              <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+                <Stars value={r.stars} />
+                <span className="font-[var(--font-dm-sans)] text-white/50 text-[.72rem]">{r.date}</span>
+              </div>
+              <p className="font-poppins font-bold text-white text-[.95rem] mb-3">{r.title}</p>
+              <blockquote className="font-[var(--font-playfair)] italic text-white/90 text-[1rem] leading-relaxed mb-5 flex-1">
+                &ldquo;{r.quote}&rdquo;
+              </blockquote>
+              <figcaption className="font-poppins text-white/70 text-[.8rem]">
+                &mdash; {r.name}
+              </figcaption>
+            </figure>
+          ))}
+        </div>
 
         <a
           href={TRUSTPILOT_URL}
