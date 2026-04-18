@@ -121,6 +121,12 @@ const organizationSchema = {
       propertyID: 'Dun & Bradstreet DUNS Number',
       value: '234726109',
     },
+    {
+      '@type': 'PropertyValue',
+      name: 'ICO',
+      propertyID: 'UK Information Commissioner\u2019s Office Registration',
+      value: 'ZC125217',
+    },
   ],
   sameAs: [
     // Keep this list short and factual. Add profiles only as they

@@ -35,7 +35,7 @@ export default function About() {
       <div className="max-w-[760px] mx-auto px-5 pb-16 space-y-4">
         <Card title="✈️ Who We Are">
           <p>
-            <strong className="text-[#1A1D2B]">JETMEAWAY LTD</strong> (Company No: 17140522, DUNS: 234726109) is a
+            <strong className="text-[#1A1D2B]">JETMEAWAY LTD</strong> (Company No: 17140522, DUNS: 234726109, ICO: ZC125217) is a
             UK-based travel technology platform registered at 66 Paul Street, London. We&apos;re an engineering-first
             comparison engine that brings together live prices from 15+ trusted providers in one place — and, for
             selected flight and hotel inventory, we act as a disclosed booking agent so you can complete the booking

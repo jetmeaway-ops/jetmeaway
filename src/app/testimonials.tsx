@@ -1,49 +1,76 @@
-'use client';
+const TRUSTPILOT_URL = 'https://uk.trustpilot.com/review/jetmeaway.co.uk';
+const SCORE = 3.8;
+const REVIEW_COUNT = 3;
 
-import { useState, useEffect } from 'react';
+const REAL_REVIEW = {
+  quote: "Usually, after I search for a flight, I get followed by ads for weeks. JetMeAway was different — super quick results and I didn't feel like my data was being sold the second I clicked \u201csearch.\u201d The neighborhood info is a huge bonus too.",
+  name: 'Matty Smith',
+  title: 'Super fast',
+  date: 'April 4, 2026',
+  stars: 5,
+};
 
-const TESTIMONIALS = [
-  { quote: 'Saved over 200 on our family trip to Dubai. The price comparison made it so easy to find the best deal.', name: 'Sarah M.', location: 'Manchester' },
-  { quote: 'I love that there are no booking fees. Found a 4-star hotel in Barcelona for half the price I expected.', name: 'James R.', location: 'London' },
-  { quote: 'The AI assistant helped me plan our honeymoon to the Maldives. Everything was perfectly organised.', name: 'Emma T.', location: 'Bristol' },
-];
+function Stars({ value, size = '.95rem' }: { value: number; size?: string }) {
+  return (
+    <div className="flex gap-0.5" aria-label={`${value} out of 5 stars`}>
+      {[1, 2, 3, 4, 5].map(s => (
+        <i
+          key={s}
+          className={`fa-solid fa-star ${s <= Math.round(value) ? 'text-[#00B67A]' : 'text-white/20'}`}
+          style={{ fontSize: size }}
+        />
+      ))}
+    </div>
+  );
+}
 
 export default function Testimonials() {
-  const [active, setActive] = useState(0);
-
-  useEffect(() => {
-    const t = setInterval(() => setActive(i => (i + 1) % TESTIMONIALS.length), 5000);
-    return () => clearInterval(t);
-  }, []);
-
   return (
     <section className="py-16 px-6 bg-[#0a1628]">
-      <div className="max-w-[750px] mx-auto text-center">
-        <p className="text-[.65rem] font-black uppercase tracking-[3px] text-orange-400 mb-2 font-[var(--font-dm-sans)]">Testimonials</p>
-        <h2 className="font-[var(--font-playfair)] text-[2rem] md:text-[2.4rem] font-black text-white mb-10">What Travellers Say</h2>
+      <div className="max-w-[780px] mx-auto text-center">
+        <p className="text-[.65rem] font-black uppercase tracking-[3px] text-[#00B67A] mb-2 font-[var(--font-dm-sans)]">
+          Verified on Trustpilot
+        </p>
+        <h2 className="font-[var(--font-playfair)] text-[2rem] md:text-[2.4rem] font-black text-white mb-3">
+          What Travellers Say
+        </h2>
 
-        <div className="relative min-h-[200px]">
-          {TESTIMONIALS.map((t, i) => (
-            <div key={i} className={`absolute inset-0 transition-all duration-500 ${i === active ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-              <div className="flex justify-center gap-1 mb-5">
-                {[1,2,3,4,5].map(s => (
-                  <i key={s} className="fa-solid fa-star text-orange-400 text-[.9rem]" />
-                ))}
-              </div>
-              <p className="font-[var(--font-playfair)] italic text-white/90 text-[1.25rem] md:text-[1.4rem] leading-relaxed mb-6">&ldquo;{t.quote}&rdquo;</p>
-              <p className="font-poppins font-bold text-white text-[.9rem]">{t.name}</p>
-              <p className="font-[var(--font-dm-sans)] text-white/50 text-[.78rem]">{t.location}</p>
-            </div>
-          ))}
-        </div>
+        <a
+          href={TRUSTPILOT_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full px-5 py-2.5 mb-10 transition-colors"
+        >
+          <i className="fa-solid fa-star text-[#00B67A] text-[1rem]" />
+          <span className="font-poppins font-bold text-white text-[.9rem]">Trustpilot</span>
+          <span className="font-poppins text-white/70 text-[.85rem]">
+            {SCORE.toFixed(1)} / 5 &middot; {REVIEW_COUNT} reviews
+          </span>
+        </a>
 
-        <div className="flex justify-center gap-3 mt-6">
-          {TESTIMONIALS.map((_, i) => (
-            <button key={i} onClick={() => setActive(i)}
-              aria-label={`Show testimonial ${i + 1}`}
-              className={`rounded-full transition-all duration-300 ${i === active ? 'bg-orange-500 w-8 h-3' : 'bg-white/25 hover:bg-white/50 w-3 h-3'}`} />
-          ))}
-        </div>
+        <figure className="bg-white/5 border border-white/10 rounded-2xl p-8 md:p-10 text-left">
+          <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+            <Stars value={REAL_REVIEW.stars} />
+            <span className="font-[var(--font-dm-sans)] text-white/50 text-[.75rem]">{REAL_REVIEW.date}</span>
+          </div>
+          <p className="font-poppins font-bold text-white text-[1rem] mb-3">{REAL_REVIEW.title}</p>
+          <blockquote className="font-[var(--font-playfair)] italic text-white/90 text-[1.1rem] md:text-[1.25rem] leading-relaxed mb-6">
+            &ldquo;{REAL_REVIEW.quote}&rdquo;
+          </blockquote>
+          <figcaption className="font-poppins text-white/70 text-[.85rem]">
+            &mdash; {REAL_REVIEW.name}
+          </figcaption>
+        </figure>
+
+        <a
+          href={TRUSTPILOT_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 mt-8 font-poppins font-bold text-white text-[.9rem] hover:text-[#00B67A] transition-colors"
+        >
+          Read all reviews on Trustpilot
+          <i className="fa-solid fa-arrow-right text-[.8rem]" />
+        </a>
       </div>
     </section>
   );
