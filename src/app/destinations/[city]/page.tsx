@@ -18,8 +18,8 @@ export async function generateMetadata(
   const d = getDestination(city);
   if (!d) return { title: 'Destination not found | JetMeAway' };
 
-  const title = `${d.city} Travel Guide — Hotels, Flights & Neighbourhoods | JetMeAway`;
-  const description = `Compare ${d.city} hotels and flights from the UK. ${d.tagline} Average hotel £${d.averageNightlyPrice}/night, ${d.flightTimeFromLondonHours}h flight from London.`;
+  const title = d.seoTitle ?? `${d.city} Travel Guide — Hotels, Flights & Neighbourhoods | JetMeAway`;
+  const description = d.metaDescription ?? `Compare ${d.city} hotels and flights from the UK. ${d.tagline} Average hotel £${d.averageNightlyPrice}/night, ${d.flightTimeFromLondonHours}h flight from London.`;
 
   return {
     title,
