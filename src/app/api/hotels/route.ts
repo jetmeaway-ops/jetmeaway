@@ -177,7 +177,7 @@ async function fetchRateHawkHotels(
     const hotels = data?.data?.hotels || [];
 
     return hotels.slice(0, 20).map((h: any) => ({
-      hotelId: `rh_${h.id}`,
+      hotelId: h.id,  // raw — normaliseRateHawk() stamps the `rh_` prefix
       hotelName: h.name || 'Hotel',
       price: h.min_price || 0,
       pricePerNight: h.min_price_per_night || 0,
@@ -871,7 +871,9 @@ export async function GET(req: NextRequest) {
   const minStars = Math.max(0, Math.min(5, parseInt(starsParam) || 0));
   // Cache key v11 — added placeId support for precise location searches
   const cacheCity = placeId || cityKey;
-  const kvKey = `hotels:v11:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
+  // v12 — quarantined DOTW/RateHawk rows (details endpoint can't resolve them yet)
+  // and fixed doubled `dotw_`/`rh_` id prefix from supplier adapters.
+  const kvKey = `hotels:v12:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
 
   // Group occupancy bypass: large groups (>4 guests) always get fresh prices
   // because cached availability/room blocks may not hold for that many people.
@@ -1016,7 +1018,13 @@ export async function GET(req: NextRequest) {
     // Tag each LiteAPI row with its own normalised-name dedupe key (no Giata
     // until Phase 2). DOTW rows use Giata when present.
     type Row = (typeof liteNorm)[0] | (typeof rhNorm)[0] | (typeof dotwNorm)[0];
-    const all: Row[] = [...liteNorm, ...rhNorm, ...dotwNorm];
+    // MITIGATION — quarantine DOTW/RateHawk rows from the client feed until
+    // /api/hotels/details/[id] knows how to route them to their supplier.
+    // Clicking a non-LiteAPI card currently returns "Hotel not found" because
+    // the details endpoint only strips `la_` and calls LiteAPI. Keeping the
+    // upstream fetches intact (for dedupe/pricing telemetry) but dropping
+    // anything that isn't `la_` before it reaches the response.
+    const all: Row[] = [...liteNorm, ...rhNorm, ...dotwNorm].filter(h => h.id.startsWith('la_'));
     const seen = new Map<string, Row>();
     for (const h of all) {
       const giata = (h as { giataId?: string | null }).giataId ?? null;

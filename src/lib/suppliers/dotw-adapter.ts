@@ -95,7 +95,7 @@ export function dotwSearchToHotelOffers(
 
     return {
       offerId: `dotw:${hotelId}`,  // DOTW doesn't expose an offerId at search
-      hotelId: `dotw_${hotelId}`,  // prefix matches our convention (rh_, etc.)
+      hotelId,                     // raw — normaliseDotw() stamps the `dotw_` prefix
       hotelName,
       stars,
       thumbnail,
