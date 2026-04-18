@@ -1045,6 +1045,11 @@ function FlightsContent() {
       // Fire-and-forget: load the D−3…D+3 price strip. Travelpayouts-only
       // + KV-cached so this never blocks the main results render. If it
       // fails we silently render nothing — the page stays fully usable.
+      // Pass basePrice so the selected cell has a guaranteed price even
+      // when TP's cache hasn't indexed that specific (orig,dest,date)
+      // triple — the user's search DID find a price so the strip's
+      // selected cell should never be "—".
+      const baseHint = (data.flights && data.flights.length > 0) ? data.flights[0].price : null;
       (async () => {
         setDateStripLoading(true);
         setDateStrip([]);
@@ -1056,6 +1061,7 @@ function FlightsContent() {
             mode: 'datestrip',
           });
           if (retDate && tripType === 'return') stripParams.set('return', retDate);
+          if (baseHint !== null) stripParams.set('basePrice', String(Math.round(baseHint)));
           const sRes = await fetch(`/api/flights?${stripParams}`);
           const sData = await sRes.json();
           if (sData.success && Array.isArray(sData.dates)) {

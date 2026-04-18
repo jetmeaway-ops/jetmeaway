@@ -1136,6 +1136,12 @@ function HotelsContent() {
 
       // Fire-and-forget: load the D−3…D+3 check-in strip. Hotellook-only
       // (free, cached) so this never multiplies LiteAPI cost per visit.
+      // Pass basePrice = cheapest total-stay price from the LiteAPI
+      // result so the selected strip cell is never empty.
+      const hotelsArr = Array.isArray(data.hotels) ? data.hotels : [];
+      const baseTotal = hotelsArr.length > 0
+        ? Math.min(...hotelsArr.map((h: { totalPrice?: number }) => typeof h.totalPrice === 'number' ? h.totalPrice : Infinity).filter((n: number) => Number.isFinite(n)))
+        : null;
       (async () => {
         setDateStripLoading(true);
         setDateStrip([]);
@@ -1148,6 +1154,9 @@ function HotelsContent() {
             mode: 'datestrip',
           });
           if (selectedPlaceId) stripParams.set('placeId', selectedPlaceId);
+          if (baseTotal !== null && Number.isFinite(baseTotal)) {
+            stripParams.set('basePrice', String(Math.round(baseTotal as number)));
+          }
           const sRes = await fetch(`/api/hotels?${stripParams}`);
           const sData = await sRes.json();
           if (sData.success && Array.isArray(sData.dates)) {

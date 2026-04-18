@@ -759,7 +759,9 @@ export async function GET(req: NextRequest) {
     const checkoutDate = new Date(checkout + 'T00:00:00Z');
     const nights = Math.max(1, Math.round((checkoutDate.getTime() - checkinDate.getTime()) / 86400000));
 
-    const stripKey = `hotels:strip:v1:${cityForCache}:${checkin}:${nights}n:${adultsNum}`;
+    // v2 — bumped when strip limit went 1→20 and basePrice fallback
+    // was added, so cached v1 entries don't serve the old sparse data.
+    const stripKey = `hotels:strip:v2:${cityForCache}:${checkin}:${nights}n:${adultsNum}`;
     try {
       const cached = await kv.get<any>(stripKey);
       if (cached) return NextResponse.json({ ...cached, cached: true });
@@ -796,6 +798,13 @@ export async function GET(req: NextRequest) {
       .map(w => w.charAt(0).toUpperCase() + w.slice(1))
       .join(' ');
 
+    // Optional base price from the client — the total-stay price the
+    // LiteAPI search already found for the selected check-in. Guarantees
+    // the selected cell never shows "—" even when Hotellook's cache has
+    // no entry for that specific (city, date, nights) triple.
+    const basePriceHint = searchParams.get('basePrice');
+    const baseTotalNum = basePriceHint ? parseFloat(basePriceHint) : null;
+
     const results = await Promise.all(cells.map(async (c) => {
       if (c.past) {
         return { ...c, total_price_gbp: null };
@@ -803,20 +812,32 @@ export async function GET(req: NextRequest) {
       const ac = new AbortController();
       const timer = setTimeout(() => ac.abort(), STRIP_TIMEOUT_MS);
       try {
-        const url = `https://engine.hotellook.com/api/v2/cache.json?location=${encodeURIComponent(locationName)}&currency=gbp&checkIn=${c.checkin}&checkOut=${c.checkout}&adults=${adultsNum}&limit=1&token=${HOTELLOOK_TOKEN}`;
+        // limit=20 gives Hotellook room to return multiple hotels so we
+        // can take a proper min. limit=1 was silently missing coverage
+        // on popular cities; now we take the min of whatever comes back.
+        const url = `https://engine.hotellook.com/api/v2/cache.json?location=${encodeURIComponent(locationName)}&currency=gbp&checkIn=${c.checkin}&checkOut=${c.checkout}&adults=${adultsNum}&limit=20&token=${HOTELLOOK_TOKEN}`;
         const r = await fetch(url, { headers: { Accept: 'application/json' }, signal: ac.signal });
-        if (!r.ok) return { ...c, total_price_gbp: null };
+        if (!r.ok) {
+          if (c.offset === 0 && baseTotalNum && baseTotalNum > 0) {
+            return { ...c, total_price_gbp: baseTotalNum };
+          }
+          return { ...c, total_price_gbp: null };
+        }
         const j = await r.json();
-        // cache.json returns an array; pick the min priceAvg/priceFrom from
-        // whatever is cheapest. Some payloads use `priceAvg`, others `priceFrom`.
         const offers = Array.isArray(j) ? j : [];
         let minPrice: number | null = null;
         for (const o of offers) {
           const p = Number(o.priceFrom ?? o.priceAvg ?? 0);
           if (p > 0 && (minPrice === null || p < minPrice)) minPrice = p;
         }
+        if (minPrice === null && c.offset === 0 && baseTotalNum && baseTotalNum > 0) {
+          minPrice = baseTotalNum;
+        }
         return { ...c, total_price_gbp: minPrice };
       } catch {
+        if (c.offset === 0 && baseTotalNum && baseTotalNum > 0) {
+          return { ...c, total_price_gbp: baseTotalNum };
+        }
         return { ...c, total_price_gbp: null };
       } finally {
         clearTimeout(timer);

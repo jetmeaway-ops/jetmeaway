@@ -304,7 +304,9 @@ export async function GET(req: NextRequest) {
     if (!depDate) {
       return NextResponse.json({ error: 'Missing departure date' }, { status: 400 });
     }
-    const stripKey = `flights:strip:v1:${origin}:${destination}:${depDate}:${retDate || 'ow'}`;
+    // v2 — bumped 2026-04-18 when strip limit went 1→30 (fixes
+    // widespread — cells on popular ODs) + basePrice fallback added.
+    const stripKey = `flights:strip:v2:${origin}:${destination}:${depDate}:${retDate || 'ow'}`;
     try {
       const cached = await kv.get<any>(stripKey);
       if (cached) return NextResponse.json({ ...cached, cached: true });
@@ -337,6 +339,12 @@ export async function GET(req: NextRequest) {
     // soon as the slow cell aborts, and that cell just renders `—`.
     const STRIP_TIMEOUT_MS = 4000;
 
+    // Optional hint from the client: the cheapest price the main search
+    // already found for the base date. Lets us always show a price for
+    // the selected cell even if the TP cache misses for that exact pair.
+    const basePriceHint = searchParams.get('basePrice');
+    const basePriceNum = basePriceHint ? parseFloat(basePriceHint) : null;
+
     const results = await Promise.all(cells.map(async (c) => {
       if (c.past) {
         return { ...c, cheapest_price_gbp: null };
@@ -344,15 +352,34 @@ export async function GET(req: NextRequest) {
       const ac = new AbortController();
       const timer = setTimeout(() => ac.abort(), STRIP_TIMEOUT_MS);
       try {
+        // limit=30 mirrors what the main search uses — TP's
+        // prices_for_dates groups by cheapest-per-flight-number, so
+        // limit=1 silently hid direct routes on popular ODs. 30 gives
+        // us the full tail; we take min ourselves.
         const url = c.ret
-          ? `https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${c.dep}&return_at=${c.ret}&currency=gbp&sorting=price&limit=1&market=gb&token=${TP_TOKEN}`
-          : `https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${c.dep}&currency=gbp&sorting=price&limit=1&market=gb&one_way=true&token=${TP_TOKEN}`;
+          ? `https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${c.dep}&return_at=${c.ret}&currency=gbp&sorting=price&limit=30&market=gb&token=${TP_TOKEN}`
+          : `https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${c.dep}&currency=gbp&sorting=price&limit=30&market=gb&one_way=true&token=${TP_TOKEN}`;
         const r = await fetch(url, { headers, signal: ac.signal });
         if (!r.ok) return { ...c, cheapest_price_gbp: null };
         const j = await r.json();
-        const price = j.data?.[0]?.price ?? null;
-        return { ...c, cheapest_price_gbp: price };
+        const arr: Array<{ price?: number }> = Array.isArray(j?.data) ? j.data : [];
+        let minPrice: number | null = null;
+        for (const row of arr) {
+          const p = typeof row.price === 'number' ? row.price : Number(row.price);
+          if (p > 0 && (minPrice === null || p < minPrice)) minPrice = p;
+        }
+        // Selected cell fallback: if TP's cache has no hit but the
+        // client already found a price in the main search, use it.
+        if (minPrice === null && c.offset === 0 && basePriceNum && basePriceNum > 0) {
+          minPrice = basePriceNum;
+        }
+        return { ...c, cheapest_price_gbp: minPrice };
       } catch {
+        // Aborted or network error — still honour the base-price hint
+        // so the selected cell never goes empty on the user.
+        if (c.offset === 0 && basePriceNum && basePriceNum > 0) {
+          return { ...c, cheapest_price_gbp: basePriceNum };
+        }
         return { ...c, cheapest_price_gbp: null };
       } finally {
         clearTimeout(timer);
