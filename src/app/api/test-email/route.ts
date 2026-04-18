@@ -110,11 +110,15 @@ export async function POST(req: NextRequest) {
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr>
           <td style="padding:6px 0;font-size:14px;color:#5C6378;">Flight (per person)</td>
-          <td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">&pound;${basePerPerson.toFixed(2)}</td>
+          <td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">&pound;${(basePerPerson + MARKUP_GBP).toFixed(2)}</td>
         </tr>
         <tr>
-          <td style="padding:6px 0;font-size:14px;color:#5C6378;">JetMeAway fee</td>
-          <td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">&pound;${MARKUP_GBP.toFixed(2)}</td>
+          <td style="padding:6px 0;font-size:14px;color:#5C6378;">Taxes &amp; provider fees</td>
+          <td style="padding:6px 0;font-size:14px;font-weight:700;color:#059669;text-align:right;">Included</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;font-size:14px;color:#5C6378;">Scout Protection</td>
+          <td style="padding:6px 0;font-size:14px;font-weight:700;color:#059669;text-align:right;">FREE</td>
         </tr>
         <tr>
           <td colspan="2" style="border-top:2px solid #E8ECF4;padding:12px 0 0;"></td>

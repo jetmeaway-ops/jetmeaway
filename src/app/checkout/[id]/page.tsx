@@ -260,13 +260,22 @@ function PriceSidebar({
           <h3 className="font-poppins font-black text-[.85rem] text-[#1A1D2B] mb-4">Price Summary</h3>
 
           <div className="space-y-2.5 text-[.78rem]">
+            {/* Scout-secured price — single line, margin baked in. Rationale:
+                separating a "JetMeAway fee" primes price pain and makes us
+                look more expensive than Trip.com / Expedia who quote the
+                all-in ticket price. The margin still lives on the offer
+                object (pricing.markup) and is tracked server-side. */}
             <div className="flex justify-between">
               <span className="text-[#5C6378] font-semibold">Flight ({offer.airline})</span>
-              <span className="font-bold text-[#1A1D2B]">£{offer.pricing.airline.toFixed(2)}</span>
+              <span className="font-bold text-[#1A1D2B]">£{offer.pricing.total.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[#5C6378] font-semibold">JetMeAway fee</span>
-              <span className="font-bold text-[#1A1D2B]">£{offer.pricing.markup.toFixed(2)}</span>
+              <span className="text-[#5C6378] font-semibold">Taxes &amp; provider fees</span>
+              <span className="font-bold text-green-600">Included</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-[#5C6378] font-semibold">Scout Protection</span>
+              <span className="font-bold text-green-600">FREE</span>
             </div>
             <div className="border-t border-[#F1F3F7] pt-2.5 flex justify-between">
               <span className="font-poppins font-black text-[#1A1D2B]">Per person</span>
