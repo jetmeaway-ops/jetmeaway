@@ -74,6 +74,11 @@ export const DESTINATIONS: Destination[] = [
         a: 'Emirates and British Airways run multiple daily direct flights from Heathrow and Gatwick. flydubai and Wizz Air Abu Dhabi offer cheaper one-stop and direct options from Stansted and Luton. Book 6-10 weeks out for the best fares.',
       },
     ],
+    scout: {
+      morningRitual: 'Join the Uncommon Club for their Saturday community run at Marasi Bay. It starts at 6:45 AM and ends with coffee at Bonbon Caf\u00E9 \u2014 a perfect social wellness ritual by the water.',
+      wellness: 'Experience the Awaken Spa at Atlantis The Royal for \u2018Energy Therapy\u2019 and 24k gold massages, or use the public 7km cycling track at Al Qudra for a sunrise desert session.',
+      privacy: 'Avoid the high-traffic Downtown hotels. We scout for stays in Jumeirah 1 or Al Barari for a lush, secluded atmosphere away from the tourist eye.',
+    },
   },
   {
     slug: 'istanbul',
@@ -221,6 +226,11 @@ export const DESTINATIONS: Destination[] = [
         a: 'Islamabad is the safest major city in Pakistan. The diplomatic enclave, Blue Area and F-sectors are well policed. Check the UK FCDO travel advice before booking.',
       },
     ],
+    scout: {
+      morningRitual: 'A 6:30 AM ascent of Trail 3 or Trail 5 in the Margalla Hills. Reaching the \u2018Monal\u2019 viewpoint as the mist clears over the capital is the ultimate Islamabad mental reset.',
+      wellness: 'Visit MetaFitnosis in F-6 for boutique, results-driven training, or check out the Safa Fitness Club for a rooftop workout with views of the Faisal Mosque.',
+      privacy: 'We recommend the F-7 or E-7 sectors. These are the quietest, tree-lined residential zones that maintain the \u2018Privacy Shield\u2019 JetMeAway is known for.',
+    },
   },
   {
     slug: 'lahore',
@@ -272,6 +282,11 @@ export const DESTINATIONS: Destination[] = [
         a: 'Mughal architecture (Badshahi Mosque, Shalimar Gardens), food (nihari, siri paya, Gawalmandi Food Street), and a morning culture built around chai and paratha.',
       },
     ],
+    scout: {
+      morningRitual: 'Head to the Walled City (Androon Shehar) by 7:00 AM. Witness the \u2018Gate Awakening\u2019 as the old city starts its day with traditional Halwa Puri in Lakshmi Chowk before the heat and crowds arrive.',
+      wellness: 'Experience the Nirvana Spa in DHA for modern recovery, or join the locals for a sunrise power-walk in Model Town Park, which features a dedicated 2.5km fitness track under ancient trees.',
+      privacy: 'Stay in Gulberg III for high-end privacy with immediate access to M.M. Alam Road\u2019s wellness boutiques.',
+    },
   },
   {
     slug: 'abu-dhabi',
@@ -629,6 +644,11 @@ export const DESTINATIONS: Destination[] = [
         a: 'Hampstead Heath Ladies\u2019 / Men\u2019s / Mixed Ponds at sunrise \u2014 open year-round, \u00A34.75 entry, the city\u2019s best-kept secret. Follow with coffee at Ginger \u0026 White in Belsize Park.',
       },
     ],
+    scout: {
+      morningRitual: 'A \u2018Serpentine Dip\u2019 or a walk through Regent\u2019s Park to catch the sunset at Primrose Hill. It\u2019s the ritual of choice for London\u2019s creative class to ground themselves in the city\u2019s green lungs.',
+      wellness: 'For community wellness, visit the Walthamstow Community Sauna Baths. For high-end fitness, scout the boutique studios in Marylebone or the lidos (outdoor pools) like Brockwell or Parliament Hill.',
+      privacy: 'Look beyond Zone 1. We scout Richmond or Crouch End \u2014 neighbourhoods that feel like English market towns but are just 20 minutes from the centre.',
+    },
   },
   {
     slug: 'sharm-el-sheikh',
