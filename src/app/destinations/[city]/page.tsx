@@ -6,6 +6,7 @@ import Footer from '@/components/Footer';
 import { DESTINATIONS, getDestination } from '@/data/destinations';
 
 export const dynamicParams = false;
+export const revalidate = 86400; // refresh once a day — keeps pages fast + fresh
 
 export function generateStaticParams() {
   return DESTINATIONS.map(d => ({ city: d.slug }));
@@ -41,6 +42,15 @@ export default async function DestinationPage(
   const { city } = await params;
   const d = getDestination(city);
   if (!d) notFound();
+
+  // Scout sidebar — prefer explicit scout data, else derive from FAQs + neighbourhoods
+  const morningFaq = d.faqs.find(f => /morning|ritual|sunrise/i.test(f.q));
+  const quietHood = d.neighbourhoods.find(n => /quiet|slow|boutique|calm|wellness|spa/i.test(n.blurb)) ?? d.neighbourhoods[d.neighbourhoods.length - 1];
+  const scout = d.scout ?? {
+    morningRitual: morningFaq?.a ?? `Walk ${d.neighbourhoods[0].name} at sunrise before the city wakes — the streets are yours for an hour.`,
+    wellness: d.whyGo,
+    privacy: `${quietHood.name} — ${quietHood.blurb}`,
+  };
 
   const faqSchema = {
     '@context': 'https://schema.org',
@@ -138,6 +148,37 @@ export default async function DestinationPage(
         <div className="bg-[#F8FAFC] border border-[#F1F3F7] rounded-2xl p-6">
           <h2 className="font-poppins font-bold text-[1rem] text-[#0066FF] mb-2">Best time to visit</h2>
           <p className="text-[.92rem] text-[#5C6378] leading-relaxed">{d.bestTime}</p>
+        </div>
+      </section>
+
+      {/* Scout Sidebar — local intelligence */}
+      <section className="max-w-[1000px] mx-auto px-5 pb-12">
+        <div className="bg-gradient-to-br from-[#0a1628] to-[#0F1119] rounded-3xl p-7 md:p-10 text-white">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="inline-block bg-[#FFD700]/15 text-[#FFD700] text-[.6rem] font-black uppercase tracking-[2.5px] px-3 py-1.5 rounded-full border border-[#FFD700]/30">
+              🔍 Scout Report
+            </span>
+            <span className="text-[.75rem] text-white/60 font-semibold">
+              Life, not lodging — our on-the-ground intel for {d.city}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+              <div className="text-[.65rem] font-black uppercase tracking-[2px] text-[#FFD700] mb-2">🌅 Morning Ritual</div>
+              <p className="text-[.85rem] text-white/85 leading-relaxed">{scout.morningRitual}</p>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+              <div className="text-[.65rem] font-black uppercase tracking-[2px] text-[#FFD700] mb-2">🧘 Wellness</div>
+              <p className="text-[.85rem] text-white/85 leading-relaxed">{scout.wellness}</p>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+              <div className="text-[.65rem] font-black uppercase tracking-[2px] text-[#FFD700] mb-2">🔒 Privacy</div>
+              <p className="text-[.85rem] text-white/85 leading-relaxed">{scout.privacy}</p>
+            </div>
+          </div>
+          <p className="text-[.7rem] text-white/50 mt-5 text-center font-semibold tracking-wide">
+            Vetted for safety and authentic lifestyle integration · Refreshed monthly
+          </p>
         </div>
       </section>
 

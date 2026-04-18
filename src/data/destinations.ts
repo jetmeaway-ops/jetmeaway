@@ -15,6 +15,12 @@ export interface Destination {
   /** SEO overrides — when present, used instead of the auto-generated defaults */
   seoTitle?: string;
   metaDescription?: string;
+  /** Scout Sidebar — local intelligence surfaced as a distinct block */
+  scout?: {
+    morningRitual: string;
+    wellness: string;
+    privacy: string;
+  };
 }
 
 export const DESTINATIONS: Destination[] = [
