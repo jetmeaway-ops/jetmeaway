@@ -1289,8 +1289,22 @@ function HotelsContent() {
   const cheapest = sortedHotels && sortedHotels.length > 0 ? sortedHotels[0] : null;
   const nights = getNights();
 
-  // Build the href for a hotel's detail page, carrying search context
+  // Build the href for a hotel's detail page, carrying search context.
+  // Curated (non-LiteAPI) cards have no internal detail page — route them to
+  // Trip.com instead so the click still lands on a working partner page.
   const buildDetailHref = (h: HotelResult) => {
+    const idStr = String(h.id);
+    const isInternal = idStr.startsWith('la_');
+    if (!isInternal) {
+      // Non-LiteAPI (curated / unquarantined legacy) → send to Trip.com via
+      // the interstitial redirect so affiliate tracking + UX stays consistent.
+      return redirectUrl(
+        buildTripcomUrl(searchedDest, checkin, checkout, adults),
+        'Trip.com',
+        searchedDest,
+        'hotels',
+      );
+    }
     const qp = new URLSearchParams({
       checkin,
       checkout,
@@ -1311,7 +1325,7 @@ function HotelsContent() {
     if (h.perks && h.perks.length > 0) qp.set('perks', h.perks.join(','));
     if (h.signalType) qp.set('signal', h.signalType);
     if (h.excludedTaxes != null && h.excludedTaxes > 0) qp.set('localFees', String(h.excludedTaxes));
-    return `/hotels/${encodeURIComponent(String(h.id))}?${qp.toString()}`;
+    return `/hotels/${encodeURIComponent(idStr)}?${qp.toString()}`;
   };
 
   return (
