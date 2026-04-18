@@ -198,15 +198,30 @@ async function searchTravelpayouts(
   const headers = { Accept: 'application/json' };
   const queries: Promise<any>[] = [];
 
+  // Main queries — return + one-way with bumped limit (30) so the tail
+  // isn't chopped. Aviasales v3 groups by cheapest-per-flight-number, so
+  // on premium OD pairs (e.g. LHR→DXB) a limit of 10 was silently hiding
+  // BA/VS/Emirates direct rotations behind cheaper 1-stop fares.
   if (retDate) {
     queries.push(
-      fetch(`https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${depDate}&return_at=${retDate}&currency=gbp&sorting=price&limit=10&market=gb&token=${TP_TOKEN}`, { headers })
+      fetch(`https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${depDate}&return_at=${retDate}&currency=gbp&sorting=price&limit=30&market=gb&token=${TP_TOKEN}`, { headers })
+        .then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] }))
+    );
+    // Dedicated direct-only pull — guarantees direct flights are present
+    // in the result set instead of being hidden behind cheaper 1-stop
+    // fares by the cheapest-per-flight grouping.
+    queries.push(
+      fetch(`https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${depDate}&return_at=${retDate}&currency=gbp&sorting=price&limit=10&market=gb&direct=true&token=${TP_TOKEN}`, { headers })
         .then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] }))
     );
   }
 
   queries.push(
-    fetch(`https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${depDate}&currency=gbp&sorting=price&limit=10&market=gb&one_way=true&token=${TP_TOKEN}`, { headers })
+    fetch(`https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${depDate}&currency=gbp&sorting=price&limit=30&market=gb&one_way=true&token=${TP_TOKEN}`, { headers })
+      .then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] }))
+  );
+  queries.push(
+    fetch(`https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${depDate}&currency=gbp&sorting=price&limit=10&market=gb&one_way=true&direct=true&token=${TP_TOKEN}`, { headers })
       .then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] }))
   );
 
@@ -230,7 +245,9 @@ async function searchTravelpayouts(
   const allData = Array.from(bestByKey.values());
   allData.sort((a: any, b: any) => a.price - b.price);
 
-  return allData.slice(0, 10).map((f: any) => ({
+  // 20 rows is enough to surface ~3 direct + ~10 one-stop + tail; the UI
+  // filter sidebar makes further trimming the user's choice, not ours.
+  return allData.slice(0, 20).map((f: any) => ({
     airline: airlineName(f.airline),
     airlineCode: f.airline,
     price: f.price,                    // Travelpayouts prices shown as-is (no markup — affiliate model)
@@ -277,6 +294,76 @@ export async function GET(req: NextRequest) {
 
   const headers = { Accept: 'application/json' };
 
+  // ── Date-strip mode (D−3 … D+3 cheapest per date, Travelpayouts only) ──
+  // Used by the <DateMatrixStrip /> on the flight results page so users can
+  // see how much they'd save by shifting +/- 3 days without re-running the
+  // full Duffel flow (which would 7× API usage). Return-date-aware: if a
+  // retDate is provided we shift it by the same delta so each cell is a
+  // like-for-like round-trip price; otherwise we query one-way.
+  if (mode === 'datestrip') {
+    if (!depDate) {
+      return NextResponse.json({ error: 'Missing departure date' }, { status: 400 });
+    }
+    const stripKey = `flights:strip:v1:${origin}:${destination}:${depDate}:${retDate || 'ow'}`;
+    try {
+      const cached = await kv.get<any>(stripKey);
+      if (cached) return NextResponse.json({ ...cached, cached: true });
+    } catch {}
+
+    // Build D-3..D+3 around depDate
+    const base = new Date(depDate + 'T00:00:00Z');
+    const baseRet = retDate ? new Date(retDate + 'T00:00:00Z') : null;
+    const offsets = [-3, -2, -1, 0, 1, 2, 3];
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    const cells = offsets.map(off => {
+      const d = new Date(base);
+      d.setUTCDate(d.getUTCDate() + off);
+      const r = baseRet ? new Date(baseRet) : null;
+      if (r) r.setUTCDate(r.getUTCDate() + off);
+      return {
+        offset: off,
+        dep: d.toISOString().slice(0, 10),
+        ret: r ? r.toISOString().slice(0, 10) : null,
+        // Any date in the past — skip the API call and render the cell blank.
+        past: d < today,
+      };
+    });
+
+    // Per-fetch 4 s timeout. Travelpayouts usually answers in <300 ms, but
+    // if one cell hangs we don't want the whole strip (and the Edge
+    // function's time budget) held hostage — the Promise.all resolves as
+    // soon as the slow cell aborts, and that cell just renders `—`.
+    const STRIP_TIMEOUT_MS = 4000;
+
+    const results = await Promise.all(cells.map(async (c) => {
+      if (c.past) {
+        return { ...c, cheapest_price_gbp: null };
+      }
+      const ac = new AbortController();
+      const timer = setTimeout(() => ac.abort(), STRIP_TIMEOUT_MS);
+      try {
+        const url = c.ret
+          ? `https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${c.dep}&return_at=${c.ret}&currency=gbp&sorting=price&limit=1&market=gb&token=${TP_TOKEN}`
+          : `https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${c.dep}&currency=gbp&sorting=price&limit=1&market=gb&one_way=true&token=${TP_TOKEN}`;
+        const r = await fetch(url, { headers, signal: ac.signal });
+        if (!r.ok) return { ...c, cheapest_price_gbp: null };
+        const j = await r.json();
+        const price = j.data?.[0]?.price ?? null;
+        return { ...c, cheapest_price_gbp: price };
+      } catch {
+        return { ...c, cheapest_price_gbp: null };
+      } finally {
+        clearTimeout(timer);
+      }
+    }));
+
+    const response = { success: true, dates: results, origin, destination, depDate, retDate };
+    try { await kv.set(stripKey, response, { ex: 3600 }); } catch {}
+    return NextResponse.json(response);
+  }
+
   // ── Calendar / month-matrix mode (Travelpayouts only — Duffel doesn't have this) ──
   if (mode === 'calendar') {
     const month = searchParams.get('month');
@@ -309,7 +396,10 @@ export async function GET(req: NextRequest) {
   }
 
   // Check cache (include children/infants so mixed-party searches don't collide)
-  const kvKey = `flights:v4:${origin}:${destination}:${depDate}:${retDate || 'ow'}:${adults}c${children}i${infants}:${cabinClass}`;
+  // v5 — bumped 2026-04-18 when Travelpayouts limits were raised (10→30)
+  // and a dedicated direct-only pull was added. Old v4 entries would
+  // otherwise serve stale 6-flight results for up to 30 min post-deploy.
+  const kvKey = `flights:v5:${origin}:${destination}:${depDate}:${retDate || 'ow'}:${adults}c${children}i${infants}:${cabinClass}`;
   try {
     const cached = await kv.get<any>(kvKey);
     if (cached) return NextResponse.json({ ...cached, cached: true });

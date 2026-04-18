@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import DateRangePicker from '@/components/DateRangePicker';
+import DateMatrixStrip, { type MatrixOption } from '@/components/DateMatrixStrip';
 import { redirectUrl } from '@/lib/redirect';
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -922,6 +923,17 @@ function FlightsContent() {
   const [apiError, setApiError] = useState('');
   const [searched, setSearched] = useState(false);
 
+  // Date-matrix strip (D−3 … D+3) — populated after every successful search.
+  // Cached server-side in KV for 1h, so shifting dates and coming back is
+  // instant for the duration of a user's session.
+  const [dateStrip, setDateStrip] = useState<MatrixOption[]>([]);
+  const [dateStripLoading, setDateStripLoading] = useState(false);
+  // Bumped whenever a strip click shifts the dates. The useEffect below
+  // waits for state to flush and then re-runs handleSearch with fresh
+  // depDate/retDate — we can't call handleSearch from the click handler
+  // directly because its closure still holds the old dates at click time.
+  const [dateShiftTrigger, setDateShiftTrigger] = useState(0);
+
   // Filter + sort state
   type SortBy = 'price-asc' | 'price-desc' | 'duration-asc' | 'duration-desc';
   type StopsFilter = 'any' | 'direct' | 'max1' | 'max2';
@@ -966,6 +978,34 @@ function FlightsContent() {
     if (cab === 'premium_economy' || cab === 'business' || cab === 'first') setCabinClass(cab);
   }, []);
 
+  /**
+   * Back / forward button support. The DateMatrixStrip uses pushState to
+   * update `?departure=…&return=…` without a navigation — so the browser
+   * history entry exists but React state doesn't auto-rehydrate. This
+   * listener syncs state to URL on popstate and re-fires the search so
+   * the results match what the URL says.
+   */
+  useEffect(() => {
+    const onPop = () => {
+      const p = new URLSearchParams(window.location.search);
+      const dep = p.get('departure') || '';
+      const ret = p.get('return') || '';
+      if (dep) setDepDate(dep);
+      if (ret) {
+        setRetDate(ret);
+        setTripType('return');
+      } else {
+        setRetDate('');
+        setTripType('one-way');
+      }
+      // Defer the re-search to the next tick so state commits first —
+      // same pattern as handleDateStripChange. Any truthy bump works.
+      setDateShiftTrigger(t => t + 1);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
   const today = new Date().toISOString().split('T')[0];
 
   const handleSearch = useCallback(async () => {
@@ -1002,6 +1042,47 @@ function FlightsContent() {
       setFlights(data.flights || []);
       setLoading(false);
 
+      // Fire-and-forget: load the D−3…D+3 price strip. Travelpayouts-only
+      // + KV-cached so this never blocks the main results render. If it
+      // fails we silently render nothing — the page stays fully usable.
+      (async () => {
+        setDateStripLoading(true);
+        setDateStrip([]);
+        try {
+          const stripParams = new URLSearchParams({
+            origin: originCode,
+            destination: destCode,
+            departure: depDate,
+            mode: 'datestrip',
+          });
+          if (retDate && tripType === 'return') stripParams.set('return', retDate);
+          const sRes = await fetch(`/api/flights?${stripParams}`);
+          const sData = await sRes.json();
+          if (sData.success && Array.isArray(sData.dates)) {
+            const effectiveRet = tripType === 'return' ? retDate : null;
+            const mapped: MatrixOption[] = sData.dates.map((c: { dep: string; ret: string | null; cheapest_price_gbp: number | null }) => {
+              const d = new Date(c.dep + 'T00:00:00Z');
+              const r = c.ret ? new Date(c.ret + 'T00:00:00Z') : null;
+              const label = r
+                ? `${d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })} – ${r.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })}`
+                : d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+              return {
+                id: c.dep,
+                label,
+                price: c.cheapest_price_gbp,
+                isSelected: c.dep === depDate && (c.ret || null) === (effectiveRet || null),
+                metadata: { dep: c.dep, ret: c.ret },
+              };
+            });
+            setDateStrip(mapped);
+          }
+        } catch {
+          // Silent fail — strip is a nice-to-have, not a hard requirement.
+        } finally {
+          setDateStripLoading(false);
+        }
+      })();
+
       // Scroll to results
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
     } catch {
@@ -1009,6 +1090,47 @@ function FlightsContent() {
       setLoading(false);
     }
   }, [originCode, destCode, depDate, retDate, adults, children, infants, tripType, cabinClass]);
+
+  /**
+   * Handler for a cell click in <DateMatrixStrip />. Reads dep/ret from
+   * option.metadata, shifts state, pushes URL, triggers re-search.
+   */
+  const handleDateStripSelect = useCallback((option: MatrixOption) => {
+    const meta = option.metadata as { dep: string; ret: string | null } | undefined;
+    if (!meta) return;
+    const { dep: newDep, ret: newRet } = meta;
+    setDepDate(newDep);
+    if (newRet) {
+      setRetDate(newRet);
+      setTripType('return');
+    } else {
+      setRetDate('');
+      setTripType('one-way');
+    }
+    // URL sync — keeps back/forward navigation intact. We only touch our
+    // own keys and preserve anything else (sid, utm_*, etc.).
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('origin', originCode);
+      url.searchParams.set('dest', destCode);
+      url.searchParams.set('departure', newDep);
+      if (newRet) url.searchParams.set('return', newRet);
+      else url.searchParams.delete('return');
+      window.history.pushState({}, '', url.toString());
+    } catch {}
+    setDateShiftTrigger(t => t + 1);
+  }, [originCode, destCode]);
+
+  // Re-run the search after a date-strip click. Bumping dateShiftTrigger
+  // fires this effect only once per click, after setDepDate/setRetDate
+  // have committed — so handleSearch sees the fresh dates.
+  useEffect(() => {
+    if (dateShiftTrigger === 0) return;
+    handleSearch();
+    // We intentionally depend only on the trigger (not handleSearch itself)
+    // so re-mounting handleSearch for unrelated reasons doesn't loop-search.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateShiftTrigger]);
 
   // Helper: format departure/arrival times from ISO string
   function fmtTime(iso: string | null): string {
@@ -1280,6 +1402,19 @@ function FlightsContent() {
                 <p className="text-[.7rem] text-[#8E95A9] font-semibold">{cheapest.source === 'duffel' ? 'Live prices including all taxes & fees. Book directly.' : 'Prices are indicative based on recent searches. Click \'View Deal\' for live pricing from the provider.'}</p>
               </div>
             </section>
+          )}
+
+          {/* Date Matrix Strip — D−3 … D+3 cheapest-per-date. Lets users
+              shift the search without retyping dates. Fetched separately
+              from /api/flights?mode=datestrip (Travelpayouts-only, KV-cached
+              for 1h) so it never slows down the main Duffel results. */}
+          {(dateStripLoading || dateStrip.length > 0) && (
+            <DateMatrixStrip
+              type="flights"
+              options={dateStrip}
+              loading={dateStripLoading}
+              onSelect={handleDateStripSelect}
+            />
           )}
 
           {/* ATOL / flight-only notice */}

@@ -736,9 +736,104 @@ export async function GET(req: NextRequest) {
   const roomsParam = searchParams.get('rooms') || '1';
   const starsParam = searchParams.get('stars') || '0';
   const placeId = searchParams.get('placeId') || '';
+  const mode = searchParams.get('mode') || '';
 
   if (!city || !checkin || !checkout) {
     return NextResponse.json({ error: 'Missing required parameters (city, checkin, checkout)' }, { status: 400 });
+  }
+
+  /* ── Date-strip mode (D−3 … D+3 cheapest per check-in, Hotellook cache only) ──
+     Used by <DateMatrixStrip /> on the hotel results page. Keeps the stay-
+     length locked (each cell = same N-night stay starting N days earlier or
+     later), so every price is directly comparable. Uses the free Hotellook
+     `cache.json` endpoint rather than LiteAPI — 7 LiteAPI availability
+     calls per page-view would be prohibitive on cost; Hotellook gives us
+     cached min-prices in a single shot per date with zero metered usage.
+     Cached server-side in Vercel KV 24h — hotel prices drift slower than
+     flight seats, so a longer TTL is safe. */
+  if (mode === 'datestrip') {
+    const adultsNum = parseInt(adults) || 2;
+    const cityForCache = (placeId || city.toLowerCase().trim());
+
+    const checkinDate = new Date(checkin + 'T00:00:00Z');
+    const checkoutDate = new Date(checkout + 'T00:00:00Z');
+    const nights = Math.max(1, Math.round((checkoutDate.getTime() - checkinDate.getTime()) / 86400000));
+
+    const stripKey = `hotels:strip:v1:${cityForCache}:${checkin}:${nights}n:${adultsNum}`;
+    try {
+      const cached = await kv.get<any>(stripKey);
+      if (cached) return NextResponse.json({ ...cached, cached: true });
+    } catch {}
+
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    const offsets = [-3, -2, -1, 0, 1, 2, 3];
+    const cells = offsets.map(off => {
+      const ci = new Date(checkinDate);
+      ci.setUTCDate(ci.getUTCDate() + off);
+      const co = new Date(ci);
+      co.setUTCDate(co.getUTCDate() + nights);
+      return {
+        offset: off,
+        checkin: ci.toISOString().slice(0, 10),
+        checkout: co.toISOString().slice(0, 10),
+        past: ci < today,
+      };
+    });
+
+    // Per-fetch 4s timeout — upstream cache.json usually answers in <300 ms,
+    // but we don't want one slow cell holding the Edge function past budget.
+    const STRIP_TIMEOUT_MS = 4000;
+    // Travelpayouts shared partner token (same one baked into flights route).
+    const HOTELLOOK_TOKEN = 'f797fbb7074a15838d5536c10be6f7b5';
+
+    // Hotellook's cache endpoint needs a `location=<City Name>` string, not
+    // a slug/placeId. Capitalise the first letter of each word so
+    // "hong kong" → "Hong Kong".
+    const locationName = city
+      .split(' ')
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+
+    const results = await Promise.all(cells.map(async (c) => {
+      if (c.past) {
+        return { ...c, total_price_gbp: null };
+      }
+      const ac = new AbortController();
+      const timer = setTimeout(() => ac.abort(), STRIP_TIMEOUT_MS);
+      try {
+        const url = `https://engine.hotellook.com/api/v2/cache.json?location=${encodeURIComponent(locationName)}&currency=gbp&checkIn=${c.checkin}&checkOut=${c.checkout}&adults=${adultsNum}&limit=1&token=${HOTELLOOK_TOKEN}`;
+        const r = await fetch(url, { headers: { Accept: 'application/json' }, signal: ac.signal });
+        if (!r.ok) return { ...c, total_price_gbp: null };
+        const j = await r.json();
+        // cache.json returns an array; pick the min priceAvg/priceFrom from
+        // whatever is cheapest. Some payloads use `priceAvg`, others `priceFrom`.
+        const offers = Array.isArray(j) ? j : [];
+        let minPrice: number | null = null;
+        for (const o of offers) {
+          const p = Number(o.priceFrom ?? o.priceAvg ?? 0);
+          if (p > 0 && (minPrice === null || p < minPrice)) minPrice = p;
+        }
+        return { ...c, total_price_gbp: minPrice };
+      } catch {
+        return { ...c, total_price_gbp: null };
+      } finally {
+        clearTimeout(timer);
+      }
+    }));
+
+    const response = {
+      success: true,
+      dates: results,
+      nights,
+      city,
+      placeId: placeId || null,
+      checkin,
+      checkout,
+    };
+    try { await kv.set(stripKey, response, { ex: 86400 }); } catch {}
+    return NextResponse.json(response);
   }
 
   const cityKey = city.toLowerCase().trim();

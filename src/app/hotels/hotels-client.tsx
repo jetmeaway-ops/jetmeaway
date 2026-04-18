@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import DateRangePicker from '@/components/DateRangePicker';
+import DateMatrixStrip, { type MatrixOption } from '@/components/DateMatrixStrip';
 import { redirectUrl } from '@/lib/redirect';
 
 const ScoutSidebar = dynamic(() => import('@/components/ScoutSidebar'), { ssr: false });
@@ -994,6 +995,15 @@ function HotelsContent() {
   const [dealsLoading, setDealsLoading] = useState(true);
   const [dealBookingId, setDealBookingId] = useState<string | null>(null);
 
+  // Date-matrix strip (D−3 … D+3 check-in, stay-length locked). Loaded
+  // after the main LiteAPI search resolves so it never blocks results.
+  // Powered by Hotellook `cache.json` (free, cached) — not LiteAPI.
+  const [dateStrip, setDateStrip] = useState<MatrixOption[]>([]);
+  const [dateStripLoading, setDateStripLoading] = useState(false);
+  // Bumped whenever a strip click shifts check-in/out. The useEffect
+  // below waits for state to flush then re-fires handleSearch.
+  const [dateShiftTrigger, setDateShiftTrigger] = useState(0);
+
   useEffect(() => {
     fetch('/api/hotels/deals')
       .then(r => r.json())
@@ -1124,12 +1134,92 @@ function HotelsContent() {
       setHotels(data.hotels || []);
       setLoading(false);
 
+      // Fire-and-forget: load the D−3…D+3 check-in strip. Hotellook-only
+      // (free, cached) so this never multiplies LiteAPI cost per visit.
+      (async () => {
+        setDateStripLoading(true);
+        setDateStrip([]);
+        try {
+          const stripParams = new URLSearchParams({
+            city: destination,
+            checkin,
+            checkout,
+            adults: String(adults),
+            mode: 'datestrip',
+          });
+          if (selectedPlaceId) stripParams.set('placeId', selectedPlaceId);
+          const sRes = await fetch(`/api/hotels?${stripParams}`);
+          const sData = await sRes.json();
+          if (sData.success && Array.isArray(sData.dates)) {
+            const stripNights = sData.nights || 1;
+            const mapped: MatrixOption[] = sData.dates.map((c: { checkin: string; checkout: string; total_price_gbp: number | null }) => {
+              const ci = new Date(c.checkin + 'T00:00:00Z');
+              const label = `${ci.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })} · ${stripNights}n`;
+              return {
+                id: c.checkin,
+                label,
+                price: c.total_price_gbp,
+                isSelected: c.checkin === checkin,
+                metadata: { checkin: c.checkin, checkout: c.checkout },
+              };
+            });
+            setDateStrip(mapped);
+          }
+        } catch {
+          // Silent fail — strip is a nice-to-have.
+        } finally {
+          setDateStripLoading(false);
+        }
+      })();
+
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
     } catch {
       setApiError('Could not load hotel prices. Please try again.');
       setLoading(false);
     }
   }, [destination, selectedPlaceId, checkin, checkout, adults, childCount, rooms, minStars, childrenAges]);
+
+  /**
+   * Strip cell click: shift check-in / check-out (stay-length preserved
+   * by the API) and re-run the LiteAPI search. Pushes the new dates to
+   * the URL so back/forward navigation is intact.
+   */
+  const handleDateStripSelect = useCallback((option: MatrixOption) => {
+    const meta = option.metadata as { checkin: string; checkout: string } | undefined;
+    if (!meta) return;
+    setCheckin(meta.checkin);
+    setCheckout(meta.checkout);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('checkin', meta.checkin);
+      url.searchParams.set('checkout', meta.checkout);
+      window.history.pushState({}, '', url.toString());
+    } catch {}
+    setDateShiftTrigger(t => t + 1);
+  }, []);
+
+  // Re-run the hotel search after a strip click once state has committed.
+  useEffect(() => {
+    if (dateShiftTrigger === 0) return;
+    handleSearch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateShiftTrigger]);
+
+  // Back / forward button support. The strip uses pushState so React
+  // state doesn't auto-rehydrate — this listener reads the URL on
+  // popstate and re-runs the search.
+  useEffect(() => {
+    const onPop = () => {
+      const p = new URLSearchParams(window.location.search);
+      const cin = p.get('checkin') || '';
+      const cout = p.get('checkout') || '';
+      if (cin) setCheckin(cin);
+      if (cout) setCheckout(cout);
+      setDateShiftTrigger(t => t + 1);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
 
   // Auto-search when URL params are present
   const autoSearched = useRef(false);
@@ -1514,6 +1604,20 @@ function HotelsContent() {
                 <p className="text-[.7rem] text-[#8E95A9] font-semibold">Prices based on recent searches — click any hotel for live pricing</p>
               </div>
             </section>
+          )}
+
+          {/* Date Matrix Strip — D−3 … D+3 check-in, same-number-of-nights.
+              Powered by /api/hotels?mode=datestrip → Hotellook cache.json
+              (free, cached 24h in KV). Does NOT touch LiteAPI — 7 extra
+              availability calls per search would be prohibitive on cost. */}
+          {(dateStripLoading || dateStrip.length > 0) && (
+            <DateMatrixStrip
+              type="hotels"
+              options={dateStrip}
+              loading={dateStripLoading}
+              onSelect={handleDateStripSelect}
+              nights={getNights()}
+            />
           )}
 
           {/* Sort + View toolbar */}
