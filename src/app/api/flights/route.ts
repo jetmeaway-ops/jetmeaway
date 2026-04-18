@@ -313,10 +313,15 @@ export async function GET(req: NextRequest) {
     if (!depDate) {
       return NextResponse.json({ error: 'Missing departure date' }, { status: 400 });
     }
-    // v5 — cache key now keys on intended trip length. A user looking
-    // at a 14n trip from LHR→DXB must not be served a cached strip
-    // populated for someone's 3n trip — the scoutTip + subLabels are
-    // duration-relative and would mislead. Compute nights up-front.
+    // v6 — cache shape refactored. Previously we cached the final
+    // user-facing response, but that response embeds basePrice into
+    // the selected cell + scoutTip.savings. A second request with a
+    // different basePrice hit the cache and got a stale scoutTip.
+    //
+    // Fix: cache only the neighbour-cell calendar data (price,
+    // actual_nights, actual_return per dep date) + the candidate
+    // pool for scoutTip. Recompute basePrice-dependent bits per
+    // request. Still keyed on nights to stop cross-duration bleed.
     const intendedNightsForKey = retDate
       ? Math.round(
           (new Date(retDate + 'T00:00:00Z').getTime() -
@@ -324,11 +329,7 @@ export async function GET(req: NextRequest) {
             86400000,
         )
       : 0;
-    const stripKey = `flights:strip:v5:${origin}:${destination}:${depDate}:${retDate || 'ow'}:${intendedNightsForKey}n`;
-    try {
-      const cached = await kv.get<any>(stripKey);
-      if (cached) return NextResponse.json({ ...cached, cached: true });
-    } catch {}
+    const stripKey = `flights:strip:v6:${origin}:${destination}:${depDate}:${retDate || 'ow'}:${intendedNightsForKey}n`;
 
     // Build D-3..D+3 around depDate
     const base = new Date(depDate + 'T00:00:00Z');
@@ -350,145 +351,208 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    // Collect the months we need (usually 1, sometimes 2 if ±3 spans
-    // a month boundary, very rarely 3 if selected date is e.g. 30 Apr
-    // with long return — but ret doesn't affect depart_date lookup).
-    const depMonths = new Set<string>();
-    const retMonths = new Set<string>();
-    for (const c of cells) {
-      if (c.past) continue;
-      depMonths.add(c.dep.slice(0, 7));
-      if (c.ret) retMonths.add(c.ret.slice(0, 7));
-    }
-
-    const STRIP_TIMEOUT_MS = 4000;
-
-    // Optional hint from the client — the cheapest price the live main
-    // search just found. Forced onto the selected cell so the strip
-    // never contradicts the results below even if TP's cache lags.
-    const basePriceHint = searchParams.get('basePrice');
-    const basePriceNum = basePriceHint ? parseFloat(basePriceHint) : null;
-
-    // Fetch the calendar for each (depMonth, retMonth) pair in parallel.
-    // Round-trip: we iterate depMonth × retMonth so TP filters to pairs
-    // where both sides fall in the right months. One-way: just depMonth.
-    type CalEntry = { price: number; return_at?: string };
-    const calendarMap = new Map<string, CalEntry>(); // key = dep date YYYY-MM-DD
-
-    // Intended stay length so the UI can flag cells that are cheap
-    // only because they're a different-length trip.
+    // Intended stay length — used by the cell subLabels + the (silently
+    // ignored) trip_duration param + the returned intendedNights field.
     const intendedNights = baseRet
       ? Math.round((baseRet.getTime() - base.getTime()) / 86400000)
       : null;
 
-    const fetchCalendar = async (depMonth: string, retMonth: string | null) => {
-      const ac = new AbortController();
-      const timer = setTimeout(() => ac.abort(), STRIP_TIMEOUT_MS);
-      try {
-        const params = new URLSearchParams({
-          origin,
-          destination,
-          depart_date: depMonth,
-          calendar_type: 'departure_date',
-          currency: 'gbp',
-          // market=en is a no-op today (same coverage as gb) but matches
-          // how TP documents global queries and future-proofs us if
-          // regional caches diverge.
-          market: 'en',
-          token: TP_TOKEN,
-        });
-        if (retMonth) params.set('return_date', retMonth);
-        // trip_duration is silently ignored by TP right now but we
-        // pass it anyway so we automatically get apples-to-apples
-        // pricing the moment TP honours the param.
-        if (intendedNights && intendedNights > 0) {
-          params.set('trip_duration', String(intendedNights));
-        }
-        const url = `https://api.travelpayouts.com/v1/prices/calendar?${params}`;
-        const r = await fetch(url, { headers, signal: ac.signal });
-        if (!r.ok) return;
-        const j = await r.json();
-        const data = (j?.data && typeof j.data === 'object') ? j.data : {};
-        for (const [dateKey, val] of Object.entries(data as Record<string, any>)) {
-          const priceNum = typeof val?.price === 'number' ? val.price : Number(val?.price);
-          if (!(priceNum > 0)) continue;
-          const existing = calendarMap.get(dateKey);
-          // If multiple retMonths produce entries for the same depDate,
-          // keep the cheaper one — still round-trip, still honest.
-          if (!existing || priceNum < existing.price) {
-            calendarMap.set(dateKey, { price: priceNum, return_at: val?.return_at });
-          }
-        }
-      } catch {
-        // Timeout or network — just let the relevant cells stay empty.
-      } finally {
-        clearTimeout(timer);
-      }
+    // Optional hint from the client — the cheapest price the live main
+    // search just found. Forced onto the selected cell so the strip
+    // never contradicts the results below even if TP's cache lags.
+    // basePrice is NOT cached — it varies per search and only drives
+    // the selected-cell override + scoutTip computation at response
+    // time.
+    const basePriceHint = searchParams.get('basePrice');
+    const basePriceNum = basePriceHint ? parseFloat(basePriceHint) : null;
+
+    type CellData = {
+      offset: number;
+      dep: string;
+      ret: string | null;
+      past: boolean;
+      cache_price: number | null;
+      actual_nights: number | null;
+      actual_return: string | null;
     };
 
-    const tasks: Array<Promise<void>> = [];
-    if (retMonths.size > 0) {
-      for (const dm of depMonths) {
-        for (const rm of retMonths) {
-          tasks.push(fetchCalendar(dm, rm));
-        }
-      }
-    } else {
-      for (const dm of depMonths) {
-        tasks.push(fetchCalendar(dm, null));
-      }
-    }
-    await Promise.all(tasks);
+    type StripCached = {
+      cells: CellData[];
+      // ±14-day candidate pool for scoutTip: date → price. Stored
+      // separately so the tip can be recomputed per-request with the
+      // live basePrice.
+      scout_pool: Record<string, number>;
+    };
 
-    const results = cells.map(c => {
-      if (c.past) {
-        return { ...c, cheapest_price_gbp: null, actual_nights: null, actual_return: null };
+    // Try cache first — but only the basePrice-independent shape.
+    let stripData: StripCached | null = null;
+    try {
+      const cached = await kv.get<StripCached>(stripKey);
+      if (cached && Array.isArray(cached.cells) && cached.scout_pool) {
+        stripData = cached;
       }
-      const hit = calendarMap.get(c.dep);
-      let price: number | null = hit ? hit.price : null;
-      let actualNights: number | null = null;
-      let actualReturn: string | null = null;
-      if (hit?.return_at) {
-        actualReturn = hit.return_at.slice(0, 10);
-        const depMs = new Date(c.dep + 'T00:00:00Z').getTime();
-        const retMs = new Date(hit.return_at).getTime();
-        if (retMs > depMs) {
-          actualNights = Math.round((retMs - depMs) / 86400000);
+    } catch {}
+
+    if (!stripData) {
+      // Collect the months we need (usually 1, sometimes 2 if ±3 spans
+      // a month boundary, very rarely 3 if selected date is e.g. 30 Apr
+      // with long return — but ret doesn't affect depart_date lookup).
+      const depMonths = new Set<string>();
+      const retMonths = new Set<string>();
+      // Expand depMonths so the scout_pool covers the ±14 window too
+      // (e.g. for depDate=2026-05-15, window is 2026-05-01..05-29 so
+      // one month is enough; but depDate=2026-05-03 means we need
+      // both April and May). Simplest safe approach: add the month
+      // of (base−14) and (base+14) to cover the tip window.
+      const poolStart = new Date(base); poolStart.setUTCDate(poolStart.getUTCDate() - 14);
+      const poolEnd   = new Date(base); poolEnd.setUTCDate(poolEnd.getUTCDate() + 14);
+      depMonths.add(poolStart.toISOString().slice(0, 7));
+      depMonths.add(poolEnd.toISOString().slice(0, 7));
+      for (const c of cells) {
+        if (c.past) continue;
+        depMonths.add(c.dep.slice(0, 7));
+        if (c.ret) retMonths.add(c.ret.slice(0, 7));
+      }
+
+      const STRIP_TIMEOUT_MS = 4000;
+
+      type CalEntry = { price: number; return_at?: string };
+      const calendarMap = new Map<string, CalEntry>();
+
+      const fetchCalendar = async (depMonth: string, retMonth: string | null) => {
+        const ac = new AbortController();
+        const timer = setTimeout(() => ac.abort(), STRIP_TIMEOUT_MS);
+        try {
+          const params = new URLSearchParams({
+            origin,
+            destination,
+            depart_date: depMonth,
+            calendar_type: 'departure_date',
+            currency: 'gbp',
+            // market=en is a no-op today (same coverage as gb) but matches
+            // how TP documents global queries and future-proofs us if
+            // regional caches diverge.
+            market: 'en',
+            token: TP_TOKEN,
+          });
+          if (retMonth) params.set('return_date', retMonth);
+          // trip_duration is silently ignored by TP right now but we
+          // pass it anyway so we automatically get apples-to-apples
+          // pricing the moment TP honours the param.
+          if (intendedNights && intendedNights > 0) {
+            params.set('trip_duration', String(intendedNights));
+          }
+          const url = `https://api.travelpayouts.com/v1/prices/calendar?${params}`;
+          const r = await fetch(url, { headers, signal: ac.signal });
+          if (!r.ok) return;
+          const j = await r.json();
+          const data = (j?.data && typeof j.data === 'object') ? j.data : {};
+          for (const [dateKey, val] of Object.entries(data as Record<string, any>)) {
+            const priceNum = typeof val?.price === 'number' ? val.price : Number(val?.price);
+            if (!(priceNum > 0)) continue;
+            const existing = calendarMap.get(dateKey);
+            // If multiple retMonths produce entries for the same depDate,
+            // keep the cheaper one — still round-trip, still honest.
+            if (!existing || priceNum < existing.price) {
+              calendarMap.set(dateKey, { price: priceNum, return_at: val?.return_at });
+            }
+          }
+        } catch {
+          // Timeout or network — just let the relevant cells stay empty.
+        } finally {
+          clearTimeout(timer);
+        }
+      };
+
+      const tasks: Array<Promise<void>> = [];
+      if (retMonths.size > 0) {
+        for (const dm of depMonths) {
+          for (const rm of retMonths) {
+            tasks.push(fetchCalendar(dm, rm));
+          }
+        }
+      } else {
+        for (const dm of depMonths) {
+          tasks.push(fetchCalendar(dm, null));
         }
       }
+      await Promise.all(tasks);
+
+      // Bake the basePrice-independent cell data for caching.
+      const cellData: CellData[] = cells.map(c => {
+        if (c.past) {
+          return {
+            offset: c.offset, dep: c.dep, ret: c.ret, past: true,
+            cache_price: null, actual_nights: null, actual_return: null,
+          };
+        }
+        const hit = calendarMap.get(c.dep);
+        let actualNights: number | null = null;
+        let actualReturn: string | null = null;
+        if (hit?.return_at) {
+          actualReturn = hit.return_at.slice(0, 10);
+          const depMs = new Date(c.dep + 'T00:00:00Z').getTime();
+          const retMs = new Date(hit.return_at).getTime();
+          if (retMs > depMs) actualNights = Math.round((retMs - depMs) / 86400000);
+        }
+        return {
+          offset: c.offset,
+          dep: c.dep,
+          ret: c.ret,
+          past: false,
+          cache_price: hit ? hit.price : null,
+          actual_nights: actualNights,
+          actual_return: actualReturn,
+        };
+      });
+
+      // Bake the scout-pool: every calendar date inside ±14d except
+      // the strip itself. Pre-filtering here keeps the cached payload
+      // small and the per-request recompute cheap.
+      const windowStart = new Date(base); windowStart.setUTCDate(windowStart.getUTCDate() - 14);
+      const windowEnd   = new Date(base); windowEnd.setUTCDate(windowEnd.getUTCDate()   + 14);
+      const stripDates = new Set(cells.map(c => c.dep));
+      const pool: Record<string, number> = {};
+      for (const [dateKey, entry] of calendarMap.entries()) {
+        if (stripDates.has(dateKey)) continue;
+        const d = new Date(dateKey + 'T00:00:00Z');
+        if (d < today) continue;
+        if (d < windowStart || d > windowEnd) continue;
+        pool[dateKey] = entry.price;
+      }
+
+      stripData = { cells: cellData, scout_pool: pool };
+      try { await kv.set(stripKey, stripData, { ex: 3600 }); } catch {}
+    }
+
+    // ── Per-request: apply basePrice override + compute scoutTip ──
+    const results = stripData.cells.map(c => {
+      let price = c.cache_price;
+      let actualNights = c.actual_nights;
+      let actualReturn = c.actual_return;
       if (c.offset === 0 && basePriceNum && basePriceNum > 0) {
         price = basePriceNum;
-        // Selected cell reflects the user's exact intended shape.
+        // Selected cell always reflects the user's intended shape.
         actualNights = intendedNights;
         actualReturn = c.ret;
       }
       return {
-        ...c,
+        offset: c.offset,
+        dep: c.dep,
+        ret: c.ret,
+        past: c.past,
         cheapest_price_gbp: price,
         actual_nights: actualNights,
         actual_return: actualReturn,
       };
     });
 
-    // "Scout Tip" — the absolute cheapest date TP knows about within a
-    // wider window (±14 days). If it's meaningfully cheaper than the
-    // selected cell AND falls outside the ±3 strip, surface it so the
-    // user can one-click shift to that date.
     let scoutTip: { dep: string; price: number; savings: number } | null = null;
-    if (basePriceNum && basePriceNum > 0 && calendarMap.size > 0) {
-      const windowStart = new Date(base);
-      windowStart.setUTCDate(windowStart.getUTCDate() - 14);
-      const windowEnd = new Date(base);
-      windowEnd.setUTCDate(windowEnd.getUTCDate() + 14);
-      const stripDates = new Set(cells.map(c => c.dep));
+    if (basePriceNum && basePriceNum > 0) {
       let bestOutside: { dep: string; price: number } | null = null;
-      for (const [dateKey, entry] of calendarMap.entries()) {
-        if (stripDates.has(dateKey)) continue;
-        const d = new Date(dateKey + 'T00:00:00Z');
-        if (d < today) continue;
-        if (d < windowStart || d > windowEnd) continue;
-        if (!bestOutside || entry.price < bestOutside.price) {
-          bestOutside = { dep: dateKey, price: entry.price };
+      for (const [dateKey, price] of Object.entries(stripData.scout_pool)) {
+        if (!bestOutside || price < bestOutside.price) {
+          bestOutside = { dep: dateKey, price };
         }
       }
       if (bestOutside && bestOutside.price < basePriceNum * 0.85) {
@@ -500,7 +564,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const response = {
+    return NextResponse.json({
       success: true,
       dates: results,
       origin,
@@ -509,9 +573,7 @@ export async function GET(req: NextRequest) {
       retDate,
       intendedNights,
       scoutTip,
-    };
-    try { await kv.set(stripKey, response, { ex: 3600 }); } catch {}
-    return NextResponse.json(response);
+    });
   }
 
   // ── Calendar / month-matrix mode (Travelpayouts only — Duffel doesn't have this) ──
