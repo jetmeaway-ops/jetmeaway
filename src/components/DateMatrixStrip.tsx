@@ -29,6 +29,23 @@ export interface MatrixOption {
   isSelected: boolean;
   /** Opaque context the caller reads back in onSelect (e.g. dep/ret dates). */
   metadata?: unknown;
+  /**
+   * Optional sub-label rendered under the price. Flights use this to
+   * warn when the cheapest cached fare for a neighbour date is for a
+   * different stay length than the user intended (e.g. "5n" when they
+   * asked for 7n) — apples-to-apples honesty that TP's trip_duration
+   * param silently refuses to enforce server-side.
+   */
+  subLabel?: string;
+}
+
+export interface ScoutTip {
+  /** ISO date (YYYY-MM-DD) of the cheapest date outside the ±3 strip. */
+  dep: string;
+  /** GBP price for that date. */
+  price: number;
+  /** GBP savings vs the selected cell (always positive). */
+  savings: number;
 }
 
 interface DateMatrixStripProps {
@@ -40,6 +57,14 @@ interface DateMatrixStripProps {
   nights?: number;
   /** Optional click handler for the trailing "Flexible dates" cell. */
   onFlexible?: () => void;
+  /**
+   * If set, renders a "Scout Tip" line below the strip surfacing a
+   * cheaper date outside the ±3 window. Click handler shifts the
+   * search to that date. Caller provides the handler + metadata so
+   * this component stays dumb about URLs / fetches.
+   */
+  scoutTip?: ScoutTip | null;
+  onScoutTip?: (tip: ScoutTip) => void;
 }
 
 export default function DateMatrixStrip({
@@ -49,6 +74,8 @@ export default function DateMatrixStrip({
   onSelect,
   nights,
   onFlexible,
+  scoutTip,
+  onScoutTip,
 }: DateMatrixStripProps) {
   // Hotels-only view toggle. Users love seeing the total price so there
   // are no surprises at checkout, which aligns with our Trustpilot
@@ -138,12 +165,17 @@ export default function DateMatrixStrip({
             const isCheapest =
               hasPrice && option.price === cheapestPrice && !option.isSelected;
 
+            // ≥20% cheaper than the currently-selected cell earns the
+            // purple "Scout Choice" badge — Waqar tightened the
+            // threshold from 30% to 20% so genuine deals surface more
+            // often on expensive cities (a 25% drop on a £400/night
+            // Dubai hotel is still £100, worth flagging).
             const scoutValue =
               type === 'hotels' &&
               hasPrice &&
               !option.isSelected &&
               selectedPrice !== null &&
-              (option.price as number) <= selectedPrice * 0.7;
+              (option.price as number) <= selectedPrice * 0.8;
 
             return (
               <button
@@ -163,8 +195,8 @@ export default function DateMatrixStrip({
                 ].join(' ')}
               >
                 {scoutValue ? (
-                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-[#0066FF] text-white text-[.55rem] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full whitespace-nowrap">
-                    ★ Best Value
+                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] text-white text-[.55rem] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full whitespace-nowrap shadow-sm">
+                    ★ Scout Choice
                   </span>
                 ) : isCheapest ? (
                   <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[.55rem] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full whitespace-nowrap">
@@ -202,6 +234,21 @@ export default function DateMatrixStrip({
                     {hotelView === 'total' ? 'total' : '/ night'}
                   </span>
                 )}
+                {/* Selected cell → small pulsing "LIVE" badge so users
+                    understand this exact price is real-time (from the
+                    main search below) while the others are cache
+                    trends. Neighbour cells → optional subLabel e.g.
+                    "5n" to flag a different-length trip. */}
+                {option.isSelected && hasPrice ? (
+                  <span className="flex items-center gap-1 text-[.5rem] font-black uppercase tracking-wider leading-none mt-0.5 text-emerald-400">
+                    <span className="inline-block w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+                    Live
+                  </span>
+                ) : option.subLabel && hasPrice ? (
+                  <span className="text-[.5rem] font-bold leading-none mt-0.5 text-[#C08A3E]">
+                    {option.subLabel}
+                  </span>
+                ) : null}
               </button>
             );
           })}
@@ -222,7 +269,48 @@ export default function DateMatrixStrip({
             </button>
           )}
         </div>
+
+        {/* Scout Tip — progressive disclosure: the calendar API returns
+            a whole month, but we only render ±3. When a date outside
+            that window is meaningfully cheaper (≥15% savings), surface
+            it as a single-line nudge the user can one-click to shift
+            to. Clicking fires onScoutTip which the caller turns into
+            a full re-search at that date. */}
+        {scoutTip && onScoutTip && (
+          <button
+            type="button"
+            onClick={() => onScoutTip(scoutTip)}
+            className="mt-2 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-[#F3EFFE] to-[#FEF0F6] border border-[#8B5CF6]/20 hover:from-[#E9E0FC] hover:to-[#FDE3EE] hover:border-[#8B5CF6]/40 transition-all cursor-pointer group"
+          >
+            <span className="text-[.72rem]">🎯</span>
+            <span className="text-[.7rem] font-poppins font-bold text-[#1A1D2B]">
+              Scout Tip:
+              <span className="font-semibold text-[#5C6378]"> prices drop to </span>
+              <span className="font-black text-[#8B5CF6]">£{scoutTip.price.toLocaleString()}</span>
+              <span className="font-semibold text-[#5C6378]"> on </span>
+              <span className="font-black text-[#1A1D2B]">{formatTipDate(scoutTip.dep)}</span>
+              <span className="font-semibold text-[#5C6378]"> — save </span>
+              <span className="font-black text-emerald-600">£{scoutTip.savings.toLocaleString()}</span>
+            </span>
+            <span className="text-[.65rem] font-bold text-[#8B5CF6] group-hover:translate-x-0.5 transition-transform">→</span>
+          </button>
+        )}
       </div>
     </section>
   );
+}
+
+/** Local helper — "2026-04-23" → "Thu 23 Apr". */
+function formatTipDate(iso: string): string {
+  try {
+    const d = new Date(iso + 'T12:00:00Z');
+    return d.toLocaleDateString('en-GB', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      timeZone: 'UTC',
+    });
+  } catch {
+    return iso;
+  }
 }

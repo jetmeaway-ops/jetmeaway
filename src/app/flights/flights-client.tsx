@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import DateRangePicker from '@/components/DateRangePicker';
-import DateMatrixStrip, { type MatrixOption } from '@/components/DateMatrixStrip';
+import DateMatrixStrip, { type MatrixOption, type ScoutTip } from '@/components/DateMatrixStrip';
 import { redirectUrl } from '@/lib/redirect';
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -928,6 +928,11 @@ function FlightsContent() {
   // instant for the duration of a user's session.
   const [dateStrip, setDateStrip] = useState<MatrixOption[]>([]);
   const [dateStripLoading, setDateStripLoading] = useState(false);
+  const [dateScoutTip, setDateScoutTip] = useState<ScoutTip | null>(null);
+  // How many nights the user intended — used by handleDateStripSelect
+  // and handleScoutTip to reconstruct the round-trip return date for
+  // a new departure (we lock the trip length on shift, per spec).
+  const [intendedNights, setIntendedNights] = useState<number | null>(null);
   // Bumped whenever a strip click shifts the dates. The useEffect below
   // waits for state to flush and then re-runs handleSearch with fresh
   // depDate/retDate — we can't call handleSearch from the click handler
@@ -1053,6 +1058,7 @@ function FlightsContent() {
       (async () => {
         setDateStripLoading(true);
         setDateStrip([]);
+        setDateScoutTip(null);
         try {
           const stripParams = new URLSearchParams({
             origin: originCode,
@@ -1066,21 +1072,47 @@ function FlightsContent() {
           const sData = await sRes.json();
           if (sData.success && Array.isArray(sData.dates)) {
             const effectiveRet = tripType === 'return' ? retDate : null;
-            const mapped: MatrixOption[] = sData.dates.map((c: { dep: string; ret: string | null; cheapest_price_gbp: number | null }) => {
+            const userNights = typeof sData.intendedNights === 'number' ? sData.intendedNights : null;
+            setIntendedNights(userNights);
+            type StripCell = {
+              dep: string;
+              ret: string | null;
+              cheapest_price_gbp: number | null;
+              actual_nights?: number | null;
+              actual_return?: string | null;
+            };
+            const mapped: MatrixOption[] = sData.dates.map((c: StripCell) => {
               const d = new Date(c.dep + 'T00:00:00Z');
               const r = c.ret ? new Date(c.ret + 'T00:00:00Z') : null;
               const label = r
                 ? `${d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })} – ${r.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })}`
                 : d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+              // Apples-to-apples honesty: if TP's cheapest cached fare
+              // for a neighbour date is a different stay length than
+              // what the user asked for, surface that as a subLabel
+              // so the user knows why the price looks cheap.
+              let subLabel: string | undefined;
+              if (
+                userNights !== null &&
+                typeof c.actual_nights === 'number' &&
+                c.actual_nights > 0 &&
+                c.actual_nights !== userNights
+              ) {
+                subLabel = `${c.actual_nights}n trip`;
+              }
               return {
                 id: c.dep,
                 label,
                 price: c.cheapest_price_gbp,
                 isSelected: c.dep === depDate && (c.ret || null) === (effectiveRet || null),
                 metadata: { dep: c.dep, ret: c.ret },
+                subLabel,
               };
             });
             setDateStrip(mapped);
+            if (sData.scoutTip && typeof sData.scoutTip.price === 'number') {
+              setDateScoutTip(sData.scoutTip as ScoutTip);
+            }
           }
         } catch {
           // Silent fail — strip is a nice-to-have, not a hard requirement.
@@ -1126,6 +1158,39 @@ function FlightsContent() {
     } catch {}
     setDateShiftTrigger(t => t + 1);
   }, [originCode, destCode]);
+
+  /**
+   * Scout Tip click — shift to a cheaper date found outside the ±3
+   * strip. Locks the trip length at what the user originally asked
+   * for so the new price stays apples-to-apples.
+   */
+  const handleScoutTip = useCallback((tip: ScoutTip) => {
+    const newDep = tip.dep;
+    let newRet: string | null = null;
+    if (intendedNights && intendedNights > 0) {
+      const d = new Date(newDep + 'T00:00:00Z');
+      d.setUTCDate(d.getUTCDate() + intendedNights);
+      newRet = d.toISOString().slice(0, 10);
+    }
+    setDepDate(newDep);
+    if (newRet) {
+      setRetDate(newRet);
+      setTripType('return');
+    } else {
+      setRetDate('');
+      setTripType('one-way');
+    }
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('origin', originCode);
+      url.searchParams.set('dest', destCode);
+      url.searchParams.set('departure', newDep);
+      if (newRet) url.searchParams.set('return', newRet);
+      else url.searchParams.delete('return');
+      window.history.pushState({}, '', url.toString());
+    } catch {}
+    setDateShiftTrigger(t => t + 1);
+  }, [originCode, destCode, intendedNights]);
 
   // Re-run the search after a date-strip click. Bumping dateShiftTrigger
   // fires this effect only once per click, after setDepDate/setRetDate
@@ -1420,6 +1485,8 @@ function FlightsContent() {
               options={dateStrip}
               loading={dateStripLoading}
               onSelect={handleDateStripSelect}
+              scoutTip={dateScoutTip}
+              onScoutTip={handleScoutTip}
             />
           )}
 

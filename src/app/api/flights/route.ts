@@ -313,9 +313,12 @@ export async function GET(req: NextRequest) {
     if (!depDate) {
       return NextResponse.json({ error: 'Missing departure date' }, { status: 400 });
     }
-    // v3 — swapped prices_for_dates → prices/calendar for much better
-    // coverage across neighbour dates.
-    const stripKey = `flights:strip:v3:${origin}:${destination}:${depDate}:${retDate || 'ow'}`;
+    // v4 — annotate each cell with return_at + nights so the UI can
+    // show when a cheap cache entry is for a different stay length
+    // than the user intended (TP's trip_duration param is ignored so
+    // honesty-in-labels is the only real apples-to-apples lever).
+    // Also adds scoutTip surfacing the cheapest date outside ±3.
+    const stripKey = `flights:strip:v4:${origin}:${destination}:${depDate}:${retDate || 'ow'}`;
     try {
       const cached = await kv.get<any>(stripKey);
       if (cached) return NextResponse.json({ ...cached, cached: true });
@@ -366,6 +369,12 @@ export async function GET(req: NextRequest) {
     type CalEntry = { price: number; return_at?: string };
     const calendarMap = new Map<string, CalEntry>(); // key = dep date YYYY-MM-DD
 
+    // Intended stay length so the UI can flag cells that are cheap
+    // only because they're a different-length trip.
+    const intendedNights = baseRet
+      ? Math.round((baseRet.getTime() - base.getTime()) / 86400000)
+      : null;
+
     const fetchCalendar = async (depMonth: string, retMonth: string | null) => {
       const ac = new AbortController();
       const timer = setTimeout(() => ac.abort(), STRIP_TIMEOUT_MS);
@@ -376,9 +385,19 @@ export async function GET(req: NextRequest) {
           depart_date: depMonth,
           calendar_type: 'departure_date',
           currency: 'gbp',
+          // market=en is a no-op today (same coverage as gb) but matches
+          // how TP documents global queries and future-proofs us if
+          // regional caches diverge.
+          market: 'en',
           token: TP_TOKEN,
         });
         if (retMonth) params.set('return_date', retMonth);
+        // trip_duration is silently ignored by TP right now but we
+        // pass it anyway so we automatically get apples-to-apples
+        // pricing the moment TP honours the param.
+        if (intendedNights && intendedNights > 0) {
+          params.set('trip_duration', String(intendedNights));
+        }
         const url = `https://api.travelpayouts.com/v1/prices/calendar?${params}`;
         const r = await fetch(url, { headers, signal: ac.signal });
         if (!r.ok) return;
@@ -416,16 +435,75 @@ export async function GET(req: NextRequest) {
     await Promise.all(tasks);
 
     const results = cells.map(c => {
-      if (c.past) return { ...c, cheapest_price_gbp: null };
+      if (c.past) {
+        return { ...c, cheapest_price_gbp: null, actual_nights: null, actual_return: null };
+      }
       const hit = calendarMap.get(c.dep);
       let price: number | null = hit ? hit.price : null;
+      let actualNights: number | null = null;
+      let actualReturn: string | null = null;
+      if (hit?.return_at) {
+        actualReturn = hit.return_at.slice(0, 10);
+        const depMs = new Date(c.dep + 'T00:00:00Z').getTime();
+        const retMs = new Date(hit.return_at).getTime();
+        if (retMs > depMs) {
+          actualNights = Math.round((retMs - depMs) / 86400000);
+        }
+      }
       if (c.offset === 0 && basePriceNum && basePriceNum > 0) {
         price = basePriceNum;
+        // Selected cell reflects the user's exact intended shape.
+        actualNights = intendedNights;
+        actualReturn = c.ret;
       }
-      return { ...c, cheapest_price_gbp: price };
+      return {
+        ...c,
+        cheapest_price_gbp: price,
+        actual_nights: actualNights,
+        actual_return: actualReturn,
+      };
     });
 
-    const response = { success: true, dates: results, origin, destination, depDate, retDate };
+    // "Scout Tip" — the absolute cheapest date TP knows about within a
+    // wider window (±14 days). If it's meaningfully cheaper than the
+    // selected cell AND falls outside the ±3 strip, surface it so the
+    // user can one-click shift to that date.
+    let scoutTip: { dep: string; price: number; savings: number } | null = null;
+    if (basePriceNum && basePriceNum > 0 && calendarMap.size > 0) {
+      const windowStart = new Date(base);
+      windowStart.setUTCDate(windowStart.getUTCDate() - 14);
+      const windowEnd = new Date(base);
+      windowEnd.setUTCDate(windowEnd.getUTCDate() + 14);
+      const stripDates = new Set(cells.map(c => c.dep));
+      let bestOutside: { dep: string; price: number } | null = null;
+      for (const [dateKey, entry] of calendarMap.entries()) {
+        if (stripDates.has(dateKey)) continue;
+        const d = new Date(dateKey + 'T00:00:00Z');
+        if (d < today) continue;
+        if (d < windowStart || d > windowEnd) continue;
+        if (!bestOutside || entry.price < bestOutside.price) {
+          bestOutside = { dep: dateKey, price: entry.price };
+        }
+      }
+      if (bestOutside && bestOutside.price < basePriceNum * 0.85) {
+        scoutTip = {
+          dep: bestOutside.dep,
+          price: bestOutside.price,
+          savings: Math.round(basePriceNum - bestOutside.price),
+        };
+      }
+    }
+
+    const response = {
+      success: true,
+      dates: results,
+      origin,
+      destination,
+      depDate,
+      retDate,
+      intendedNights,
+      scoutTip,
+    };
     try { await kv.set(stripKey, response, { ex: 3600 }); } catch {}
     return NextResponse.json(response);
   }
