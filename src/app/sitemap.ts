@@ -10,6 +10,7 @@
 
 import type { MetadataRoute } from 'next';
 import { getAllPosts } from '@/lib/blog';
+import { DESTINATIONS } from '@/data/destinations';
 
 const BASE = 'https://jetmeaway.co.uk';
 
@@ -27,7 +28,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/esim`,        lastModified: now, changeFrequency: 'weekly',  priority: 0.7 },
     { url: `${BASE}/explore`,     lastModified: now, changeFrequency: 'weekly',  priority: 0.7 },
     { url: `${BASE}/blog`,        lastModified: now, changeFrequency: 'weekly',  priority: 0.8 },
+    { url: `${BASE}/destinations`, lastModified: now, changeFrequency: 'weekly',  priority: 0.85 },
   ];
+
+  // Programmatic SEO — one page per destination city
+  const destinations: MetadataRoute.Sitemap = DESTINATIONS.map(d => ({
+    url: `${BASE}/destinations/${d.slug}`,
+    lastModified: now,
+    changeFrequency: 'weekly' as const,
+    priority: 0.8,
+  }));
 
   // Informational routes — trust / legal / partnerships
   const info: MetadataRoute.Sitemap = [
@@ -57,5 +67,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     posts = [];
   }
 
-  return [...primary, ...info, ...posts];
+  return [...primary, ...info, ...destinations, ...posts];
 }
