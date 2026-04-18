@@ -1,10 +1,35 @@
 import TrustpilotReviewCollector from '@/components/TrustpilotReviewCollector';
 
 const TRUSTPILOT_URL = 'https://uk.trustpilot.com/review/jetmeaway.co.uk';
-const SCORE = 4.0;
-const REVIEW_COUNT = 3;
+const SCORE = 4.1;
+const REVIEW_COUNT = 5;
 
+// Ordered most-recent-first. Dates match what Trustpilot displays
+// on the public review page.
 const REVIEWS = [
+  {
+    quote:
+      "I recently booked a holiday through your website and had a great experience overall. The booking process was smooth and easy to follow, and I found the pricing very competitive. One thing I particularly liked was how clearly the package details were presented, which made it easy to compare options. Overall, I\u2019m very satisfied with your service and would happily use your platform again.",
+    name: 'Hamza Hassan',
+    title: 'A great experience overall',
+    date: 'April 13, 2026',
+    stars: 5,
+  },
+  {
+    quote:
+      'I had a great experience using JetMeAway, a trustworthy and easy to use travel comparison website that makes finding flights, hotels, holiday packages, car hire, tours, and even eSIM options simple and stress free, the clean design and fast results from reliable travel partners allow you to compare the best deals in one place without juggling multiple tabs, making trip planning efficient and enjoyable.',
+    name: 'Shamaila',
+    title: 'I had a great experience using\u2026',
+    date: 'April 11, 2026',
+    stars: 5,
+  },
+  {
+    quote: 'Amazing website that helped navigating holidays become easier.',
+    name: 'Rosalind',
+    title: 'Quick and efficient website',
+    date: 'April 10, 2026',
+    stars: 5,
+  },
   {
     quote:
       "Usually, after I search for a flight, I get followed by ads for weeks. JetMeAway was different \u2014 super quick results and I didn't feel like my data was being sold the second I clicked \u201csearch.\u201d The neighborhood info is a huge bonus too.",
@@ -15,17 +40,10 @@ const REVIEWS = [
   },
   {
     quote:
-      "I recently booked a holiday through your website and had a great experience overall. The booking process was smooth and easy to follow, and I found the pricing very competitive. One thing I particularly liked was how clearly the package details were presented, which made it easy to compare options. Overall, I\u2019m very satisfied with your service and would happily use your platform again.",
-    name: 'Hamza Hassan',
-    title: 'A great experience overall',
-    date: 'April 13, 2026',
-    stars: 5,
-  },
-  {
-    quote: 'Amazing website that helped navigating holidays become easier.',
-    name: 'Rosalind',
-    title: 'Quick and efficient website',
-    date: 'April 10, 2026',
+      'I would recommend this website to anyone looking to book a holiday conveniently. It offers a wide range of options, competitive pricing, and a user-friendly experience that takes much of the stress out of travel planning.',
+    name: 'Sal Khurram',
+    title: 'I would recommend this website to\u2026',
+    date: 'April 1, 2026',
     stars: 5,
   },
 ];
