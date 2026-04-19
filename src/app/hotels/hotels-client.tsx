@@ -806,7 +806,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
   const bookHotel = { ...h, offerId: displayOfferId, totalPrice: displayTotal, pricePerNight: displayPrice };
 
   return (
-    <div className={`bg-white border rounded-2xl overflow-hidden transition-shadow hover:shadow-md ${isCheapest ? 'border-orange-200 ring-1 ring-orange-100' : 'border-[#E8ECF4]'}`}>
+    <div className={`bg-white border rounded-2xl overflow-hidden transition-shadow hover:shadow-md ${isCheapest ? 'border-[#E8D8A8] ring-1 ring-[#E8D8A8]/60' : 'border-[#E8ECF4]'}`}>
       <div className="grid grid-cols-1 md:grid-cols-[240px_1fr_auto] gap-0">
         {/* Image */}
         <a href={detailHref} className="relative h-48 md:h-full min-h-[180px] block group">
@@ -824,8 +824,11 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
               <span className="text-4xl">🛏</span>
             </div>
           )}
+          {/* Scout "recommendation" pill — champagne + gold ring, not clearance-sale orange */}
           {isCheapest && (
-            <span className="absolute top-3 left-3 text-[.55rem] font-black uppercase tracking-[1.5px] bg-orange-500 text-white px-2 py-1 rounded-full">Cheapest</span>
+            <span className="absolute top-3 left-3 text-[.55rem] font-black uppercase tracking-[1.5px] bg-[#FAF3E6] text-[#8a6d00] ring-1 ring-[#E8D8A8] px-2.5 py-1 rounded-full shadow-sm">
+              Scout Pick
+            </span>
           )}
         </a>
 
@@ -833,7 +836,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
         <div className="p-5 flex flex-col justify-center">
           <a href={detailHref} className="hover:bg-[#F8FAFC] transition-colors">
             <div className="mb-1"><Stars count={h.stars} /></div>
-            <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-1">{h.name}</h3>
+            <h3 className="font-[var(--font-playfair)] font-black text-[1.2rem] text-[#0a1628] tracking-tight mb-1 leading-tight">{h.name}</h3>
             {h.district && <p className="text-[.75rem] text-[#8E95A9] font-semibold mb-1">📍 {h.district}</p>}
             {(milesFromCentre != null || milesFromAirport != null) && (
               <p className="text-[.72rem] text-[#5C6378] font-semibold mb-2 flex flex-wrap items-center gap-x-2 gap-y-0.5">
@@ -853,18 +856,37 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
               </p>
             )}
             {nights > 0 && <p className="text-[.72rem] text-[#5C6378] font-semibold">{nights} night{nights !== 1 ? 's' : ''} · {adults} guest{adults !== 1 ? 's' : ''}</p>}
+            {/* Scout voice: emerald solid for positive, slate outline for
+                neutral — stated, not scolded. No red. */}
             {h.bookable && typeof displayRefundable === 'boolean' && (
-              <span className={`inline-flex items-center gap-1 mt-1.5 text-[.68rem] font-bold ${displayRefundable ? 'text-green-600' : 'text-red-500'}`}>
-                <i className={`fa-solid ${displayRefundable ? 'fa-circle-check' : 'fa-circle-xmark'} text-[.6rem]`} />
-                {displayRefundable ? 'Free cancellation' : 'Non-refundable'}
-              </span>
+              displayRefundable ? (
+                <span className="inline-flex items-center gap-1.5 mt-1.5 text-[.7rem] font-bold text-emerald-700">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" aria-hidden />
+                  Free cancellation
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 mt-1.5 text-[.7rem] font-semibold text-slate-500">
+                  <span className="w-1.5 h-1.5 rounded-full border border-slate-300" aria-hidden />
+                  Non-refundable
+                </span>
+              )
             )}
             {displayBoard && !opts && (
               <span className="text-[.66rem] text-[#8E95A9] font-semibold mt-0.5 block">{displayBoard}</span>
             )}
           </a>
+          {/* Scout Summary — single-line teaser instead of the rate dump.
+              Click flows to the detail page where the Scout Rooms Table
+              does the real work. */}
           {opts && opts.length > 1 && (
-            <BoardSelector options={opts} selected={selectedBoard} onSelect={setSelectedBoard} />
+            <a
+              href={detailHref}
+              className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FAF3E6] ring-1 ring-[#E8D8A8] text-[#6b5500] text-[.7rem] font-bold hover:bg-[#F5E9C8] transition-colors w-fit"
+            >
+              <i className="fa-solid fa-sparkles text-[.6rem]" />
+              {opts.length} room type{opts.length !== 1 ? 's' : ''} available
+              <span className="opacity-70">→</span>
+            </a>
           )}
           <a href={detailHref} className="text-[.7rem] text-orange-600 font-bold mt-2 inline-block">View details →</a>
         </div>
@@ -881,7 +903,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
                 {h.marketPrice != null && h.negotiatedPrice != null && h.negotiatedPrice < h.marketPrice && (
                   <div className="text-[.72rem] text-[#8E95A9] font-bold line-through mb-0.5">£{Math.round(h.marketPrice / Math.max(1, adults))}/person</div>
                 )}
-                <div className="font-poppins font-black text-[1.5rem] text-[#1A1D2B] leading-none">£{Math.round(displayTotal / Math.max(1, adults))}<span className="text-[.7rem] font-semibold text-[#8E95A9]">/person</span></div>
+                <div className="font-[var(--font-playfair)] font-black text-[1.65rem] text-[#0a1628] tracking-tight leading-none">£{Math.round(displayTotal / Math.max(1, adults))}<span className="text-[.7rem] font-semibold text-[#8E95A9] tracking-normal">/person</span></div>
                 {nights > 0 && (
                   <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">£{displayTotal} total · {nights} night{nights !== 1 ? 's' : ''} · {adults} guest{adults !== 1 ? 's' : ''}</div>
                 )}
@@ -891,7 +913,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
                 {h.marketPerNight != null && h.negotiatedPerNight != null && h.negotiatedPerNight < h.marketPerNight && (
                   <div className="text-[.72rem] text-[#8E95A9] font-bold line-through mb-0.5">£{h.marketPerNight}/night</div>
                 )}
-                <div className="font-poppins font-black text-[1.5rem] text-[#1A1D2B] leading-none">£{displayPrice}<span className="text-[.7rem] font-semibold text-[#8E95A9]">/night</span></div>
+                <div className="font-[var(--font-playfair)] font-black text-[1.65rem] text-[#0a1628] tracking-tight leading-none">£{displayPrice}<span className="text-[.7rem] font-semibold text-[#8E95A9] tracking-normal">/night</span></div>
                 {nights > 0 && (
                   <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">£{displayTotal} total for {nights} night{nights !== 1 ? 's' : ''}</div>
                 )}
