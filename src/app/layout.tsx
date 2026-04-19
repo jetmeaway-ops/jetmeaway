@@ -167,8 +167,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${poppins.variable} ${playfair.variable} ${dmSans.variable}`}>
       <head>
-        <meta name="theme-color" content="#0066FF" />
+        {/* Theme colour: dark navy matches hero bg so the iOS status bar
+            blends into the app rather than flashing blue on launch. */}
+        <meta name="theme-color" content="#0a1628" />
+        {/* iOS standalone / "Add to Home Screen" polish — makes the PWA
+            launch fullscreen with a themed status bar and our brand title
+            instead of "JetMeAway — Your Personal Travel…" truncated. */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="JetMeAway" />
+        <meta name="application-name" content="JetMeAway" />
+        <meta name="format-detection" content="telephone=no" />
+        {/* Apple touch icons — iOS picks the closest size. 192px scales
+            cleanly to the 180/167/152/120 slots across iPhone/iPad. */}
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
+        <link rel="apple-touch-icon" sizes="192x192" href="/icon-192x192.png" />
+        <link rel="apple-touch-icon" sizes="512x512" href="/icon-512x512.png" />
+        <link rel="mask-icon" href="/icon-192x192.png" color="#0a1628" />
         {/* Site-wide structured data — Organization + WebSite. Loaded in <head>
             so crawlers see it before any client JS runs. */}
         <script

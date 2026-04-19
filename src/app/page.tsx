@@ -1,5 +1,6 @@
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import RotatingReviews from '@/components/RotatingReviews';
 import { LazyFlightSearch, LazyPopularDestinations, LazyTestimonials } from './homepage-client';
 
 const jsonLd = [
@@ -294,6 +295,9 @@ export default function Home() {
           </p>
         </div>
       </section>
+
+      {/* ── ROTATING TRUSTPILOT REVIEWS — turns "no markup" claim into proof ── */}
+      <RotatingReviews />
 
       <LogoScroll />
       <LazyPopularDestinations />

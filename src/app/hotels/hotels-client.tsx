@@ -738,7 +738,7 @@ function StarFilter({ value, onChange }: { value: number; onChange: (v: number) 
    BOOK DIRECT (LiteAPI) — creates a pending booking then redirects to checkout
    ═══════════════════════════════════════════════════════════════════════════ */
 
-function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, childrenAges, checkin, checkout, searchedDest, tripCityId, buildDetailHref, setScoutHotel, priceView, cityCentre, airport }: {
+function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, childrenAges, checkin, checkout, searchedDest, tripCityId, buildDetailHref, setScoutHotel, priceView, cityCentre, airport, isCompared, compareFull, onToggleCompare }: {
   hotel: HotelResult;
   index: number;
   isCheapest: boolean;
@@ -755,6 +755,9 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
   priceView: 'total' | 'perPerson';
   cityCentre: { lat: number; lng: number } | null;
   airport: { iata: string; lat: number; lng: number } | null;
+  isCompared: boolean;
+  compareFull: boolean;
+  onToggleCompare: () => void;
 }) {
   // Distance (miles) from city centre and nearest airport
   const haversineMi = (lat1: number, lng1: number, lat2: number, lng2: number) => {
@@ -806,7 +809,27 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
   const bookHotel = { ...h, offerId: displayOfferId, totalPrice: displayTotal, pricePerNight: displayPrice };
 
   return (
-    <div className={`bg-white border rounded-2xl overflow-hidden transition-shadow hover:shadow-md ${isCheapest ? 'border-[#E8D8A8] ring-1 ring-[#E8D8A8]/60' : 'border-[#E8ECF4]'}`}>
+    <div className={`bg-white border rounded-2xl overflow-hidden transition-all hover:shadow-md relative ${isCheapest ? 'border-[#E8D8A8] ring-1 ring-[#E8D8A8]/60' : 'border-[#E8ECF4]'} ${isCompared ? 'ring-2 ring-orange-400 border-orange-300' : ''}`}>
+      {/* Compare toggle — top-right, always-visible, keeps click off the image anchor */}
+      <button
+        type="button"
+        onClick={onToggleCompare}
+        disabled={!isCompared && compareFull}
+        aria-pressed={isCompared}
+        title={isCompared ? 'Remove from compare' : compareFull ? 'Compare limit reached (3)' : 'Add to compare'}
+        className={`absolute z-10 top-3 right-3 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[.66rem] font-bold shadow-sm transition-all ${
+          isCompared
+            ? 'bg-orange-500 text-white hover:bg-orange-600'
+            : compareFull
+            ? 'bg-white/90 text-[#8E95A9] cursor-not-allowed border border-[#E8ECF4]'
+            : 'bg-white/95 text-[#1A1D2B] hover:bg-orange-50 hover:text-orange-600 border border-[#E8ECF4]'
+        }`}
+      >
+        <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center ${isCompared ? 'bg-white border-white' : 'border-[#C5CBD9]'}`}>
+          {isCompared && <i className="fa-solid fa-check text-[.55rem] text-orange-500" />}
+        </span>
+        Compare
+      </button>
       <div className="grid grid-cols-1 md:grid-cols-[240px_1fr_auto] gap-0">
         {/* Image */}
         <a href={detailHref} className="relative h-48 md:h-full min-h-[180px] block group">
@@ -1034,6 +1057,38 @@ const LOADING_MSGS = [
   'Finding the best rates...',
 ];
 
+function HotelSkeletonCard() {
+  return (
+    <div className="bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden shadow-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-[260px_1fr] gap-0">
+        <div className="aspect-[4/3] sm:aspect-auto bg-[#F1F3F7] animate-pulse" />
+        <div className="p-5 space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-3/4 bg-[#F1F3F7] rounded animate-pulse" />
+              <div className="h-3 w-1/2 bg-[#F1F3F7] rounded animate-pulse" />
+              <div className="h-3 w-20 bg-[#F1F3F7] rounded animate-pulse" />
+            </div>
+            <div className="w-16 h-8 bg-[#F1F3F7] rounded-lg animate-pulse" />
+          </div>
+          <div className="flex gap-2 flex-wrap pt-1">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-6 w-16 bg-[#F1F3F7] rounded-full animate-pulse" />
+            ))}
+          </div>
+          <div className="flex items-end justify-between gap-3 pt-2">
+            <div className="space-y-1.5">
+              <div className="h-2.5 w-20 bg-[#F1F3F7] rounded animate-pulse" />
+              <div className="h-5 w-24 bg-[#F1F3F7] rounded animate-pulse" />
+            </div>
+            <div className="h-9 w-28 bg-[#F1F3F7] rounded-full animate-pulse" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LoadingState({ dest }: { dest: string }) {
   const [msgIdx, setMsgIdx] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -1045,18 +1100,204 @@ function LoadingState({ dest }: { dest: string }) {
   }, []);
 
   return (
-    <section className="max-w-[900px] mx-auto px-5 py-10">
-      <div className="bg-white border border-[#E8ECF4] rounded-2xl p-8 text-center shadow-sm">
-        <div className="w-full bg-[#F1F3F7] rounded-full h-2 mb-5 overflow-hidden">
+    <section className="max-w-[1000px] mx-auto px-5 py-8">
+      <div className="bg-white border border-[#E8ECF4] rounded-2xl p-5 shadow-sm mb-5">
+        <div className="w-full bg-[#F1F3F7] rounded-full h-1.5 mb-3 overflow-hidden">
           <div className="h-full bg-gradient-to-r from-orange-400 to-amber-500 rounded-full transition-all duration-100" style={{ width: `${progress}%` }} />
         </div>
-        <div className="flex items-center justify-center gap-3 mb-3">
-          <div className="w-5 h-5 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
-          <span className="text-[.9rem] font-bold text-[#5C6378]">{LOADING_MSGS[msgIdx]}</span>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <span className="text-[.85rem] font-bold text-[#1A1D2B]">{LOADING_MSGS[msgIdx]}</span>
+          <p className="text-[.72rem] text-[#8E95A9] font-semibold">Building stays in <strong className="text-[#1A1D2B]">{dest}</strong></p>
         </div>
-        <p className="text-[.78rem] text-[#8E95A9] font-semibold">Comparing hotel prices in <strong className="text-[#1A1D2B]">{dest}</strong></p>
+      </div>
+      <div className="space-y-3">
+        {Array.from({ length: 5 }).map((_, i) => <HotelSkeletonCard key={i} />)}
       </div>
     </section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPARE — sticky tray + side-by-side modal
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function CompareTray({ hotels, nights, priceView, adults, childCount, onRemove, onClear, onOpen }: {
+  hotels: HotelResult[];
+  nights: number;
+  priceView: 'total' | 'perPerson';
+  adults: number;
+  childCount: number;
+  onRemove: (id: number | string) => void;
+  onClear: () => void;
+  onOpen: () => void;
+}) {
+  const guests = Math.max(1, adults + childCount);
+  const priceLabel = (h: HotelResult) => {
+    const total = h.totalPrice ?? h.pricePerNight * Math.max(1, nights);
+    if (priceView === 'total') return `£${Math.round(total)}`;
+    return `£${Math.round(total / guests)}`;
+  };
+  return (
+    <div className="fixed bottom-0 inset-x-0 z-40 px-3 pb-3 pointer-events-none">
+      <div className="max-w-[1000px] mx-auto pointer-events-auto">
+        <div className="bg-white/95 backdrop-blur border border-orange-200 shadow-2xl rounded-2xl px-4 py-3 flex items-center gap-3 flex-wrap">
+          <span className="text-[.7rem] font-black uppercase tracking-wider text-orange-600">Compare</span>
+          <span className="text-[.72rem] font-bold text-[#8E95A9]">{hotels.length} of 3 selected</span>
+          <div className="flex items-center gap-2 flex-1 min-w-0 overflow-x-auto">
+            {hotels.map(h => (
+              <span key={h.id} className="inline-flex items-center gap-1.5 bg-[#FAF3E6] ring-1 ring-[#E8D8A8] text-[#6b5500] text-[.7rem] font-bold px-2.5 py-1 rounded-full shrink-0">
+                <span className="truncate max-w-[140px]">{h.name}</span>
+                <span className="text-[#8a6d00]/70">·</span>
+                <span>{priceLabel(h)}</span>
+                <button
+                  type="button"
+                  onClick={() => onRemove(h.id)}
+                  aria-label={`Remove ${h.name}`}
+                  className="ml-0.5 w-4 h-4 rounded-full hover:bg-[#E8D8A8]/40 flex items-center justify-center"
+                >
+                  <i className="fa-solid fa-xmark text-[.55rem]" />
+                </button>
+              </span>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 ml-auto">
+            <button
+              type="button"
+              onClick={onClear}
+              className="text-[.7rem] font-bold text-[#8E95A9] hover:text-[#1A1D2B] px-2 py-1"
+            >
+              Clear
+            </button>
+            <button
+              type="button"
+              onClick={onOpen}
+              disabled={hotels.length < 2}
+              className={`text-[.78rem] font-black px-4 py-2 rounded-full transition-all ${hotels.length < 2 ? 'bg-[#F1F3F7] text-[#8E95A9] cursor-not-allowed' : 'bg-orange-500 text-white hover:bg-orange-600 shadow-sm'}`}
+            >
+              Compare {hotels.length >= 2 ? `${hotels.length} hotels` : '(pick 2+)'} →
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CompareModal({ hotels, nights, priceView, adults, childCount, buildDetailHref, onClose, onRemove }: {
+  hotels: HotelResult[];
+  nights: number;
+  priceView: 'total' | 'perPerson';
+  adults: number;
+  childCount: number;
+  buildDetailHref: (h: HotelResult) => string;
+  onClose: () => void;
+  onRemove: (id: number | string) => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [onClose]);
+
+  const guests = Math.max(1, adults + childCount);
+  const priceCell = (h: HotelResult) => {
+    const total = h.totalPrice ?? h.pricePerNight * Math.max(1, nights);
+    const main = priceView === 'total' ? `£${Math.round(total)}` : `£${Math.round(total / guests)}`;
+    const sub = priceView === 'total' ? `total · ${nights || 1}n · ${guests}g` : `per person · total ${nights || 1}n`;
+    return { main, sub };
+  };
+  const cheapestTotal = hotels.reduce((min, h) => {
+    const t = h.totalPrice ?? h.pricePerNight * Math.max(1, nights);
+    return t < min ? t : min;
+  }, Infinity);
+
+  return (
+    <div className="fixed inset-0 z-[120] bg-[#0a1628]/60 backdrop-blur-sm flex items-start md:items-center justify-center p-3 overflow-y-auto">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-[1100px] w-full my-6 overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#F1F3F7]">
+          <div>
+            <h2 className="font-[var(--font-playfair)] font-black text-[1.25rem] text-[#0a1628]">Side-by-side comparison</h2>
+            <p className="text-[.72rem] text-[#8E95A9] font-semibold">{hotels.length} hotels · cheapest total highlighted</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close comparison"
+            className="w-9 h-9 rounded-full hover:bg-[#F1F3F7] flex items-center justify-center text-[#5C6378]"
+          >
+            <i className="fa-solid fa-xmark" />
+          </button>
+        </div>
+        <div className="p-5 overflow-x-auto">
+          <div className="grid gap-4 min-w-[640px]" style={{ gridTemplateColumns: `repeat(${hotels.length}, minmax(0, 1fr))` }}>
+            {hotels.map(h => {
+              const total = h.totalPrice ?? h.pricePerNight * Math.max(1, nights);
+              const isCheapest = total === cheapestTotal;
+              const pc = priceCell(h);
+              const photo = h.thumbnail || '';
+              return (
+                <div key={h.id} className={`border rounded-2xl overflow-hidden flex flex-col ${isCheapest ? 'border-[#E8D8A8] ring-2 ring-[#E8D8A8]/70 bg-[#FFFCF5]' : 'border-[#E8ECF4] bg-white'}`}>
+                  <div className="relative aspect-[4/3] bg-[#F1F3F7]">
+                    {photo ? <img src={photo} alt={h.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-3xl">🛏</div>}
+                    {isCheapest && (
+                      <span className="absolute top-2 left-2 text-[.55rem] font-black uppercase tracking-[1.5px] bg-[#FAF3E6] text-[#8a6d00] ring-1 ring-[#E8D8A8] px-2 py-0.5 rounded-full">
+                        Cheapest total
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => onRemove(h.id)}
+                      aria-label={`Remove ${h.name}`}
+                      className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/95 hover:bg-white text-[#5C6378] flex items-center justify-center shadow"
+                    >
+                      <i className="fa-solid fa-xmark text-[.7rem]" />
+                    </button>
+                  </div>
+                  <div className="p-4 flex flex-col gap-2 flex-1">
+                    <Stars count={h.stars} />
+                    <h3 className="font-[var(--font-playfair)] font-black text-[1rem] text-[#0a1628] leading-tight">{h.name}</h3>
+                    {h.district && <p className="text-[.7rem] text-[#8E95A9] font-semibold">📍 {h.district}</p>}
+                    <dl className="mt-1 space-y-1.5 text-[.72rem]">
+                      <Row label="Price" value={<><span className="font-black text-[.95rem] text-[#0a1628]">{pc.main}</span><span className="block text-[.65rem] text-[#8E95A9] font-semibold">{pc.sub}</span></>} />
+                      <Row label="Per night" value={<span className="font-bold text-[#1A1D2B]">£{Math.round(h.pricePerNight)}</span>} />
+                      <Row label="Board" value={<span className="text-[#1A1D2B] font-semibold">{h.boardType || '—'}</span>} />
+                      <Row label="Cancellation" value={
+                        typeof h.refundable === 'boolean'
+                          ? (h.refundable
+                            ? <span className="text-emerald-700 font-bold">Free</span>
+                            : <span className="text-slate-500 font-semibold">Non-refundable</span>)
+                          : <span className="text-[#8E95A9]">—</span>
+                      } />
+                      <Row label="Bookable" value={h.bookable ? <span className="text-emerald-700 font-bold">Direct</span> : <span className="text-slate-500 font-semibold">Via partner</span>} />
+                    </dl>
+                    <a
+                      href={buildDetailHref(h)}
+                      className="mt-auto inline-flex items-center justify-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white font-poppins font-bold text-[.75rem] px-3 py-2 rounded-full transition-all"
+                    >
+                      View rooms →
+                    </a>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-3 py-1 border-b border-[#F1F3F7] last:border-b-0">
+      <dt className="text-[#8E95A9] font-semibold uppercase tracking-wide text-[.62rem]">{label}</dt>
+      <dd className="text-right">{value}</dd>
+    </div>
   );
 }
 
@@ -1121,6 +1362,18 @@ function HotelsContent() {
   // Bumped whenever a strip click shifts check-in/out. The useEffect
   // below waits for state to flush then re-fires handleSearch.
   const [dateShiftTrigger, setDateShiftTrigger] = useState(0);
+
+  // Compare tray — up to 3 hotels side-by-side. Persists across sort/filter
+  // changes so users don't lose selections while narrowing results.
+  const [compareIds, setCompareIds] = useState<Array<number | string>>([]);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const toggleCompare = (id: number | string) => {
+    setCompareIds(prev => {
+      if (prev.includes(id)) return prev.filter(x => x !== id);
+      if (prev.length >= 3) return prev; // cap at 3
+      return [...prev, id];
+    });
+  };
 
   useEffect(() => {
     fetch('/api/hotels/deals')
@@ -1881,6 +2134,9 @@ function HotelsContent() {
                       priceView={priceView}
                       cityCentre={cityCentre}
                       airport={airport}
+                      isCompared={compareIds.includes(h.id)}
+                      compareFull={compareIds.length >= 3}
+                      onToggleCompare={() => toggleCompare(h.id)}
                     />
                 ))}
               </div>
@@ -1986,6 +2242,40 @@ function HotelsContent() {
           latitude={scoutHotel.lat}
           longitude={scoutHotel.lng}
           onClose={() => setScoutHotel(null)}
+        />
+      )}
+
+      {/* Sticky Compare Tray */}
+      {compareIds.length > 0 && (
+        <CompareTray
+          hotels={(hotels || []).filter(h => compareIds.includes(h.id))}
+          nights={nights}
+          priceView={priceView}
+          adults={adults}
+          childCount={childCount}
+          onRemove={(id) => setCompareIds(prev => prev.filter(x => x !== id))}
+          onClear={() => setCompareIds([])}
+          onOpen={() => setCompareOpen(true)}
+        />
+      )}
+
+      {/* Side-by-Side Compare Modal */}
+      {compareOpen && (
+        <CompareModal
+          hotels={(hotels || []).filter(h => compareIds.includes(h.id))}
+          nights={nights}
+          priceView={priceView}
+          adults={adults}
+          childCount={childCount}
+          buildDetailHref={buildDetailHref}
+          onClose={() => setCompareOpen(false)}
+          onRemove={(id) => {
+            setCompareIds(prev => {
+              const next = prev.filter(x => x !== id);
+              if (next.length === 0) setCompareOpen(false);
+              return next;
+            });
+          }}
         />
       )}
 

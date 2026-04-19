@@ -822,6 +822,39 @@ const LOADING_MSGS = [
   'Finding you the best deal...',
 ];
 
+function FlightSkeletonCard() {
+  return (
+    <div className="bg-white border border-[#E8ECF4] rounded-2xl p-5 shadow-sm">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-3 flex-1 min-w-[200px]">
+          <div className="w-10 h-10 rounded-full bg-[#F1F3F7] animate-pulse" />
+          <div className="space-y-2">
+            <div className="h-3 w-24 bg-[#F1F3F7] rounded animate-pulse" />
+            <div className="h-2.5 w-16 bg-[#F1F3F7] rounded animate-pulse" />
+          </div>
+        </div>
+        <div className="flex items-center gap-4 flex-1 min-w-[220px]">
+          <div className="text-center space-y-1.5">
+            <div className="h-4 w-14 bg-[#F1F3F7] rounded animate-pulse" />
+            <div className="h-2.5 w-10 bg-[#F1F3F7] rounded animate-pulse" />
+          </div>
+          <div className="flex-1 h-px bg-[#F1F3F7] relative">
+            <div className="absolute left-1/2 -top-1.5 w-3 h-3 rounded-full bg-[#F1F3F7] animate-pulse" style={{ transform: 'translateX(-50%)' }} />
+          </div>
+          <div className="text-center space-y-1.5">
+            <div className="h-4 w-14 bg-[#F1F3F7] rounded animate-pulse" />
+            <div className="h-2.5 w-10 bg-[#F1F3F7] rounded animate-pulse" />
+          </div>
+        </div>
+        <div className="text-right space-y-2">
+          <div className="h-5 w-20 bg-[#F1F3F7] rounded animate-pulse ml-auto" />
+          <div className="h-8 w-24 bg-[#F1F3F7] rounded-full animate-pulse ml-auto" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LoadingState({ origin, dest }: { origin: string; dest: string }) {
   const [msgIdx, setMsgIdx] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -833,16 +866,20 @@ function LoadingState({ origin, dest }: { origin: string; dest: string }) {
   }, []);
 
   return (
-    <section className="max-w-[860px] mx-auto px-5 py-10">
-      <div className="bg-white border border-[#E8ECF4] rounded-2xl p-8 text-center shadow-sm">
-        <div className="w-full bg-[#F1F3F7] rounded-full h-2 mb-5 overflow-hidden">
+    <section className="max-w-[1000px] mx-auto px-5 py-8">
+      {/* Status banner — progress bar + rotating provider message, no spinner */}
+      <div className="bg-white border border-[#E8ECF4] rounded-2xl p-5 shadow-sm mb-5">
+        <div className="w-full bg-[#F1F3F7] rounded-full h-1.5 mb-3 overflow-hidden">
           <div className="h-full bg-gradient-to-r from-[#0066FF] to-[#4F46E5] rounded-full transition-all duration-100" style={{ width: `${progress}%` }} />
         </div>
-        <div className="flex items-center justify-center gap-3 mb-3">
-          <div className="w-5 h-5 border-2 border-[#0066FF] border-t-transparent rounded-full animate-spin" />
-          <span className="text-[.9rem] font-bold text-[#5C6378]">{LOADING_MSGS[msgIdx]}</span>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <span className="text-[.85rem] font-bold text-[#1A1D2B]">{LOADING_MSGS[msgIdx]}</span>
+          <p className="text-[.72rem] text-[#8E95A9] font-semibold">Building results for <strong className="text-[#1A1D2B]">{origin} → {dest}</strong></p>
         </div>
-        <p className="text-[.78rem] text-[#8E95A9] font-semibold">Comparing prices for <strong className="text-[#1A1D2B]">{origin} → {dest}</strong></p>
+      </div>
+      {/* Skeleton result cards — shape-of-content placeholders */}
+      <div className="space-y-3">
+        {Array.from({ length: 5 }).map((_, i) => <FlightSkeletonCard key={i} />)}
       </div>
     </section>
   );
