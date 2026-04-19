@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { redirectUrl } from '@/lib/redirect';
+import RoomsTable, { type RoomRate } from './RoomsTable';
 
 interface HotelDetails {
   id: string;
@@ -93,6 +94,15 @@ export default function HotelDetailPage() {
   const [similarHotels, setSimilarHotels] = useState<SimilarHotel[]>([]);
   const [similarLoading, setSimilarLoading] = useState(false);
 
+  // Rates table (Scout RoomsTable) state —
+  //   rates: all board/rate options for this hotel (from /api/hotels/rates)
+  //   selectedRate: the row the user has clicked (drives the sidebar "breathe")
+  //   ratesLoading: suppress empty-state flash while the fetch is in flight
+  const [rates, setRates] = useState<RoomRate[]>([]);
+  const [ratesLoading, setRatesLoading] = useState(true);
+  const [selectedRate, setSelectedRate] = useState<RoomRate | null>(null);
+  const [sidebarBreathe, setSidebarBreathe] = useState(false);
+
   // Search context passed from /hotels results (for the Book button)
   const offerId = sp?.get('offerId') || '';
   const checkin = sp?.get('checkin') || '';
@@ -161,6 +171,99 @@ export default function HotelDetailPage() {
       })
       .catch(() => setSimilarLoading(false));
   }, [city, checkin, checkout, adults, children, rooms, id]);
+
+  /* Fetch the full rate table for this hotel. We pass the exact same
+     search-context params as the results page used so the prices here
+     match cent-for-cent with what the user clicked on. */
+  useEffect(() => {
+    if (!id || !checkin || !checkout) { setRatesLoading(false); return; }
+    let cancelled = false;
+    (async () => {
+      setRatesLoading(true);
+      try {
+        const p = new URLSearchParams({
+          hotelId: id,
+          checkin,
+          checkout,
+          adults,
+          children,
+          rooms,
+          currency,
+        });
+        if (childrenAges) p.set('childrenAges', childrenAges);
+        const res = await fetch(`/api/hotels/rates?${p.toString()}`);
+        const data = await res.json();
+        if (cancelled) return;
+        if (data.success && Array.isArray(data.offers)) {
+          const list: RoomRate[] = data.offers;
+          setRates(list);
+          // Pre-select whichever row matches the offerId the user clicked
+          // on the search results page — landing state already reflects
+          // the card they came from.
+          const pre = list.find((r) => r.offerId === offerId) || list[0] || null;
+          setSelectedRate(pre);
+        } else {
+          setRates([]);
+        }
+      } catch {
+        if (!cancelled) setRates([]);
+      } finally {
+        if (!cancelled) setRatesLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [id, checkin, checkout, adults, children, rooms, currency, childrenAges, offerId]);
+
+  /* Row click — updates the selected rate and triggers the sidebar
+     "breathe" (1.00 → 1.02 → 1.00 over 180ms ease-out). `will-change-
+     transform` on the container keeps the GPU hot so the transform is
+     buttery, not jagged. */
+  const handleRowSelect = (nextOfferId: string) => {
+    const next = rates.find((r) => r.offerId === nextOfferId);
+    if (!next) return;
+    setSelectedRate(next);
+    setSidebarBreathe(true);
+    window.setTimeout(() => setSidebarBreathe(false), 260);
+  };
+
+  /* Row Reserve click — delegate to the existing handleBook using the
+     selected rate's offerId/price/board so the checkout sees the exact
+     row the user clicked, not the URL-param offer. */
+  const handleRowReserve = async (rowOfferId: string) => {
+    const rate = rates.find((r) => r.offerId === rowOfferId);
+    if (!rate || !hotel) return;
+    setSelectedRate(rate);
+    setStartingBooking(true);
+    try {
+      const res = await fetch('/api/hotels/start-booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          offerId: rate.offerId,
+          hotelName: hotel.name,
+          hotelId: hotel.id,
+          stars: hotel.stars || 0,
+          thumbnail: hotel.mainPhoto,
+          city: city || hotel.city || '',
+          checkIn: checkin,
+          checkOut: checkout,
+          adults: parseInt(adults),
+          children: parseInt(children),
+          rooms: parseInt(rooms),
+          totalPrice: rate.totalPrice,
+          currency,
+          localFees: localFees || 0,
+          refundable: rate.refundable,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Could not start booking');
+      window.location.assign(`/hotels/checkout/${encodeURIComponent(data.ref)}`);
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : 'Unexpected error');
+      setStartingBooking(false);
+    }
+  };
 
   const handleBook = async () => {
     if (!offerId || !hotel) return;
@@ -274,8 +377,31 @@ export default function HotelDetailPage() {
         )}
 
         <div className="grid md:grid-cols-[1fr_340px] gap-6">
-          {/* Left: description + amenities */}
+          {/* Left: rates table → description → amenities */}
           <div>
+            {/* ═══ Scout Rooms Table ═══
+                The primary action. Rendered BEFORE description so the
+                customer sees the rate choices without scrolling. */}
+            {ratesLoading ? (
+              <section className="bg-white border border-[#E8ECF4] rounded-3xl p-8 mb-5 shadow-[0_4px_24px_rgba(10,22,40,0.04)]">
+                <div className="animate-pulse space-y-3">
+                  <div className="h-5 w-48 bg-[#F1F3F7] rounded" />
+                  <div className="h-20 bg-[#F1F3F7] rounded-2xl" />
+                  <div className="h-20 bg-[#F1F3F7] rounded-2xl" />
+                </div>
+              </section>
+            ) : rates.length > 0 ? (
+              <div className="mb-5">
+                <RoomsTable
+                  offers={rates}
+                  nights={numNights || 1}
+                  selectedOfferId={selectedRate?.offerId || null}
+                  onSelect={handleRowSelect}
+                  onReserve={handleRowReserve}
+                />
+              </div>
+            ) : null}
+
             {hotel.description && (
               <section className="bg-white border border-[#E8ECF4] rounded-2xl p-6 mb-5">
                 <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-3">About this hotel</h2>
@@ -310,8 +436,17 @@ export default function HotelDetailPage() {
             )}
           </div>
 
-          {/* Right: booking summary */}
-          <aside className="bg-white border border-[#E8ECF4] rounded-2xl p-6 h-fit sticky top-24">
+          {/* Right: booking summary.
+              `will-change-transform` keeps the GPU hot so the row-click
+              "breathe" (scale 1.00 → 1.02 → 1.00 over 260ms) is buttery,
+              not jagged. The transform is only applied while sidebarBreathe
+              is true, then settles back to identity. */}
+          <aside
+            style={{ willChange: 'transform' }}
+            className={`bg-white border border-[#E8ECF4] rounded-2xl p-6 h-fit sticky top-24 transition-transform duration-[180ms] ease-out ${
+              sidebarBreathe ? 'scale-[1.02]' : 'scale-100'
+            }`}
+          >
             {/* Scout Alert badge */}
             {signalType && (
               <div className={`mb-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[.68rem] font-black uppercase tracking-[1px] ${
@@ -324,17 +459,23 @@ export default function HotelDetailPage() {
               </div>
             )}
 
-            {price && (
+            {/* Sidebar price — prefer the row the user has selected in the
+                Rooms Table (so clicks feel live), fall back to the URL-param
+                price when rates haven't loaded yet. */}
+            {(selectedRate || price) && (
               <>
                 <div className="text-[.7rem] font-bold text-[#8E95A9] uppercase tracking-wide">Total for {numNights || '—'} night{numNights !== 1 ? 's' : ''}</div>
-                {/* Scout Deal — show market price crossed out */}
-                {mktPrice != null && negPrice != null && negPrice < mktPrice ? (
+                {selectedRate ? (
+                  <div className="font-[var(--font-playfair)] font-black text-[2.1rem] text-[#0a1628] tracking-tight leading-none mt-1">
+                    {currency === 'GBP' ? '£' : `${currency} `}{selectedRate.totalPrice.toFixed(2)}
+                  </div>
+                ) : mktPrice != null && negPrice != null && negPrice < mktPrice ? (
                   <div className="mt-1">
                     <span className="inline-block text-[.55rem] font-black uppercase tracking-[1.2px] bg-gradient-to-r from-orange-500 to-amber-500 text-white px-2 py-0.5 rounded-full mb-1">Scout Deal</span>
                     <div className="text-[.85rem] text-[#8E95A9] font-bold line-through">
                       {currency === 'GBP' ? '£' : `${currency} `}{mktPrice.toFixed(2)}
                     </div>
-                    <div className="font-poppins font-black text-[2rem] text-[#1A1D2B] leading-none">
+                    <div className="font-[var(--font-playfair)] font-black text-[2.1rem] text-[#0a1628] tracking-tight leading-none">
                       {currency === 'GBP' ? '£' : `${currency} `}{negPrice.toFixed(2)}
                     </div>
                     <div className="text-[.68rem] text-green-600 font-bold mt-0.5">
@@ -342,7 +483,7 @@ export default function HotelDetailPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="font-poppins font-black text-[2rem] text-[#1A1D2B] leading-none mt-1">
+                  <div className="font-[var(--font-playfair)] font-black text-[2.1rem] text-[#0a1628] tracking-tight leading-none mt-1">
                     {currency === 'GBP' ? '£' : `${currency} `}{parseFloat(price).toFixed(2)}
                   </div>
                 )}
@@ -358,23 +499,38 @@ export default function HotelDetailPage() {
               {rooms !== '1' && <div className="flex justify-between"><span>Rooms</span><strong className="text-[#1A1D2B]">{rooms}</strong></div>}
             </div>
 
-            {/* Refundable / Board type badges */}
-            {(refundable !== null || boardType) && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {refundable !== null && (
-                  <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[.75rem] font-bold ${refundable ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-600'}`}>
-                    <i className={`fa-solid ${refundable ? 'fa-circle-check' : 'fa-circle-xmark'} text-[.65rem]`} />
-                    {refundable ? 'Free cancellation' : 'Non-refundable'}
-                  </span>
-                )}
-                {boardType && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[.75rem] font-bold bg-blue-50 border border-blue-200 text-blue-700">
-                    <i className="fa-solid fa-utensils text-[.65rem]" />
-                    {boardType}
-                  </span>
-                )}
-              </div>
-            )}
+            {/* Refundable / Board type badges — reflect selected row when
+                present so the sidebar is always a faithful summary. Scout
+                palette: emerald solid for positives, slate outline for the
+                neutral "stated, not scolded" facts (no red). */}
+            {(() => {
+              const effRefundable = selectedRate ? selectedRate.refundable : refundable;
+              const effBoard = selectedRate?.boardType || boardType;
+              if (effRefundable === null && !effBoard) return null;
+              return (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {effRefundable !== null && (
+                    effRefundable ? (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[.72rem] font-bold bg-emerald-50 border border-emerald-200 text-emerald-700">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" aria-hidden />
+                        Free cancellation
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[.72rem] font-semibold bg-slate-50 border border-slate-200 text-slate-500">
+                        <span className="w-1.5 h-1.5 rounded-full border border-slate-300" aria-hidden />
+                        Non-refundable
+                      </span>
+                    )
+                  )}
+                  {effBoard && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[.72rem] font-bold bg-[#FAF3E6] border border-[#E8D8A8] text-[#8a6d00]">
+                      <i className="fa-solid fa-utensils text-[.62rem]" />
+                      {effBoard}
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Perks */}
             {perks.length > 0 && (
@@ -391,12 +547,18 @@ export default function HotelDetailPage() {
               </div>
             )}
 
-            {offerId ? (
+            {(selectedRate || offerId) ? (
               <button
                 type="button"
-                onClick={handleBook}
+                onClick={() => {
+                  if (selectedRate) {
+                    handleRowReserve(selectedRate.offerId);
+                  } else {
+                    handleBook();
+                  }
+                }}
                 disabled={startingBooking}
-                className="w-full mt-5 bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-poppins font-black text-[.9rem] py-3.5 rounded-xl transition-all shadow-[0_4px_20px_rgba(245,158,11,0.3)] flex items-center justify-center gap-2"
+                className="w-full mt-5 bg-[#0a1628] hover:bg-[#0066FF] disabled:opacity-60 text-white font-poppins font-bold text-[.92rem] py-3.5 rounded-xl transition-all shadow-[0_6px_22px_rgba(10,22,40,0.22)] flex items-center justify-center gap-2"
               >
                 {startingBooking ? (
                   <>
@@ -404,7 +566,7 @@ export default function HotelDetailPage() {
                     Starting…
                   </>
                 ) : (
-                  <><i className="fa-solid fa-lock text-[.8rem]" /> Book Direct</>
+                  <><i className="fa-solid fa-lock text-[.78rem]" /> Reserve with Scout →</>
                 )}
               </button>
             ) : (
