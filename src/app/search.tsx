@@ -3,7 +3,13 @@
 import { useState, useRef, useEffect } from 'react';
 
 // ── UK Airports with exact coordinates ────────────────────────────────────────
+// First entry is the house default (London, all airports). Using the IATA
+// metro code LON lets Travelpayouts search LHR + LGW + STN + LTN + LCY + SEN
+// in one call and return the cheapest across all six. Coordinates are
+// central London (Trafalgar Sq) so the "nearest airport" logic never
+// inadvertently picks LON — it only wins as the explicit default.
 const AIRPORTS = [
+  { code: 'LON', name: 'London (All airports)', lat: 51.5074, lon: -0.1278 },
   { code: 'LHR', name: 'London Heathrow', lat: 51.4700, lon: -0.4543 },
   { code: 'LGW', name: 'London Gatwick', lat: 51.1537, lon: -0.1821 },
   { code: 'STN', name: 'London Stansted', lat: 51.8860, lon: 0.2389 },

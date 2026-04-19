@@ -5,8 +5,10 @@ export const runtime = 'edge';
 
 const TP_TOKEN = 'f797fbb7074a15838d5536c10be6f7b5';
 const KV_TTL = 21600; // 6 hours
-const KV_KEY = 'flight-hot-deals:LHR';
-const KV_META_KEY = 'flight-hot-deals:LHR:meta'; // { fetchedAt: ISO string }
+// KV key is scoped to the origin metro code so switching LHR → LON doesn't
+// serve cached Heathrow-only prices. Any old LHR-scoped keys expire naturally.
+const KV_KEY = 'flight-hot-deals:LON';
+const KV_META_KEY = 'flight-hot-deals:LON:meta'; // { fetchedAt: ISO string }
 
 const AIRLINES: Record<string, string> = {
   AA: 'American Airlines', AC: 'Air Canada', AF: 'Air France',
@@ -81,7 +83,7 @@ export async function GET(req: NextRequest) {
 
   const fetches = HOT_ROUTES.map(async (route) => {
     try {
-      const url = `https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=LHR&destination=${route.dest}&departure_at=${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}&currency=gbp&sorting=price&limit=3&market=gb&token=${TP_TOKEN}`;
+      const url = `https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=LON&destination=${route.dest}&departure_at=${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}&currency=gbp&sorting=price&limit=3&market=gb&token=${TP_TOKEN}`;
       const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
       if (!res.ok) return;
       const data = await res.json();
@@ -89,7 +91,7 @@ export async function GET(req: NextRequest) {
         // Try next month
         const nextMonth = new Date(now);
         nextMonth.setMonth(nextMonth.getMonth() + 1);
-        const url2 = `https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=LHR&destination=${route.dest}&departure_at=${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, '0')}&currency=gbp&sorting=price&limit=3&market=gb&token=${TP_TOKEN}`;
+        const url2 = `https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=LON&destination=${route.dest}&departure_at=${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, '0')}&currency=gbp&sorting=price&limit=3&market=gb&token=${TP_TOKEN}`;
         const res2 = await fetch(url2, { signal: AbortSignal.timeout(8000) });
         if (!res2.ok) return;
         const data2 = await res2.json();
