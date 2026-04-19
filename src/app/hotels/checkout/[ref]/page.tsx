@@ -631,18 +631,98 @@ export default function HotelCheckoutPage() {
             </>
           )}
 
-          {/* Error state */}
-          {step === 'error' && (
-            <div className="text-center py-10">
-              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">
-                <i className="fa-solid fa-xmark text-red-600 text-xl" />
+          {/* Error state — Scout Shield framing.
+              When LiteAPI returns 5000 / 2001 / generic prebook failures it
+              almost always means "ghost inventory": the rate was still in
+              cache when the user clicked Reserve, but the hotel sold that
+              specific room in the gap. This is the *right* behaviour — we
+              refused to take payment for a room we couldn't lock. We frame
+              it as the Scout Shield, not a failure. */}
+          {step === 'error' && (() => {
+            const raw = (stepError || '').toLowerCase();
+            const isGhostInventory =
+              raw.includes('prebook') ||
+              raw.includes('5000') ||
+              raw.includes('2001') ||
+              raw.includes('unable to process') ||
+              raw.includes('sold out') ||
+              raw.includes('not available') ||
+              raw.includes('no availability') ||
+              raw.includes('rate') && raw.includes('expired');
+            const backHref = `/hotels?destination=${encodeURIComponent(booking.city)}&checkin=${booking.checkIn}&checkout=${booking.checkOut}&adults=${booking.adults}`;
+
+            if (isGhostInventory) {
+              return (
+                <div className="py-8 md:py-10">
+                  {/* Shield badge */}
+                  <div className="flex items-center justify-center mb-5">
+                    <div className="relative">
+                      <div className="w-14 h-14 rounded-full bg-[#FAF3E6] ring-1 ring-[#E8D8A8] flex items-center justify-center">
+                        <i className="fa-solid fa-shield-halved text-[#8a6d00] text-xl" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-center text-[.62rem] font-black uppercase tracking-[2px] text-[#8a6d00] mb-2">
+                    Scout Shield · Protection activated
+                  </p>
+                  <h2 className="text-center font-[var(--font-playfair)] font-black text-[1.5rem] md:text-[1.8rem] text-[#0a1628] leading-tight tracking-tight mb-3">
+                    That room just sold —<br className="hidden md:block" /> we stopped the payment.
+                  </h2>
+                  <p className="text-center text-[.88rem] font-medium text-slate-600 leading-relaxed max-w-md mx-auto mb-5">
+                    The hotel sold this exact rate in the seconds between you clicking <em>Reserve</em> and our live inventory check. Unlike sites that take your money first and email apologies later, Scout never charges for a room we can&apos;t lock.
+                  </p>
+
+                  {/* Scout tokens row — "what just happened" in 3 beats */}
+                  <div className="max-w-md mx-auto bg-[#FAF3E6]/60 ring-1 ring-[#E8D8A8]/60 rounded-2xl p-4 mb-6">
+                    <ul className="space-y-2 text-[.78rem] font-semibold text-[#0a1628]">
+                      <li className="flex items-start gap-2">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" aria-hidden />
+                        <span>No charge on your card — we didn&apos;t authorise payment.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" aria-hidden />
+                        <span>Your details are safe — no booking was created.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" aria-hidden />
+                        <span>Live rates for <strong>{booking.city || 'your dates'}</strong> are one click away.</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+                    <a
+                      href={backHref}
+                      className="inline-flex items-center gap-2 font-poppins font-bold text-[.85rem] bg-[#0a1628] text-white rounded-full px-6 py-3 hover:bg-[#0066FF] transition-colors shadow-[0_6px_18px_rgba(10,22,40,0.18)]"
+                    >
+                      See live rates in {booking.city || 'this city'} →
+                    </a>
+                    <a
+                      href="/hotels"
+                      className="inline-flex items-center gap-2 font-poppins font-bold text-[.8rem] text-[#0a1628] hover:text-[#0066FF] transition-colors"
+                    >
+                      Search somewhere else
+                    </a>
+                  </div>
+                </div>
+              );
+            }
+
+            // Unknown error — keep the red state but still Scout-voiced
+            return (
+              <div className="text-center py-10">
+                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">
+                  <i className="fa-solid fa-xmark text-red-600 text-xl" />
+                </div>
+                <p className="font-poppins font-bold text-red-700 mb-2">{stepError || 'Something went wrong'}</p>
+                <p className="text-[.78rem] text-slate-500 mb-4 max-w-sm mx-auto">Your card wasn&apos;t charged. Let&apos;s try fresh rates.</p>
+                <a href={backHref} className="text-sm font-bold text-[#0066FF] underline">
+                  Back to search
+                </a>
               </div>
-              <p className="font-poppins font-bold text-red-700 mb-2">{stepError || 'Something went wrong'}</p>
-              <a href={`/hotels?destination=${encodeURIComponent(booking.city)}&checkin=${booking.checkIn}&checkout=${booking.checkOut}&adults=${booking.adults}`} className="text-sm font-bold text-[#0066FF] underline">
-                Back to search
-              </a>
-            </div>
-          )}
+            );
+          })()}
         </div>
 
         {/* Booking summary sidebar — shows first on mobile */}

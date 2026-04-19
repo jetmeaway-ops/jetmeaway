@@ -933,7 +933,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
           </div>
           <div className="flex flex-col gap-1.5 w-full">
             {h.bookable && displayOfferId && (
-              <BookDirectButton hotel={bookHotel} checkIn={checkin} checkOut={checkout} adults={adults} nights={nights} city={searchedDest} />
+              <BookDirectButton hotel={bookHotel} checkIn={checkin} checkOut={checkout} adults={adults} nights={nights} city={searchedDest} detailHref={detailHref} />
             )}
             <a href={redirectUrl(tripUrl, 'Trip.com', searchedDest, 'hotels')}
               className="bg-[#287DFA] hover:bg-[#1A6AE0] text-white font-poppins font-bold text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap">
@@ -987,13 +987,22 @@ function BoardSelector({ options, selected, onSelect }: {
   );
 }
 
+/* Book Direct — Scout Shield routing.
+   The prior implementation POSTed the SEARCH card's cached offerId straight
+   to /api/hotels/start-booking. Those offerIds are up to 15 minutes stale
+   (KV cache), so the hotel often sold the rate before LiteAPI's prebook ran,
+   producing 5000 / "ghost inventory" errors at checkout.
+
+   New flow: Book Direct now deep-links to the hotel detail page which
+   re-fetches live rates from LiteAPI. The user picks the freshly-locked
+   rate from the Rooms Table and "Secure this rate" there starts the
+   booking with an offerId that was alive seconds ago.
+
+   We also skip the round-trip if the detail page URL is already known by
+   passing the full query string through. */
 function BookDirectButton({
   hotel,
-  checkIn,
-  checkOut,
-  nights,
-  adults,
-  city,
+  detailHref,
 }: {
   hotel: HotelResult;
   checkIn: string;
@@ -1001,56 +1010,16 @@ function BookDirectButton({
   nights: number;
   adults: number;
   city: string;
+  detailHref: string;
 }) {
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-
-  const onClick = async () => {
-    if (!hotel.offerId) return;
-    setBusy(true);
-    setErr(null);
-    try {
-      const res = await fetch('/api/hotels/start-booking', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          offerId: hotel.offerId,
-          hotelName: hotel.name,
-          stars: hotel.stars ?? 0,
-          totalPrice: hotel.totalPrice ?? hotel.pricePerNight * Math.max(1, nights),
-          currency: hotel.currency || 'GBP',
-          checkIn,
-          checkOut,
-          city,
-          adults,
-          nights: Math.max(1, nights),
-          thumbnail: hotel.thumbnail || null,
-          lat: hotel.lat,
-          lng: hotel.lng,
-          ...(typeof hotel.refundable === 'boolean' ? { refundable: hotel.refundable } : {}),
-        }),
-      });
-      const data = await res.json();
-      if (!data.success || !data.ref) throw new Error(data.error || 'Could not start booking');
-      window.location.assign(`/hotels/checkout/${encodeURIComponent(data.ref)}`);
-    } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : 'Unexpected error');
-      setBusy(false);
-    }
-  };
-
+  if (!hotel.offerId) return null;
   return (
-    <div className="flex flex-col">
-      <button
-        type="button"
-        onClick={onClick}
-        disabled={busy}
-        className="bg-gradient-to-r from-[#0066FF] to-[#4C8BFF] hover:from-[#0052CC] hover:to-[#3B7AEE] disabled:opacity-60 disabled:cursor-not-allowed text-white font-poppins font-black text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap shadow-[0_2px_10px_rgba(0,102,255,0.25)]"
-      >
-        {busy ? 'Loading…' : <><i className="fa-solid fa-lock mr-1" /> Book Direct →</>}
-      </button>
-      {err && <span className="text-[.62rem] text-red-600 font-bold mt-1">{err}</span>}
-    </div>
+    <a
+      href={detailHref}
+      className="bg-gradient-to-r from-[#0066FF] to-[#4C8BFF] hover:from-[#0052CC] hover:to-[#3B7AEE] text-white font-poppins font-black text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap shadow-[0_2px_10px_rgba(0,102,255,0.25)] inline-block"
+    >
+      <i className="fa-solid fa-lock mr-1" /> Book Direct →
+    </a>
   );
 }
 
