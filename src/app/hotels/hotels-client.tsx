@@ -810,14 +810,15 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
 
   return (
     <div className={`bg-white border rounded-2xl overflow-hidden transition-all hover:shadow-md relative ${isCheapest ? 'border-[#E8D8A8] ring-1 ring-[#E8D8A8]/60' : 'border-[#E8ECF4]'} ${isCompared ? 'ring-2 ring-orange-400 border-orange-300' : ''}`}>
-      {/* Compare toggle — top-right, always-visible, keeps click off the image anchor */}
+      {/* Compare toggle — card top-right. Price column gets extra top padding
+          (md:pt-12 below) so the price never slides under this pill. */}
       <button
         type="button"
         onClick={onToggleCompare}
         disabled={!isCompared && compareFull}
         aria-pressed={isCompared}
         title={isCompared ? 'Remove from compare' : compareFull ? 'Compare limit reached (3)' : 'Add to compare'}
-        className={`absolute z-10 top-3 right-3 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[.66rem] font-bold shadow-sm transition-all ${
+        className={`absolute z-10 top-2.5 right-2.5 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[.66rem] font-bold shadow-sm transition-all ${
           isCompared
             ? 'bg-orange-500 text-white hover:bg-orange-600'
             : compareFull
@@ -914,8 +915,9 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
           <a href={detailHref} className="text-[.7rem] text-orange-600 font-bold mt-2 inline-block">View details →</a>
         </div>
 
-        {/* Price + Actions */}
-        <div className="p-5 flex flex-col items-end justify-center gap-2 border-t md:border-t-0 md:border-l border-[#F1F3F7]">
+        {/* Price + Actions — extra top padding on desktop so price sits below
+            the Compare pill pinned at card top-right. */}
+        <div className="p-5 md:pt-14 flex flex-col items-end justify-center gap-2 border-t md:border-t-0 md:border-l border-[#F1F3F7]">
           <div className="text-right">
             {/* Scout Deal badge — negotiated rate is lower than market */}
             {h.marketPerNight != null && h.negotiatedPerNight != null && h.negotiatedPerNight < h.marketPerNight && (
