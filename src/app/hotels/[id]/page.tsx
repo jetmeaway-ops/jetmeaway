@@ -254,6 +254,8 @@ export default function HotelDetailPage() {
           currency,
           localFees: localFees || 0,
           refundable: rate.refundable,
+          checkInTime: hotel.checkInTime || null,
+          checkOutTime: hotel.checkOutTime || null,
         }),
       });
       const data = await res.json();
@@ -288,6 +290,8 @@ export default function HotelDetailPage() {
           currency,
           localFees: localFees || 0,
           ...(refundable !== null ? { refundable } : {}),
+          checkInTime: hotel.checkInTime || null,
+          checkOutTime: hotel.checkOutTime || null,
         }),
       });
       const data = await res.json();
@@ -514,6 +518,37 @@ export default function HotelDetailPage() {
               </div>
               {rooms !== '1' && <div className="flex justify-between"><span>Rooms</span><strong className="text-[#1A1D2B]">{rooms}</strong></div>}
             </div>
+
+            {/* Stay schedule — Scout voice.
+                Most hotels open rooms around 2pm and turn them over by 10am.
+                Surfacing this in the sidebar (not buried in fine print)
+                prevents the classic "I arrived at 11am, why is my room not
+                ready?" complaint. Champagne chip, emerald dot for the arrival
+                window, slate outline for the departure — stated, not scolded. */}
+            {(hotel.checkInTime || hotel.checkOutTime) && (
+              <div className="mt-4 bg-[#FAF3E6]/60 ring-1 ring-[#E8D8A8]/60 rounded-xl p-3">
+                <div className="text-[.62rem] font-black uppercase tracking-[1.5px] text-[#8a6d00] mb-2">
+                  Your stay schedule
+                </div>
+                <div className="space-y-1.5 text-[.78rem]">
+                  {hotel.checkInTime && (
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" aria-hidden />
+                      <span className="font-semibold text-[#0a1628]">Check-in from <strong>{hotel.checkInTime}</strong></span>
+                    </div>
+                  )}
+                  {hotel.checkOutTime && (
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block w-1.5 h-1.5 rounded-full border border-slate-400 shrink-0" aria-hidden />
+                      <span className="font-medium text-slate-600">Check-out by <strong className="text-[#0a1628]">{hotel.checkOutTime}</strong></span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-[.66rem] text-slate-500 font-medium mt-2 leading-snug">
+                  Arriving early? Reception will store your bags so you can wander.
+                </p>
+              </div>
+            )}
 
             {/* Refundable / Board type badges — reflect selected row when
                 present so the sidebar is always a faithful summary. Scout

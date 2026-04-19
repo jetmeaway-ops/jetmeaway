@@ -32,7 +32,7 @@ export async function POST(
 
   try {
     const body = await req.json();
-    const { title, firstName, lastName, email, phone, nationality } = body || {};
+    const { title, firstName, lastName, email, phone, nationality, specialRequests } = body || {};
 
     if (!firstName || !lastName || !email) {
       return NextResponse.json({ success: false, error: 'firstName, lastName and email are required' }, { status: 400 });
@@ -49,6 +49,13 @@ export async function POST(
       ? title.trim()
       : 'Mr';
 
+    // Scout Special Requests — free-text note for the hotel. Trimmed and
+    // capped at 500 chars. Stored on the top-level record (not inside guest)
+    // so the book call can pass it as LiteAPI `remarks` without unpacking.
+    const safeSpecialRequests = typeof specialRequests === 'string'
+      ? specialRequests.trim().slice(0, 500) || null
+      : null;
+
     const updated = {
       ...record,
       guest: {
@@ -59,6 +66,7 @@ export async function POST(
         phone: String(phone || '').trim(),
         nationality: String(nationality || 'GB').toUpperCase(),
       } as PendingGuest,
+      ...(safeSpecialRequests ? { specialRequests: safeSpecialRequests } : {}),
     };
 
     // Preserve remaining TTL — 4h to cover slow checkouts

@@ -50,6 +50,14 @@ export interface PendingBooking {
   refundable?: boolean;
   /** ISO timestamp by which the user must cancel to get a refund */
   cancellationDeadline?: string | null;
+  /** Property check-in window (earliest time rooms are ready), e.g. "14:00" */
+  checkInTime?: string | null;
+  /** Property check-out cutoff, e.g. "10:00" */
+  checkOutTime?: string | null;
+  /** Scout Special Requests — free-text note passed to the hotel via LiteAPI
+   *  `remarks` at book time. Captured on the checkout guest form; null / missing
+   *  for older records. Max 500 chars, trimmed. No guarantee they honour it. */
+  specialRequests?: string | null;
   state: 'pending' | 'paid' | 'booking' | 'confirmed' | 'failed';
   createdAt: number;
   /** Which wholesale supplier issued this offer. Drives the booking flow branch. */
@@ -106,6 +114,8 @@ export async function POST(req: NextRequest) {
       localFees = 0,
       refundable,
       cancellationDeadline = null,
+      checkInTime = null,
+      checkOutTime = null,
       supplier,
     } = body || {};
 
@@ -150,6 +160,8 @@ export async function POST(req: NextRequest) {
       ...(Number.isFinite(localFees) && localFees > 0 ? { localFees: Math.round(localFees * 100) / 100 } : {}),
       ...(typeof refundable === 'boolean' ? { refundable } : {}),
       ...(typeof cancellationDeadline === 'string' && cancellationDeadline ? { cancellationDeadline } : {}),
+      ...(typeof checkInTime === 'string' && checkInTime ? { checkInTime } : {}),
+      ...(typeof checkOutTime === 'string' && checkOutTime ? { checkOutTime } : {}),
       // Derive supplier: explicit `supplier` field wins; else infer from offerId prefix
       // (`dotw:...` → dotw, otherwise liteapi).
       supplier: supplier === 'dotw' || offerId.startsWith('dotw:')

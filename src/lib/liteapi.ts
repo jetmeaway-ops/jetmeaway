@@ -871,8 +871,12 @@ export async function bookWithTransactionId(params: {
   transactionId: string;
   guest: Guest;
   clientReference?: string;
+  /** Scout Special Requests — forwarded to LiteAPI as `remarks`. The hotel
+   *  sees this as a free-text note ("early arrival", "extra pillows").
+   *  LiteAPI accepts up to 500 chars; we pre-trim upstream. */
+  specialRequests?: string | null;
 }): Promise<BookingResult> {
-  const { prebookId, transactionId, guest, clientReference } = params;
+  const { prebookId, transactionId, guest, clientReference, specialRequests } = params;
 
   if (!prebookId) throw new Error('prebookId is required');
   if (!transactionId) throw new Error('transactionId is required');
@@ -883,6 +887,7 @@ export async function bookWithTransactionId(params: {
   const bookBody = {
     prebookId,
     ...(clientReference ? { clientReference } : {}),
+    ...(specialRequests ? { remarks: String(specialRequests).slice(0, 500) } : {}),
     holder: {
       firstName: guest.firstName,
       lastName: guest.lastName,

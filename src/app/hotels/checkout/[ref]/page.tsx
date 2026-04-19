@@ -19,6 +19,11 @@ interface PendingSummary {
   localFees?: number;
   refundable?: boolean | null;
   cancellationDeadline?: string | null;
+  /** Scout stay-schedule — surfaces what time the room opens / closes so the
+   *  guest isn't surprised on arrival. Either may be absent when the
+   *  supplier omits it. */
+  checkInTime?: string | null;
+  checkOutTime?: string | null;
   state: 'pending' | 'paid' | 'confirmed' | 'failed';
   /** Which wholesale supplier owns this offer. Drives the payment + book flow. */
   supplier?: 'liteapi' | 'dotw';
@@ -87,6 +92,9 @@ export default function HotelCheckoutPage() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [nationality, setNationality] = useState('GB');
+  /* Scout Special Requests — free-text note for the hotel (early arrival,
+     extra pillows, quiet room). Trimmed + capped at 500 chars on send. */
+  const [specialRequests, setSpecialRequests] = useState('');
 
   const [step, setStep] = useState<Step>('locking');
   const [stepError, setStepError] = useState<string | null>(null);
@@ -306,6 +314,7 @@ export default function HotelCheckoutPage() {
           email: email.trim(),
           phone: phone.trim(),
           nationality,
+          specialRequests: specialRequests.trim().slice(0, 500),
         }),
       });
       const saveData = await saveRes.json();
@@ -518,6 +527,34 @@ export default function HotelCheckoutPage() {
                     placeholder="GB"
                     className="w-24 mt-1 px-3 py-3 sm:py-2.5 rounded-lg border border-[#E8ECF4] bg-white text-[16px] sm:text-[.88rem] font-semibold text-[#1A1D2B] outline-none focus:border-[#0066FF] uppercase placeholder:text-[#B0B8CC] placeholder:font-normal" />
                 </label>
+              </div>
+
+              {/* Scout Special Requests — optional free-text note. We pass
+                  this to LiteAPI as `remarks` on /rates/book; it's visible
+                  to the hotel front desk but never a guarantee. Scout voice
+                  makes that honest up front. */}
+              <div className="mt-5 sm:mt-6 bg-[#FAF3E6]/60 ring-1 ring-[#E8D8A8]/60 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <i className="fa-solid fa-feather-pointed text-[#8a6d00] text-[.8rem]" />
+                  <span className="font-poppins font-black text-[.85rem] text-[#0a1628]">
+                    A note for the front desk
+                  </span>
+                  <span className="text-[.65rem] font-semibold text-slate-500 ml-1">(optional)</span>
+                </div>
+                <p className="text-[.72rem] font-medium text-slate-600 leading-snug mb-2.5">
+                  Early arrival, extra pillows, quiet room, high floor — we&apos;ll pass it along. The hotel does its best but can&apos;t promise every request.
+                </p>
+                <textarea
+                  value={specialRequests}
+                  onChange={(e) => setSpecialRequests(e.target.value.slice(0, 500))}
+                  rows={4}
+                  maxLength={500}
+                  placeholder="e.g. arriving after midnight, need extra blanket, high floor if possible…"
+                  className="w-full px-3 py-2.5 rounded-lg border border-[#E8D8A8]/80 bg-white text-[16px] sm:text-[.85rem] font-medium text-[#1A1D2B] outline-none focus:border-[#0066FF] focus:ring-2 focus:ring-[#0066FF]/20 placeholder:text-[#B0B8CC] placeholder:font-normal resize-none"
+                />
+                <div className="text-right text-[.62rem] font-semibold text-slate-400 mt-1">
+                  {specialRequests.length}/500
+                </div>
               </div>
 
               <button
@@ -739,6 +776,30 @@ export default function HotelCheckoutPage() {
             <div>Check-out: <strong className="text-[#1A1D2B]">{booking.checkOut}</strong></div>
             <div>{booking.nights} night{booking.nights !== 1 ? 's' : ''} · {booking.adults} guest{booking.adults !== 1 ? 's' : ''}</div>
           </div>
+
+          {/* Stay schedule — surfaces arrival/departure times before payment
+              so the guest isn't caught out on arrival. Stated, not scolded. */}
+          {(booking.checkInTime || booking.checkOutTime) && (
+            <div className="bg-[#FAF3E6]/60 ring-1 ring-[#E8D8A8]/60 rounded-xl p-3 mb-4">
+              <div className="text-[.6rem] font-black uppercase tracking-[1.5px] text-[#8a6d00] mb-1.5">
+                Your stay schedule
+              </div>
+              <div className="space-y-1 text-[.75rem]">
+                {booking.checkInTime && (
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" aria-hidden />
+                    <span className="font-semibold text-[#0a1628]">Room ready from <strong>{booking.checkInTime}</strong></span>
+                  </div>
+                )}
+                {booking.checkOutTime && (
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full border border-slate-400 shrink-0" aria-hidden />
+                    <span className="font-medium text-slate-600">Check-out by <strong className="text-[#0a1628]">{booking.checkOutTime}</strong></span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           {/* ── Price breakdown ── */}
           <div className="border-t border-[#E8ECF4] pt-3 space-y-1.5">
             <div className="flex items-center justify-between">

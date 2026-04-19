@@ -142,6 +142,9 @@ export async function POST(req: NextRequest) {
         nationality: record.guest.nationality,
       },
       clientReference: ref,
+      // Forward the Scout Special Requests note to the hotel as LiteAPI
+      // `remarks`. Null/undefined when the guest left the box empty.
+      specialRequests: record.specialRequests ?? null,
     });
 
     const updated = {
