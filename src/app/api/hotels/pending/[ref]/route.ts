@@ -41,6 +41,8 @@ export async function GET(
         thumbnail: record.thumbnail,
         refundable: typeof record.refundable === 'boolean' ? record.refundable : null,
         cancellationDeadline: record.cancellationDeadline ?? null,
+        checkInTime: record.checkInTime ?? null,
+        checkOutTime: record.checkOutTime ?? null,
         state: record.state,
         supplier: record.supplier ?? 'liteapi',
         liteapiBookingId: record.liteapiBookingId ?? null,
