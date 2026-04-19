@@ -245,21 +245,86 @@ function findAirport(dest: string): { iata: string; lat: number; lng: number } |
    PROVIDER DEEP LINKS (only affiliated providers)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-function buildTripcomUrl(dest: string, cin: string, cout: string, adults: number): string {
+/**
+ * Trip.com UK cityId map — empirically verified by navigating the live Trip.com
+ * UK search bar and capturing the cityId it settles to.
+ *
+ * Why hardcode? Trip.com won't auto-load results unless `city=<numericId>` is a
+ * real, matched ID. Passing `city=-1&cityName=Dubai` resolves the destination
+ * box but shows "0 properties found" — the user has to manually click Search.
+ * That breaks the Scout handoff. Wrong IDs silently land users in the wrong
+ * city (e.g. `city=2` = Shanghai, not Dubai; `city=178` = Anshan, not London).
+ *
+ * When a destination isn't in this map we fall back to `city=-1` keyword mode —
+ * still lands on Trip.com UK with Dubai/UK-locale/GBP + tracking intact, just
+ * requires one manual click on Search.
+ *
+ * TODO: replace with dynamic resolver via /api/resolve-trip-city that hits
+ * Trip.com's getKeyWordSearch endpoint and caches in KV for 24h.
+ */
+const TRIP_UK_CITY_IDS: Record<string, number> = {
+  // Verified live 2026-04-19 by navigating uk.trip.com and confirming page title
+  dubai: 220,
+  // Add more here as they're verified. Key = destination lowercased, no accents.
+};
+
+function tripCityIdFor(dest: string): number | null {
+  const key = dest.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return TRIP_UK_CITY_IDS[key] ?? null;
+}
+
+function buildTripcomUrl(
+  dest: string,
+  cin: string,
+  cout: string,
+  adults: number,
+  resolvedCityId?: number | null,
+): string {
   // Trip.com hotel URL contract (verified live 2026-04-19):
   //   - `uk.trip.com/hotels/list` is the UK-localised endpoint (GBP + en-GB).
-  //   - city=-1 + cityName + searchValue=<dest>*** is Trip.com's "keyword
-  //     search" mode. Without city=-1 the `list` endpoint falls back to a
-  //     Chinese city (Anshan / Bengbu / Zhongning by city ID) and shows
-  //     irrelevant results.
+  //   - `city=<realId>` auto-loads results instantly. Fallback to `city=-1`
+  //     keyword mode lands on the correct destination but the user has to
+  //     click Search once (no good way around this without the real ID).
   //   - Dates are `/`-separated.
-  //   - domestic=false is required for non-CN destinations.
   //   - The old `${slug}-hotels-list/` path 302s to the Trip.com homepage
   //     and was silently losing every click.
+  //
+  // cityId resolution order:
+  //   1. resolvedCityId (from /api/resolve-trip-city → Trip.com getSuggest, KV-cached)
+  //   2. Static verified map (TRIP_UK_CITY_IDS)
+  //   3. Keyword-mode fallback (city=-1)
   const cinSlash = cin.replace(/-/g, '/');
   const coutSlash = cout.replace(/-/g, '/');
   const keyword = encodeURIComponent(dest);
-  return `https://uk.trip.com/hotels/list?city=-1&cityName=${keyword}&searchValue=${keyword}***&checkin=${cinSlash}&checkout=${coutSlash}&adult=${adults}&crn=1&children=0&domestic=false&curr=GBP&locale=en-GB&Allianceid=8023009&SID=303363796&trip_sub3=D15021113`;
+  const cityId = resolvedCityId ?? tripCityIdFor(dest);
+  const base = [
+    `city=${cityId ?? -1}`,
+    `cityName=${keyword}`,
+    `checkin=${cinSlash}`,
+    `checkout=${coutSlash}`,
+    `adult=${adults}`,
+    'crn=1',
+    'children=0',
+    'barCurr=GBP',
+    'curr=GBP',
+    'locale=en-GB',
+    'Allianceid=8023009',
+    'SID=303363796',
+    'trip_sub3=D15021113',
+  ];
+  // Keyword-mode fallback — add the sentinels Trip.com expects for a partial match.
+  if (cityId == null) {
+    base.push(
+      'provinceId=0',
+      'countryId=0',
+      'districtId=0',
+      `searchValue=${keyword}***`,
+      'searchBoxArg=t',
+      'travelPurpose=0',
+      'ctm_ref=ix_sb_dl',
+    );
+  }
+  return `https://uk.trip.com/hotels/list?${base.join('&')}`;
 }
 
 function buildExpediaUrl(dest: string, cin: string, cout: string, adults: number): string {
@@ -631,7 +696,7 @@ function StarFilter({ value, onChange }: { value: number; onChange: (v: number) 
    BOOK DIRECT (LiteAPI) — creates a pending booking then redirects to checkout
    ═══════════════════════════════════════════════════════════════════════════ */
 
-function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, checkin, checkout, searchedDest, buildDetailHref, setScoutHotel, priceView, cityCentre, airport }: {
+function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, checkin, checkout, searchedDest, tripCityId, buildDetailHref, setScoutHotel, priceView, cityCentre, airport }: {
   hotel: HotelResult;
   index: number;
   isCheapest: boolean;
@@ -640,6 +705,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, checkin, c
   checkin: string;
   checkout: string;
   searchedDest: string;
+  tripCityId: number | null;
   buildDetailHref: (h: HotelResult) => string;
   setScoutHotel: (s: { name: string; lat: number; lng: number } | null) => void;
   priceView: 'total' | 'perPerson';
@@ -688,7 +754,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, checkin, c
     'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=640&h=480&fit=crop&fm=webp&q=75',
   ];
   const photoUrl = h.thumbnail || HOTEL_PHOTOS[index % HOTEL_PHOTOS.length];
-  const tripUrl = buildTripcomUrl(searchedDest, checkin, checkout, adults);
+  const tripUrl = buildTripcomUrl(searchedDest, checkin, checkout, adults, tripCityId);
   const expediaUrl = buildExpediaUrl(searchedDest, checkin, checkout, adults);
   const detailHref = buildDetailHref(h);
 
@@ -995,6 +1061,11 @@ function HotelsContent() {
   const [apiError, setApiError] = useState('');
   const [searched, setSearched] = useState(false);
   const [searchedDest, setSearchedDest] = useState('');
+  // Trip.com numeric cityId for the current search. Resolved server-side via
+  // /api/resolve-trip-city (KV-cached, 24h). Threaded into buildTripcomUrl so
+  // `uk.trip.com/hotels/list?city=<id>` auto-loads results instead of
+  // requiring the user to click Search.
+  const [tripCityId, setTripCityId] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<SortBy>('recommended');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [priceView, setPriceView] = useState<'total' | 'perPerson'>('total');
@@ -1116,6 +1187,21 @@ function HotelsContent() {
     setLoading(true);
     setSearched(true);
     setSearchedDest(destination);
+
+    // Prefetch Trip.com cityId in the background so "Trip.com →" buttons
+    // land on a results page with inventory already loaded. Non-blocking —
+    // if it fails or resolves late, the builder falls back to `city=-1`
+    // keyword mode (works, just needs one manual Search click).
+    setTripCityId(null);
+    fetch(`/api/resolve-trip-city?q=${encodeURIComponent(destination)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { id: number } | null) => {
+        // Resolver returns -1 for misses; treat only positive IDs as resolved.
+        if (data && typeof data.id === 'number' && data.id > 0) setTripCityId(data.id);
+      })
+      .catch(() => {
+        /* silent — buildTripcomUrl falls back to keyword mode */
+      });
 
     try {
       const params = new URLSearchParams({
@@ -1311,7 +1397,7 @@ function HotelsContent() {
       // Non-LiteAPI (curated / unquarantined legacy) → send to Trip.com via
       // the interstitial redirect so affiliate tracking + UX stays consistent.
       return redirectUrl(
-        buildTripcomUrl(searchedDest, checkin, checkout, adults),
+        buildTripcomUrl(searchedDest, checkin, checkout, adults, tripCityId),
         'Trip.com',
         searchedDest,
         'hotels',
@@ -1752,6 +1838,7 @@ function HotelsContent() {
                       checkin={checkin}
                       checkout={checkout}
                       searchedDest={searchedDest}
+                      tripCityId={tripCityId}
                       buildDetailHref={buildDetailHref}
                       setScoutHotel={setScoutHotel}
                       priceView={priceView}
