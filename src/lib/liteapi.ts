@@ -230,6 +230,13 @@ export interface HotelOffer {
     refundable: boolean;
     /** v3.0 Phase-2: the human room name ("Deluxe King, City View") */
     roomName?: string | null;
+    /** v3.0 Phase-3: per-row Scout Deal signal.
+     *  negotiatedPrice is present only when LiteAPI returned a negotiatedRate
+     *  strictly less than the retail/market price. marketPrice is ALWAYS the
+     *  public retail total for that row. When negotiatedPrice is null/absent
+     *  the UI renders a plain row — no deal ribbon. */
+    negotiatedPrice?: number | null;
+    marketPrice?: number | null;
   }>;
 }
 
@@ -469,6 +476,9 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       pricePerNight: number;
       refundable: boolean;
       roomName?: string | null;
+      /** Phase-3 per-row Scout Deal signal */
+      negotiatedPrice?: number | null;
+      marketPrice?: number | null;
     };
     const optionsByKey = new Map<string, OptionRow>();
 
@@ -533,6 +543,9 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
         const boardKey = board.toLowerCase();
         const mapKey = `${roomKey}|${boardKey}`;
         const existing = optionsByKey.get(mapKey);
+        // Phase-3: per-row Scout Deal. negotiated only counts when strictly
+        // cheaper than market — otherwise it's noise, not a deal.
+        const hasDeal = negPrice != null && Number.isFinite(marketPrice) && negPrice < marketPrice;
         const nextRow: OptionRow = {
           offerId: rateOfferId,
           boardType: board,
@@ -540,6 +553,8 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
           pricePerNight: Math.round((effectivePrice / nights) * 100) / 100,
           refundable: isRefundable,
           roomName,
+          negotiatedPrice: hasDeal ? Math.round(negPrice! * 100) / 100 : null,
+          marketPrice: Number.isFinite(marketPrice) ? Math.round(marketPrice * 100) / 100 : null,
         };
         if (!existing || effectivePrice < existing.totalPrice) {
           optionsByKey.set(mapKey, nextRow);

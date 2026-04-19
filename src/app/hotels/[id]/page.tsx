@@ -465,7 +465,23 @@ export default function HotelDetailPage() {
             {(selectedRate || price) && (
               <>
                 <div className="text-[.7rem] font-bold text-[#8E95A9] uppercase tracking-wide">Total for {numNights || '—'} night{numNights !== 1 ? 's' : ''}</div>
-                {selectedRate ? (
+                {selectedRate && selectedRate.negotiatedPrice != null && selectedRate.marketPrice != null && selectedRate.negotiatedPrice < selectedRate.marketPrice ? (
+                  /* Phase-3: selected row carries its own Scout Deal — show
+                     ribbon + strike-through market + emerald savings line,
+                     sourced from the row (not the URL params). */
+                  <div className="mt-1">
+                    <span className="inline-block text-[.55rem] font-black uppercase tracking-[1.2px] bg-gradient-to-r from-orange-500 to-amber-500 text-white px-2 py-0.5 rounded-full mb-1">Scout Deal</span>
+                    <div className="text-[.85rem] text-[#8E95A9] font-bold line-through">
+                      {currency === 'GBP' ? '£' : `${currency} `}{selectedRate.marketPrice.toFixed(2)}
+                    </div>
+                    <div className="font-[var(--font-playfair)] font-black text-[2.1rem] text-[#0a1628] tracking-tight leading-none">
+                      {currency === 'GBP' ? '£' : `${currency} `}{selectedRate.negotiatedPrice.toFixed(2)}
+                    </div>
+                    <div className="text-[.68rem] text-green-600 font-bold mt-0.5">
+                      You save {currency === 'GBP' ? '£' : `${currency} `}{(selectedRate.marketPrice - selectedRate.negotiatedPrice).toFixed(2)}
+                    </div>
+                  </div>
+                ) : selectedRate ? (
                   <div className="font-[var(--font-playfair)] font-black text-[2.1rem] text-[#0a1628] tracking-tight leading-none mt-1">
                     {currency === 'GBP' ? '£' : `${currency} `}{selectedRate.totalPrice.toFixed(2)}
                   </div>

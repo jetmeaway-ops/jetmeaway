@@ -31,6 +31,11 @@ export type RoomRate = {
   /** Phase-2: room category name ("Deluxe King, City View"). When absent the
    *  row title gracefully falls back to the board label — Phase-1 parity. */
   roomName?: string | null;
+  /** Phase-3: per-row Scout Deal signal. When negotiatedPrice is present AND
+   *  strictly less than marketPrice, the row renders the orange ribbon +
+   *  strikethrough market total. Otherwise the row stays quiet. */
+  negotiatedPrice?: number | null;
+  marketPrice?: number | null;
 };
 
 /* The Scout design tokens — pulled out so the page can reuse them on the
@@ -166,6 +171,18 @@ function RateRow({
       {/* ─── Column 3: Price + CTA ─── */}
       <div className="flex flex-col items-start md:items-end justify-between gap-3 md:text-right">
         <div>
+          {/* Phase-3: Scout Deal ribbon — only when the row's negotiated price
+              is strictly less than its market price. Silent otherwise. */}
+          {rate.negotiatedPrice != null && rate.marketPrice != null && rate.negotiatedPrice < rate.marketPrice && (
+            <>
+              <span className="inline-block text-[.55rem] font-black uppercase tracking-[1.2px] bg-gradient-to-r from-orange-500 to-amber-500 text-white px-2 py-0.5 rounded-full mb-1">
+                Scout Deal
+              </span>
+              <div className="text-[.8rem] text-slate-400 font-bold line-through leading-none">
+                {fmtGBP(rate.marketPrice)}
+              </div>
+            </>
+          )}
           <div className="font-[var(--font-playfair)] font-black text-[1.6rem] md:text-[1.75rem] text-[#0a1628] tracking-tight leading-none">
             {fmtGBP(rate.totalPrice)}
           </div>
@@ -175,6 +192,11 @@ function RateRow({
           <div className="text-[.68rem] font-medium text-slate-500 mt-1">
             {fmtGBP(rate.pricePerNight)} / night · taxes included
           </div>
+          {rate.negotiatedPrice != null && rate.marketPrice != null && rate.negotiatedPrice < rate.marketPrice && (
+            <div className="text-[.68rem] font-bold text-emerald-600 mt-1">
+              You save {fmtGBP(rate.marketPrice - rate.negotiatedPrice)}
+            </div>
+          )}
         </div>
         <button
           type="button"

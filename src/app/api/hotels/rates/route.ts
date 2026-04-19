@@ -42,6 +42,9 @@ type BoardOptionOut = {
   refundable: boolean;
   /** Phase-2: human room category name — null when supplier omits it */
   roomName?: string | null;
+  /** Phase-3: per-row Scout Deal signal (negotiated only when strictly < market) */
+  negotiatedPrice?: number | null;
+  marketPrice?: number | null;
 };
 
 export async function GET(req: NextRequest) {
@@ -113,6 +116,8 @@ export async function GET(req: NextRequest) {
           pricePerNight: o.pricePerNight,
           refundable: o.refundable,
           roomName: o.roomName ?? null,
+          negotiatedPrice: o.negotiatedPrice ?? null,
+          marketPrice: o.marketPrice ?? null,
         }))
       : [{
           offerId: match.offerId,
@@ -121,6 +126,11 @@ export async function GET(req: NextRequest) {
           pricePerNight: match.pricePerNight || (match.price / Math.max(1, nights(checkin, checkout))),
           refundable: match.refundable,
           roomName: null,
+          // When we synthesise a single-row option, derive deal signals from
+          // the hotel-level negotiated/market prices so we stay consistent.
+          negotiatedPrice: (match.negotiatedPrice != null && match.marketPrice != null && match.negotiatedPrice < match.marketPrice)
+            ? match.negotiatedPrice : null,
+          marketPrice: match.marketPrice ?? null,
         }];
 
     try { await kv.set(cacheKey, { offers }, { ex: KV_TTL }); } catch { /* KV write failed */ }
