@@ -5,6 +5,10 @@ import { useParams } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import StripeCardForm from '@/components/StripeCardForm';
+import SeatMapModal, {
+  type SeatSelection,
+  type SeatSelectionsMap,
+} from '@/components/SeatMapModal';
 
 export const runtime = 'edge';
 
@@ -33,6 +37,20 @@ type BaggageService = {
   passengerIds: string[];
   segmentIds: string[];
   maxLengthCm: number | null;
+};
+
+type ExperienceService = {
+  id: string;
+  kind: 'meal' | 'wifi';
+  label: string;           // e.g. "Chef-curated meal"
+  tagline: string | null;  // secondary text
+  priceAmount: number;
+  priceCurrency: string;
+  priceDisplay: string;
+  scope: 'outbound' | 'return' | 'full_trip';
+  scopeLabel: string;
+  passengerIds: string[];
+  segmentIds: string[];
 };
 
 type OfferData = {
@@ -64,6 +82,7 @@ type OfferData = {
   slices: SliceSummary[];
   availableServices: {
     baggage: BaggageService[];
+    experience: ExperienceService[];
   };
   expiresAt: string | null;
 };
@@ -590,6 +609,283 @@ function AddExtrasCard({
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   EXPERIENCE CARD — Phase 2c. Meals + Wi-Fi as "victory lap" on the same
+   ghost-to-emerald toggle pattern. Same pipeline (selectedServiceIds)
+   handles baggage and experience uniformly, so nothing downstream changes.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function ExperienceRow({
+  svc,
+  selected,
+  onToggle,
+  allPassengers,
+  passengerForms,
+}: {
+  svc: ExperienceService;
+  selected: boolean;
+  onToggle: () => void;
+  allPassengers: { id: string; type: string }[];
+  passengerForms: PassengerForm[];
+}) {
+  const iconClass = svc.kind === 'wifi' ? 'fa-wifi' : 'fa-utensils';
+
+  return (
+    <div
+      className={`flex items-center gap-3 border rounded-xl p-3 transition-all duration-300 ease-out ${
+        selected
+          ? 'border-emerald-300 bg-emerald-50/40 shadow-[0_2px_10px_rgba(16,185,129,0.08)]'
+          : 'border-[#E8ECF4] bg-white hover:border-[#C8D0E0]'
+      }`}
+    >
+      <span
+        className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-all ${
+          selected ? 'bg-emerald-100 text-emerald-700' : 'bg-[#F1F3F7] text-[#5C6378]'
+        }`}
+      >
+        <i className={`fa-solid ${iconClass} text-[.85rem]`} aria-hidden />
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="text-[.85rem] font-bold text-[#1A1D2B] leading-tight">
+          {svc.label}
+        </div>
+        <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5 truncate">
+          <span className="text-[#5C6378]">{svc.scopeLabel}</span>
+          <span className="mx-1.5">&middot;</span>
+          <PassengerLabel
+            passengerIds={svc.passengerIds}
+            allPassengers={allPassengers}
+            passengerForms={passengerForms}
+          />
+          {svc.tagline && (
+            <>
+              <span className="mx-1.5">&middot;</span>
+              <span className="italic">{svc.tagline}</span>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-3 shrink-0">
+        <div
+          className={`font-[var(--font-playfair)] font-black text-[.98rem] tracking-tight ${
+            selected ? 'text-emerald-700' : 'text-[#1A1D2B]'
+          }`}
+        >
+          {svc.priceDisplay}
+        </div>
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-pressed={selected}
+          aria-label={selected ? `Remove ${svc.label} from order` : `Add ${svc.label} to order`}
+          className={`relative inline-flex items-center gap-1.5 font-poppins font-bold text-[.72rem] px-3.5 py-1.5 rounded-full transition-all duration-300 ease-out ${
+            selected
+              ? 'bg-emerald-600 text-white shadow-[0_4px_14px_rgba(16,185,129,0.35)] hover:bg-emerald-700'
+              : 'bg-white border border-[#C8D0E0] text-[#1A1D2B] hover:border-[#0a1628] hover:text-[#0a1628]'
+          }`}
+        >
+          <i
+            className={`fa-solid ${selected ? 'fa-check' : 'fa-plus'} text-[.7rem]`}
+            aria-hidden
+          />
+          {selected ? 'Added' : 'Add'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ExperienceCard({
+  services,
+  selectedIds,
+  onToggle,
+  allPassengers,
+  passengerForms,
+}: {
+  services: ExperienceService[];
+  selectedIds: Set<string>;
+  onToggle: (id: string) => void;
+  allPassengers: { id: string; type: string }[];
+  passengerForms: PassengerForm[];
+}) {
+  // Quietly absent when the airline offers nothing — zero empty-state clutter.
+  if (!services || services.length === 0) return null;
+
+  return (
+    <div className="bg-white border border-[#E8ECF4] rounded-2xl p-5 md:p-6 shadow-[0_2px_20px_rgba(10,22,40,0.04)]">
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <h3 className="font-[var(--font-playfair)] font-black text-[1.2rem] text-[#0a1628] tracking-tight">
+            Your experience
+          </h3>
+          <p className="text-[.72rem] text-[#5C6378] font-semibold mt-0.5">
+            Meals, Wi-Fi and the small details that make a long flight shorter.
+          </p>
+        </div>
+        <span className="hidden md:inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200 text-emerald-800 text-[.58rem] font-black uppercase tracking-[1.5px] px-2 py-1 rounded-full">
+          <i className="fa-solid fa-wand-magic-sparkles text-[.62rem]" aria-hidden /> Curated
+        </span>
+      </div>
+
+      <div className="space-y-2.5">
+        {services.map((svc) => (
+          <ExperienceRow
+            key={svc.id}
+            svc={svc}
+            selected={selectedIds.has(svc.id)}
+            onToggle={() => onToggle(svc.id)}
+            allPassengers={allPassengers}
+            passengerForms={passengerForms}
+          />
+        ))}
+      </div>
+
+      <div className="mt-4 pt-3 border-t border-[#F1F3F7] flex items-center gap-2 text-[.66rem] text-[#8E95A9] font-semibold">
+        <i className="fa-solid fa-lock text-[.72rem]" aria-hidden />
+        Added to your total at the airline&apos;s price. We don&apos;t mark them up.
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMFORT CARD — Phase 2b entry point. Shows current seat selections inline,
+   opens the SeatMapModal on click. Uses the same editorial voice as the other
+   extras cards (Playfair, emerald accents on selected state).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function ComfortCard({
+  seatSelections,
+  allPassengers,
+  passengerForms,
+  onOpen,
+}: {
+  seatSelections: SeatSelectionsMap;
+  allPassengers: { id: string; type: string }[];
+  passengerForms: PassengerForm[];
+  onOpen: () => void;
+}) {
+  const selectionsArray = Array.from(seatSelections.values());
+  const hasSelections = selectionsArray.length > 0;
+  const subtotal = selectionsArray.reduce((s, sel) => s + sel.priceAmount, 0);
+
+  // Group by passenger for the summary list
+  const byPax = new Map<string, typeof selectionsArray>();
+  for (const sel of selectionsArray) {
+    const arr = byPax.get(sel.passengerId) || [];
+    arr.push(sel);
+    byPax.set(sel.passengerId, arr);
+  }
+
+  return (
+    <div
+      className={`bg-white border rounded-2xl p-5 md:p-6 shadow-[0_2px_20px_rgba(10,22,40,0.04)] transition-all ${
+        hasSelections ? 'border-emerald-200' : 'border-[#E8ECF4]'
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div className="flex items-start gap-3 min-w-0">
+          <span
+            className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+              hasSelections
+                ? 'bg-emerald-100 text-emerald-700'
+                : 'bg-[#F1F3F7] text-[#5C6378]'
+            }`}
+          >
+            <i className="fa-solid fa-chair text-[.95rem]" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <h3 className="font-[var(--font-playfair)] font-black text-[1.2rem] text-[#0a1628] tracking-tight leading-tight">
+              Choose your seats
+            </h3>
+            <p className="text-[.72rem] text-[#5C6378] font-semibold mt-0.5">
+              Sit together, by the window, or stretch out with extra legroom.
+            </p>
+          </div>
+        </div>
+        <span className="hidden md:inline-flex items-center gap-1 bg-[#FBF3DF] border border-[#E8CB85]/50 text-[#6B5318] text-[.58rem] font-black uppercase tracking-[1.5px] px-2 py-1 rounded-full shrink-0">
+          <i className="fa-solid fa-star text-[.62rem]" aria-hidden /> Recommended
+        </span>
+      </div>
+
+      {hasSelections ? (
+        <div className="space-y-2">
+          {Array.from(byPax.entries()).map(([paxId, sels]) => {
+            const idx = allPassengers.findIndex((p) => p.id === paxId);
+            const form = passengerForms[idx];
+            const name =
+              `${form?.firstName || ''} ${form?.lastName || ''}`.trim() ||
+              `Passenger ${idx + 1}`;
+            return (
+              <div
+                key={paxId}
+                className="flex items-center justify-between gap-3 border border-emerald-100 bg-emerald-50/40 rounded-xl px-3.5 py-2.5"
+              >
+                <div className="min-w-0">
+                  <div className="text-[.8rem] font-bold text-[#1A1D2B] truncate">
+                    {name}
+                  </div>
+                  <div className="text-[.68rem] text-[#5C6378] font-semibold">
+                    {sels
+                      .map(
+                        (s) =>
+                          `Seat ${s.designator}${
+                            s.tier === 'extra_legroom' ? ' · Extra legroom' : ''
+                          }`,
+                      )
+                      .join(' · ')}
+                  </div>
+                </div>
+                <span className="font-[var(--font-playfair)] font-black text-emerald-700 text-[.9rem] tracking-tight shrink-0">
+                  {sels.reduce((s, x) => s + x.priceAmount, 0) === 0
+                    ? 'Free'
+                    : `£${sels.reduce((s, x) => s + x.priceAmount, 0).toFixed(2)}`}
+                </span>
+              </div>
+            );
+          })}
+          <div className="flex items-center justify-between pt-2">
+            <button
+              type="button"
+              onClick={onOpen}
+              className="inline-flex items-center gap-1.5 text-[.75rem] font-bold text-[#0a1628] hover:text-[#0066FF] transition-colors"
+            >
+              <i className="fa-solid fa-pen-to-square text-[.72rem]" aria-hidden />
+              Edit seats
+            </button>
+            <span className="text-[.7rem] font-semibold text-[#5C6378]">
+              Seats subtotal{' '}
+              <span className="font-[var(--font-playfair)] font-black text-[#0a1628] text-[.85rem]">
+                {subtotal === 0 ? 'Free' : `£${subtotal.toFixed(2)}`}
+              </span>
+            </span>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={onOpen}
+          className="w-full group border border-dashed border-[#C8D0E0] hover:border-[#0a1628] hover:bg-[#F8FAFC] rounded-xl px-4 py-3.5 flex items-center justify-between gap-3 transition-all"
+        >
+          <span className="flex items-center gap-2.5 text-[#1A1D2B]">
+            <i className="fa-solid fa-plus text-[.78rem] text-[#5C6378] group-hover:text-[#0a1628]" aria-hidden />
+            <span className="text-[.8rem] font-bold">Pick your seats</span>
+          </span>
+          <span className="text-[.66rem] text-[#8E95A9] font-semibold hidden sm:inline">
+            Or skip — the airline will assign at check-in
+          </span>
+          <i className="fa-solid fa-arrow-right text-[.75rem] text-[#5C6378] group-hover:text-[#0a1628] transition-transform group-hover:translate-x-0.5" aria-hidden />
+        </button>
+      )}
+
+      <div className="mt-4 pt-3 border-t border-[#F1F3F7] flex items-center gap-2 text-[.66rem] text-[#8E95A9] font-semibold">
+        <i className="fa-solid fa-lock text-[.72rem]" aria-hidden />
+        Seats are charged at the airline&apos;s price. We don&apos;t mark them up.
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    STEP INDICATOR
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -647,6 +943,8 @@ function PriceSidebar({
   ctaLabel,
   errorMsg,
   selectedServices,
+  selectedSeats,
+  selectedExperience,
   servicesSubtotal,
   grandTotalAll,
 }: {
@@ -657,6 +955,8 @@ function PriceSidebar({
   ctaLabel?: string;
   errorMsg?: string | null;
   selectedServices: BaggageService[];
+  selectedSeats: SeatSelection[];
+  selectedExperience: ExperienceService[];
   servicesSubtotal: number;
   grandTotalAll: number;
 }) {
@@ -738,7 +1038,9 @@ function PriceSidebar({
             )}
 
             {/* Selected ancillary services — slide in on add, slide out on remove. */}
-            {selectedServices.length > 0 && (
+            {(selectedServices.length > 0 ||
+              selectedSeats.length > 0 ||
+              selectedExperience.length > 0) && (
               <div className="pt-2.5 mt-2.5 border-t border-[#F1F3F7] space-y-1.5">
                 <div className="text-[.58rem] font-black uppercase tracking-[2px] text-[#8E95A9] mb-1">
                   Extras
@@ -761,6 +1063,36 @@ function PriceSidebar({
                     </div>
                   );
                 })}
+                {selectedSeats.map((seat) => (
+                  <div
+                    key={`${seat.segmentId}:${seat.passengerId}`}
+                    className="extras-slide-in flex justify-between items-baseline text-[.78rem]"
+                  >
+                    <span className="text-[#1A1D2B] font-semibold truncate pr-2">
+                      + Seat {seat.designator}
+                      {seat.tier === 'extra_legroom' && (
+                        <span className="text-[#5C6378]"> (Extra legroom)</span>
+                      )}
+                    </span>
+                    <span className="font-[var(--font-playfair)] font-black text-emerald-700 tracking-tight shrink-0">
+                      {seat.priceAmount === 0 ? 'Free' : seat.priceDisplay}
+                    </span>
+                  </div>
+                ))}
+                {selectedExperience.map((svc) => (
+                  <div
+                    key={svc.id}
+                    className="extras-slide-in flex justify-between items-baseline text-[.78rem]"
+                  >
+                    <span className="text-[#1A1D2B] font-semibold truncate pr-2">
+                      + {svc.label}
+                      <span className="text-[#8E95A9]"> · {svc.scopeLabel}</span>
+                    </span>
+                    <span className="font-[var(--font-playfair)] font-black text-emerald-700 tracking-tight shrink-0">
+                      {svc.priceDisplay}
+                    </span>
+                  </div>
+                ))}
                 <div className="flex justify-between text-[.72rem] pt-1.5">
                   <span className="text-[#5C6378] font-semibold">Extras subtotal</span>
                   <span className="font-bold text-[#1A1D2B]">£{servicesSubtotal.toFixed(2)}</span>
@@ -770,7 +1102,10 @@ function PriceSidebar({
 
             {/* Grand total — only visible when it differs from Per person
                 (i.e. multi-pax OR ancillaries selected). */}
-            {(offer.passengerCount > 1 || selectedServices.length > 0) && (
+            {(offer.passengerCount > 1 ||
+              selectedServices.length > 0 ||
+              selectedSeats.length > 0 ||
+              selectedExperience.length > 0) && (
               <div className="pt-2.5 mt-1 border-t border-[#0a1628]/10 flex justify-between items-baseline">
                 <span className="font-[var(--font-playfair)] font-black text-[#0a1628] tracking-tight text-[1rem]">
                   Total to pay
@@ -871,6 +1206,15 @@ export default function CheckoutPage() {
   // Stale-offer warning: shown when the pre-submit refetch drops a selected ID.
   const [staleServiceWarning, setStaleServiceWarning] = useState<string | null>(null);
 
+  // Phase 2b — seat selections. Keyed by `${segmentId}:${passengerId}`.
+  // Seat service IDs live alongside baggage IDs in the final booking payload,
+  // but we track them separately here because their shape (per-segment,
+  // per-passenger) differs from fare-level baggage services.
+  const [seatSelections, setSeatSelections] = useState<SeatSelectionsMap>(
+    () => new Map<string, SeatSelection>(),
+  );
+  const [seatModalOpen, setSeatModalOpen] = useState(false);
+
   // Order state
   const [orderLoading, setOrderLoading] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
@@ -918,7 +1262,28 @@ export default function CheckoutPage() {
   // ── Phase 2a: selected services derived state ──
   const availableBaggageServices = offer?.availableServices?.baggage || [];
   const selectedServices = availableBaggageServices.filter((s) => selectedServiceIds.has(s.id));
-  const servicesSubtotal = selectedServices.reduce((sum, s) => sum + s.priceAmount, 0);
+  const baggageSubtotal = selectedServices.reduce((sum, s) => sum + s.priceAmount, 0);
+
+  // ── Phase 2b: seat services ──
+  const selectedSeatArray = Array.from(seatSelections.values()).filter(
+    (s) => s.serviceId && s.priceAmount > 0,
+  );
+  const seatSubtotal = selectedSeatArray.reduce((sum, s) => sum + s.priceAmount, 0);
+
+  // ── Phase 2c: experience services (meals, wifi) ──
+  // Shares the same `selectedServiceIds` pool as baggage — downstream
+  // booking payload and Stripe metadata treat them identically.
+  const availableExperienceServices = offer?.availableServices?.experience || [];
+  const selectedExperienceServices = availableExperienceServices.filter((s) =>
+    selectedServiceIds.has(s.id),
+  );
+  const experienceSubtotal = selectedExperienceServices.reduce(
+    (sum, s) => sum + s.priceAmount,
+    0,
+  );
+
+  // Combined ancillary subtotal — used by sidebar, Stripe metadata, drift check.
+  const servicesSubtotal = baggageSubtotal + seatSubtotal + experienceSubtotal;
   const grandTotalAll = (offer?.totalForAll || 0) + servicesSubtotal;
 
   const toggleService = useCallback((id: string) => {
@@ -999,12 +1364,21 @@ export default function CheckoutPage() {
           setPaymentError(freshJson.error || 'Offer is no longer available.');
           return;
         }
-        const freshServices: BaggageService[] = freshJson.offer?.availableServices?.baggage || [];
-        const freshIds = new Set(freshServices.map((s) => s.id));
-        const dropped: BaggageService[] = [];
-        const repriced: { svc: BaggageService; fresh: BaggageService }[] = [];
-        for (const svc of selectedServices) {
-          const match = freshServices.find((s) => s.id === svc.id);
+        const freshBaggage: BaggageService[] = freshJson.offer?.availableServices?.baggage || [];
+        const freshExperience: ExperienceService[] =
+          freshJson.offer?.availableServices?.experience || [];
+        // Union of all available IDs — one comparison pool for baggage + experience.
+        const freshIds = new Set<string>([
+          ...freshBaggage.map((s) => s.id),
+          ...freshExperience.map((s) => s.id),
+        ]);
+        // Track dropped/repriced with a shared shape to keep the banner copy simple.
+        type AncillaryLike = { id: string; priceAmount: number };
+        const dropped: AncillaryLike[] = [];
+        const repriced: { svc: AncillaryLike; fresh: AncillaryLike }[] = [];
+        const freshAll: AncillaryLike[] = [...freshBaggage, ...freshExperience];
+        for (const svc of [...selectedServices, ...selectedExperienceServices]) {
+          const match = freshAll.find((s) => s.id === svc.id);
           if (!match) dropped.push(svc);
           else if (match.priceAmount !== svc.priceAmount) repriced.push({ svc, fresh: match });
         }
@@ -1012,7 +1386,10 @@ export default function CheckoutPage() {
         if (dropped.length > 0 || repriced.length > 0) {
           // Update the offer with fresh service data so prices re-render,
           // and drop any IDs that no longer exist.
-          setOffer({ ...offer, availableServices: { baggage: freshServices } });
+          setOffer({
+            ...offer,
+            availableServices: { baggage: freshBaggage, experience: freshExperience },
+          });
           setSelectedServiceIds((prev) => {
             const next = new Set<string>();
             for (const id of prev) if (freshIds.has(id)) next.add(id);
@@ -1040,7 +1417,15 @@ export default function CheckoutPage() {
       // Amount MUST be in minor units (pence) for Stripe.
       // Total = base offer (with markup) + ancillary services at cost.
       const amountPence = Math.round(grandTotalAll * 100);
-      const serviceIdsList = Array.from(selectedServiceIds);
+      // Combine baggage + seat service IDs — Stripe metadata is the source of
+      // truth for post-mortem refund reconciliation if booking fails.
+      const seatServiceIds = selectedSeatArray
+        .map((s) => s.serviceId)
+        .filter(Boolean);
+      const serviceIdsList = [
+        ...Array.from(selectedServiceIds),
+        ...seatServiceIds,
+      ];
 
       const res = await fetch('/api/stripe/payment-intent', {
         method: 'POST',
@@ -1097,10 +1482,10 @@ export default function CheckoutPage() {
       // Duffel expects services: [{ id, quantity }]. We always send quantity=1
       // because Duffel's model is one service-id per (pax × scope × kind) —
       // two bags means two service IDs, not quantity=2.
-      const serviceBookingPayload = selectedServices.map((s) => ({
-        id: s.id,
-        quantity: 1,
-      }));
+      const serviceBookingPayload = [
+        ...selectedServices.map((s) => ({ id: s.id, quantity: 1 })),
+        ...selectedSeatArray.map((s) => ({ id: s.serviceId, quantity: 1 })),
+      ];
 
       const res = await fetch('/api/flights/book', {
         method: 'POST',
@@ -1427,6 +1812,27 @@ export default function CheckoutPage() {
                     passengerForms={passengers}
                   />
 
+                  {/* Phase 2c — Experience (meals, Wi-Fi). Quietly absent if
+                      the airline doesn't offer any. Shares selectedServiceIds
+                      with baggage — same pipeline all the way through. */}
+                  <ExperienceCard
+                    services={availableExperienceServices}
+                    selectedIds={selectedServiceIds}
+                    onToggle={toggleService}
+                    allPassengers={offer.passengers}
+                    passengerForms={passengers}
+                  />
+
+                  {/* Phase 2b — Comfort (seat selection). We always show this
+                      entry point; if the airline doesn't support seat maps the
+                      modal itself handles the empty-state gracefully. */}
+                  <ComfortCard
+                    seatSelections={seatSelections}
+                    allPassengers={offer.passengers}
+                    passengerForms={passengers}
+                    onOpen={() => setSeatModalOpen(true)}
+                  />
+
                   {/* Stale-offer warning banner — shown when pre-submit refetch
                       detected dropped or repriced ancillaries. */}
                   {staleServiceWarning && (
@@ -1603,7 +2009,9 @@ export default function CheckoutPage() {
 
                   {/* Mobile price reminder */}
                   <div className="lg:hidden mt-5 bg-[#F8FAFC] border border-[#F1F3F7] rounded-2xl p-4">
-                    {selectedServices.length > 0 && (
+                    {(selectedServices.length > 0 ||
+                      selectedSeatArray.length > 0 ||
+                      selectedExperienceServices.length > 0) && (
                       <div className="text-[.68rem] text-[#5C6378] font-semibold mb-1">
                         Flight £{offer.totalForAll.toFixed(2)} + extras £{servicesSubtotal.toFixed(2)}
                       </div>
@@ -1628,11 +2036,37 @@ export default function CheckoutPage() {
               ctaLabel={paymentLoading ? 'Loading payment...' : 'Continue to Payment →'}
               errorMsg={submitted && errors.some(e => Object.keys(e).length > 0) ? 'Please fix the errors above.' : null}
               selectedServices={selectedServices}
+              selectedSeats={selectedSeatArray}
+              selectedExperience={selectedExperienceServices}
               servicesSubtotal={servicesSubtotal}
               grandTotalAll={grandTotalAll}
             />
           </div>
         </div>
+      )}
+
+      {/* Phase 2b — Seat map modal. Rendered at root so it escapes the grid
+          and overlays the whole viewport. */}
+      {seatModalOpen && offer && (
+        <SeatMapModal
+          offerId={offer.id}
+          passengers={offer.passengers.map((p, i) => {
+            const form = passengers[i];
+            const name =
+              `${form?.firstName || ''} ${form?.lastName || ''}`.trim() ||
+              `Passenger ${i + 1}`;
+            return { id: p.id, name };
+          })}
+          initialSelections={seatSelections}
+          onClose={() => setSeatModalOpen(false)}
+          onSave={(sels) => {
+            setSeatSelections(sels);
+            setSeatModalOpen(false);
+            // Clear any stale warning — seats are an independent service pool,
+            // but the banner should reset on user interaction either way.
+            setStaleServiceWarning(null);
+          }}
+        />
       )}
 
       <Footer />

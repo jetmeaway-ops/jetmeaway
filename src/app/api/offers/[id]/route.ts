@@ -217,7 +217,131 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return `${symbol}${n.toFixed(2)}`;
     };
 
+    /* ─── Experience services (Phase 2c) ──────────────────────────────────
+       Duffel returns meal / wifi services alongside baggage + seat. Shape
+       varies per airline; we defensively read metadata.type and service-level
+       hints. Two mapped kinds:
+         - 'meal'  — derive a Scout-voice label from metadata (e.g. "Chef-
+                     curated menu", "Special dietary", generic "In-flight meal")
+         - 'wifi'  — single row; airlines rarely break wifi into tiers
+       Anything else (cancel_for_any_reason, unknown) is dropped on the floor.
+       Same scope + price normalisation as baggage.
+    ─────────────────────────────────────────────────────────────────────── */
+
+    type ExperienceService = {
+      id: string;
+      kind: 'meal' | 'wifi';
+      label: string;             // Scout-voice, pre-formatted for the UI
+      tagline: string | null;    // Optional secondary text ("Pre-order required")
+      priceAmount: number;
+      priceCurrency: string;
+      priceDisplay: string;
+      scope: 'outbound' | 'return' | 'full_trip';
+      scopeLabel: string;
+      passengerIds: string[];
+      segmentIds: string[];
+    };
+
+    /* Scout-voice copy for a meal service. Input is whatever metadata Duffel
+       gives us (codes like "VGML", names like "Chef's Selection", keywords
+       like "dietary"). We map down to three editorial buckets so the UI
+       reads like a concierge recommendation, not an airline manifest. */
+    type RawMealService = {
+      metadata?: { name?: unknown; title?: unknown; meal_type?: unknown } | null;
+      name?: unknown;
+    };
+    const mealLabel = (svc: RawMealService): { label: string; tagline: string | null } => {
+      const meta = svc?.metadata || {};
+      const rawName = String(meta?.name || meta?.title || meta?.meal_type || svc?.name || '').trim();
+      const lower = rawName.toLowerCase();
+
+      // Dietary / special-needs codes and keywords
+      const dietaryCodes = ['vgml', 'vlml', 'kshr', 'hnml', 'mool', 'avml', 'bbml', 'chml', 'dbml', 'gfml', 'lcml', 'lfml', 'lsml', 'nlml', 'sfml', 'sml'];
+      const isDietary =
+        dietaryCodes.includes(lower) ||
+        /\b(vegan|vegetarian|kosher|halal|gluten[- ]free|diabetic|child|infant|special|dietary|allerg)\b/.test(lower);
+      if (isDietary) {
+        return {
+          label: 'Special dietary meal',
+          tagline: rawName ? rawName.replace(/_/g, ' ') : 'Vegetarian, kosher, halal & allergen-friendly options',
+        };
+      }
+
+      // Chef-curated / premium signals
+      const isChef = /\b(chef|signature|gourmet|premium|curated|selection)\b/.test(lower);
+      if (isChef) {
+        return { label: 'Chef-curated meal', tagline: rawName || 'Selected by the airline\'s culinary partner' };
+      }
+
+      // Generic pre-ordered meal
+      return {
+        label: rawName ? rawName.replace(/_/g, ' ') : 'In-flight meal',
+        tagline: 'Pre-order now to guarantee availability',
+      };
+    };
+
     const rawServices: any[] = offer.available_services || [];
+
+    const experienceServices: ExperienceService[] = rawServices
+      .filter((svc) => {
+        if (!svc?.id) return false;
+        if (svc?.type === 'meal') return true;
+        if (svc?.type === 'wifi') return true;
+        // Some airlines emit wifi under 'other' with a metadata hint
+        const metaType = String(svc?.metadata?.type || '').toLowerCase();
+        if (metaType === 'wifi' || metaType === 'wi_fi' || metaType === 'internet') return true;
+        return false;
+      })
+      .map((svc): ExperienceService | null => {
+        const isWifi =
+          svc?.type === 'wifi' ||
+          ['wifi', 'wi_fi', 'internet'].includes(String(svc?.metadata?.type || '').toLowerCase());
+        const segmentIds: string[] = Array.isArray(svc.segment_ids) ? svc.segment_ids : [];
+        const passengerIds: string[] = Array.isArray(svc.passenger_ids) ? svc.passenger_ids : [];
+        const { scope, scopeLabel } = deriveScope(segmentIds);
+        const priceAmount = parseFloat(svc.total_amount || '0');
+        const priceCurrency = svc.total_currency || offer.currency || 'GBP';
+
+        if (isWifi) {
+          return {
+            id: String(svc.id),
+            kind: 'wifi',
+            label: 'In-flight Wi-Fi',
+            tagline: 'Stream, browse & message at 35,000 ft',
+            priceAmount,
+            priceCurrency,
+            priceDisplay: formatPrice(priceAmount, priceCurrency),
+            scope,
+            scopeLabel,
+            passengerIds,
+            segmentIds,
+          };
+        }
+
+        const { label, tagline } = mealLabel(svc);
+        return {
+          id: String(svc.id),
+          kind: 'meal',
+          label,
+          tagline,
+          priceAmount,
+          priceCurrency,
+          priceDisplay: formatPrice(priceAmount, priceCurrency),
+          scope,
+          scopeLabel,
+          passengerIds,
+          segmentIds,
+        };
+      })
+      .filter((x): x is ExperienceService => x !== null)
+      // Wifi first (easier "yes"), then meals by scope, then cheapest first
+      .sort((a, b) => {
+        if (a.kind !== b.kind) return a.kind === 'wifi' ? -1 : 1;
+        const scopeRank = { outbound: 0, return: 1, full_trip: 2 } as const;
+        if (scopeRank[a.scope] !== scopeRank[b.scope]) return scopeRank[a.scope] - scopeRank[b.scope];
+        return a.priceAmount - b.priceAmount;
+      });
+
     const baggageServices: BaggageService[] = rawServices
       .filter((svc) => svc?.type === 'baggage' && svc?.id)
       .map((svc): BaggageService | null => {
@@ -313,6 +437,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       // guidance + brand-trust trade-off; revenue is from base-fare margin).
       availableServices: {
         baggage: baggageServices,
+        experience: experienceServices,
       },
       // Expiry
       expiresAt: offer.expires_at || null,
