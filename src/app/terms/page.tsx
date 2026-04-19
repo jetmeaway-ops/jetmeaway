@@ -1,5 +1,6 @@
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { PageSchema } from '@/lib/page-schema';
 
 export const metadata = {
   title: 'Terms & Conditions | JetMeAway',
@@ -9,6 +10,7 @@ export const metadata = {
 export default function Terms() {
   return (
     <>
+      <PageSchema crumbs={[{ name: 'Terms', path: '/terms' }]} />
       <Header />
       <section className="pt-36 pb-10 px-5 text-center">
         <h1 className="font-poppins text-[2.4rem] font-black tracking-tight mb-2.5">📋 <span className="text-[#0066FF]">Terms</span> &amp; Conditions</h1>

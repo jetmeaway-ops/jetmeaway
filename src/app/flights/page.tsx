@@ -1,6 +1,8 @@
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { LazyFlightsContent } from './flights-lazy';
+import { PageSchema } from '@/lib/page-schema';
+import { FLIGHTS_FAQS } from '@/lib/page-faqs';
 
 export const runtime = 'edge';
 
@@ -12,6 +14,7 @@ export const metadata = {
 export default function FlightsPage() {
   return (
     <>
+      <PageSchema crumbs={[{ name: 'Flights', path: '/flights' }]} faqs={FLIGHTS_FAQS} />
       <Header />
 
       <main>

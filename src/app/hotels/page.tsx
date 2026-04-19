@@ -1,6 +1,8 @@
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { LazyHotelsContent } from './hotels-lazy';
+import { PageSchema } from '@/lib/page-schema';
+import { HOTELS_FAQS } from '@/lib/page-faqs';
 
 export const runtime = 'edge';
 
@@ -12,6 +14,7 @@ export const metadata = {
 export default function HotelsPage() {
   return (
     <>
+      <PageSchema crumbs={[{ name: 'Hotels', path: '/hotels' }]} faqs={HOTELS_FAQS} />
       <Header />
 
       <main>

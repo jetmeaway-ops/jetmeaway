@@ -30,7 +30,9 @@ export async function generateMetadata(
       title,
       description,
       url: `https://jetmeaway.co.uk/destinations/${d.slug}`,
-      images: [{ url: d.heroImage, width: 1600, height: 900, alt: `${d.city}, ${d.country}` }],
+      // OG image is auto-generated per city via opengraph-image.tsx in this
+      // route — Next.js picks it up by file convention and injects the
+      // correct tags. Leaving `images` unset lets that take precedence.
       type: 'article',
     },
   };

@@ -1,6 +1,8 @@
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { LazyExploreContent } from './explore-lazy';
+import { PageSchema } from '@/lib/page-schema';
+import { EXPLORE_FAQS } from '@/lib/page-faqs';
 
 export const runtime = 'edge';
 
@@ -12,6 +14,7 @@ export const metadata = {
 export default function ExplorePage() {
   return (
     <>
+      <PageSchema crumbs={[{ name: 'Explore', path: '/explore' }]} faqs={EXPLORE_FAQS} />
       <Header />
 
       <main>

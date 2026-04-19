@@ -5,6 +5,8 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import DateRangePicker from '@/components/DateRangePicker';
 import { redirectUrl } from '@/lib/redirect';
+import { PageSchema } from '@/lib/page-schema';
+import { INSURANCE_FAQS } from '@/lib/page-faqs';
 
 const PROVIDERS = [
   {
@@ -41,6 +43,7 @@ export default function InsurancePage() {
 
   return (
     <>
+      <PageSchema crumbs={[{ name: 'Insurance', path: '/insurance' }]} faqs={INSURANCE_FAQS} />
       <Header />
 
       {/* Insurance identity: "safe haven" deep emerald forest with calm green glow */}

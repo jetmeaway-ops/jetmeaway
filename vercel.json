@@ -4,6 +4,10 @@
     {
       "path": "/api/flights/deals?refresh=1",
       "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/deal-alerts/send",
+      "schedule": "0 10 * * 3"
     }
   ]
 }

@@ -1,6 +1,8 @@
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { LazyPackagesContent } from './packages-lazy';
+import { PageSchema } from '@/lib/page-schema';
+import { PACKAGES_FAQS } from '@/lib/page-faqs';
 
 export const runtime = 'edge';
 
@@ -12,6 +14,7 @@ export const metadata = {
 export default function PackagesPage() {
   return (
     <>
+      <PageSchema crumbs={[{ name: 'Packages', path: '/packages' }]} faqs={PACKAGES_FAQS} />
       <Header />
 
       <main>

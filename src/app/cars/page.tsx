@@ -5,6 +5,8 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import DateRangePicker from '@/components/DateRangePicker';
 import { redirectUrl } from '@/lib/redirect';
+import { PageSchema } from '@/lib/page-schema';
+import { CARS_FAQS } from '@/lib/page-faqs';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    LOCATIONS — verified EconomyBookings airports
@@ -487,6 +489,7 @@ function CarsContent() {
 
   return (
     <>
+      <PageSchema crumbs={[{ name: 'Cars', path: '/cars' }]} faqs={CARS_FAQS} />
       <Header />
 
       {/* ── Hero + Search Form ── Cars identity: "night drive" slate charcoal with emerald/electric headlights */}

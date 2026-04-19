@@ -5,6 +5,8 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import DateRangePicker from '@/components/DateRangePicker';
 import { redirectUrl } from '@/lib/redirect';
+import { PageSchema } from '@/lib/page-schema';
+import { ESIM_FAQS } from '@/lib/page-faqs';
 
 // ─── Country → ISO-2 code mapping ─────────────────────────────────────────
 const COUNTRY_ISO: Record<string, string> = {
@@ -262,6 +264,7 @@ export default function ESIMPage() {
 
   return (
     <>
+      <PageSchema crumbs={[{ name: 'eSIM', path: '/esim' }]} faqs={ESIM_FAQS} />
       <Header />
 
       {/* eSIM identity: "cyber/connectivity" deep midnight + electric cyan */}
