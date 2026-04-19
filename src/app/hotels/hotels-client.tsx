@@ -279,6 +279,8 @@ function buildTripcomUrl(
   cout: string,
   adults: number,
   resolvedCityId?: number | null,
+  children: number = 0,
+  childrenAges: number[] = [],
 ): string {
   // Trip.com hotel URL contract (verified live 2026-04-19):
   //   - `uk.trip.com/hotels/list` is the UK-localised endpoint (GBP + en-GB).
@@ -288,6 +290,9 @@ function buildTripcomUrl(
   //   - Dates are `/`-separated.
   //   - The old `${slug}-hotels-list/` path 302s to the Trip.com homepage
   //     and was silently losing every click.
+  //   - Children: Trip.com accepts `children=N` plus per-child `&age1=X&age2=Y`
+  //     indexed params. If ages aren't supplied we default each child to 8
+  //     (common mid-range child age) so the search is still valid.
   //
   // cityId resolution order:
   //   1. resolvedCityId (from /api/resolve-trip-city → Trip.com getSuggest, KV-cached)
@@ -297,6 +302,7 @@ function buildTripcomUrl(
   const coutSlash = cout.replace(/-/g, '/');
   const keyword = encodeURIComponent(dest);
   const cityId = resolvedCityId ?? tripCityIdFor(dest);
+  const childCount = Math.max(0, children | 0);
   const base = [
     `city=${cityId ?? -1}`,
     `cityName=${keyword}`,
@@ -304,7 +310,7 @@ function buildTripcomUrl(
     `checkout=${coutSlash}`,
     `adult=${adults}`,
     'crn=1',
-    'children=0',
+    `children=${childCount}`,
     'barCurr=GBP',
     'curr=GBP',
     'locale=en-GB',
@@ -312,6 +318,12 @@ function buildTripcomUrl(
     'SID=303363796',
     'trip_sub3=D15021113',
   ];
+  // Per-child ages — Trip.com reads age1, age2, … for room occupancy.
+  for (let i = 0; i < childCount; i++) {
+    const age = childrenAges[i];
+    const safeAge = typeof age === 'number' && age >= 0 && age <= 17 ? age : 8;
+    base.push(`age${i + 1}=${safeAge}`);
+  }
   // Keyword-mode fallback — add the sentinels Trip.com expects for a partial match.
   if (cityId == null) {
     base.push(
@@ -327,15 +339,39 @@ function buildTripcomUrl(
   return `https://uk.trip.com/hotels/list?${base.join('&')}`;
 }
 
-function buildExpediaUrl(dest: string, cin: string, cout: string, adults: number): string {
-  return `https://www.expedia.co.uk/Hotel-Search?destination=${encodeURIComponent(dest)}&startDate=${cin}&endDate=${cout}&adults=${adults}&affcid=clbU3QK`;
+function buildExpediaUrl(
+  dest: string,
+  cin: string,
+  cout: string,
+  adults: number,
+  children: number = 0,
+  childrenAges: number[] = [],
+): string {
+  // Expedia Hotel-Search accepts children as a CSV of ages via `children=8,5`.
+  // If we have a count but no ages, default each to 8.
+  let u = `https://www.expedia.co.uk/Hotel-Search?destination=${encodeURIComponent(dest)}&startDate=${cin}&endDate=${cout}&adults=${adults}`;
+  const childCount = Math.max(0, children | 0);
+  if (childCount > 0) {
+    const ages: number[] = [];
+    for (let i = 0; i < childCount; i++) {
+      const a = childrenAges[i];
+      ages.push(typeof a === 'number' && a >= 0 && a <= 17 ? a : 8);
+    }
+    u += `&children=${ages.join(',')}`;
+  }
+  u += `&affcid=clbU3QK`;
+  return u;
 }
 
-type Provider = { name: string; logo: string; getUrl: (dest: string, cin: string, cout: string, adults: number) => string };
+type Provider = {
+  name: string;
+  logo: string;
+  getUrl: (dest: string, cin: string, cout: string, adults: number, children: number, childrenAges: number[]) => string;
+};
 
 const PROVIDERS: Provider[] = [
-  { name: 'Trip.com', logo: '🗺', getUrl: (d, ci, co, a) => buildTripcomUrl(d, ci, co, a) },
-  { name: 'Expedia', logo: '🌍', getUrl: (d, ci, co, a) => buildExpediaUrl(d, ci, co, a) },
+  { name: 'Trip.com', logo: '🗺', getUrl: (d, ci, co, a, c, ages) => buildTripcomUrl(d, ci, co, a, null, c, ages) },
+  { name: 'Expedia', logo: '🌍', getUrl: (d, ci, co, a, c, ages) => buildExpediaUrl(d, ci, co, a, c, ages) },
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -696,12 +732,14 @@ function StarFilter({ value, onChange }: { value: number; onChange: (v: number) 
    BOOK DIRECT (LiteAPI) — creates a pending booking then redirects to checkout
    ═══════════════════════════════════════════════════════════════════════════ */
 
-function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, checkin, checkout, searchedDest, tripCityId, buildDetailHref, setScoutHotel, priceView, cityCentre, airport }: {
+function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, childrenAges, checkin, checkout, searchedDest, tripCityId, buildDetailHref, setScoutHotel, priceView, cityCentre, airport }: {
   hotel: HotelResult;
   index: number;
   isCheapest: boolean;
   nights: number;
   adults: number;
+  children: number;
+  childrenAges: number[];
   checkin: string;
   checkout: string;
   searchedDest: string;
@@ -754,8 +792,8 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, checkin, c
     'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=640&h=480&fit=crop&fm=webp&q=75',
   ];
   const photoUrl = h.thumbnail || HOTEL_PHOTOS[index % HOTEL_PHOTOS.length];
-  const tripUrl = buildTripcomUrl(searchedDest, checkin, checkout, adults, tripCityId);
-  const expediaUrl = buildExpediaUrl(searchedDest, checkin, checkout, adults);
+  const tripUrl = buildTripcomUrl(searchedDest, checkin, checkout, adults, tripCityId, children, childrenAges);
+  const expediaUrl = buildExpediaUrl(searchedDest, checkin, checkout, adults, children, childrenAges);
   const detailHref = buildDetailHref(h);
 
   // Build a modified hotel object with the selected board's offerId for BookDirect
@@ -1397,7 +1435,7 @@ function HotelsContent() {
       // Non-LiteAPI (curated / unquarantined legacy) → send to Trip.com via
       // the interstitial redirect so affiliate tracking + UX stays consistent.
       return redirectUrl(
-        buildTripcomUrl(searchedDest, checkin, checkout, adults, tripCityId),
+        buildTripcomUrl(searchedDest, checkin, checkout, adults, tripCityId, childCount, childrenAges),
         'Trip.com',
         searchedDest,
         'hotels',
@@ -1835,6 +1873,8 @@ function HotelsContent() {
                       isCheapest={i === 0}
                       nights={nights}
                       adults={adults}
+                      children={childCount}
+                      childrenAges={childrenAges}
                       checkin={checkin}
                       checkout={checkout}
                       searchedDest={searchedDest}
@@ -1870,7 +1910,7 @@ function HotelsContent() {
             <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">Also Compare on These Providers</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {PROVIDERS.map(p => {
-                const url = p.getUrl(searchedDest, checkin, checkout, adults);
+                const url = p.getUrl(searchedDest, checkin, checkout, adults, childCount, childrenAges);
                 return (
                   <div key={p.name} className="bg-white border border-[#E8ECF4] rounded-xl p-4 flex flex-col items-center text-center hover:border-orange-300 hover:shadow-md transition-all">
                     <div className="w-10 h-10 rounded-lg bg-[#F8FAFC] border border-[#E8ECF4] flex items-center justify-center text-xl mb-2">{p.logo}</div>
