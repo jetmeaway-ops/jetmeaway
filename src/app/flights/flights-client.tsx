@@ -369,11 +369,22 @@ function buildAviasalesUrl(o: string, d: string, dep: string, ret: string | null
 }
 
 function buildTripUrl(o: string, d: string, dep: string, ret: string | null, adults: number): string {
+  // Trip.com flights URL contract (verified live 2026-04-19):
+  //   - `/flights/<o>-to-<d>/tickets-<O>-<D>` is the ONE-WAY canonical path.
+  //     Passing `&rdate=...` to that path is silently ignored — the page
+  //     stays in one-way mode with the return date dropped.
+  //   - `/flights/showfarefirst?triptype=RT&ddate=...&rdate=...` is the
+  //     documented round-trip search entry. Round-trip radio selects
+  //     correctly and both legs are recognised.
+  //   - For one-way we keep the pretty canonical path (it's SEO-friendly and
+  //     works).
   const oL = o.toLowerCase();
   const dL = d.toLowerCase();
-  let u = `https://www.trip.com/flights/${oL}-to-${dL}/tickets-${o}-${d}?dcity=${o}&acity=${d}&ddate=${dep}&adult=${adults}&Allianceid=8023009&SID=303363796&trip_sub3=D15021113`;
-  if (ret) u += `&rdate=${ret}`;
-  return u;
+  const common = `dcity=${o}&acity=${d}&ddate=${dep}&adult=${adults}&class=y&Allianceid=8023009&SID=303363796&trip_sub3=D15021113`;
+  if (ret) {
+    return `https://www.trip.com/flights/showfarefirst?triptype=RT&${common}&rdate=${ret}&quantity=${adults}`;
+  }
+  return `https://www.trip.com/flights/${oL}-to-${dL}/tickets-${o}-${d}?${common}`;
 }
 
 function buildSkyscannerUrl(o: string, d: string, dep: string, ret: string | null, adults: number): string {
