@@ -246,8 +246,20 @@ function findAirport(dest: string): { iata: string; lat: number; lng: number } |
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function buildTripcomUrl(dest: string, cin: string, cout: string, adults: number): string {
-  const slug = dest.toLowerCase().replace(/\s+/g, '-');
-  return `https://www.trip.com/hotels/${slug}-hotels-list/?checkin=${cin}&checkout=${cout}&adult=${adults}&curr=GBP&Allianceid=8023009&SID=303363796&trip_sub3=D15021113`;
+  // Trip.com hotel URL contract (verified live 2026-04-19):
+  //   - `uk.trip.com/hotels/list` is the UK-localised endpoint (GBP + en-GB).
+  //   - city=-1 + cityName + searchValue=<dest>*** is Trip.com's "keyword
+  //     search" mode. Without city=-1 the `list` endpoint falls back to a
+  //     Chinese city (Anshan / Bengbu / Zhongning by city ID) and shows
+  //     irrelevant results.
+  //   - Dates are `/`-separated.
+  //   - domestic=false is required for non-CN destinations.
+  //   - The old `${slug}-hotels-list/` path 302s to the Trip.com homepage
+  //     and was silently losing every click.
+  const cinSlash = cin.replace(/-/g, '/');
+  const coutSlash = cout.replace(/-/g, '/');
+  const keyword = encodeURIComponent(dest);
+  return `https://uk.trip.com/hotels/list?city=-1&cityName=${keyword}&searchValue=${keyword}***&checkin=${cinSlash}&checkout=${coutSlash}&adult=${adults}&crn=1&children=0&domestic=false&curr=GBP&locale=en-GB&Allianceid=8023009&SID=303363796&trip_sub3=D15021113`;
 }
 
 function buildExpediaUrl(dest: string, cin: string, cout: string, adults: number): string {
