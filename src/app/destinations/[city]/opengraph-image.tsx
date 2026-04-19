@@ -19,7 +19,8 @@ import { DESTINATIONS, getDestination } from '@/data/destinations';
  * well-composed gradient card with strong typography.
  */
 
-export const runtime = 'edge';
+// Note: no edge runtime — `generateImageMetadata` below is only supported on
+// the Node runtime. Cards are generated once at build time, so perf is moot.
 export const alt = 'JetMeAway destination card';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
