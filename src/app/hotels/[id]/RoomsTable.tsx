@@ -28,6 +28,9 @@ export type RoomRate = {
   totalPrice: number;
   pricePerNight: number;
   refundable: boolean;
+  /** Phase-2: room category name ("Deluxe King, City View"). When absent the
+   *  row title gracefully falls back to the board label — Phase-1 parity. */
+  roomName?: string | null;
 };
 
 /* The Scout design tokens — pulled out so the page can reuse them on the
@@ -102,6 +105,14 @@ function RateRow({
 }) {
   const board = BOARD_MEANS(rate.boardType);
 
+  /* Row title resolution (Phase-2):
+     1. rate.roomName  — per-rate supplier name ("Deluxe King, City View")
+     2. roomName prop  — table-level fallback for single-room hotels
+     3. board.label    — graceful Phase-1 fallback ("All Inclusive" in Playfair
+                         reads like a boutique title — happy coincidence)   */
+  const title = rate.roomName || roomName || board.label;
+  const showBoardSubtitle = Boolean(rate.roomName || roomName);
+
   const onKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -125,14 +136,16 @@ function RateRow({
       {/* ─── Column 1: Room & Board ─── */}
       <div>
         <h3 className="font-[var(--font-playfair)] font-black text-[1.15rem] text-[#0a1628] tracking-tight leading-tight">
-          {/* Graceful fallback: when the supplier omits a room name we let the
-              board-type label wear the Playfair weight. "All Inclusive" in
-              Playfair looks like a premium title — happy coincidence. */}
-          {roomName || board.label}
+          {title}
         </h3>
-        <div className="text-[.68rem] font-semibold text-slate-500 uppercase tracking-[2px] mt-1.5">
-          {board.label}
-        </div>
+        {/* When we have a genuine room name the board label takes the
+            small-caps subtitle role. When we don't, the title is already
+            the board label — no duplicate subtitle. */}
+        {showBoardSubtitle && (
+          <div className="text-[.68rem] font-semibold text-slate-500 uppercase tracking-[2px] mt-1.5">
+            {board.label}
+          </div>
+        )}
       </div>
 
       {/* ─── Column 2: Scout Choices ─── */}

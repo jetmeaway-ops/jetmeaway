@@ -218,13 +218,18 @@ export interface HotelOffer {
   /** Taxes/fees NOT included in price — payable at property (e.g. city tax) */
   excludedTaxes?: number | null;
 
-  /** All available board options for this hotel (including the selected one) */
+  /** All available room/rate options for this hotel (including the selected one).
+   *  Phase-2 shape — one entry per unique (roomName, boardType). `roomName` is
+   *  optional because not every supplier includes it; when absent the UI falls
+   *  back to the board label. */
   boardOptions?: Array<{
     offerId: string;
     boardType: string;
     totalPrice: number;
     pricePerNight: number;
     refundable: boolean;
+    /** v3.0 Phase-2: the human room name ("Deluxe King, City View") */
+    roomName?: string | null;
   }>;
 }
 
@@ -378,7 +383,24 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     suggestedSellingPrice?: AmountObj | AmountObj[];
     priceType?: string;
     paymentTypes?: string[];
+    /** v3.0: human room-category name ("Deluxe King Room, City View") — not
+     *  always present. When absent we use rate.name, then board label. */
+    name?: string;
+    roomName?: string;
   };
+
+  /** Clean up a LiteAPI room/rate name — strip redundant board suffixes
+   *  ("… - Room Only", "… with Breakfast"), collapse whitespace, sane length. */
+  function cleanRoomName(raw: string | undefined | null): string | null {
+    if (!raw) return null;
+    let s = String(raw).trim();
+    // Strip common trailing board fragments so we don't duplicate the label
+    s = s.replace(/\s*[-–—]\s*(room only|bed(?: and| &)? breakfast|breakfast included|half board|full board|all[- ]?inclusive)\s*$/i, '');
+    s = s.replace(/\s*\(?\b(room only|breakfast included|half board|full board|all[- ]?inclusive)\b\)?\s*$/i, '');
+    s = s.replace(/\s+/g, ' ').trim();
+    if (!s || s.length > 120) return null;
+    return s;
+  }
 
   /** Safely extract a numeric amount whether the field is a single object or an array */
   function extractAmount(v: AmountObj | AmountObj[] | undefined | null): number | undefined {
@@ -436,16 +458,24 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     let bestRate: RateObj | null = null;
     let bestPrice = Infinity;
 
-    // Collect ALL board options for this hotel
-    const allOptions: Array<{
+    // Collect ALL (roomName × boardType) options for this hotel. We key the
+    // map by `${roomKey}|${boardKey}` so identical room+board combos collapse
+    // to the cheapest, but different room categories (Standard / Deluxe /
+    // Suite) each get their own row — booking.com's grid, Scout's voice.
+    type OptionRow = {
       offerId: string;
       boardType: string;
       totalPrice: number;
       pricePerNight: number;
       refundable: boolean;
-    }> = [];
+      roomName?: string | null;
+    };
+    const optionsByKey = new Map<string, OptionRow>();
 
     for (const rt of entry.roomTypes || []) {
+      // Prefer the roomType-level name, fall back to the first rate's name.
+      // We clean both so the row title never duplicates the board label.
+      const roomTypeName = cleanRoomName(rt.name || rt.roomName);
       // offerId can be on roomType (old) or rate (v3.0) — we check both below
       for (const r of rt.rates || []) {
         // Resolve offerId: rate-level (v3.0) takes priority, then roomType-level
@@ -492,24 +522,27 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
         const isRefundable = r.cancellationPolicy?.refundable === true
           || r.cancellationPolicies?.refundableTag === 'RFN';
 
-        // Only add unique board types (keep cheapest per board type)
-        const existingIdx = allOptions.findIndex(o => o.boardType.toLowerCase() === board.toLowerCase());
-        if (existingIdx === -1) {
-          allOptions.push({
-            offerId: rateOfferId,
-            boardType: board,
-            totalPrice: Math.round(effectivePrice * 100) / 100,
-            pricePerNight: Math.round((effectivePrice / nights) * 100) / 100,
-            refundable: isRefundable,
-          });
-        } else if (effectivePrice < allOptions[existingIdx].totalPrice) {
-          allOptions[existingIdx] = {
-            offerId: rateOfferId,
-            boardType: board,
-            totalPrice: Math.round(effectivePrice * 100) / 100,
-            pricePerNight: Math.round((effectivePrice / nights) * 100) / 100,
-            refundable: isRefundable,
-          };
+        // Room name: prefer the roomType-level name we grabbed earlier, else
+        // fall back to the rate's own `name` (also cleaned). When both are
+        // missing we store `null` and let the UI fall back to the board label.
+        const roomName = roomTypeName || cleanRoomName(r.name) || null;
+
+        // Key by (roomName, boardType) — different rooms get different rows,
+        // identical combos collapse to the cheapest rate.
+        const roomKey = (roomName || '__none__').toLowerCase();
+        const boardKey = board.toLowerCase();
+        const mapKey = `${roomKey}|${boardKey}`;
+        const existing = optionsByKey.get(mapKey);
+        const nextRow: OptionRow = {
+          offerId: rateOfferId,
+          boardType: board,
+          totalPrice: Math.round(effectivePrice * 100) / 100,
+          pricePerNight: Math.round((effectivePrice / nights) * 100) / 100,
+          refundable: isRefundable,
+          roomName,
+        };
+        if (!existing || effectivePrice < existing.totalPrice) {
+          optionsByKey.set(mapKey, nextRow);
         }
 
         if (effectivePrice < bestPrice) {
@@ -524,8 +557,11 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     const bestOfferId = bestRate?.offerId || bestRoomType?.offerId;
     if (!bestRoomType || !bestRate || !bestOfferId) continue;
 
-    // Sort board options by price
-    allOptions.sort((a, b) => a.totalPrice - b.totalPrice);
+    // Flatten the map, sort cheapest-first, cap at 12 so long supplier
+    // inventory lists don't overwhelm the rates table.
+    const allOptions = Array.from(optionsByKey.values())
+      .sort((a, b) => a.totalPrice - b.totalPrice)
+      .slice(0, 12);
 
     // ── PRICE: handle v3.0 flat numbers AND old nested objects ──
     let marketRaw: number;
@@ -625,6 +661,8 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
 
       excludedTaxes: extraTaxes > 0 ? Math.round(extraTaxes * 100) / 100 : null,
       boardOptions: allOptions.length > 1 ? allOptions : undefined,
+      // (Each option now carries its own roomName when LiteAPI provides one;
+      //  the UI falls back to the board label when absent — Phase-1 parity.)
     });
   }
 

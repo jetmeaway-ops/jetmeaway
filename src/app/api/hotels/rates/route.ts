@@ -40,6 +40,8 @@ type BoardOptionOut = {
   totalPrice: number;
   pricePerNight: number;
   refundable: boolean;
+  /** Phase-2: human room category name — null when supplier omits it */
+  roomName?: string | null;
 };
 
 export async function GET(req: NextRequest) {
@@ -110,6 +112,7 @@ export async function GET(req: NextRequest) {
           totalPrice: o.totalPrice,
           pricePerNight: o.pricePerNight,
           refundable: o.refundable,
+          roomName: o.roomName ?? null,
         }))
       : [{
           offerId: match.offerId,
@@ -117,6 +120,7 @@ export async function GET(req: NextRequest) {
           totalPrice: match.price,
           pricePerNight: match.pricePerNight || (match.price / Math.max(1, nights(checkin, checkout))),
           refundable: match.refundable,
+          roomName: null,
         }];
 
     try { await kv.set(cacheKey, { offers }, { ex: KV_TTL }); } catch { /* KV write failed */ }
