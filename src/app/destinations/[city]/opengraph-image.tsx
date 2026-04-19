@@ -25,8 +25,12 @@ export const alt = 'JetMeAway destination card';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
-export function generateImageMetadata() {
-  return DESTINATIONS.map(d => ({ id: d.slug }));
+// Return a single image for the current city only — otherwise Next.js emits
+// an og:image tag for every enumerated id on every page, bloating HTML.
+export async function generateImageMetadata({ params }: { params: Promise<{ city: string }> }) {
+  const { city } = await params;
+  const d = getDestination(city);
+  return d ? [{ id: d.slug, alt: `${d.city} — ${d.tagline}` }] : [];
 }
 
 export default async function Image({ params }: { params: Promise<{ city: string }> }) {
