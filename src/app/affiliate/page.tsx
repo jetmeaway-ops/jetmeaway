@@ -29,15 +29,15 @@ export default function AffiliateDisclosure() {
           <p className="font-bold text-[#1A1D2B] mt-3">Hotels</p>
           <p>Nuitee (LiteAPI) for direct hotel inventory, plus comparison links to Booking.com, Expedia, Trip.com, Hotels.com, Agoda, and Trivago.</p>
           <p className="font-bold text-[#1A1D2B] mt-3">Tours &amp; Activities</p>
-          <p>GetYourGuide, Viator, Klook, and Tiqets.</p>
+          <p>GetYourGuide, Viator, and Klook.</p>
           <p className="font-bold text-[#1A1D2B] mt-3">eSIM &amp; Connectivity</p>
-          <p>Airalo, Yesim, and Ekta Traveling.</p>
+          <p>Airalo and Yesim (via Travelpayouts).</p>
+          <p className="font-bold text-[#1A1D2B] mt-3">Travel Insurance</p>
+          <p>Ekta Traveling (via Travelpayouts).</p>
           <p className="font-bold text-[#1A1D2B] mt-3">Car Hire</p>
           <p>Economy Bookings, Localrent, Qeeq, and GetRentaCar.</p>
           <p className="font-bold text-[#1A1D2B] mt-3">Transfers</p>
           <p>KiwiTaxi, Welcome Pickups, and GetTransfer.</p>
-          <p className="font-bold text-[#1A1D2B] mt-3">Passenger Rights</p>
-          <p>AirHelp, Compensair, and WeGoTrip.</p>
 
           <h2 className="font-poppins text-[.95rem] font-bold text-[#0066FF] mt-5">3. Editorial Independence</h2>
           <p>Our affiliate relationships do not influence how we rank or display results. Providers are sorted by price, relevance, or user preference &mdash; never by commission rate. We show you the cheapest option first, regardless of which partner it comes from.</p>

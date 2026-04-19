@@ -387,14 +387,6 @@ function buildTripUrl(o: string, d: string, dep: string, ret: string | null, adu
   return `https://www.trip.com/flights/${oL}-to-${dL}/tickets-${o}-${d}?${common}`;
 }
 
-function buildSkyscannerUrl(o: string, d: string, dep: string, ret: string | null, adults: number): string {
-  const fmt = (date: string) => date.slice(2).replace(/-/g, ''); // YYMMDD
-  let u = `https://www.skyscanner.net/transport/flights/${o}/${d}/${fmt(dep)}/`;
-  if (ret) u += `${fmt(ret)}/`;
-  u += `?adultsv2=${adults}&cabinclass=economy&rtn=${ret ? '1' : '0'}`;
-  return u;
-}
-
 function buildExpediaUrl(o: string, d: string, dep: string, ret: string | null, adults: number): string {
   // Expedia /Flights-Search expects dates as MM/DD/YYYY (not ISO) and the
   // mode=search + full passengers struct, otherwise it lands on a "wrong turn"
@@ -421,7 +413,6 @@ type ProviderInfo = {
 const PROVIDERS: ProviderInfo[] = [
   { name: 'Aviasales', logo: '✈', getUrl: (o, d, dep, ret, a) => buildAviasalesUrl(o, d, dep, ret, a) },
   { name: 'Trip.com', logo: '🗺', getUrl: (o, d, dep, ret, a) => buildTripUrl(o, d, dep, ret, a) },
-  { name: 'Skyscanner', logo: '🔍', getUrl: (o, d, dep, ret, a) => buildSkyscannerUrl(o, d, dep, ret, a) },
   { name: 'Expedia', logo: '🌍', getUrl: (o, d, dep, ret, a) => buildExpediaUrl(o, d, dep, ret, a) },
 ];
 
@@ -805,7 +796,6 @@ function HotDeals({ onSelect }: { onSelect: (destCode: string, destCity: string)
 const LOADING_MSGS = [
   'Searching Aviasales...',
   'Checking Trip.com...',
-  'Comparing Skyscanner...',
   'Scanning Expedia...',
   'Checking Kiwi.com...',
   'Finding you the best deal...',

@@ -53,7 +53,7 @@ const jsonLd = [
    PROVIDER LOGOS — infinite horizontal scroll (pure CSS, no hooks)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const PROVIDERS = ['Expedia', 'Trip.com', 'GetYourGuide', 'Viator', 'Klook', 'Airalo', 'Aviasales', 'Tiqets'];
+const PROVIDERS = ['Expedia', 'Trip.com', 'Aviasales', 'GetYourGuide', 'Viator', 'Klook', 'Airalo', 'Yesim'];
 
 function LogoScroll() {
   return (

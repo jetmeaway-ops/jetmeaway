@@ -16,19 +16,10 @@ const ESIM_COUNTRIES = [
 const ESIM_PROVIDERS = [
   { name: 'Airalo', color: '#FF6B00', desc: 'Most popular, instant activation' },
   { name: 'Yesim', color: '#059669', desc: 'Unlimited plans, includes calls/SMS' },
-  { name: 'Holafly', color: '#DC2626', desc: 'No throttling, unlimited plans' },
-  { name: 'Nomad', color: '#2563EB', desc: 'Asia coverage, budget pick' },
-  { name: 'eSIM.net', color: '#7C3AED', desc: 'Regional bundles, 5G support' },
-  { name: 'Maya Mobile', color: '#0891B2', desc: 'Data rollover, multi-country' },
 ];
 
 const INSURANCE_PROVIDERS = [
   { name: 'Ekta Traveling', color: '#059669', desc: '£3/day comprehensive cover' },
-  { name: 'World Nomads', color: '#FF6B00', desc: 'Adventure & backpacker specialist' },
-  { name: 'InsureMyTrip', color: '#2563EB', desc: 'Compare 30+ plans' },
-  { name: 'Staysure', color: '#7C3AED', desc: 'Pre-existing conditions covered' },
-  { name: 'AirHelp', color: '#DC2626', desc: 'Flight compensation up to €600' },
-  { name: 'Compensair', color: '#0891B2', desc: 'No-win no-fee flight compensation' },
 ];
 
 const COVER_TYPES = ['Single Trip', 'Annual Multi-Trip', 'Backpacker', 'Winter Sports'];

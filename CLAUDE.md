@@ -9,12 +9,13 @@ JetMeAway (jetmeaway.co.uk) is a travel comparison engine built with Next.js 16,
 | Route | Purpose |
 |-------|---------|
 | `/` | Home — hero, 4-step flight search wizard (destination > dates > passengers > results), category nav, trust section, travel essentials |
-| `/flights` | Flight comparison — 250+ airports, live Travelpayouts search with polling, cached Aviasales fallback, 4 providers |
+| `/flights` | Flight comparison — 250+ airports, live Travelpayouts search with polling, cached Aviasales fallback, 3 providers (Aviasales, Trip.com, Expedia) |
 | `/hotels` | Hotel comparison — 160+ cities, Hotellook API, 6 providers (Booking.com, Expedia, Trip.com, Hotels.com, Agoda, Trivago), photo gallery, price grid |
 | `/cars` | Car hire — 7 providers (EconomyBookings, QEEQ, LocalRent, GetRentaCar, Klook, Expedia, Trip.com), deep links with search params |
 | `/packages` | Holiday packages — curated bundles per destination, 4 providers (Expedia, Trip.com, Booking.com, Klook), price comparison grid |
-| `/insurance` | Travel insurance — 4 cover types, 6 providers (Ekta, AirHelp, Compensair, World Nomads, InsureMyTrip, Staysure) |
-| `/esim` | eSIM data — 150+ countries, 6 providers (Airalo, Yesim, Holafly, Nomad, eSIM.net, Maya Mobile) |
+| `/insurance` | Travel insurance — 4 cover types, 1 provider (Ekta Traveling via Travelpayouts) |
+| `/esim` | eSIM data — 150+ countries, 2 providers (Airalo, Yesim — both via Travelpayouts) |
+| `/explore` | Activities & tours — 3 providers (GetYourGuide, Viator, Klook) |
 | `/about` | Company info, mission, revenue model transparency |
 | `/contact` | Contact form, FAQ |
 | `/privacy` | Privacy policy, GDPR |

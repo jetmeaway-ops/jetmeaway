@@ -294,7 +294,7 @@ const doc = new Document({
             ["Klook", "Affiliate", "Packages, cars, activities"],
             ["LiteAPI / Nuitee", "Direct API", "Hotel bookings (2.9M+ properties)"],
             ["RateHawk", "Affiliate API (pending)", "Hotel comparison"],
-            ["Airalo / Yesim / Holafly", "Affiliate", "eSIM data plans"],
+            ["Airalo / Yesim", "Affiliate (Travelpayouts)", "eSIM data plans"],
             ["Umbrella ATOL Provider", "ATOL partner", "Packages \u2014 proposed"],
           ],
           [2500, 2500, CONTENT_WIDTH - 5000]

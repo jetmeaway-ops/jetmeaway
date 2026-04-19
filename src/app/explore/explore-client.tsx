@@ -30,16 +30,6 @@ function buildKlookUrl(dest: string): string {
   return `https://klook.tpk.lu/CByEYa65?city=${encodeURIComponent(dest)}`;
 }
 
-function buildTiqetsUrl(dest: string): string {
-  const u = `https://www.tiqets.com/en/search?q=${encodeURIComponent(dest)}`;
-  return `https://tp.media/r?marker=714449&trs=512633&p=8972&u=${encodeURIComponent(u)}`;
-}
-
-function buildWeGoTripUrl(dest: string): string {
-  const u = `https://wegotrip.com/en/?search=${encodeURIComponent(dest)}`;
-  return `https://tp.media/r?marker=714449&trs=512633&p=9221&u=${encodeURIComponent(u)}`;
-}
-
 type Provider = {
   name: string;
   logo: string;
@@ -74,22 +64,6 @@ const PROVIDERS: Provider[] = [
     color: 'border-l-orange-500',
     getUrl: buildKlookUrl,
   },
-  {
-    name: 'Tiqets',
-    logo: '🏛',
-    tagline: 'Museums, attractions & instant e-tickets',
-    points: ['Skip-the-line tickets', 'Last-minute booking', 'Flexible cancellation'],
-    color: 'border-l-purple-500',
-    getUrl: buildTiqetsUrl,
-  },
-  {
-    name: 'WeGoTrip',
-    logo: '🎧',
-    tagline: 'Self-guided audio tours',
-    points: ['Go at your own pace', 'Available offline', 'Unique local stories'],
-    color: 'border-l-rose-500',
-    getUrl: buildWeGoTripUrl,
-  },
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -100,34 +74,34 @@ const CURATED: Record<string, { name: string; type: string; from: number; provid
   'barcelona': [
     { name: 'Sagrada Familia: Skip-the-Line Guided Tour', type: 'Tours', from: 35, provider: 'GetYourGuide' },
     { name: 'Tapas & Wine Walking Tour', type: 'Food', from: 49, provider: 'Viator' },
-    { name: 'Park Guell Skip-the-Line Entry', type: 'Attractions', from: 13, provider: 'Tiqets' },
-    { name: 'Gothic Quarter Audio Walking Tour', type: 'Tours', from: 8, provider: 'WeGoTrip' },
+    { name: 'Park Guell Skip-the-Line Entry', type: 'Attractions', from: 13, provider: 'GetYourGuide' },
+    { name: 'Gothic Quarter Walking Tour', type: 'Tours', from: 18, provider: 'Viator' },
     { name: 'Montserrat Half-Day Trip', type: 'Day Trips', from: 45, provider: 'GetYourGuide' },
     { name: 'Sailing Cruise with Drinks', type: 'Adventure', from: 55, provider: 'Klook' },
   ],
   'dubai': [
     { name: 'Desert Safari with BBQ Dinner', type: 'Adventure', from: 35, provider: 'GetYourGuide' },
-    { name: 'Burj Khalifa: At the Top Tickets', type: 'Attractions', from: 40, provider: 'Tiqets' },
+    { name: 'Burj Khalifa: At the Top Tickets', type: 'Attractions', from: 40, provider: 'Viator' },
     { name: 'Abu Dhabi Full-Day Tour', type: 'Day Trips', from: 55, provider: 'Viator' },
     { name: 'Dubai Marina Yacht Cruise', type: 'Adventure', from: 25, provider: 'Klook' },
-    { name: 'Old Dubai Walking Audio Tour', type: 'Tours', from: 6, provider: 'WeGoTrip' },
+    { name: 'Old Dubai Walking Tour', type: 'Tours', from: 22, provider: 'GetYourGuide' },
     { name: 'Aquaventure Waterpark', type: 'Family', from: 65, provider: 'GetYourGuide' },
   ],
   'rome': [
     { name: 'Colosseum, Forum & Palatine Skip-the-Line', type: 'Tours', from: 45, provider: 'GetYourGuide' },
-    { name: 'Vatican Museums & Sistine Chapel', type: 'Tours', from: 35, provider: 'Tiqets' },
+    { name: 'Vatican Museums & Sistine Chapel', type: 'Tours', from: 35, provider: 'GetYourGuide' },
     { name: 'Trastevere Food Tour', type: 'Food', from: 58, provider: 'Viator' },
-    { name: 'Rome in a Day Audio Tour', type: 'Tours', from: 9, provider: 'WeGoTrip' },
+    { name: 'Rome Walking Tour', type: 'Tours', from: 29, provider: 'Viator' },
     { name: 'Pompeii Day Trip from Rome', type: 'Day Trips', from: 85, provider: 'GetYourGuide' },
-    { name: 'Borghese Gallery Skip-the-Line', type: 'Attractions', from: 20, provider: 'Tiqets' },
+    { name: 'Borghese Gallery Entry', type: 'Attractions', from: 20, provider: 'GetYourGuide' },
   ],
   'paris': [
     { name: 'Eiffel Tower Summit Access', type: 'Attractions', from: 35, provider: 'GetYourGuide' },
-    { name: 'Louvre Museum Skip-the-Line', type: 'Attractions', from: 22, provider: 'Tiqets' },
+    { name: 'Louvre Museum Skip-the-Line', type: 'Attractions', from: 22, provider: 'GetYourGuide' },
     { name: 'Seine River Dinner Cruise', type: 'Adventure', from: 75, provider: 'Viator' },
-    { name: 'Montmartre Audio Walking Tour', type: 'Tours', from: 7, provider: 'WeGoTrip' },
+    { name: 'Montmartre Walking Tour', type: 'Tours', from: 25, provider: 'Viator' },
     { name: 'Versailles Full-Day Tour', type: 'Day Trips', from: 69, provider: 'GetYourGuide' },
-    { name: 'Paris Catacombs Skip-the-Line', type: 'Attractions', from: 29, provider: 'Tiqets' },
+    { name: 'Paris Catacombs Entry', type: 'Attractions', from: 29, provider: 'GetYourGuide' },
   ],
 };
 

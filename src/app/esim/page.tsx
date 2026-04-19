@@ -102,6 +102,8 @@ function CountryPicker({ value, onChange, placeholder }: {
 }
 
 // ─── Providers with country-specific URLs ───────────────────────────────────
+// Only providers we have verified affiliate relationships with. Airalo + Yesim
+// via Travelpayouts smart links.
 const PROVIDERS = [
   {
     name: 'Airalo',
@@ -119,34 +121,6 @@ const PROVIDERS = [
     badge: 'Unlimited Plans',
     getUrl: (_country: string) =>
       `https://yesim.tpk.lu/jSzl98ZQ`,
-  },
-  {
-    name: 'Holafly',
-    logo: '🌊',
-    badge: 'No Throttling',
-    getUrl: (country: string) =>
-      `https://esim.holafly.com/${country.toLowerCase().replace(/ /g, '-')}/?ref=jetmeaway`,
-  },
-  {
-    name: 'Nomad',
-    logo: '🏕',
-    badge: 'Asia Coverage',
-    getUrl: (country: string) =>
-      `https://www.getnomad.app/esim/${country.toLowerCase().replace(/ /g, '-')}`,
-  },
-  {
-    name: 'eSIM.net',
-    logo: '🌐',
-    badge: 'Regional Plans',
-    getUrl: (country: string) =>
-      `https://esim.net/${country.toLowerCase().replace(/ /g, '-')}`,
-  },
-  {
-    name: 'Maya Mobile',
-    logo: '📱',
-    badge: 'Data Rollover',
-    getUrl: (country: string) =>
-      `https://www.mayamobile.io/esim/${country.toLowerCase().replace(/ /g, '-')}`,
   },
 ];
 
@@ -199,18 +173,6 @@ function getPlansForCountry(country: string, days: number): CuratedPlan[] {
       highlights: ['Instant activation', 'QR code delivery', '200+ countries'],
     },
     {
-      provider: 'Nomad', logo: '🏕', badge: 'Budget Pick',
-      data: '3 GB', validity: `${days} days`, price: Math.round(p.base3gb * mult * 100) / 100,
-      currency: '$', calls: false, sms: false, speed: '4G/LTE',
-      highlights: ['Top-up anytime', 'Data sharing', 'Good Asia coverage'],
-    },
-    {
-      provider: 'eSIM.net', logo: '🌐', badge: 'Great Value',
-      data: '5 GB', validity: `${days} days`, price: Math.round(p.base5gb * mult * 100) / 100,
-      currency: '€', calls: false, sms: false, speed: '4G/5G',
-      highlights: ['Regional bundles', '5G where available', 'No registration'],
-    },
-    {
       provider: 'Yesim', logo: '✅', badge: 'Best for Calls',
       data: '5 GB', validity: `${days} days`, price: Math.round((p.base5gb + 3) * mult * 100) / 100,
       currency: '£', calls: true, sms: true, speed: '4G/LTE',
@@ -223,16 +185,16 @@ function getPlansForCountry(country: string, days: number): CuratedPlan[] {
       highlights: ['Heavy usage', '5G in select areas', 'Hotspot enabled'],
     },
     {
-      provider: 'Holafly', logo: '🌊', badge: 'Unlimited',
+      provider: 'Airalo', logo: '📡', badge: 'Unlimited',
       data: 'Unlimited', validity: `${days} days`, price: Math.round(p.unlimited * mult * 100) / 100,
-      currency: '€', calls: false, sms: false, speed: '4G/LTE',
-      highlights: ['Truly unlimited', 'No speed throttle', '24/7 support'],
+      currency: '$', calls: false, sms: false, speed: '4G/LTE',
+      highlights: ['Unlimited data', 'No speed throttle', '200+ countries'],
     },
     {
-      provider: 'Maya Mobile', logo: '📱', badge: 'Multi-Country',
+      provider: 'Yesim', logo: '✅', badge: 'Multi-Country',
       data: '10 GB', validity: `${Math.max(days, 30)} days`, price: Math.round(p.base10gb * 2.2 * 100) / 100,
       currency: '£', calls: false, sms: false, speed: '4G/5G',
-      highlights: ['Data rollover', 'Use in 100+ countries', 'Auto top-up'],
+      highlights: ['Use in 100+ countries', 'Top-up anytime', 'Auto top-up'],
     },
   ];
 
