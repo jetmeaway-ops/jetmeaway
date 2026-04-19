@@ -465,17 +465,29 @@ function PackagesContent() {
     if (a) setAdults(Math.max(1, parseInt(a)));
     if (c) setChildren(Math.max(0, parseInt(c)));
 
-    // From field: URL param > localStorage > empty
+    // From field: URL param > user's saved preference > London default.
     if (f) {
       setFrom(f);
     } else {
       try {
         const stored = localStorage.getItem('jma_departure_airport');
+        // Older versions stored a JSON object; newer code stores a plain code.
+        // Handle both shapes defensively.
         if (stored) {
-          const parsed = JSON.parse(stored);
-          if (parsed.name && parsed.code) setFrom(`${parsed.name} (${parsed.code})`);
+          if (stored.startsWith('{')) {
+            const parsed = JSON.parse(stored);
+            if (parsed?.name && parsed?.code) {
+              setFrom(`${parsed.name} (${parsed.code})`);
+              return;
+            }
+          } else if (/^[A-Z]{3}$/.test(stored)) {
+            setFrom(`London (${stored})`);
+            return;
+          }
         }
       } catch { /* no stored airport */ }
+      // Fallback: London.
+      setFrom('London (LON)');
     }
   }, []);
 

@@ -717,13 +717,32 @@ type HotDeal = {
 function HotDeals({ onSelect }: { onSelect: (destCode: string, destCity: string) => void }) {
   const [deals, setDeals] = useState<HotDeal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchedAt, setFetchedAt] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/flights/deals')
       .then(r => r.json())
-      .then(d => { setDeals(d.deals || []); setLoading(false); })
+      .then(d => {
+        setDeals(d.deals || []);
+        setFetchedAt(typeof d.fetchedAt === 'string' ? d.fetchedAt : null);
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, []);
+
+  /** "2h ago" / "just now" — honest replacement for the old "Updated every 6 hours" claim. */
+  const relativeUpdated = (() => {
+    if (!fetchedAt) return null;
+    const ts = Date.parse(fetchedAt);
+    if (!Number.isFinite(ts)) return null;
+    const mins = Math.max(0, Math.round((Date.now() - ts) / 60000));
+    if (mins < 2) return 'just now';
+    if (mins < 60) return `${mins} min ago`;
+    const hrs = Math.round(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.round(hrs / 24);
+    return `${days}d ago`;
+  })();
 
   if (loading) {
     return (
@@ -752,7 +771,9 @@ function HotDeals({ onSelect }: { onSelect: (destCode: string, destCity: string)
         <h2 className="font-poppins font-black text-[1.2rem] text-[#1A1D2B]">
           <span className="text-[#0066FF]">🔥</span> Hot Flight Deals from London
         </h2>
-        <span className="text-[.68rem] text-[#8E95A9] font-semibold">Live prices · Updated every 6 hours · Click to search</span>
+        <span className="text-[.68rem] text-[#8E95A9] font-semibold">
+          Indicative prices{relativeUpdated ? ` · Updated ${relativeUpdated}` : ''} · Click to search live
+        </span>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         {deals.map(deal => {
@@ -968,10 +989,13 @@ function FlightsContent() {
     const dep = p.get('departure') || '';
     const ret = p.get('return') || '';
 
-    // Read from localStorage as fallback for origin
+    // Origin priority: URL param → user's saved preference → London (LON).
+    // London is the house default — no geolocation, no nearest-airport
+    // guessing. If a previous visit let the customer pick e.g. Manchester,
+    // that's preserved via localStorage.
     if (!o) {
       const saved = localStorage.getItem('jma_departure_airport');
-      if (saved) setInitOrigin(saved);
+      setInitOrigin(saved || 'LON');
     } else {
       setInitOrigin(o);
     }
@@ -1018,6 +1042,10 @@ function FlightsContent() {
     if (!originCode) { alert('Please select a departure airport'); return; }
     if (!destCode) { alert('Please select a destination'); return; }
     if (!depDate) { alert('Please select a departure date'); return; }
+    if (tripType === 'return' && !retDate) {
+      alert('Please select a return date — or switch to one-way.');
+      return;
+    }
 
     setFlights(null);
     setApiError('');
@@ -1430,11 +1458,33 @@ function FlightsContent() {
             </div>
           </div>
 
-          <button onClick={handleSearch} disabled={loading}
-            className="w-full bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-60 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(0,102,255,0.3)]">
-            {loading ? 'Searching…' : 'Search 5 Providers →'}
-          </button>
-          <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">Free comparison · Results shown here · Click any deal to book on the provider site</p>
+          {(() => {
+            const returnMissing = tripType === 'return' && !retDate;
+            return (
+              <>
+                <button
+                  onClick={handleSearch}
+                  disabled={loading || returnMissing}
+                  className="w-full bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-60 disabled:cursor-not-allowed text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(0,102,255,0.3)]"
+                >
+                  {loading
+                    ? 'Searching…'
+                    : returnMissing
+                    ? 'Pick a return date to search'
+                    : 'Search 5 Providers →'}
+                </button>
+                {returnMissing ? (
+                  <p className="text-center text-[.68rem] text-amber-700 font-bold mt-2.5">
+                    Return trip selected — add a return date, or switch to One-way above.
+                  </p>
+                ) : (
+                  <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">
+                    Free comparison · Results shown here · Click any deal to book on the provider site
+                  </p>
+                )}
+              </>
+            );
+          })()}
         </div>
 
       {/* ── Hot Flight Deals (shown before search) ── */}

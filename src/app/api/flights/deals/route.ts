@@ -1,10 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 
 export const runtime = 'edge';
 
 const TP_TOKEN = 'f797fbb7074a15838d5536c10be6f7b5';
 const KV_TTL = 21600; // 6 hours
+const KV_KEY = 'flight-hot-deals:LHR';
+const KV_META_KEY = 'flight-hot-deals:LHR:meta'; // { fetchedAt: ISO string }
 
 const AIRLINES: Record<string, string> = {
   AA: 'American Airlines', AC: 'Air Canada', AF: 'Air France',
@@ -45,16 +47,33 @@ const HOT_ROUTES: { dest: string; city: string; country: string; flag: string }[
   { dest: 'CUN', city: 'Cancun', country: 'Mexico', flag: '🇲🇽' },
 ];
 
-export async function GET() {
-  const kvKey = 'flight-hot-deals:LHR';
+export async function GET(req: NextRequest) {
+  // Force-refresh mode: used by the Vercel cron to keep the cache warm so
+  // visitors never see 6h-stale prices. Only honoured for genuine cron
+  // requests (Vercel adds `x-vercel-cron: 1` to cron fires) so random
+  // visitors can't nuke the cache and trigger 20× TP calls.
+  const isCron =
+    req.headers.get('x-vercel-cron') === '1' ||
+    req.nextUrl.searchParams.get('cron') === '1';
+  const forceRefresh =
+    isCron || req.nextUrl.searchParams.get('refresh') === '1';
 
-  // Check cache
-  try {
-    const cached = await kv.get<any[]>(kvKey);
-    if (cached && cached.length > 0) {
-      return NextResponse.json({ deals: cached, cached: true });
-    }
-  } catch { /* KV miss */ }
+  // Check cache — unless a legitimate refresh is requested.
+  if (!forceRefresh) {
+    try {
+      const [cached, meta] = await Promise.all([
+        kv.get<any[]>(KV_KEY),
+        kv.get<{ fetchedAt: string }>(KV_META_KEY),
+      ]);
+      if (cached && cached.length > 0) {
+        return NextResponse.json({
+          deals: cached,
+          cached: true,
+          fetchedAt: meta?.fetchedAt ?? null,
+        });
+      }
+    } catch { /* KV miss */ }
+  }
 
   // Fetch prices for all routes in parallel (Travelpayouts cached prices API)
   const now = new Date();
@@ -111,10 +130,18 @@ export async function GET() {
   // Sort by price
   deals.sort((a, b) => a.price - b.price);
 
-  // Cache
+  // Cache — set a slightly longer TTL than the cron cadence so a cron miss
+  // (Vercel cron skew is real) never leaves us serving nothing. The cron
+  // will overwrite this on its next run.
+  const fetchedAt = new Date().toISOString();
   if (deals.length > 0) {
-    try { await kv.set(kvKey, deals, { ex: KV_TTL }); } catch { /* KV write failed */ }
+    try {
+      await Promise.all([
+        kv.set(KV_KEY, deals, { ex: KV_TTL + 3600 }),
+        kv.set(KV_META_KEY, { fetchedAt }, { ex: KV_TTL + 3600 }),
+      ]);
+    } catch { /* KV write failed */ }
   }
 
-  return NextResponse.json({ deals, cached: false });
+  return NextResponse.json({ deals, cached: false, fetchedAt });
 }

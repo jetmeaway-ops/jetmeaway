@@ -128,6 +128,63 @@ function stopsLabel(n: number): string {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const NAME_RE = /^[a-zA-Z\s'-]{2,}$/;
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   PERSONAL ITEM ALLOWANCE — per-airline "under-the-seat" bag policy.
+   Every major carrier we transact with lets you bring ONE small personal item
+   for free (laptop bag / handbag / small backpack). Dimensions vary. We show
+   this explicitly in the Add extras card so customers don't buy a carry-on
+   when they already have a free allowance that fits their needs.
+   Keep this table defensive — unknown carriers fall back to the generic
+   IATA-ish 40×30×20 cm / ~8 kg policy.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+type PersonalItemPolicy = {
+  dims: string;       // "40 × 30 × 20 cm"
+  weight: string | null; // "10 kg" or null when airline doesn't publish one
+  note: string | null;   // optional carrier-specific caveat
+};
+
+const PERSONAL_ITEM_BY_AIRLINE: Record<string, PersonalItemPolicy> = {
+  U2: { dims: '45 × 36 × 20 cm', weight: '15 kg', note: 'Small cabin bag — must fit under the seat in front' },
+  FR: { dims: '40 × 20 × 25 cm', weight: '10 kg', note: 'Small personal bag — must fit under the seat in front' },
+  W6: { dims: '40 × 30 × 20 cm', weight: '10 kg', note: 'Free personal item — must fit under the seat' },
+  W9: { dims: '40 × 30 × 20 cm', weight: '10 kg', note: 'Free personal item — must fit under the seat' },
+  BA: { dims: '40 × 30 × 15 cm', weight: '23 kg', note: 'Handbag / laptop bag — in addition to one cabin bag' },
+  VS: { dims: '40 × 30 × 15 cm', weight: '10 kg', note: 'Handbag / laptop bag — in addition to one cabin bag' },
+  EI: { dims: '33 × 25 × 20 cm', weight: '10 kg', note: 'Small personal bag' },
+  KL: { dims: '40 × 30 × 15 cm', weight: '12 kg', note: 'Handbag / laptop bag — in addition to one cabin bag' },
+  AF: { dims: '40 × 30 × 15 cm', weight: '12 kg', note: 'Handbag / laptop bag — in addition to one cabin bag' },
+  LH: { dims: '40 × 30 × 10 cm', weight: '8 kg', note: 'Handbag / laptop bag — in addition to one cabin bag' },
+  LX: { dims: '40 × 30 × 10 cm', weight: '8 kg', note: 'Handbag / laptop bag — in addition to one cabin bag' },
+  OS: { dims: '40 × 30 × 10 cm', weight: '8 kg', note: 'Handbag / laptop bag — in addition to one cabin bag' },
+  IB: { dims: '40 × 30 × 15 cm', weight: '10 kg', note: 'Handbag / laptop bag — in addition to one cabin bag' },
+  VY: { dims: '40 × 30 × 20 cm', weight: '10 kg', note: 'Small personal item — must fit under the seat' },
+  TP: { dims: '40 × 30 × 15 cm', weight: '8 kg', note: 'Handbag / laptop bag — in addition to one cabin bag' },
+  TK: { dims: '40 × 30 × 15 cm', weight: '8 kg', note: 'Handbag / laptop bag — in addition to one cabin bag' },
+  EK: { dims: '45 × 35 × 20 cm', weight: '7 kg', note: 'Laptop bag / handbag — in addition to one cabin bag' },
+  EY: { dims: '40 × 30 × 15 cm', weight: '5 kg', note: 'Handbag / laptop bag — in addition to one cabin bag' },
+  QR: { dims: '40 × 30 × 20 cm', weight: '8 kg', note: 'Laptop bag / handbag — in addition to one cabin bag' },
+  PC: { dims: '40 × 30 × 15 cm', weight: '8 kg', note: 'Small personal bag — must fit under the seat' },
+  SQ: { dims: '40 × 30 × 10 cm', weight: '7 kg', note: 'Handbag / laptop bag — in addition to one cabin bag' },
+  KE: { dims: '40 × 30 × 10 cm', weight: '10 kg', note: 'Handbag / laptop bag — in addition to one cabin bag' },
+  AA: { dims: '45 × 35 × 20 cm', weight: null, note: 'Personal item — must fit under the seat in front' },
+  UA: { dims: '43 × 25 × 22 cm', weight: null, note: 'Personal item — must fit under the seat in front' },
+  DL: { dims: '45 × 35 × 20 cm', weight: null, note: 'Personal item — must fit under the seat in front' },
+  LS: { dims: '40 × 30 × 15 cm', weight: '6 kg', note: 'Small personal item — must fit under the seat in front' },
+  SK: { dims: '40 × 30 × 15 cm', weight: '8 kg', note: 'Handbag / laptop bag — in addition to one cabin bag' },
+  AY: { dims: '40 × 30 × 15 cm', weight: '8 kg', note: 'Handbag / laptop bag — in addition to one cabin bag' },
+  LO: { dims: '40 × 30 × 20 cm', weight: '8 kg', note: 'Handbag / laptop bag — in addition to one cabin bag' },
+};
+
+function personalItemForAirline(code: string | null | undefined): PersonalItemPolicy {
+  if (code && PERSONAL_ITEM_BY_AIRLINE[code]) return PERSONAL_ITEM_BY_AIRLINE[code];
+  return {
+    dims: '40 × 30 × 20 cm',
+    weight: null,
+    note: 'Small personal item — must fit under the seat in front',
+  };
+}
+
 function validatePassenger(p: PassengerForm, isLead: boolean, paxType?: string): FieldErrors {
   const err: FieldErrors = {};
   if (!NAME_RE.test(p.firstName.trim())) err.firstName = 'Enter a valid first name (as on passport)';
@@ -537,35 +594,67 @@ function ExtraRow({
   );
 }
 
+function PersonalItemIncludedRow({ airlineCode }: { airlineCode: string | null | undefined }) {
+  const policy = personalItemForAirline(airlineCode);
+  return (
+    <div className="flex items-center gap-3 border border-emerald-200 bg-emerald-50/40 rounded-xl p-3">
+      <span className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+        <i className="fa-solid fa-bag-shopping text-[.85rem]" aria-hidden />
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="text-[.85rem] font-bold text-[#1A1D2B] leading-tight">
+          Personal item
+          <span className="text-[#5C6378] font-semibold"> &middot; {policy.dims}</span>
+          {policy.weight && (
+            <span className="text-[#5C6378] font-semibold"> &middot; up to {policy.weight}</span>
+          )}
+        </div>
+        <div className="text-[.68rem] text-[#5C6378] font-semibold mt-0.5 truncate">
+          {policy.note || 'Free for every passenger — must fit under the seat in front'}
+        </div>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <span className="inline-flex items-center gap-1 bg-emerald-600 text-white font-poppins font-bold text-[.68rem] px-3 py-1.5 rounded-full shadow-[0_4px_14px_rgba(16,185,129,0.25)]">
+          <i className="fa-solid fa-check text-[.66rem]" aria-hidden /> Included
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function AddExtrasCard({
   services,
   selectedIds,
   onToggle,
   allPassengers,
   passengerForms,
+  airlineCode,
 }: {
   services: BaggageService[];
   selectedIds: Set<string>;
   onToggle: (id: string) => void;
   allPassengers: { id: string; type: string }[];
   passengerForms: PassengerForm[];
+  airlineCode: string | null | undefined;
 }) {
-  // Empty state — the fare already covers it.
+  // Empty state — the fare already covers everything paid, but we still
+  // want customers to SEE the free personal-item allowance so they're not
+  // guessing at the gate.
   if (!services || services.length === 0) {
     return (
-      <div className="bg-white border border-[#E8ECF4] rounded-2xl p-5 shadow-[0_2px_20px_rgba(10,22,40,0.04)]">
-        <div className="flex items-center gap-3">
-          <span className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
-            <i className="fa-solid fa-circle-check text-[.95rem]" aria-hidden />
-          </span>
+      <div className="bg-white border border-[#E8ECF4] rounded-2xl p-5 md:p-6 shadow-[0_2px_20px_rgba(10,22,40,0.04)]">
+        <div className="flex items-start justify-between mb-4">
           <div>
-            <h3 className="font-[var(--font-playfair)] font-black text-[1.05rem] text-[#0a1628] tracking-tight leading-tight">
-              Your fare includes everything you need
+            <h3 className="font-[var(--font-playfair)] font-black text-[1.2rem] text-[#0a1628] tracking-tight">
+              Your fare already covers the extras
             </h3>
             <p className="text-[.72rem] text-[#5C6378] font-semibold mt-0.5">
-              No extra baggage required on this fare.
+              Here&apos;s what you&apos;re bringing for free on this booking.
             </p>
           </div>
+        </div>
+        <div className="space-y-2.5">
+          <PersonalItemIncludedRow airlineCode={airlineCode} />
         </div>
       </div>
     );
@@ -588,6 +677,9 @@ function AddExtrasCard({
       </div>
 
       <div className="space-y-2.5">
+        {/* Always-visible free personal-item row so customers know what the
+            fare already covers before they buy a paid carry-on. */}
+        <PersonalItemIncludedRow airlineCode={airlineCode} />
         {services.map((svc) => (
           <ExtraRow
             key={svc.id}
@@ -1810,6 +1902,7 @@ export default function CheckoutPage() {
                     onToggle={toggleService}
                     allPassengers={offer.passengers}
                     passengerForms={passengers}
+                    airlineCode={offer.airlineCode}
                   />
 
                   {/* Phase 2c — Experience (meals, Wi-Fi). Quietly absent if
@@ -1955,24 +2048,42 @@ export default function CheckoutPage() {
                     </div>
                   )}
 
-                  {/* Safe Checkout — non-refundable acknowledgement */}
-                  {step === 'payment' && paymentClientSecret && offer && !offer.refundable && (
-                    <label className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={fareAcknowledged}
-                        onChange={e => setFareAcknowledged(e.target.checked)}
-                        className="mt-0.5 w-4 h-4 accent-[#0066FF] shrink-0"
-                      />
-                      <span className="text-[.78rem] font-semibold text-amber-900 leading-snug">
-                        I confirm that I have read the fare conditions and understand that this flight is <strong>non-refundable</strong> and <strong>non-changeable</strong>.
-                      </span>
-                    </label>
-                  )}
+                  {/* Safe Checkout — fare-condition acknowledgement.
+                      Copy reflects the ACTUAL (refundable, changeable) combo
+                      so we never ask the customer to tick "non-changeable"
+                      on a fare that IS changeable (and vice versa). */}
+                  {step === 'payment' && paymentClientSecret && offer && (!offer.refundable || !offer.changeable) && (() => {
+                    const r = offer.refundable;
+                    const c = offer.changeable;
+                    let copy: React.ReactNode;
+                    if (!r && !c) {
+                      copy = <>this flight is <strong>non-refundable</strong> and <strong>non-changeable</strong>.</>;
+                    } else if (!r && c) {
+                      copy = <>this flight is <strong>non-refundable</strong>. Changes may be allowed but airline fees and fare differences will apply.</>;
+                    } else if (r && !c) {
+                      copy = <>this flight is <strong>non-changeable</strong>. Refunds may be available under the fare rules, but the routing and dates can&apos;t be changed.</>;
+                    } else {
+                      copy = null;
+                    }
+                    if (!copy) return null;
+                    return (
+                      <label className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={fareAcknowledged}
+                          onChange={e => setFareAcknowledged(e.target.checked)}
+                          className="mt-0.5 w-4 h-4 accent-[#0066FF] shrink-0"
+                        />
+                        <span className="text-[.78rem] font-semibold text-amber-900 leading-snug">
+                          I confirm that I have read the fare conditions and understand that {copy}
+                        </span>
+                      </label>
+                    );
+                  })()}
 
                   {/* Stripe Payment Element (merchant-of-record) */}
                   {step === 'payment' && paymentClientSecret && (
-                    <div className={`bg-white border border-[#E8ECF4] rounded-2xl p-6 shadow-[0_2px_16px_rgba(0,102,255,0.06)] ${!offer?.refundable && !fareAcknowledged ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <div className={`bg-white border border-[#E8ECF4] rounded-2xl p-6 shadow-[0_2px_16px_rgba(0,102,255,0.06)] ${(!offer?.refundable || !offer?.changeable) && !fareAcknowledged ? 'opacity-50 pointer-events-none' : ''}`}>
                       <div className="flex items-center gap-2 mb-5">
                         <span className="text-lg">💳</span>
                         <h3 className="font-poppins font-black text-[.92rem] text-[#1A1D2B]">

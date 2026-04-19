@@ -83,28 +83,6 @@ const DESTINATIONS = [
 type Dest = typeof DESTINATIONS[number];
 type Airport = typeof AIRPORTS[number];
 
-// ── Haversine distance in km ──────────────────────────────────────────────────
-function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function getNearestAirport(lat: number, lon: number): Airport {
-  let best = AIRPORTS[0];
-  let bestDist = Infinity;
-  for (const ap of AIRPORTS) {
-    const d = haversine(lat, lon, ap.lat, ap.lon);
-    if (d < bestDist) { bestDist = d; best = ap; }
-  }
-  return best;
-}
-
 // ── Popular pills (subset shown on homepage) ─────────────────────────────────
 const POPULAR_CODES = ['DXB', 'BCN', 'AYT', 'PMI', 'TFS', 'MLE'];
 const POPULAR = DESTINATIONS.filter(d => POPULAR_CODES.includes(d.code));
@@ -140,32 +118,20 @@ export default function FlightSearch() {
   const ref = useRef<HTMLDivElement>(null);
   const originRef = useRef<HTMLDivElement>(null);
 
-  // ── Auto-detect nearest airport with localStorage persistence ──
+  // ── Default origin = London. Only override if the user previously picked
+  //    a different airport themselves (explicit localStorage write in
+  //    changeOrigin). We intentionally DO NOT geolocate: London is the house
+  //    default for every new visitor — it's our strongest route coverage and
+  //    users who want something else can flip it in one click.
   useEffect(() => {
-    // Load recent searches
     setRecentSearches(getRecentSearches());
 
-    // Check localStorage first — includes previously detected or denied
     const saved = localStorage.getItem('jma_departure_airport');
     if (saved) {
       const found = AIRPORTS.find(a => a.code === saved);
-      if (found) { setOrigin(found); return; }
+      if (found) setOrigin(found);
     }
-
-    // Otherwise detect via geolocation (only once — result is cached)
-    if (typeof navigator !== 'undefined' && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const nearest = getNearestAirport(pos.coords.latitude, pos.coords.longitude);
-          setOrigin(nearest);
-          localStorage.setItem('jma_departure_airport', nearest.code);
-        },
-        () => {
-          // Denied — save default so we never ask again
-          localStorage.setItem('jma_departure_airport', 'LHR');
-        }
-      );
-    }
+    // No geolocation fallback — LHR is already the default state.
   }, []);
 
   // ── Close dropdowns on outside click ──

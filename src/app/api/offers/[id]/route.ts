@@ -203,11 +203,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       const allReturn = segmentIds.every((id) => retSegIds.has(id));
       const spansBoth = segmentIds.some((id) => outSegIds.has(id)) && segmentIds.some((id) => retSegIds.has(id));
 
-      if (retSlice && spansBoth) return { scope: 'full_trip', scopeLabel: 'Full trip' };
-      if (allOutbound) return { scope: 'outbound', scopeLabel: 'Outbound' };
-      if (allReturn) return { scope: 'return', scopeLabel: 'Return' };
+      if (retSlice && spansBoth) return { scope: 'full_trip', scopeLabel: 'Outbound + return (both legs)' };
+      if (allOutbound) return { scope: 'outbound', scopeLabel: retSlice ? 'Outbound leg only' : 'Whole trip' };
+      if (allReturn) return { scope: 'return', scopeLabel: 'Return leg only' };
       // Fallback when segments can't be classified (defensive; shouldn't happen)
-      return { scope: 'full_trip', scopeLabel: 'Full trip' };
+      return { scope: 'full_trip', scopeLabel: retSlice ? 'Outbound + return (both legs)' : 'Whole trip' };
     };
 
     const formatPrice = (amount: string | number, currency: string): string => {
