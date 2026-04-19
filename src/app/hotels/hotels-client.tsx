@@ -347,8 +347,14 @@ function buildExpediaUrl(
   children: number = 0,
   childrenAges: number[] = [],
 ): string {
-  // Expedia Hotel-Search accepts children as a CSV of ages via `children=8,5`.
-  // If we have a count but no ages, default each to 8.
+  // Expedia Hotel-Search children format (verified live 2026-04-19):
+  //   &children=<count>_<age1>_<age2>...
+  // e.g. `children=1_8` = one child aged 8; `children=2_8_5` = two children
+  // aged 8 and 5. Tested CSV (`&children=8,5`), `rm1=a2:c8`, and
+  // `&children=N&childrenAges=...` — all silently dropped by Expedia UK.
+  // The underscore-joined count_age format is the only one that survives
+  // into the traveller summary ("3 travellers, 1 room"). If we have a
+  // count but no ages, default each to 8.
   let u = `https://www.expedia.co.uk/Hotel-Search?destination=${encodeURIComponent(dest)}&startDate=${cin}&endDate=${cout}&adults=${adults}`;
   const childCount = Math.max(0, children | 0);
   if (childCount > 0) {
@@ -357,7 +363,7 @@ function buildExpediaUrl(
       const a = childrenAges[i];
       ages.push(typeof a === 'number' && a >= 0 && a <= 17 ? a : 8);
     }
-    u += `&children=${ages.join(',')}`;
+    u += `&children=${childCount}_${ages.join('_')}`;
   }
   u += `&affcid=clbU3QK`;
   return u;
