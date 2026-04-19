@@ -12,6 +12,29 @@ export const runtime = 'edge';
    TYPES
    ═══════════════════════════════════════════════════════════════════════════ */
 
+type BagSummary = { quantity: number; weight: string | null };
+type SliceSummary = {
+  direction: 'outbound' | 'return';
+  fareBrand: string | null;
+  cabinClass: string;
+  baggage: { carryOn: BagSummary; checked: BagSummary };
+};
+
+type BaggageService = {
+  id: string;
+  kind: 'carry_on' | 'checked';
+  weight: string | null;
+  priceAmount: number;
+  priceCurrency: string;
+  priceDisplay: string;
+  maxQuantity: number;
+  scope: 'outbound' | 'return' | 'full_trip';
+  scopeLabel: string;
+  passengerIds: string[];
+  segmentIds: string[];
+  maxLengthCm: number | null;
+};
+
 type OfferData = {
   id: string;
   airline: string;
@@ -38,6 +61,10 @@ type OfferData = {
   refundable: boolean;
   changeable: boolean;
   cabinClass: string;
+  slices: SliceSummary[];
+  availableServices: {
+    baggage: BaggageService[];
+  };
   expiresAt: string | null;
 };
 
@@ -189,6 +216,380 @@ function FlightSummary({ offer, compact }: { offer: OfferData; compact?: boolean
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   WHAT'S INCLUDED — premium fare-inclusions panel
+   ───────────────────────────────────────────────────────────────────────────
+   Renders per-slice (outbound + return) fare brand, cabin class, carry-on
+   and checked baggage with preformatted weight (e.g. "23kg") sourced from
+   Duffel. Uses Playfair Display with tight tracking for the editorial feel
+   requested, emerald for "Included" states, subtle gold accent for the
+   fare brand pill.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function BagRow({
+  iconClass,
+  label,
+  kind,
+  quantity,
+  weight,
+}: {
+  iconClass: string;
+  label: string;
+  kind: 'carry_on' | 'checked';
+  quantity: number;
+  weight: string | null;
+}) {
+  // Three states:
+  //   1. quantity > 0  → "N {label}(s) · up to 23kg"   (Included, emerald)
+  //   2. quantity = 0, weight set, kind=carry_on → "Personal item only · up to 10kg"
+  //        (Duffel occasionally returns an underseat/personal-item allowance
+  //         with quantity=0 on Light/Basic fares — we must NOT render this as
+  //         a bare "10kg" orphan because the customer reads that as "a bag")
+  //   3. quantity = 0 otherwise → "{label} not included"  (grey, em-dash)
+  const hasBag = quantity > 0;
+  const isPersonalItemOnly = !hasBag && kind === 'carry_on' && !!weight;
+  const shownAsIncluded = hasBag || isPersonalItemOnly;
+
+  return (
+    <div className="flex items-center gap-3 py-2">
+      <span
+        className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+          shownAsIncluded ? 'bg-emerald-50 text-emerald-700' : 'bg-[#F1F3F7] text-[#8E95A9]'
+        }`}
+      >
+        <i
+          className={`fa-solid ${isPersonalItemOnly ? 'fa-bag-shopping' : iconClass} text-[.78rem]`}
+          aria-hidden
+        />
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="text-[.82rem] font-semibold text-[#1A1D2B] leading-tight">
+          {hasBag && (
+            <>
+              {quantity} {label}
+              {quantity > 1 ? 's' : ''}
+              {weight && (
+                <span className="text-[#5C6378] font-semibold"> &middot; up to {weight}</span>
+              )}
+            </>
+          )}
+          {isPersonalItemOnly && (
+            <>
+              Personal item only
+              <span className="text-[#5C6378] font-semibold"> &middot; up to {weight}</span>
+            </>
+          )}
+          {!shownAsIncluded && (
+            <span className="text-[#8E95A9]">{label} not included</span>
+          )}
+        </div>
+      </div>
+      <span
+        className={`text-[.62rem] font-black uppercase tracking-[1.5px] ${
+          shownAsIncluded ? 'text-emerald-700' : 'text-[#8E95A9]'
+        }`}
+      >
+        {shownAsIncluded ? 'Included' : '—'}
+      </span>
+    </div>
+  );
+}
+
+function IncludedPanel({
+  slices,
+  refundable,
+  changeable,
+  compact,
+}: {
+  slices: SliceSummary[];
+  refundable: boolean;
+  changeable: boolean;
+  compact?: boolean;
+}) {
+  if (!slices || slices.length === 0) return null;
+
+  return (
+    <div
+      className={`bg-white border border-[#E8ECF4] rounded-2xl ${compact ? 'p-4' : 'p-6'} shadow-[0_2px_20px_rgba(10,22,40,0.04)]`}
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h3
+          className="font-[var(--font-playfair)] font-black text-[#0a1628] tracking-tight"
+          style={{ fontSize: compact ? '1.05rem' : '1.2rem' }}
+        >
+          What&apos;s included with your fare
+        </h3>
+        <span className="text-[.58rem] font-black uppercase tracking-[2px] text-[#8E95A9]">
+          Fare details
+        </span>
+      </div>
+
+      <div className="space-y-4">
+        {slices.map((s, idx) => (
+          <div
+            key={idx}
+            className={idx > 0 ? 'pt-4 border-t border-[#F1F3F7]' : ''}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-[.6rem] font-black uppercase tracking-[2px] text-[#8E95A9]">
+                  {s.direction === 'outbound' ? 'Outbound' : 'Return'}
+                </span>
+                <span className="text-[.78rem] font-bold text-[#1A1D2B]">
+                  {s.cabinClass}
+                </span>
+              </div>
+              {s.fareBrand && s.fareBrand.toLowerCase() !== s.cabinClass.toLowerCase() && (
+                <span className="inline-flex items-center gap-1 bg-[#FFD700]/10 border border-[#FFD700]/30 text-[#8a6d00] text-[.58rem] font-black uppercase tracking-[1.5px] px-2 py-0.5 rounded-full">
+                  {s.fareBrand}
+                </span>
+              )}
+            </div>
+
+            <BagRow
+              iconClass="fa-briefcase"
+              label="Carry-on bag"
+              kind="carry_on"
+              quantity={s.baggage.carryOn.quantity}
+              weight={s.baggage.carryOn.weight}
+            />
+            <BagRow
+              iconClass="fa-suitcase-rolling"
+              label="Checked bag"
+              kind="checked"
+              quantity={s.baggage.checked.quantity}
+              weight={s.baggage.checked.weight}
+            />
+          </div>
+        ))}
+
+        {/* Global fare conditions — refund + change */}
+        <div className="pt-4 border-t border-[#F1F3F7] grid grid-cols-2 gap-3">
+          <div className="flex items-center gap-2">
+            <span
+              className={`w-6 h-6 rounded-md flex items-center justify-center ${
+                refundable ? 'bg-emerald-50 text-emerald-700' : 'bg-[#F1F3F7] text-[#8E95A9]'
+              }`}
+            >
+              <i
+                className={`fa-solid ${refundable ? 'fa-rotate-left' : 'fa-ban'} text-[.7rem]`}
+                aria-hidden
+              />
+            </span>
+            <span className="text-[.72rem] font-semibold text-[#1A1D2B]">
+              {refundable ? 'Refundable' : 'Non-refundable'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span
+              className={`w-6 h-6 rounded-md flex items-center justify-center ${
+                changeable ? 'bg-emerald-50 text-emerald-700' : 'bg-[#F1F3F7] text-[#8E95A9]'
+              }`}
+            >
+              <i
+                className={`fa-solid ${changeable ? 'fa-pen-to-square' : 'fa-lock'} text-[.7rem]`}
+                aria-hidden
+              />
+            </span>
+            <span className="text-[.72rem] font-semibold text-[#1A1D2B]">
+              {changeable ? 'Changeable' : 'Non-changeable'}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ADD EXTRAS CARD — Phase 2a: baggage ancillaries from Duffel
+   ───────────────────────────────────────────────────────────────────────────
+   Renders available_services (baggage only for Phase 2a) grouped under
+   "Essential". Ghost-to-emerald toggle per service; no checkboxes.
+   Pass-through pricing (no markup) — CMA drip-pricing guidance.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function PassengerLabel({
+  passengerIds,
+  allPassengers,
+  passengerForms,
+}: {
+  passengerIds: string[];
+  allPassengers: { id: string; type: string }[];
+  passengerForms: PassengerForm[];
+}) {
+  const names = passengerIds
+    .map((pid) => {
+      const idx = allPassengers.findIndex((p) => p.id === pid);
+      if (idx < 0) return null;
+      const form = passengerForms[idx];
+      const full = `${form?.firstName || ''} ${form?.lastName || ''}`.trim();
+      return full || `Passenger ${idx + 1}`;
+    })
+    .filter(Boolean) as string[];
+  if (names.length === 0) return null;
+  if (names.length === 1) return <>{names[0]}</>;
+  if (names.length === allPassengers.length) return <>All passengers</>;
+  return <>{names.join(', ')}</>;
+}
+
+function ExtraRow({
+  svc,
+  selected,
+  onToggle,
+  allPassengers,
+  passengerForms,
+}: {
+  svc: BaggageService;
+  selected: boolean;
+  onToggle: () => void;
+  allPassengers: { id: string; type: string }[];
+  passengerForms: PassengerForm[];
+}) {
+  const iconClass = svc.kind === 'checked' ? 'fa-suitcase-rolling' : 'fa-briefcase';
+  const kindLabel = svc.kind === 'checked' ? 'Checked bag' : 'Carry-on bag';
+
+  return (
+    <div
+      className={`flex items-center gap-3 border rounded-xl p-3 transition-all duration-300 ease-out ${
+        selected
+          ? 'border-emerald-300 bg-emerald-50/40 shadow-[0_2px_10px_rgba(16,185,129,0.08)]'
+          : 'border-[#E8ECF4] bg-white hover:border-[#C8D0E0]'
+      }`}
+    >
+      <span
+        className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-all ${
+          selected ? 'bg-emerald-100 text-emerald-700' : 'bg-[#F1F3F7] text-[#5C6378]'
+        }`}
+      >
+        <i className={`fa-solid ${iconClass} text-[.85rem]`} aria-hidden />
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="text-[.85rem] font-bold text-[#1A1D2B] leading-tight">
+          {kindLabel}
+          {svc.weight && (
+            <span className="text-[#5C6378] font-semibold"> &middot; up to {svc.weight}</span>
+          )}
+        </div>
+        <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5 truncate">
+          <span className="text-[#5C6378]">{svc.scopeLabel}</span>
+          <span className="mx-1.5">&middot;</span>
+          <PassengerLabel
+            passengerIds={svc.passengerIds}
+            allPassengers={allPassengers}
+            passengerForms={passengerForms}
+          />
+          {svc.maxLengthCm && (
+            <>
+              <span className="mx-1.5">&middot;</span>
+              <span>max {svc.maxLengthCm}cm</span>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-3 shrink-0">
+        <div className="text-right">
+          <div
+            className={`font-[var(--font-playfair)] font-black text-[.98rem] tracking-tight ${
+              selected ? 'text-emerald-700' : 'text-[#1A1D2B]'
+            }`}
+          >
+            {svc.priceDisplay}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-pressed={selected}
+          aria-label={selected ? `Remove ${kindLabel} from order` : `Add ${kindLabel} to order`}
+          className={`relative inline-flex items-center gap-1.5 font-poppins font-bold text-[.72rem] px-3.5 py-1.5 rounded-full transition-all duration-300 ease-out ${
+            selected
+              ? 'bg-emerald-600 text-white shadow-[0_4px_14px_rgba(16,185,129,0.35)] hover:bg-emerald-700'
+              : 'bg-white border border-[#C8D0E0] text-[#1A1D2B] hover:border-[#0a1628] hover:text-[#0a1628]'
+          }`}
+        >
+          <i
+            className={`fa-solid ${selected ? 'fa-check' : 'fa-plus'} text-[.7rem]`}
+            aria-hidden
+          />
+          {selected ? 'Added' : 'Add'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AddExtrasCard({
+  services,
+  selectedIds,
+  onToggle,
+  allPassengers,
+  passengerForms,
+}: {
+  services: BaggageService[];
+  selectedIds: Set<string>;
+  onToggle: (id: string) => void;
+  allPassengers: { id: string; type: string }[];
+  passengerForms: PassengerForm[];
+}) {
+  // Empty state — the fare already covers it.
+  if (!services || services.length === 0) {
+    return (
+      <div className="bg-white border border-[#E8ECF4] rounded-2xl p-5 shadow-[0_2px_20px_rgba(10,22,40,0.04)]">
+        <div className="flex items-center gap-3">
+          <span className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+            <i className="fa-solid fa-circle-check text-[.95rem]" aria-hidden />
+          </span>
+          <div>
+            <h3 className="font-[var(--font-playfair)] font-black text-[1.05rem] text-[#0a1628] tracking-tight leading-tight">
+              Your fare includes everything you need
+            </h3>
+            <p className="text-[.72rem] text-[#5C6378] font-semibold mt-0.5">
+              No extra baggage required on this fare.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white border border-[#E8ECF4] rounded-2xl p-5 md:p-6 shadow-[0_2px_20px_rgba(10,22,40,0.04)]">
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <h3 className="font-[var(--font-playfair)] font-black text-[1.2rem] text-[#0a1628] tracking-tight">
+            Add extras
+          </h3>
+          <p className="text-[.72rem] text-[#5C6378] font-semibold mt-0.5">
+            Pre-book at the airline&apos;s own price. No booking fees, no markup.
+          </p>
+        </div>
+        <span className="hidden md:inline-flex items-center gap-1 bg-[#FFD700]/10 border border-[#FFD700]/30 text-[#8a6d00] text-[.58rem] font-black uppercase tracking-[1.5px] px-2 py-1 rounded-full">
+          <i className="fa-solid fa-star text-[.62rem]" aria-hidden /> Essential
+        </span>
+      </div>
+
+      <div className="space-y-2.5">
+        {services.map((svc) => (
+          <ExtraRow
+            key={svc.id}
+            svc={svc}
+            selected={selectedIds.has(svc.id)}
+            onToggle={() => onToggle(svc.id)}
+            allPassengers={allPassengers}
+            passengerForms={passengerForms}
+          />
+        ))}
+      </div>
+
+      <div className="mt-4 pt-3 border-t border-[#F1F3F7] flex items-center gap-2 text-[.66rem] text-[#8E95A9] font-semibold">
+        <i className="fa-solid fa-lock text-[.72rem]" aria-hidden />
+        Extras are added to your total at the airline&apos;s price. We don&apos;t mark them up.
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    STEP INDICATOR
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -245,6 +646,9 @@ function PriceSidebar({
   ctaDisabled,
   ctaLabel,
   errorMsg,
+  selectedServices,
+  servicesSubtotal,
+  grandTotalAll,
 }: {
   offer: OfferData;
   step: CheckoutStep;
@@ -252,12 +656,17 @@ function PriceSidebar({
   ctaDisabled?: boolean;
   ctaLabel?: string;
   errorMsg?: string | null;
+  selectedServices: BaggageService[];
+  servicesSubtotal: number;
+  grandTotalAll: number;
 }) {
   return (
     <div className="hidden lg:block">
       <div className="sticky top-28 space-y-4">
-        <div className="bg-white border border-[#E8ECF4] rounded-2xl p-5 shadow-[0_2px_16px_rgba(0,102,255,0.06)]">
-          <h3 className="font-poppins font-black text-[.85rem] text-[#1A1D2B] mb-4">Price Summary</h3>
+        <div className="bg-white border border-[#E8ECF4] rounded-2xl p-5 shadow-[0_2px_20px_rgba(10,22,40,0.04)]">
+          <h3 className="font-[var(--font-playfair)] font-black text-[1.05rem] text-[#0a1628] tracking-tight mb-4">
+            Price summary
+          </h3>
 
           <div className="space-y-2.5 text-[.78rem]">
             {/* Scout-secured price — single line, margin baked in. Rationale:
@@ -271,15 +680,55 @@ function PriceSidebar({
             </div>
             <div className="flex justify-between">
               <span className="text-[#5C6378] font-semibold">Taxes &amp; provider fees</span>
-              <span className="font-bold text-green-600">Included</span>
+              <span className="font-bold text-emerald-700">Included</span>
             </div>
+            {(() => {
+              const slice = offer.slices?.[0];
+              if (!slice) return null;
+              const carry = slice.baggage.carryOn;
+              const checked = slice.baggage.checked;
+              const carryHasBag = carry.quantity > 0;
+              const carryPersonalOnly = !carryHasBag && !!carry.weight;
+              return (
+                <>
+                  {carryHasBag && (
+                    <div className="flex justify-between">
+                      <span className="text-[#5C6378] font-semibold">
+                        Carry-on{carry.weight ? ` (${carry.weight})` : ''}
+                      </span>
+                      <span className="font-bold text-emerald-700">Included</span>
+                    </div>
+                  )}
+                  {carryPersonalOnly && (
+                    <div className="flex justify-between">
+                      <span className="text-[#5C6378] font-semibold">
+                        Personal item only ({carry.weight})
+                      </span>
+                      <span className="font-bold text-emerald-700">Included</span>
+                    </div>
+                  )}
+                  {checked.quantity > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-[#5C6378] font-semibold">
+                        Checked bag{checked.weight ? ` (${checked.weight})` : ''}
+                      </span>
+                      <span className="font-bold text-emerald-700">Included</span>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
             <div className="flex justify-between">
               <span className="text-[#5C6378] font-semibold">Scout Protection</span>
-              <span className="font-bold text-green-600">FREE</span>
+              <span className="font-bold text-emerald-700">FREE</span>
             </div>
-            <div className="border-t border-[#F1F3F7] pt-2.5 flex justify-between">
-              <span className="font-poppins font-black text-[#1A1D2B]">Per person</span>
-              <span className="font-poppins font-black text-green-600 text-[1.1rem]">{offer.pricing.display}</span>
+            <div className="border-t border-[#F1F3F7] pt-2.5 flex justify-between items-baseline">
+              <span className="font-[var(--font-playfair)] font-black text-[#0a1628] tracking-tight text-[.95rem]">
+                Per person
+              </span>
+              <span className="font-[var(--font-playfair)] font-black text-emerald-700 text-[1.25rem] tracking-tight">
+                {offer.pricing.display}
+              </span>
             </div>
             {offer.passengerCount > 1 && (
               <div className="flex justify-between text-[.72rem]">
@@ -287,27 +736,63 @@ function PriceSidebar({
                 <span className="font-bold text-[#1A1D2B]">£{offer.totalForAll.toFixed(2)}</span>
               </div>
             )}
+
+            {/* Selected ancillary services — slide in on add, slide out on remove. */}
+            {selectedServices.length > 0 && (
+              <div className="pt-2.5 mt-2.5 border-t border-[#F1F3F7] space-y-1.5">
+                <div className="text-[.58rem] font-black uppercase tracking-[2px] text-[#8E95A9] mb-1">
+                  Extras
+                </div>
+                {selectedServices.map((svc) => {
+                  const kindLabel = svc.kind === 'checked' ? 'Checked bag' : 'Carry-on bag';
+                  return (
+                    <div
+                      key={svc.id}
+                      className="extras-slide-in flex justify-between items-baseline text-[.78rem]"
+                    >
+                      <span className="text-[#1A1D2B] font-semibold truncate pr-2">
+                        + {kindLabel}
+                        {svc.weight && <span className="text-[#5C6378]"> ({svc.weight})</span>}
+                        <span className="text-[#8E95A9]"> · {svc.scopeLabel}</span>
+                      </span>
+                      <span className="font-[var(--font-playfair)] font-black text-emerald-700 tracking-tight shrink-0">
+                        {svc.priceDisplay}
+                      </span>
+                    </div>
+                  );
+                })}
+                <div className="flex justify-between text-[.72rem] pt-1.5">
+                  <span className="text-[#5C6378] font-semibold">Extras subtotal</span>
+                  <span className="font-bold text-[#1A1D2B]">£{servicesSubtotal.toFixed(2)}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Grand total — only visible when it differs from Per person
+                (i.e. multi-pax OR ancillaries selected). */}
+            {(offer.passengerCount > 1 || selectedServices.length > 0) && (
+              <div className="pt-2.5 mt-1 border-t border-[#0a1628]/10 flex justify-between items-baseline">
+                <span className="font-[var(--font-playfair)] font-black text-[#0a1628] tracking-tight text-[1rem]">
+                  Total to pay
+                </span>
+                <span className="font-[var(--font-playfair)] font-black text-emerald-700 text-[1.35rem] tracking-tight">
+                  £{grandTotalAll.toFixed(2)}
+                </span>
+              </div>
+            )}
           </div>
 
-          {/* Conditions */}
-          <div className="border-t border-[#F1F3F7] mt-4 pt-3 space-y-1.5">
-            <div className="flex items-center gap-2 text-[.68rem] font-semibold">
-              <span className={offer.refundable ? 'text-green-600' : 'text-[#8E95A9]'}>
-                {offer.refundable ? '✓' : '✕'}
-              </span>
-              <span className={offer.refundable ? 'text-green-700' : 'text-[#8E95A9]'}>
-                {offer.refundable ? 'Refundable' : 'Non-refundable'}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-[.68rem] font-semibold">
-              <span className={offer.changeable ? 'text-green-600' : 'text-[#8E95A9]'}>
-                {offer.changeable ? '✓' : '✕'}
-              </span>
-              <span className={offer.changeable ? 'text-green-700' : 'text-[#8E95A9]'}>
-                {offer.changeable ? 'Changeable' : 'Non-changeable'}
-              </span>
-            </div>
-          </div>
+          {/* Slide-in keyframes — subtle ease-out, ~280ms, translate + fade. */}
+          <style>{`
+            @keyframes extras-slide-in {
+              0%   { opacity: 0; transform: translateY(-6px); max-height: 0; }
+              100% { opacity: 1; transform: translateY(0);    max-height: 48px; }
+            }
+            .extras-slide-in {
+              animation: extras-slide-in 280ms cubic-bezier(0.22, 1, 0.36, 1);
+              will-change: opacity, transform;
+            }
+          `}</style>
 
           {/* CTA — only on passenger step */}
           {step === 'passengers' && onCta && (
@@ -378,6 +863,14 @@ export default function CheckoutPage() {
   // Safe-checkout acknowledgement (non-refundable flights only)
   const [fareAcknowledged, setFareAcknowledged] = useState(false);
 
+  // Phase 2a — selected ancillary service IDs (baggage for now).
+  // Quantity is always 1 per selected ID; Duffel's model is one service-id
+  // per (pax × scope × kind) so multiple bags = multiple IDs, not qty > 1.
+  const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(new Set());
+
+  // Stale-offer warning: shown when the pre-submit refetch drops a selected ID.
+  const [staleServiceWarning, setStaleServiceWarning] = useState<string | null>(null);
+
   // Order state
   const [orderLoading, setOrderLoading] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
@@ -421,6 +914,23 @@ export default function CheckoutPage() {
       .catch(() => setError('Failed to load offer. Please try again.'))
       .finally(() => setLoading(false));
   }, [id]);
+
+  // ── Phase 2a: selected services derived state ──
+  const availableBaggageServices = offer?.availableServices?.baggage || [];
+  const selectedServices = availableBaggageServices.filter((s) => selectedServiceIds.has(s.id));
+  const servicesSubtotal = selectedServices.reduce((sum, s) => sum + s.priceAmount, 0);
+  const grandTotalAll = (offer?.totalForAll || 0) + servicesSubtotal;
+
+  const toggleService = useCallback((id: string) => {
+    setSelectedServiceIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    // Clear stale warning the moment the user re-engages with the card
+    setStaleServiceWarning(null);
+  }, []);
 
   // Update a passenger field
   const updateField = useCallback((idx: number, field: keyof PassengerForm, value: string) => {
@@ -472,11 +982,65 @@ export default function CheckoutPage() {
 
     setPaymentLoading(true);
     setPaymentError(null);
+    setStaleServiceWarning(null);
 
     try {
+      /* ── Stale-offer guard ──────────────────────────────────────────────
+         If the user selected any ancillaries, re-hit the offer API to make
+         sure those service IDs still exist at the same price. Duffel offers
+         expire + repricing can drop a service silently; submitting a stale
+         ID returns a 4xx after payment which is exactly what we refuse to
+         let happen. Banner + no Stripe intent if anything changed.
+      ─────────────────────────────────────────────────────────────────── */
+      if (selectedServiceIds.size > 0) {
+        const freshRes = await fetch(`/api/offers/${offer.id}`);
+        const freshJson = await freshRes.json();
+        if (!freshRes.ok || freshJson.error) {
+          setPaymentError(freshJson.error || 'Offer is no longer available.');
+          return;
+        }
+        const freshServices: BaggageService[] = freshJson.offer?.availableServices?.baggage || [];
+        const freshIds = new Set(freshServices.map((s) => s.id));
+        const dropped: BaggageService[] = [];
+        const repriced: { svc: BaggageService; fresh: BaggageService }[] = [];
+        for (const svc of selectedServices) {
+          const match = freshServices.find((s) => s.id === svc.id);
+          if (!match) dropped.push(svc);
+          else if (match.priceAmount !== svc.priceAmount) repriced.push({ svc, fresh: match });
+        }
+
+        if (dropped.length > 0 || repriced.length > 0) {
+          // Update the offer with fresh service data so prices re-render,
+          // and drop any IDs that no longer exist.
+          setOffer({ ...offer, availableServices: { baggage: freshServices } });
+          setSelectedServiceIds((prev) => {
+            const next = new Set<string>();
+            for (const id of prev) if (freshIds.has(id)) next.add(id);
+            return next;
+          });
+          const msgParts: string[] = [];
+          if (dropped.length) {
+            msgParts.push(
+              `${dropped.length === 1 ? 'One extra' : `${dropped.length} extras`} is no longer available`,
+            );
+          }
+          if (repriced.length) {
+            msgParts.push(
+              `${repriced.length === 1 ? 'one extra' : `${repriced.length} extras`} changed price`,
+            );
+          }
+          setStaleServiceWarning(
+            `${msgParts.join(' and ')}. We&apos;ve refreshed the options above — please review before paying.`,
+          );
+          return;
+        }
+      }
+
       // Merchant-of-record: create a Stripe PaymentIntent on OUR account.
       // Amount MUST be in minor units (pence) for Stripe.
-      const amountPence = Math.round(offer.totalForAll * 100);
+      // Total = base offer (with markup) + ancillary services at cost.
+      const amountPence = Math.round(grandTotalAll * 100);
+      const serviceIdsList = Array.from(selectedServiceIds);
 
       const res = await fetch('/api/stripe/payment-intent', {
         method: 'POST',
@@ -485,6 +1049,10 @@ export default function CheckoutPage() {
           amount: amountPence,
           currency: (offer.currency || 'GBP').toLowerCase(),
           offerId: offer.id,
+          // Stripe metadata — service IDs for post-mortem reconciliation
+          // if booking fails after payment succeeds.
+          serviceIds: serviceIdsList,
+          servicesSubtotalPence: Math.round(servicesSubtotal * 100),
           sessionId: typeof window !== 'undefined' ? (localStorage.getItem('jma_sid') || 'anon') : 'anon',
         }),
       });
@@ -526,6 +1094,14 @@ export default function CheckoutPage() {
       // It verifies the Stripe charge, writes a pending booking, re-quotes,
       // checks balance, then issues a Duffel balance order. Refunds on any
       // downstream failure.
+      // Duffel expects services: [{ id, quantity }]. We always send quantity=1
+      // because Duffel's model is one service-id per (pax × scope × kind) —
+      // two bags means two service IDs, not quantity=2.
+      const serviceBookingPayload = selectedServices.map((s) => ({
+        id: s.id,
+        quantity: 1,
+      }));
+
       const res = await fetch('/api/flights/book', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -533,6 +1109,7 @@ export default function CheckoutPage() {
           offerId: offer.id,
           passengers: duffelPassengers,
           paymentIntentId,
+          services: serviceBookingPayload,
           destination: offer.destinationCity || offer.destination,
           departureDate: offer.departureAt,
           returnDate: offer.returnDepartureAt,
@@ -554,7 +1131,7 @@ export default function CheckoutPage() {
         documentsUrl: null,
         emailSent: false,
         totalPerPerson: offer.pricing.total,
-        totalAll: offer.totalForAll,
+        totalAll: grandTotalAll,
       });
       setStep('confirmed');
     } catch {
@@ -701,7 +1278,7 @@ export default function CheckoutPage() {
               {/* ═══ STEP 1: Passenger Details ═══ */}
               {step === 'passengers' && (
                 <>
-                  <h1 className="font-poppins font-black text-[1.5rem] text-[#1A1D2B] mb-1">
+                  <h1 className="font-[var(--font-playfair)] font-black text-[1.7rem] md:text-[2rem] text-[#0a1628] tracking-tight mb-1">
                     Who&apos;s flying?
                   </h1>
                   <p className="text-[.8rem] text-[#5C6378] font-semibold mb-2">
@@ -710,6 +1287,13 @@ export default function CheckoutPage() {
 
                   {/* Flight summary */}
                   <FlightSummary offer={offer} />
+
+                  {/* What's included — Phase 1: surface baggage + fare brand */}
+                  <IncludedPanel
+                    slices={offer.slices}
+                    refundable={offer.refundable}
+                    changeable={offer.changeable}
+                  />
 
                   {/* Passenger forms */}
                   {passengers.map((p, idx) => {
@@ -834,6 +1418,34 @@ export default function CheckoutPage() {
                     );
                   })}
 
+                  {/* Phase 2a — Add extras (baggage) */}
+                  <AddExtrasCard
+                    services={availableBaggageServices}
+                    selectedIds={selectedServiceIds}
+                    onToggle={toggleService}
+                    allPassengers={offer.passengers}
+                    passengerForms={passengers}
+                  />
+
+                  {/* Stale-offer warning banner — shown when pre-submit refetch
+                      detected dropped or repriced ancillaries. */}
+                  {staleServiceWarning && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+                      <span className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                        <i className="fa-solid fa-triangle-exclamation text-[.82rem]" aria-hidden />
+                      </span>
+                      <div>
+                        <p className="text-[.8rem] font-bold text-amber-900 leading-tight">
+                          Extras updated
+                        </p>
+                        <p
+                          className="text-[.72rem] text-amber-800 font-semibold mt-0.5"
+                          dangerouslySetInnerHTML={{ __html: staleServiceWarning }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   {/* Payment init error */}
                   {paymentError && (
                     <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center">
@@ -863,7 +1475,7 @@ export default function CheckoutPage() {
               {(step === 'payment' || step === 'processing') && (
                 <div ref={paymentSectionRef}>
                   <div className="flex items-center justify-between mb-4">
-                    <h1 className="font-poppins font-black text-[1.5rem] text-[#1A1D2B]">
+                    <h1 className="font-[var(--font-playfair)] font-black text-[1.7rem] md:text-[2rem] text-[#0a1628] tracking-tight">
                       Payment
                     </h1>
                     <button
@@ -890,6 +1502,16 @@ export default function CheckoutPage() {
                   {/* Flight summary */}
                   <div className="mb-5">
                     <FlightSummary offer={offer} compact />
+                  </div>
+
+                  {/* What's included — condensed */}
+                  <div className="mb-5">
+                    <IncludedPanel
+                      slices={offer.slices}
+                      refundable={offer.refundable}
+                      changeable={offer.changeable}
+                      compact
+                    />
                   </div>
 
                   {/* Processing overlay */}
@@ -953,7 +1575,16 @@ export default function CheckoutPage() {
                       </div>
 
                       <div className="text-[.72rem] text-[#5C6378] font-semibold mb-4">
-                        Total charge: <span className="text-[#1A1D2B] font-black">£{offer.totalForAll.toFixed(2)}</span>
+                        Total charge:{' '}
+                        <span className="font-[var(--font-playfair)] font-black text-[#0a1628] tracking-tight">
+                          £{grandTotalAll.toFixed(2)}
+                        </span>
+                        {selectedServices.length > 0 && (
+                          <span className="text-[#8E95A9]">
+                            {' '}(incl. {selectedServices.length}{' '}
+                            {selectedServices.length === 1 ? 'extra' : 'extras'})
+                          </span>
+                        )}
                       </div>
 
                       <StripeCardForm
@@ -961,7 +1592,7 @@ export default function CheckoutPage() {
                         onSucceeded={handlePaymentSuccess}
                         onError={handlePaymentFailure}
                         disabled={!offer?.refundable && !fareAcknowledged}
-                        amountLabel={`£${offer.totalForAll.toFixed(2)}`}
+                        amountLabel={`£${grandTotalAll.toFixed(2)}`}
                       />
 
                       <div className="mt-4 pt-4 border-t border-[#F1F3F7] flex items-center gap-2 text-[.65rem] text-[#8E95A9] font-semibold">
@@ -972,9 +1603,16 @@ export default function CheckoutPage() {
 
                   {/* Mobile price reminder */}
                   <div className="lg:hidden mt-5 bg-[#F8FAFC] border border-[#F1F3F7] rounded-2xl p-4">
+                    {selectedServices.length > 0 && (
+                      <div className="text-[.68rem] text-[#5C6378] font-semibold mb-1">
+                        Flight £{offer.totalForAll.toFixed(2)} + extras £{servicesSubtotal.toFixed(2)}
+                      </div>
+                    )}
                     <div className="flex justify-between items-baseline">
                       <span className="text-[.78rem] text-[#5C6378] font-semibold">Total to pay</span>
-                      <span className="font-poppins font-black text-[1.1rem] text-green-600">£{offer.totalForAll.toFixed(2)}</span>
+                      <span className="font-[var(--font-playfair)] font-black text-[1.2rem] text-emerald-700 tracking-tight">
+                        £{grandTotalAll.toFixed(2)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -989,6 +1627,9 @@ export default function CheckoutPage() {
               ctaDisabled={paymentLoading}
               ctaLabel={paymentLoading ? 'Loading payment...' : 'Continue to Payment →'}
               errorMsg={submitted && errors.some(e => Object.keys(e).length > 0) ? 'Please fix the errors above.' : null}
+              selectedServices={selectedServices}
+              servicesSubtotal={servicesSubtotal}
+              grandTotalAll={grandTotalAll}
             />
           </div>
         </div>

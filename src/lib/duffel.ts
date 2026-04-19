@@ -92,17 +92,89 @@ export async function refreshOfferTotal(offerId: string): Promise<{
 }
 
 /**
+ * Re-fetch the offer with available_services inlined, for stale-ID checks
+ * and ancillary repricing on the server side before order creation.
+ */
+export async function refreshOfferWithServices(offerId: string): Promise<{
+  total: number;
+  currency: string;
+  availableServiceIds: Set<string>;
+  servicePrices: Record<string, { amount: number; currency: string }>;
+} | null> {
+  if (!DUFFEL_KEY) return null;
+  try {
+    const res = await fetch(
+      `${DUFFEL_BASE}/air/offers/${offerId}?return_available_services=true`,
+      {
+        headers: {
+          Authorization: `Bearer ${DUFFEL_KEY}`,
+          'Duffel-Version': 'v2',
+          Accept: 'application/json',
+        },
+        cache: 'no-store',
+      },
+    );
+    if (!res.ok) return null;
+    const json = await res.json();
+    const offer = json.data;
+    const svcArr: any[] = offer.available_services || [];
+    const ids = new Set<string>(svcArr.map((s) => String(s.id)));
+    const prices: Record<string, { amount: number; currency: string }> = {};
+    for (const s of svcArr) {
+      prices[String(s.id)] = {
+        amount: parseFloat(s.total_amount || '0'),
+        currency: s.total_currency || offer.total_currency || 'GBP',
+      };
+    }
+    return {
+      total: parseFloat(offer.total_amount || '0'),
+      currency: offer.total_currency || 'GBP',
+      availableServiceIds: ids,
+      servicePrices: prices,
+    };
+  } catch (err) {
+    console.error('Duffel refresh with services error', err);
+    return null;
+  }
+}
+
+/**
  * Create a Duffel order using the balance payment model.
  * Caller is responsible for ensuring Stripe payment succeeded first.
+ *
+ * `services` is optional (Phase 2a): each entry is `{ id, quantity }` referencing
+ * an `available_services[].id` from the offer. Duffel sums their price into
+ * the order total, which must match `payments[].amount` exactly — the caller
+ * is responsible for passing the already-summed amount.
  */
 export async function createBalanceOrder(args: {
   offerId: string;
   passengers: Array<Record<string, any>>;
   amount: string;
   currency: string;
+  services?: Array<{ id: string; quantity: number }>;
 }): Promise<{ ok: true; order: any } | { ok: false; error: string; status: number }> {
   if (!DUFFEL_KEY) {
     return { ok: false, error: 'Duffel not configured', status: 503 };
+  }
+
+  const body: any = {
+    data: {
+      type: 'instant',
+      selected_offers: [args.offerId],
+      passengers: args.passengers,
+      payments: [
+        {
+          type: 'balance',
+          amount: args.amount,
+          currency: args.currency,
+        },
+      ],
+    },
+  };
+
+  if (args.services && args.services.length > 0) {
+    body.data.services = args.services;
   }
 
   const res = await fetch(`${DUFFEL_BASE}/air/orders`, {
@@ -113,20 +185,7 @@ export async function createBalanceOrder(args: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
     },
-    body: JSON.stringify({
-      data: {
-        type: 'instant',
-        selected_offers: [args.offerId],
-        passengers: args.passengers,
-        payments: [
-          {
-            type: 'balance',
-            amount: args.amount,
-            currency: args.currency,
-          },
-        ],
-      },
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {

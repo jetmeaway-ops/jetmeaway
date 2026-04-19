@@ -4,6 +4,7 @@ import {
   createBalanceOrder,
   getBalance,
   refreshOfferTotal,
+  refreshOfferWithServices,
   PRICE_DRIFT_TOLERANCE_GBP,
 } from '@/lib/duffel';
 import { upsertBooking, type Booking } from '@/lib/bookings';
@@ -47,6 +48,13 @@ export async function POST(req: NextRequest) {
   const stripe = new Stripe(STRIPE_KEY);
   const body = await req.json();
   const { offerId, paymentIntentId, passengers, sessionId } = body;
+  // Phase 2a — ancillary services selected at checkout.
+  // Shape: [{ id: "ase_...", quantity: 1 }]. Quantity is always 1 in our UI
+  // but we forward whatever the client sent, then validate against the
+  // fresh offer below.
+  const rawServices: Array<{ id: string; quantity: number }> = Array.isArray(body.services)
+    ? body.services.filter((s: any) => s?.id)
+    : [];
 
   if (!offerId || !paymentIntentId || !passengers?.length) {
     return NextResponse.json(
@@ -105,15 +113,91 @@ export async function POST(req: NextRequest) {
 
   await upsertBooking(pendingBooking);
 
-  /* ── Step 3: Price-drift check ───────────────────────────────────── */
-  const refreshed = await refreshOfferTotal(offerId);
+  /* ── Step 3: Price-drift check + service validation ──────────────── */
+  // If the customer selected any ancillaries we must fetch the offer with
+  // available_services inlined — anything else risks booking with a stale
+  // service-id and getting a post-charge 4xx. No-ancillary case falls back
+  // to the cheaper endpoint.
+  const refreshed =
+    rawServices.length > 0
+      ? await refreshOfferWithServices(offerId)
+      : await refreshOfferTotal(offerId);
+
   if (!refreshed) {
     await refundAndFail(stripe, pi.id, pendingBooking, 'Offer no longer available');
     return NextResponse.json({ error: 'Offer no longer available — refunded' }, { status: 410 });
   }
 
+  // Validate every client-requested service still exists on the fresh offer.
+  // Server-side stale guard, complements the client one.
+  const refreshedWithServices =
+    rawServices.length > 0 && 'availableServiceIds' in refreshed
+      ? (refreshed as {
+          total: number;
+          currency: string;
+          availableServiceIds: Set<string>;
+          servicePrices: Record<string, { amount: number; currency: string }>;
+        })
+      : null;
+
+  let servicesTotal = 0;
+  if (refreshedWithServices) {
+    for (const svc of rawServices) {
+      if (!refreshedWithServices.availableServiceIds.has(svc.id)) {
+        await refundAndFail(
+          stripe,
+          pi.id,
+          pendingBooking,
+          `Ancillary service ${svc.id} no longer available`,
+        );
+        return NextResponse.json(
+          { error: 'One of your extras is no longer available. Your card has been refunded.' },
+          { status: 409 },
+        );
+      }
+      const price = refreshedWithServices.servicePrices[svc.id];
+      if (price) servicesTotal += price.amount * Math.max(1, Number(svc.quantity || 1));
+    }
+
+    // Ancillary price-drift check (bi-directional).
+    //
+    // "No markup on ancillaries" is a customer promise: if Duffel reprices
+    // a bag between the quote and this call, we must refund rather than
+    // silently pocket the difference (downward drift) or absorb a loss
+    // (upward drift within tolerance). We read the quoted subtotal from
+    // Stripe metadata — source of truth for what the customer actually
+    // paid — rather than re-deriving it from the client request body.
+    //
+    // Tolerance: 50p. Larger than any realistic rounding noise, smaller
+    // than any real Duffel price change we'd want to let through silently.
+    const ANCILLARY_DRIFT_TOLERANCE_GBP = 0.5;
+    const quotedServicesPence = Number(pi.metadata?.servicesSubtotalPence || '0');
+    const quotedServicesTotal = quotedServicesPence / 100;
+    const ancillaryDrift = Math.abs(servicesTotal - quotedServicesTotal);
+
+    if (ancillaryDrift > ANCILLARY_DRIFT_TOLERANCE_GBP) {
+      await refundAndFail(
+        stripe,
+        pi.id,
+        pendingBooking,
+        `Ancillary drift £${ancillaryDrift.toFixed(2)} (quoted £${quotedServicesTotal.toFixed(2)}, now £${servicesTotal.toFixed(2)})`,
+      );
+      const direction = servicesTotal > quotedServicesTotal ? 'increased' : 'decreased';
+      return NextResponse.json(
+        {
+          error: `The price of your extras ${direction} by £${ancillaryDrift.toFixed(2)}. Your card has been refunded — please re-review and try again.`,
+        },
+        { status: 409 },
+      );
+    }
+  }
+
   // Invert the percentage markup to recover the airline-quoted base price.
-  const paidPerPerson = paidGbp / passengers.length;
+  // Services are pass-through at cost so they're NOT subject to the markup
+  // inversion — we strip the ancillary portion before checking drift on the
+  // base fare.
+  const paidBaseFareTotal = paidGbp - servicesTotal;
+  const paidPerPerson = paidBaseFareTotal / passengers.length;
   const quotedBasePerPerson = reverseMarkup(paidPerPerson);
   const actualPerPerson = refreshed.total / passengers.length;
   const driftPerPerson = actualPerPerson - quotedBasePerPerson;
@@ -131,6 +215,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Duffel's `payments[].amount` must equal `offer.total_amount` plus the
+  // sum of selected service prices to the penny — otherwise the order fails.
+  const orderAmount = refreshed.total + servicesTotal;
+
   /* ── Step 4: Balance check ───────────────────────────────────────── */
   const balance = await getBalance();
   if (!balance) {
@@ -138,12 +226,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Booking system busy — refunded' }, { status: 503 });
   }
 
-  if (balance.available < refreshed.total + 10) {
+  if (balance.available < orderAmount + 10) {
     await refundAndFail(
       stripe,
       pi.id,
       pendingBooking,
-      `Balance insufficient (have £${balance.available.toFixed(2)}, need £${refreshed.total.toFixed(2)})`,
+      `Balance insufficient (have £${balance.available.toFixed(2)}, need £${orderAmount.toFixed(2)})`,
     );
     return NextResponse.json(
       { error: 'Booking system busy — your card has been refunded.' },
@@ -156,8 +244,11 @@ export async function POST(req: NextRequest) {
   const orderResult = await createBalanceOrder({
     offerId,
     passengers: duffelPassengers,
-    amount: refreshed.total.toFixed(2),
+    amount: orderAmount.toFixed(2),
     currency: refreshed.currency,
+    services: rawServices.length > 0
+      ? rawServices.map((s) => ({ id: s.id, quantity: Math.max(1, Number(s.quantity || 1)) }))
+      : undefined,
   });
 
   if (!orderResult.ok) {
@@ -171,7 +262,11 @@ export async function POST(req: NextRequest) {
   const order = orderResult.order;
 
   /* ── Step 6: Update booking → CONFIRMED ──────────────────────────── */
-  const netPence = Math.round(refreshed.total * 100);
+  // Net cost to us = base fare + pass-through ancillaries.
+  // Margin = customer paid − (base fare + ancillaries). Because ancillaries
+  // are charged at cost with zero markup, marginPence is driven entirely by
+  // the base-fare markup (reverseMarkup above is the inverse of this).
+  const netPence = Math.round(orderAmount * 100);
   const marginPence = paidPence - netPence;
 
   const outSlice = order.slices?.[0];
