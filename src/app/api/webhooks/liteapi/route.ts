@@ -9,19 +9,32 @@
  *   etc. Without this endpoint we'd only ever find out at check-in. With it, we
  *   know the moment LiteAPI knows, and can proactively re-home the guest.
  *
- * What LiteAPI sends (as observed in their dashboard + docs):
+ * What LiteAPI sends (as observed in their dashboard + code samples, Apr 2026):
  *   POST /webhook  Content-Type: application/json
- *   Headers (when a signing secret is configured in the dashboard):
- *     X-LiteAPI-Signature: hex-encoded HMAC-SHA256 of the raw body
- *   Body shapes vary across events — we accept several and normalise.
- *     { event: "BOOKING_STATUS_CHANGE",
- *       data: { bookingId, clientReference?, status, hotelConfirmationCode? } }
- *     { type: "booking.status_change", booking: { id, ... } }
- *     { bookingId, status, clientReference }  ← legacy flat shape
+ *   Auth: the dashboard exposes a single "Authentication Token" field which
+ *         LiteAPI forwards verbatim in the `Authorization` header (no HMAC,
+ *         no body signing — the official Node.js/Go examples don't verify
+ *         anything, they just trust the body). We treat it as a shared bearer
+ *         secret: compare the incoming header to LITEAPI_WEBHOOK_SECRET in
+ *         constant time.
+ *   Body (LiteAPI's own sample code):
+ *     { event_name: "booking.book" | "booking.cancel" | "booking.prebook" |
+ *                   "booking.book_error" | "booking.prebook_error" |
+ *                   "booking.cancel_error" | "booking.rebook.rfn" |
+ *                   "booking.rebook.nrfn" | "booking.amendment" |
+ *                   "booking.amendment.relocation" |
+ *                   "booking.book.hotelConfirmationNumber",
+ *       request: { ... original call body, carries clientReference ... },
+ *       response: { ... LiteAPI's response with bookingId/status/... } }
+ *   We also keep support for older/alternative shapes (event+data, type+booking,
+ *   flat) in case LiteAPI changes the payload again — they've done it before.
  *
  * What we do:
- *   1. (optional) verify HMAC signature against LITEAPI_WEBHOOK_SECRET
- *   2. extract { clientReference (our ref), bookingId, status }
+ *   1. verify the Authorization header matches LITEAPI_WEBHOOK_SECRET
+ *      (with an HMAC-SHA256 body check as a harmless fallback — if LiteAPI ever
+ *      switches on signing, we'll start accepting that form too)
+ *   2. extract { clientReference (our ref), bookingId, status } from whichever
+ *      shape arrived
  *   3. update the pending-booking KV record (the source of truth for /success
  *      and /hotels/checkout) so the user's dashboard reflects reality
  *   4. mirror the status into the unified bookings store (src/lib/bookings.ts)
@@ -30,8 +43,8 @@
  *      and back up its queue. Errors are logged, not surfaced.
  *
  * Configuration:
- *   - Env: LITEAPI_WEBHOOK_SECRET (HMAC key — if unset, signature check is
- *     skipped in dev; in production the endpoint logs a warning)
+ *   - Env: LITEAPI_WEBHOOK_SECRET (or LITE_API_WEBHOOK_SECRET) — the shared
+ *     token you paste into the LiteAPI dashboard's "Authentication Token" field
  *   - Dashboard: point LiteAPI webhook URL to
  *     https://jetmeaway.co.uk/api/webhooks/liteapi
  */
@@ -75,6 +88,32 @@ async function hmacSha256Hex(secret: string, body: string): Promise<string> {
     hex += bytes[i].toString(16).padStart(2, '0');
   }
   return hex;
+}
+
+/**
+ * Pull the shared secret out of the Authorization header. LiteAPI's UI labels
+ * it "Authentication Token" and forwards it verbatim — in practice that ends
+ * up as either `Authorization: Bearer <token>` or `Authorization: <token>`
+ * depending on whether the customer included the Bearer prefix themselves.
+ * A couple of custom header names are also accepted in case the dashboard
+ * behaviour changes.
+ */
+function extractBearer(req: NextRequest): string | null {
+  const auth = req.headers.get('authorization') || '';
+  if (auth) {
+    const trimmed = auth.trim();
+    if (/^bearer\s+/i.test(trimmed)) {
+      return trimmed.replace(/^bearer\s+/i, '').trim() || null;
+    }
+    return trimmed || null;
+  }
+  const alt =
+    req.headers.get('x-auth-token') ||
+    req.headers.get('x-api-key') ||
+    req.headers.get('x-liteapi-token') ||
+    '';
+  const trimmed = alt.trim();
+  return trimmed || null;
 }
 
 /**
@@ -156,20 +195,77 @@ type NormalisedEvent = {
 };
 
 /**
+ * Map LiteAPI's event_name (e.g. `booking.book`, `booking.cancel_error`) to
+ * our unified BookingStatus. Only used when the payload omits an explicit
+ * status field — which is the case for LiteAPI's current {event_name, request,
+ * response} shape.
+ */
+function mapLiteApiEventName(name: string | undefined | null): BookingStatus | null {
+  if (!name) return null;
+  const n = String(name).toLowerCase().trim();
+  if (n === 'booking.book' || n === 'booking.book.hotelconfirmationnumber') {
+    return 'confirmed';
+  }
+  if (n === 'booking.rebook.rfn' || n === 'booking.rebook.nrfn') {
+    return 'confirmed';
+  }
+  if (n === 'booking.amendment' || n === 'booking.amendment.relocation') {
+    // Amendment means the booking still exists but changed; keep it confirmed
+    // but we'll log details via the note.
+    return 'confirmed';
+  }
+  if (n === 'booking.cancel') return 'cancelled';
+  if (n === 'booking.prebook') return 'pending';
+  if (
+    n === 'booking.book_error' ||
+    n === 'booking.prebook_error' ||
+    n === 'booking.cancel_error'
+  ) {
+    return 'failed';
+  }
+  return null;
+}
+
+/**
  * LiteAPI has historically changed its webhook payload shape more than once;
  * we accept the union and extract what we need with defensive field lookups.
+ *
+ * Today's shape (Apr 2026): `{ event_name, request, response }` — `request`
+ * is the body we originally sent (carries clientReference) and `response` is
+ * LiteAPI's outbound response (carries bookingId + status + confirmation).
+ * Older/alternate shapes (`event`+`data`, `type`+`booking`, flat) also work.
  */
 function normaliseEvent(payload: unknown): NormalisedEvent {
   const p = (payload ?? {}) as Record<string, unknown>;
-  const data = (p.data ?? p.booking ?? p.payload ?? p) as Record<string, unknown>;
 
-  const eventType = String(p.event ?? p.type ?? p.eventType ?? 'unknown');
+  // Treat `response` as the primary data bag for the current shape; fall back
+  // to the older containers. We also merge the inner `data.booking` pocket if
+  // LiteAPI nests it one level deeper (seen on some event types).
+  const response = (p.response ?? {}) as Record<string, unknown>;
+  const request = (p.request ?? {}) as Record<string, unknown>;
+  const legacy = (p.data ?? p.booking ?? p.payload ?? {}) as Record<string, unknown>;
+  const responseData =
+    ((response as { data?: unknown }).data as Record<string, unknown> | undefined) ??
+    ((response as { booking?: unknown }).booking as Record<string, unknown> | undefined) ??
+    {};
+
+  const data: Record<string, unknown> = {
+    ...legacy,
+    ...responseData,
+    ...response,
+  };
+
+  const eventType = String(
+    p.event_name ?? p.event ?? p.type ?? p.eventType ?? 'unknown',
+  );
 
   const clientReference =
     firstString(
       data.clientReference,
       data.client_reference,
       (data as { metadata?: Record<string, unknown> }).metadata?.clientReference,
+      request.clientReference,
+      (request as { client_reference?: unknown }).client_reference,
       p.clientReference,
     ) ?? null;
 
@@ -196,11 +292,14 @@ function normaliseEvent(payload: unknown): NormalisedEvent {
       data.supplierConfirmationNumber,
     ) ?? null;
 
+  // Prefer an explicit status field; otherwise derive from event_name.
+  const status = mapLiteApiStatus(rawStatus) ?? mapLiteApiEventName(eventType);
+
   return {
     eventType,
     clientReference,
     bookingId,
-    status: mapLiteApiStatus(rawStatus),
+    status,
     hotelConfirmationCode,
     rawStatus,
   };
@@ -316,21 +415,44 @@ export async function POST(req: NextRequest) {
   // would force us to re-serialise and subtly break the HMAC.
   const rawBody = await req.text();
 
-  // Signature check. LiteAPI has used a few header names historically; accept
-  // any of them to stay resilient.
+  // Auth check. LiteAPI today sends the dashboard's "Authentication Token"
+  // as a plain shared secret in the `Authorization` header (no HMAC — their
+  // own Node.js/Go samples don't verify anything). So our primary check is a
+  // constant-time compare of that header against WEBHOOK_SECRET. We ALSO
+  // accept an HMAC-SHA256 signature header as a fallback, so if LiteAPI flips
+  // on signing later (or if we put the webhook behind a gateway that signs),
+  // it'll just start working.
   if (WEBHOOK_SECRET) {
-    const provided =
+    const bearer = extractBearer(req);
+    const sigHeader =
       req.headers.get('x-liteapi-signature') ||
       req.headers.get('x-signature') ||
       req.headers.get('liteapi-signature') ||
       '';
-    const expected = await hmacSha256Hex(WEBHOOK_SECRET, rawBody);
-    // Accept both raw hex and `sha256=<hex>` forms.
-    const providedHex = provided.startsWith('sha256=')
-      ? provided.slice(7).trim()
-      : provided.trim();
-    if (!providedHex || !timingSafeEqual(providedHex.toLowerCase(), expected)) {
-      console.warn('[liteapi-webhook] signature mismatch — rejecting');
+
+    let authorised = false;
+
+    // Path A: shared bearer token (what LiteAPI actually sends today)
+    if (bearer && timingSafeEqual(bearer, WEBHOOK_SECRET)) {
+      authorised = true;
+    }
+
+    // Path B: HMAC-SHA256 of the raw body (future-proofing)
+    if (!authorised && sigHeader) {
+      const expected = await hmacSha256Hex(WEBHOOK_SECRET, rawBody);
+      const providedHex = sigHeader.startsWith('sha256=')
+        ? sigHeader.slice(7).trim()
+        : sigHeader.trim();
+      if (
+        providedHex &&
+        timingSafeEqual(providedHex.toLowerCase(), expected)
+      ) {
+        authorised = true;
+      }
+    }
+
+    if (!authorised) {
+      console.warn('[liteapi-webhook] auth failed — rejecting');
       return NextResponse.json(
         { received: false, error: 'Invalid signature' },
         { status: 401 },
