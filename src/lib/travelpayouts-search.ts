@@ -196,14 +196,29 @@ function normaliseProposal(p: TPProposal): NormalisedFlight | null {
   const lastOutLeg = outFlights[outFlights.length - 1];
   const firstRetLeg = retFlights[0];
 
-  // Cheapest gate term for this proposal
+  // Cheapest gate term for this proposal. Only trust a term when it
+  // explicitly reports GBP — some agents ignore the signed currency
+  // override and fall back to RUB, producing 5-figure "prices" that
+  // would wreck the UI. Unified_price is in signed-currency so prefer
+  // it; raw price is the native-currency fallback, accepted only when
+  // the gate confirms currency === 'gbp'.
   const terms = p.terms || {};
   let price = Infinity;
   for (const t of Object.values(terms)) {
-    const p2 = t.unified_price ?? t.price;
-    if (typeof p2 === 'number' && p2 < price) price = p2;
+    const cur = (t.currency || '').toLowerCase();
+    let candidate: number | undefined;
+    if (typeof t.unified_price === 'number' && (cur === 'gbp' || cur === '')) {
+      candidate = t.unified_price;
+    } else if (typeof t.price === 'number' && cur === 'gbp') {
+      candidate = t.price;
+    }
+    if (typeof candidate === 'number' && candidate < price) price = candidate;
   }
   if (!Number.isFinite(price)) return null;
+  // Last-line sanity check — no LON→anywhere economy fare legitimately
+  // tops £10k. If we still see one, the gate slipped an un-declared
+  // RUB/other fare through; drop it rather than mislead the user.
+  if (price > 10000) return null;
 
   const airline = p.validating_carrier || firstOutLeg.marketing_carrier || firstOutLeg.operating_carrier || '';
   const durationTo = outFlights.reduce((sum, f) => sum + (f.duration || 0), 0);
