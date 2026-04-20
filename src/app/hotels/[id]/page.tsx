@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { redirectUrl } from '@/lib/redirect';
 import RoomsTable, { type RoomRate } from './RoomsTable';
+import RoomsSkeleton from './RoomsSkeleton';
 
 interface HotelDetails {
   id: string;
@@ -387,13 +388,7 @@ export default function HotelDetailPage() {
                 The primary action. Rendered BEFORE description so the
                 customer sees the rate choices without scrolling. */}
             {ratesLoading ? (
-              <section className="bg-white border border-[#E8ECF4] rounded-3xl p-8 mb-5 shadow-[0_4px_24px_rgba(10,22,40,0.04)]">
-                <div className="animate-pulse space-y-3">
-                  <div className="h-5 w-48 bg-[#F1F3F7] rounded" />
-                  <div className="h-20 bg-[#F1F3F7] rounded-2xl" />
-                  <div className="h-20 bg-[#F1F3F7] rounded-2xl" />
-                </div>
-              </section>
+              <RoomsSkeleton />
             ) : rates.length > 0 ? (
               <div className="mb-5">
                 <RoomsTable

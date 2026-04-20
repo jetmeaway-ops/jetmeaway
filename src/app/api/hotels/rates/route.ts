@@ -26,13 +26,21 @@
    re-fetching live rates on every hotel card click.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { kv } from '@vercel/kv';
 import { getHotels as liteapiGetHotels } from '@/lib/liteapi';
 
 export const runtime = 'edge';
 
 const KV_TTL = 900; // 15 minutes
+const REFRESH_THRESHOLD = 450; // 7.5 min — after this we serve stale + refresh in background
+
+// Served to every 2xx response. Lets Vercel's edge CDN return cached HTML
+// instantly for repeat lookups (s-maxage) while revalidating behind the
+// scenes (stale-while-revalidate). 60s / 900s mirrors our KV strategy.
+const SWR_HEADERS = {
+  'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=900',
+} as const;
 
 type BoardOptionOut = {
   offerId: string;
@@ -46,6 +54,8 @@ type BoardOptionOut = {
   negotiatedPrice?: number | null;
   marketPrice?: number | null;
 };
+
+type CacheShape = { offers: BoardOptionOut[]; storedAt: number };
 
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
@@ -81,65 +91,99 @@ export async function GET(req: NextRequest) {
   const cacheKey = `hotel-rates:${hotelId}:${checkin}:${checkout}:${adults}:${children}:${childrenAgesRaw}:${rooms}:${currency}`;
 
   try {
-    const cached = await kv.get<{ offers: BoardOptionOut[] }>(cacheKey);
+    const cached = await kv.get<CacheShape | { offers: BoardOptionOut[] }>(cacheKey);
     if (cached?.offers?.length) {
-      return NextResponse.json({ success: true, offers: cached.offers, cached: true });
+      // Backwards-compat: older entries stored `{ offers }` with no timestamp.
+      // Treat those as fresh so we don't stampede on the rollover.
+      const storedAt = (cached as CacheShape).storedAt ?? Date.now();
+      const ageSec = (Date.now() - storedAt) / 1000;
+
+      // If we're past the refresh threshold but still inside KV_TTL, serve
+      // stale to this caller and kick off a background revalidation so the
+      // NEXT caller gets fresh data.
+      if (ageSec >= REFRESH_THRESHOLD) {
+        after(refreshRates({ hotelId, checkin, checkout, occupancy, currency, cacheKey }));
+      }
+
+      return NextResponse.json(
+        { success: true, offers: cached.offers, cached: true, stale: ageSec >= REFRESH_THRESHOLD },
+        { headers: SWR_HEADERS },
+      );
     }
   } catch { /* KV miss */ }
 
   try {
-    // Trailing comma forces `getHotels` into the "caller supplied hotel id
-    // list" branch — skips the /data/hotels directory lookup and goes
-    // straight to /hotels/rates for just this one property.
-    const hotelOffers = await liteapiGetHotels({
-      destinationId: `${hotelId},`,
-      checkIn: checkin,
-      checkOut: checkout,
-      occupancy,
-      currency,
-      limit: 1,
-    });
-
-    const match = hotelOffers.find((h) => h.hotelId === hotelId) || hotelOffers[0];
-    if (!match) {
-      return NextResponse.json({ success: true, offers: [] });
-    }
-
-    // LiteAPI only populates `boardOptions` when >1 board is available.
-    // When there's only a single rate we synthesise a one-element array so
-    // the detail page renders a single-row table consistently.
-    const offers: BoardOptionOut[] = (match.boardOptions && match.boardOptions.length > 0)
-      ? match.boardOptions.map((o) => ({
-          offerId: o.offerId,
-          boardType: o.boardType || 'Room Only',
-          totalPrice: o.totalPrice,
-          pricePerNight: o.pricePerNight,
-          refundable: o.refundable,
-          roomName: o.roomName ?? null,
-          negotiatedPrice: o.negotiatedPrice ?? null,
-          marketPrice: o.marketPrice ?? null,
-        }))
-      : [{
-          offerId: match.offerId,
-          boardType: match.boardType || 'Room Only',
-          totalPrice: match.price,
-          pricePerNight: match.pricePerNight || (match.price / Math.max(1, nights(checkin, checkout))),
-          refundable: match.refundable,
-          roomName: null,
-          // When we synthesise a single-row option, derive deal signals from
-          // the hotel-level negotiated/market prices so we stay consistent.
-          negotiatedPrice: (match.negotiatedPrice != null && match.marketPrice != null && match.negotiatedPrice < match.marketPrice)
-            ? match.negotiatedPrice : null,
-          marketPrice: match.marketPrice ?? null,
-        }];
-
-    try { await kv.set(cacheKey, { offers }, { ex: KV_TTL }); } catch { /* KV write failed */ }
-
-    return NextResponse.json({ success: true, offers });
+    const offers = await fetchAndCacheRates({ hotelId, checkin, checkout, occupancy, currency, cacheKey });
+    return NextResponse.json({ success: true, offers }, { headers: SWR_HEADERS });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'LiteAPI rates lookup failed';
     return NextResponse.json({ success: false, error: msg }, { status: 502 });
   }
+}
+
+type FetchArgs = {
+  hotelId: string;
+  checkin: string;
+  checkout: string;
+  occupancy: Array<{ adults: number; children?: number[] }>;
+  currency: string;
+  cacheKey: string;
+};
+
+async function fetchAndCacheRates(args: FetchArgs): Promise<BoardOptionOut[]> {
+  const { hotelId, checkin, checkout, occupancy, currency, cacheKey } = args;
+  // Trailing comma forces `getHotels` into the "caller supplied hotel id
+  // list" branch — skips the /data/hotels directory lookup and goes
+  // straight to /hotels/rates for just this one property.
+  const hotelOffers = await liteapiGetHotels({
+    destinationId: `${hotelId},`,
+    checkIn: checkin,
+    checkOut: checkout,
+    occupancy,
+    currency,
+    limit: 1,
+  });
+
+  const match = hotelOffers.find((h) => h.hotelId === hotelId) || hotelOffers[0];
+  if (!match) return [];
+
+  // LiteAPI only populates `boardOptions` when >1 board is available.
+  // When there's only a single rate we synthesise a one-element array so
+  // the detail page renders a single-row table consistently.
+  const offers: BoardOptionOut[] = (match.boardOptions && match.boardOptions.length > 0)
+    ? match.boardOptions.map((o) => ({
+        offerId: o.offerId,
+        boardType: o.boardType || 'Room Only',
+        totalPrice: o.totalPrice,
+        pricePerNight: o.pricePerNight,
+        refundable: o.refundable,
+        roomName: o.roomName ?? null,
+        negotiatedPrice: o.negotiatedPrice ?? null,
+        marketPrice: o.marketPrice ?? null,
+      }))
+    : [{
+        offerId: match.offerId,
+        boardType: match.boardType || 'Room Only',
+        totalPrice: match.price,
+        pricePerNight: match.pricePerNight || (match.price / Math.max(1, nights(checkin, checkout))),
+        refundable: match.refundable,
+        roomName: null,
+        negotiatedPrice: (match.negotiatedPrice != null && match.marketPrice != null && match.negotiatedPrice < match.marketPrice)
+          ? match.negotiatedPrice : null,
+        marketPrice: match.marketPrice ?? null,
+      }];
+
+  try {
+    await kv.set(cacheKey, { offers, storedAt: Date.now() } satisfies CacheShape, { ex: KV_TTL });
+  } catch { /* KV write failed — ignore */ }
+
+  return offers;
+}
+
+// Background SWR refresh. Swallows errors so a hiccup in LiteAPI can't
+// affect the response that already went to the user.
+async function refreshRates(args: FetchArgs): Promise<void> {
+  try { await fetchAndCacheRates(args); } catch { /* ignore */ }
 }
 
 function nights(checkin: string, checkout: string): number {
