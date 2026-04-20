@@ -981,6 +981,12 @@ function FlightsContent() {
   const [flights, setFlights] = useState<FlightResult[] | null>(null);
   const [apiError, setApiError] = useState('');
   const [searched, setSearched] = useState(false);
+  // Scout poll state — shown while the v1 flight_search is still running.
+  // `scoutActive` flips true when we kick off a poll and false once either
+  // TP reports search_finished or we hit the time ceiling. `scoutAirlineCount`
+  // updates every poll so the user sees results growing live.
+  const [scoutActive, setScoutActive] = useState(false);
+  const [scoutAirlineCount, setScoutAirlineCount] = useState(0);
 
   // Date-matrix strip (D−3 … D+3) — populated after every successful search.
   // Cached server-side in KV for 1h, so shifting dates and coming back is
@@ -1088,8 +1094,108 @@ function FlightsContent() {
     setApiError('');
     setLoading(true);
     setSearched(true);
+    setScoutActive(false);
+    setScoutAirlineCount(0);
 
     try {
+      // ── Kick off a TP v1 async search. This actively queries GDS agents
+      // (Amadeus, Sabre…) — unlike v3's cached-only endpoint — so carriers
+      // like PIA which only list through GDS finally surface.
+      const initRes = await fetch('/api/flights/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          origin: originCode,
+          destination: destCode,
+          departure: depDate,
+          return: retDate && tripType === 'return' ? retDate : null,
+          adults,
+          children,
+          infants,
+          cabin: cabinClass === 'premium_economy' ? 'economy' : cabinClass,
+        }),
+      });
+      const initData = await initRes.json();
+
+      if (!initRes.ok || !initData.searchId) {
+        // Fall back silently to v3 cached path so users never see an
+        // empty results page just because the v1 init misfired.
+        await searchV3Fallback();
+        return;
+      }
+
+      setLoading(false);
+      setScoutActive(true);
+      setFlights([]); // render empty list so the Scout strip attaches to the results area
+
+      // ── Polling loop. Poll on a rising cadence (0.8s → 1.5s) to catch
+      // fast NDC results early without hammering the edge function for
+      // slower GDS stragglers. Cap at 20s total.
+      const mergedByKey = new Map<string, FlightResult>();
+      const pollDelays = [800, 1200, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500];
+      const startedAt = Date.now();
+      let consecutiveEmptyDeltas = 0;
+      let isComplete = false;
+
+      for (const delay of pollDelays) {
+        await new Promise(r => setTimeout(r, delay));
+        if (Date.now() - startedAt > 20000) break;
+
+        const pollRes = await fetch(`/api/flights/results?searchId=${encodeURIComponent(initData.searchId)}`);
+        const pollData = await pollRes.json();
+        if (!pollRes.ok) continue;
+
+        const before = mergedByKey.size;
+        for (const f of (pollData.flights || []) as FlightResult[]) {
+          const depDay = (f.departure_at || '').slice(0, 10);
+          const key = f.flight_number
+            ? `${f.flight_number}-${depDay}`
+            : `${f.airlineCode}-${depDay}-${f.duration_to}`;
+          const existing = mergedByKey.get(key);
+          // Stick with the lower price when an agent returns the same
+          // flight later in the poll — Scout's "cheapest wins" rule.
+          if (!existing || f.price < existing.price) mergedByKey.set(key, f);
+        }
+
+        const merged = Array.from(mergedByKey.values()).sort((a, b) => a.price - b.price).slice(0, 30);
+        setFlights(merged);
+        setScoutAirlineCount(new Set(merged.map(f => f.airlineCode)).size);
+
+        if (pollData.complete) { isComplete = true; break; }
+        // Two consecutive empty deltas → agents are done reporting;
+        // stop polling early rather than grinding to the 20s cap.
+        if (mergedByKey.size === before) {
+          consecutiveEmptyDeltas++;
+          if (consecutiveEmptyDeltas >= 2) break;
+        } else {
+          consecutiveEmptyDeltas = 0;
+        }
+      }
+
+      setScoutActive(false);
+
+      // If TP v1 returned nothing (rare on niche routes), fall back to
+      // the v3 cached path so we still show SOMETHING useful.
+      if (mergedByKey.size === 0) {
+        await searchV3Fallback();
+        return;
+      }
+
+      // Fire the date-strip now that the main results have landed.
+      void loadDateStrip(Array.from(mergedByKey.values())[0]?.price ?? null);
+      void isComplete; // reserved for future telemetry
+
+      setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+      return;
+    } catch {
+      // v1 failed entirely — fall back to v3 cached. This ensures the
+      // ONE thing a user never sees is a blank results page due to a
+      // transient TP hiccup.
+      await searchV3Fallback();
+      return;
+    }
+
+    async function searchV3Fallback() {
       const params = new URLSearchParams({
         origin: originCode,
         destination: destCode,
@@ -1107,101 +1213,82 @@ function FlightsContent() {
       if (data.error) {
         setApiError(data.error);
         setLoading(false);
+        setScoutActive(false);
         return;
       }
 
       setFlights(data.flights || []);
       setLoading(false);
+      setScoutActive(false);
+      void loadDateStrip((data.flights && data.flights.length > 0) ? data.flights[0].price : null);
+      setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    }
 
+    async function loadDateStrip(baseHint: number | null) {
       // Fire-and-forget: load the D−3…D+3 price strip. Travelpayouts-only
       // + KV-cached so this never blocks the main results render. If it
       // fails we silently render nothing — the page stays fully usable.
-      // Pass basePrice so the selected cell has a guaranteed price even
-      // when TP's cache hasn't indexed that specific (orig,dest,date)
-      // triple — the user's search DID find a price so the strip's
-      // selected cell should never be "—".
-      const baseHint = (data.flights && data.flights.length > 0) ? data.flights[0].price : null;
-      (async () => {
-        setDateStripLoading(true);
-        setDateStrip([]);
-        setDateScoutTip(null);
-        try {
-          const stripParams = new URLSearchParams({
-            origin: originCode,
-            destination: destCode,
-            departure: depDate,
-            mode: 'datestrip',
-          });
-          if (retDate && tripType === 'return') stripParams.set('return', retDate);
-          if (baseHint !== null) stripParams.set('basePrice', String(Math.round(baseHint)));
-          const sRes = await fetch(`/api/flights?${stripParams}`);
-          const sData = await sRes.json();
-          if (sData.success && Array.isArray(sData.dates)) {
-            const effectiveRet = tripType === 'return' ? retDate : null;
-            const userNights = typeof sData.intendedNights === 'number' ? sData.intendedNights : null;
-            setIntendedNights(userNights);
-            type StripCell = {
-              dep: string;
-              ret: string | null;
-              cheapest_price_gbp: number | null;
-              actual_nights?: number | null;
-              actual_return?: string | null;
-            };
-            const mapped: MatrixOption[] = sData.dates.map((c: StripCell) => {
-              const d = new Date(c.dep + 'T00:00:00Z');
-              const r = c.ret ? new Date(c.ret + 'T00:00:00Z') : null;
-              const label = r
-                ? `${d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })} – ${r.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })}`
-                : d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
-              // Apples-to-apples honesty: if TP's cheapest cached fare
-              // for a neighbour date is a different stay length than
-              // what the user asked for, surface that as a subLabel
-              // so the user knows why the price looks cheap.
-              let subLabel: string | undefined;
-              if (
-                userNights !== null &&
-                typeof c.actual_nights === 'number' &&
-                c.actual_nights > 0 &&
-                c.actual_nights !== userNights
-              ) {
-                subLabel = `${c.actual_nights}n trip`;
-              }
-              // If the cached cheapest fare is for a different stay
-              // length than what the user asked for, metadata.ret
-              // should point to that actual return date — otherwise
-              // clicking would re-search with the user's intended
-              // nights and they'd see a price jump (e.g. cell shows
-              // £38 "5n trip" but click fires a 7n search → £80+).
-              // Honour the cache shape on click; main-search shape
-              // stays preserved on the selected cell.
-              const clickRet =
-                subLabel && c.actual_return ? c.actual_return : c.ret;
-              return {
-                id: c.dep,
-                label,
-                price: c.cheapest_price_gbp,
-                isSelected: c.dep === depDate && (c.ret || null) === (effectiveRet || null),
-                metadata: { dep: c.dep, ret: clickRet },
-                subLabel,
-              };
-            });
-            setDateStrip(mapped);
-            if (sData.scoutTip && typeof sData.scoutTip.price === 'number') {
-              setDateScoutTip(sData.scoutTip as ScoutTip);
+      setDateStripLoading(true);
+      setDateStrip([]);
+      setDateScoutTip(null);
+      try {
+        const stripParams = new URLSearchParams({
+          origin: originCode,
+          destination: destCode,
+          departure: depDate,
+          mode: 'datestrip',
+        });
+        if (retDate && tripType === 'return') stripParams.set('return', retDate);
+        if (baseHint !== null) stripParams.set('basePrice', String(Math.round(baseHint)));
+        const sRes = await fetch(`/api/flights?${stripParams}`);
+        const sData = await sRes.json();
+        if (sData.success && Array.isArray(sData.dates)) {
+          const effectiveRet = tripType === 'return' ? retDate : null;
+          const userNights = typeof sData.intendedNights === 'number' ? sData.intendedNights : null;
+          setIntendedNights(userNights);
+          type StripCell = {
+            dep: string;
+            ret: string | null;
+            cheapest_price_gbp: number | null;
+            actual_nights?: number | null;
+            actual_return?: string | null;
+          };
+          const mapped: MatrixOption[] = sData.dates.map((c: StripCell) => {
+            const d = new Date(c.dep + 'T00:00:00Z');
+            const r = c.ret ? new Date(c.ret + 'T00:00:00Z') : null;
+            const label = r
+              ? `${d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })} – ${r.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })}`
+              : d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+            let subLabel: string | undefined;
+            if (
+              userNights !== null &&
+              typeof c.actual_nights === 'number' &&
+              c.actual_nights > 0 &&
+              c.actual_nights !== userNights
+            ) {
+              subLabel = `${c.actual_nights}n trip`;
             }
+            const clickRet =
+              subLabel && c.actual_return ? c.actual_return : c.ret;
+            return {
+              id: c.dep,
+              label,
+              price: c.cheapest_price_gbp,
+              isSelected: c.dep === depDate && (c.ret || null) === (effectiveRet || null),
+              metadata: { dep: c.dep, ret: clickRet },
+              subLabel,
+            };
+          });
+          setDateStrip(mapped);
+          if (sData.scoutTip && typeof sData.scoutTip.price === 'number') {
+            setDateScoutTip(sData.scoutTip as ScoutTip);
           }
-        } catch {
-          // Silent fail — strip is a nice-to-have, not a hard requirement.
-        } finally {
-          setDateStripLoading(false);
         }
-      })();
-
-      // Scroll to results
-      setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-    } catch {
-      setApiError('Could not load flight prices. Please try again.');
-      setLoading(false);
+      } catch {
+        // Silent fail — strip is a nice-to-have, not a hard requirement.
+      } finally {
+        setDateStripLoading(false);
+      }
     }
   }, [originCode, destCode, depDate, retDate, adults, children, infants, tripType, cabinClass]);
 
@@ -1565,6 +1652,22 @@ function FlightsContent() {
       {/* ── Results ── */}
       {searched && !loading && flights !== null && (
         <div ref={resultsRef}>
+          {/* Scout live-poll chip: rendered while the v1 GDS poll is
+              active so the user sees progress instead of a silent wait. */}
+          {scoutActive && (
+            <section className="max-w-[1000px] mx-auto px-5 pt-6">
+              <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-2xl px-5 py-3">
+                <span className="inline-flex h-2.5 w-2.5 rounded-full bg-[#0066FF] animate-pulse" />
+                <span className="font-poppins font-semibold text-[.85rem] text-[#1A1D2B]">
+                  Scout is checking airlines…
+                  {scoutAirlineCount > 0 && (
+                    <span className="text-[#5C6378] font-semibold"> {scoutAirlineCount} found so far</span>
+                  )}
+                </span>
+              </div>
+            </section>
+          )}
+
           {/* Section 1: Price Summary Bar */}
           {cheapest && (
             <section className="max-w-[1000px] mx-auto px-5 pt-8 pb-4">
