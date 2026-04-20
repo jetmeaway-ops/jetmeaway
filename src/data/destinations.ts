@@ -139,7 +139,7 @@ export const DESTINATIONS: Destination[] = [
     country: 'Azerbaijan',
     iata: 'GYD',
     heroImage:
-      'https://images.unsplash.com/photo-1596394723269-b2cbca4e6e33?w=1600&h=900&fit=crop&fm=webp&q=80',
+      'https://upload.wikimedia.org/wikipedia/commons/b/b4/Panorama_of_night_Baku%2C_Azerbaijan_IMG_9682.jpg',
     tagline: 'Medieval walls, Caspian winds, and the Flame Towers on the skyline.',
     intro:
       'Baku is what you get when a medieval silk-road port earns oil money \u2014 a UNESCO-listed walled city wrapped inside a skyline of Zaha Hadid curves and 182-metre flame-shaped towers.',
@@ -195,7 +195,7 @@ export const DESTINATIONS: Destination[] = [
     metaDescription:
       'Scout Islamabad\u2019s best hiking trails and wellness spots. Book high-quality, private stays with deep neighborhood intelligence from JetMeAway.',
     heroImage:
-      'https://images.unsplash.com/photo-1715528533091-f2a05fd2aa9a?w=1600&h=900&fit=crop&fm=webp&q=80',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Faisal_Masjid_From_Damn_e_koh.jpg/1280px-Faisal_Masjid_From_Damn_e_koh.jpg',
     tagline: 'Faisal Mosque, Margalla foothills, and the cleanest capital in South Asia.',
     intro:
       'Islamabad is unlike the rest of Pakistan \u2014 a green, planned capital tucked against the Margalla Hills, home to the Faisal Mosque, foreign embassies, and the country\u2019s best air quality. With UK-Pakistan flights fully resumed after the April 17 ceasefire, Islamabad is back on the UK diaspora travel map.',
@@ -251,7 +251,7 @@ export const DESTINATIONS: Destination[] = [
     metaDescription:
       'Discover the best of Lahore. From wellness ecosystems to the fastest flight routes, get the neighborhood intel you need for a perfect stay.',
     heroImage:
-      'https://images.unsplash.com/photo-1563991655280-cb95c90ca2fb?w=1600&h=900&fit=crop&fm=webp&q=80',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e2/Badshahi_Mosquee%2C_Lahore.jpg/1280px-Badshahi_Mosquee%2C_Lahore.jpg',
     tagline: 'Mughal courtyards, chai at sunrise, and the food capital of Pakistan.',
     intro:
       'Lahore is the soul of Pakistan \u2014 700 years of Mughal history, the world\u2019s most opinionated food scene, and a morning culture that runs on strong doodh-patti chai before the city wakes. Where Islamabad is planned, Lahore is lived-in.',
@@ -307,7 +307,7 @@ export const DESTINATIONS: Destination[] = [
     metaDescription:
       'Explore Abu Dhabi\u2019s traditional rituals and modern luxury. Get expert intel on the best neighborhood stays for a high-quality 2026 trip.',
     heroImage:
-      'https://images.unsplash.com/photo-1582672060674-bc2bd808a8f5?w=1600&h=900&fit=crop&fm=webp&q=80',
+      'https://upload.wikimedia.org/wikipedia/en/thumb/a/a3/Sheikh_Zayed_Mosque_2022.jpg/1280px-Sheikh_Zayed_Mosque_2022.jpg',
     tagline: 'Slower than Dubai, richer in culture, and where the UAE actually lives.',
     intro:
       'Abu Dhabi is the UAE\u2019s quiet capital \u2014 the Sheikh Zayed Grand Mosque, the Louvre, desert stretches that start 20 minutes from the corniche, and a serious wellness scene built around beach clubs, yoga retreats, and 5am falcon-watching.',
@@ -358,7 +358,7 @@ export const DESTINATIONS: Destination[] = [
     metaDescription:
       'Scout Sharjah\u2019s hidden arts and culture scene. Your personal travel scout for high-quality stays and authentic local lifestyle integration.',
     heroImage:
-      'https://images.unsplash.com/photo-1590935217281-8f102120d683?w=1600&h=900&fit=crop&fm=webp&q=80',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/Al_Khan_Lagoon_by_Night.jpg/1280px-Al_Khan_Lagoon_by_Night.jpg',
     tagline: 'The UAE\u2019s cultural capital \u2014 museums, calligraphy, and no pretence.',
     intro:
       'Sharjah is the emirate that kept the culture. UNESCO named it Arab Capital of Culture for good reason \u2014 23 museums, the Heart of Sharjah restoration project, and a calligraphy museum that beats anything in Dubai. It\u2019s also the cheapest way to visit the UAE.',
@@ -460,7 +460,7 @@ export const DESTINATIONS: Destination[] = [
     metaDescription:
       'Get the neighborhood intel on Doha. Scout the best fitness ecosystems and high-quality stays for a private, authentic Qatar experience.',
     heroImage:
-      'https://images.unsplash.com/photo-1562167632-8fbb93bea547?w=1600&h=900&fit=crop&fm=webp&q=80',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Doha_Dhow_Harbour_Skyline_View_01.jpg/1280px-Doha_Dhow_Harbour_Skyline_View_01.jpg',
     tagline: 'Post-World Cup Doha \u2014 the Gulf\u2019s most ambitious city, still half-empty.',
     intro:
       'Doha spent \u00A3180 billion preparing for the 2022 World Cup and hasn\u2019t finished building. The Museum of Islamic Art is I.M. Pei\u2019s last great work, Souq Waqif is the best-preserved old market on the Gulf, and the city\u2019s Corniche running path is a genuine morning ritual.',
@@ -562,7 +562,7 @@ export const DESTINATIONS: Destination[] = [
     metaDescription:
       'Discover the \u201CLife\u201D in Marrakech. Scout the best morning rituals and hidden wellness spots with our deep neighborhood intelligence layer.',
     heroImage:
-      'https://images.unsplash.com/photo-1597212624219-c66d1e1e6bd2?w=1600&h=900&fit=crop&fm=webp&q=80',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Minaret_de_Marrakech.jpg/1280px-Minaret_de_Marrakech.jpg',
     tagline: 'Riads at sunrise, Atlas snow on the horizon, and a hammam every 300 metres.',
     intro:
       'Marrakech is the red city \u2014 a medina where 12th-century walls enclose a thousand alleyways, a new town (Gueliz) where Moroccan design meets French caf\u00E9 culture, and a riad tradition that turns guesthouses into sanctuaries around orange-tree courtyards.',
@@ -670,7 +670,7 @@ export const DESTINATIONS: Destination[] = [
     city: 'Sharm El Sheikh',
     country: 'Egypt',
     iata: 'SSH',
-    heroImage: 'https://images.unsplash.com/photo-1590133324192-7d16dfb1ff64?auto=format&fit=crop&w=1600&q=80',
+    heroImage: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Sharm_El_Sheikh._Naama_Bay..jpg/1280px-Sharm_El_Sheikh._Naama_Bay..jpg',
     tagline: 'Red Sea reef walks, desert-sunrise runs and thermal-salt bathing on Sinai\u2019s wellness coast.',
     intro:
       'Sharm El Sheikh is the UK\u2019s favourite winter-sun escape \u2014 a five-hour hop to 27\u00B0C, some of the world\u2019s clearest reef diving, and a growing wellness scene built around Bedouin breathwork, Sinai salt caves and sunrise desert PT. Naama Bay handles the nightlife; Nabq and Sharks Bay handle the quiet coral-edged mornings.',
@@ -736,7 +736,7 @@ export const DESTINATIONS: Destination[] = [
     city: 'Lisbon',
     country: 'Portugal',
     iata: 'LIS',
-    heroImage: 'https://images.unsplash.com/photo-1588535850824-a34cf0c8e2b8?auto=format&fit=crop&w=1600&q=80',
+    heroImage: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/Torre_Bel%C3%A9m_April_2009-4a.jpg/1280px-Torre_Bel%C3%A9m_April_2009-4a.jpg',
     tagline: 'Atlantic surf sunrises, tram-line coffee rituals and seven-hill wellness walks on Europe\u2019s west edge.',
     intro:
       'Lisbon has quietly become the UK\u2019s favourite short-haul city \u2014 2h 40m flights, 20\u00B0C in February, and a wellness culture built on Atlantic surf dawns at Costa da Caparica, pastel de nata breakfasts, and the seven-hill walks that double as free stair-master sessions.',
@@ -764,7 +764,7 @@ export const DESTINATIONS: Destination[] = [
     city: 'Baden-Baden',
     country: 'Germany',
     iata: 'FKB',
-    heroImage: 'https://images.unsplash.com/photo-1587974928442-77dc3e0dba72?auto=format&fit=crop&w=1600&q=80',
+    heroImage: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Baden-Baden-Kurhaus-27-2021-gje.jpg/1280px-Baden-Baden-Kurhaus-27-2021-gje.jpg',
     tagline: 'Black Forest bathing, Belle \u00C9poque spa rituals and the elite wellness capital of Europe.',
     intro:
       'Baden-Baden is where European aristocracy came to recover for 200 years \u2014 thermal springs, Roman baths, forest trails, and Friedrichsbad, the 1877 Irish-Roman bath house where you still move through 17 textile-free stations in silence. The UK discovered it late, which is why it still feels like a secret.',
@@ -820,7 +820,7 @@ export const DESTINATIONS: Destination[] = [
     city: 'Porto',
     country: 'Portugal',
     iata: 'OPO',
-    heroImage: 'https://images.unsplash.com/photo-1555990538-17392d4487b8?auto=format&fit=crop&w=1600&q=80',
+    heroImage: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Porto3flat-cc-contr-oliv1002_edit2.jpg/1920px-Porto3flat-cc-contr-oliv1002_edit2.jpg',
     tagline: 'Douro river sunrise walks, tiled-church coffee rituals and Atlantic-edge wellness stays.',
     intro:
       'Porto is Lisbon\u2019s quieter northern sibling \u2014 half the price, twice the character. The Douro river cuts the city in two, port lodges line the south bank, and the Atlantic surf at Matosinhos is 20 minutes by tram. Francesinha is the comfort food; sunrise on the Dom Lu\u00EDs bridge is the free ritual.',
