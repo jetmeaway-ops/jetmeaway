@@ -206,12 +206,11 @@ function normaliseProposal(p: TPProposal): NormalisedFlight | null {
   let price = Infinity;
   for (const t of Object.values(terms)) {
     const cur = (t.currency || '').toLowerCase();
-    let candidate: number | undefined;
-    if (typeof t.unified_price === 'number' && (cur === 'gbp' || cur === '')) {
-      candidate = t.unified_price;
-    } else if (typeof t.price === 'number' && cur === 'gbp') {
-      candidate = t.price;
-    }
+    // Strict: only accept when the gate confirms GBP. An empty/absent
+    // currency is treated as untrusted — those are the gates leaking
+    // RUB defaults (Etihad EY, Saudia SV, Pegasus PC on LON routes).
+    if (cur !== 'gbp') continue;
+    const candidate = typeof t.unified_price === 'number' ? t.unified_price : t.price;
     if (typeof candidate === 'number' && candidate < price) price = candidate;
   }
   if (!Number.isFinite(price)) return null;
