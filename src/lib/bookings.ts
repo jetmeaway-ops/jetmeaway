@@ -19,6 +19,7 @@ export type Supplier =
   | 'liteapi'
   | 'ratehawk'
   | 'webbeds'
+  | 'dotw'
   | 'duffel'
   | 'airgateway'
   | 'affiliate';
@@ -381,6 +382,7 @@ export function supplierLabel(s: Supplier): string {
     liteapi: 'LiteAPI',
     ratehawk: 'RateHawk',
     webbeds: 'WebBeds',
+    dotw: 'DOTW',
     duffel: 'Duffel',
     airgateway: 'AirGateway',
     affiliate: 'Affiliate',

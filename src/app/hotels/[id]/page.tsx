@@ -427,7 +427,7 @@ export default function HotelDetailPage() {
                     id: hotel.id,
                     name: hotel.name,
                     stars: hotel.stars || 0,
-                    pricePerNight: selectedRate?.pricePerNight ?? (price || 0),
+                    pricePerNight: selectedRate?.pricePerNight ?? (Number(price) || 0),
                     currency: currency || 'GBP',
                     lat: hotel.latitude,
                     lng: hotel.longitude,

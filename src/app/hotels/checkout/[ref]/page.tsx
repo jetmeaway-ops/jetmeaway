@@ -1,8 +1,17 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
-import StripeCardForm from '@/components/StripeCardForm';
+
+// Lazy-load StripeCardForm so @stripe/react-stripe-js (and js.stripe.com)
+// is NEVER pulled in on LiteAPI checkouts. If loaded eagerly, Stripe's new
+// "dahlia" bundle gets fetched, and LiteAPI's own SDK then blows up with
+// `Unsupported on version [dahlia]: Can not provide apiVersion to Stripe()`
+// because their wrapper still passes apiVersion to Stripe().
+const StripeCardForm = dynamic(() => import('@/components/StripeCardForm'), {
+  ssr: false,
+});
 
 interface PendingSummary {
   ref: string;

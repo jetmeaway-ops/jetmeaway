@@ -7,8 +7,71 @@ import {
   dotwRoomsToDetail,
   dotwConfirmToBookingRef,
 } from '@/lib/suppliers/dotw-adapter';
+import { upsertBooking, type Booking, type Supplier } from '@/lib/bookings';
 import type { PendingBooking } from '../start-booking/route';
 import type { PendingGuest } from '../pending/[ref]/guest/route';
+
+/**
+ * Mirror a hotel booking into the unified admin-facing bookings store.
+ *
+ * We call this twice: once when the booking succeeds (status='confirmed') and
+ * once inside each failure helper (status='failed'). The LiteAPI webhook at
+ * /api/webhooks/liteapi then picks up later status changes (cancel, refund,
+ * supplier modification) by matching on `id === clientReference` or
+ * `supplierRef === liteapiBookingId`. So this call is the *initial write* —
+ * without it the webhook has nothing to update.
+ *
+ * Margin is left at 0 for this first pass. LiteAPI's prebook response carries
+ * a commission figure we could wire through later; for now the admin shows
+ * revenue-only and marks margin as "not tracked yet".
+ */
+async function mirrorToUnified(
+  record: PendingBooking & { guest: PendingGuest },
+  opts: {
+    status: Booking['status'];
+    supplierRef: string | null;
+    notes: string;
+    paymentStatus?: Booking['paymentStatus'];
+  },
+): Promise<void> {
+  try {
+    const supplier: Supplier = record.supplier === 'dotw' ? 'dotw' : 'liteapi';
+    const totalPence = Math.round(record.totalPrice * 100);
+    const guestName =
+      `${record.guest.firstName || ''} ${record.guest.lastName || ''}`.trim() || 'Guest';
+    const destination = record.city || '';
+    const nowIso = new Date().toISOString();
+
+    const booking: Booking = {
+      id: record.ref, // JMA-H-XXXXXXXX — matches clientReference sent to supplier
+      type: 'hotel',
+      supplier,
+      supplierRef: opts.supplierRef,
+      status: opts.status,
+      customerName: guestName,
+      customerEmail: record.guest.email || '',
+      customerPhone: record.guest.phone || null,
+      destination,
+      checkIn: record.checkIn || null,
+      checkOut: record.checkOut || null,
+      guests: record.adults + (record.children || 0),
+      title: record.hotelName,
+      totalPence,
+      netPence: 0,
+      marginPence: 0,
+      stripePaymentId: record.stripePaymentIntentId || null,
+      paymentStatus: opts.paymentStatus ?? 'paid',
+      createdAt: nowIso,
+      updatedAt: nowIso,
+      notes: opts.notes,
+    };
+
+    await upsertBooking(booking);
+  } catch (err) {
+    // Admin-store write failing must never break the customer-facing flow.
+    console.error('[hotels/book] mirrorToUnified failed', err);
+  }
+}
 
 // Node runtime — LiteAPI book can take 15-25s, DOTW block→confirm must
 // complete inside 3 minutes with MD5+gzip via `node:crypto`/`node:zlib`.
@@ -156,6 +219,13 @@ export async function POST(req: NextRequest) {
     };
     await kv.set(`pending-booking:${ref}`, updated, { ex: 30 * 24 * 60 * 60 });
 
+    // Mirror to admin-facing bookings store so /admin sees the booking.
+    await mirrorToUnified(record as PendingBooking & { guest: PendingGuest }, {
+      status: 'confirmed',
+      supplierRef: booking.bookingId,
+      notes: `LiteAPI confirmed. Hotel confirmation: ${booking.hotelConfirmationCode ?? 'pending'}`,
+    });
+
     return NextResponse.json({
       success: true,
       booking: {
@@ -173,6 +243,13 @@ export async function POST(req: NextRequest) {
         await kv.set(`pending-booking:${ref}`, { ...cur, state: 'failed', error: message }, { ex: 24 * 60 * 60 });
       }
     } catch { /* KV update failure is ok */ }
+
+    // Mirror the failure so admin can see failed bookings too (useful for triage).
+    await mirrorToUnified(record as PendingBooking & { guest: PendingGuest }, {
+      status: 'failed',
+      supplierRef: null,
+      notes: `LiteAPI book failed: ${message}`,
+    });
 
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
@@ -197,6 +274,13 @@ async function bookDotw(
     } catch { /* noop */ }
     // Auto-refund the Stripe charge we captured at checkout.
     await refundPaymentIntent(record.stripePaymentIntentId, reason);
+    // Mirror the failure + auto-refund into the unified store so admin sees it.
+    await mirrorToUnified(record, {
+      status: 'refunded',
+      supplierRef: null,
+      notes: `DOTW book failed and auto-refunded: ${reason}`,
+      paymentStatus: 'refunded',
+    });
     return NextResponse.json({ success: false, error: reason }, { status: httpStatus });
   };
 
@@ -278,6 +362,13 @@ async function bookDotw(
       dotwAllocationDetails: undefined,
     };
     await kv.set(`pending-booking:${ref}`, updated, { ex: 30 * 24 * 60 * 60 });
+
+    // Mirror to admin-facing bookings store so /admin sees the booking.
+    await mirrorToUnified(record, {
+      status: 'confirmed',
+      supplierRef: confirmed.bookingRef,
+      notes: `DOTW confirmed (${confirmed.status})`,
+    });
 
     return NextResponse.json({
       success: true,
