@@ -116,6 +116,9 @@ export async function initSearch(input: InitSearchInput): Promise<InitSearchResu
     host: TP_HOST,
     user_ip: input.userIp || '127.0.0.1',
     locale: 'en',
+    // Force GBP so TP returns prices in pounds — default currency for
+    // this marker is RUB, which leaks through as ~£64k "prices" on the UI.
+    currency: 'gbp',
     trip_class: input.tripClass || 'Y',
     passengers: {
       adults: input.passengers.adults,
