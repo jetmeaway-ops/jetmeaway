@@ -938,6 +938,92 @@ export async function bookWithTransactionId(params: {
 }
 
 /* ───────────────────────────────────────────────────────────────────────── */
+/*  BOOKING — retrieve (supplier side of truth)                              */
+/* ───────────────────────────────────────────────────────────────────────── */
+
+export interface SupplierBookingSnapshot {
+  ok: boolean;
+  httpStatus: number;
+  status: string | null;
+  hotelConfirmationCode: string | null;
+  checkin: string | null;
+  checkout: string | null;
+  price: number | null;
+  currency: string | null;
+  guestName: string | null;
+  raw: unknown;
+  error?: string;
+}
+
+/**
+ * Retrieve a single booking from LiteAPI by its booking id. Used for
+ * reconciliation — we call this for every supplierRef we have on record
+ * so we can confirm what LiteAPI actually holds against our account.
+ */
+export async function getBookingFromSupplier(
+  bookingId: string,
+): Promise<SupplierBookingSnapshot> {
+  const empty: SupplierBookingSnapshot = {
+    ok: false,
+    httpStatus: 0,
+    status: null,
+    hotelConfirmationCode: null,
+    checkin: null,
+    checkout: null,
+    price: null,
+    currency: null,
+    guestName: null,
+    raw: null,
+  };
+  if (!bookingId) return { ...empty, error: 'bookingId required' };
+  try {
+    const res = await fetch(
+      `${baseUrl()}/bookings/${encodeURIComponent(bookingId)}`,
+      {
+        method: 'GET',
+        headers: { 'X-API-Key': apiKey(), Accept: 'application/json' },
+        cache: 'no-store',
+      },
+    );
+    const text = await res.text().catch(() => '');
+    let body: any = null;
+    try { body = text ? JSON.parse(text) : null; } catch { /* noop */ }
+
+    if (!res.ok) {
+      return {
+        ...empty,
+        httpStatus: res.status,
+        raw: body || text,
+        error: `LiteAPI ${res.status}: ${text.slice(0, 300)}`,
+      };
+    }
+    const data = body?.data ?? body ?? {};
+    const guest = data.holder || data.guest || data.holderName || {};
+    const guestName =
+      [guest.firstName, guest.lastName].filter(Boolean).join(' ') ||
+      guest.name ||
+      null;
+    return {
+      ok: true,
+      httpStatus: res.status,
+      status: data.status ?? null,
+      hotelConfirmationCode: data.hotelConfirmationCode ?? data.confirmationCode ?? null,
+      checkin: data.checkin ?? null,
+      checkout: data.checkout ?? null,
+      price: typeof data.price === 'number' ? data.price : null,
+      currency: data.currency ?? null,
+      guestName,
+      raw: body,
+    };
+  } catch (err) {
+    return {
+      ...empty,
+      error: err instanceof Error ? err.message : 'retrieve failed',
+    };
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────────────── */
 /*  BOOKING — cancel                                                         */
 /* ───────────────────────────────────────────────────────────────────────── */
 
