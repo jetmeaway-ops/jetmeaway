@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
 
   const signedBody = {
     marker: '714449',
-    host: 'jetmeaway.co.uk',
+    host: req.nextUrl.searchParams.get('host') || 'jetmeaway.co.uk',
     user_ip: req.nextUrl.searchParams.get('ip') || '8.8.8.8',
     locale: 'en',
     trip_class: 'Y',
