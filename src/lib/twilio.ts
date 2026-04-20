@@ -16,13 +16,25 @@ const TWILIO_FROM = process.env.TWILIO_FROM || '';
 const TWILIO_SENDER_ID = process.env.TWILIO_SENDER_ID || '';
 
 /**
- * Normalise a phone string to E.164 (keeps leading +, strips whitespace/dashes/parens).
- * Returns null if the result isn't a plausible E.164 number.
+ * Normalise a phone string to E.164.
+ *
+ * Handles three common UK customer inputs plus generic E.164:
+ *   - "+447432820415" / "+1..."  → accepted as-is
+ *   - "07432820415"              → coerced to "+447432820415" (UK local)
+ *   - "00447432820415"           → coerced to "+447432820415" (int dial prefix)
+ *
+ * Returns null if the result isn't a plausible E.164 number. This matters
+ * because Twilio rejects non-E.164 destinations and silently dropped UK
+ * customers entering their mobile without country code.
  */
 function toE164(raw: string | null | undefined): string | null {
   if (!raw) return null;
   const cleaned = raw.replace(/[\s\-()]/g, '');
   if (/^\+[1-9]\d{6,14}$/.test(cleaned)) return cleaned;
+  // UK local — 11 digits starting with 0 (e.g. mobile 07..., landline 01..., 02...)
+  if (/^0\d{10}$/.test(cleaned)) return `+44${cleaned.slice(1)}`;
+  // International dialling prefix form e.g. 0044...
+  if (/^00[1-9]\d{6,14}$/.test(cleaned)) return `+${cleaned.slice(2)}`;
   return null;
 }
 
