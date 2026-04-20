@@ -863,17 +863,17 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
             <h3 className="font-[var(--font-playfair)] font-black text-[1.2rem] text-[#0a1628] tracking-tight mb-1 leading-tight">{h.name}</h3>
             {h.district && <p className="text-[.75rem] text-[#8E95A9] font-semibold mb-1">📍 {h.district}</p>}
             {(milesFromCentre != null || milesFromAirport != null) && (
-              <p className="text-[.72rem] text-[#5C6378] font-semibold mb-2 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <p className="text-[.72rem] text-[#287DFA] font-semibold mb-2 flex flex-wrap items-center gap-x-2 gap-y-0.5">
                 {milesFromCentre != null && (
                   <span className="inline-flex items-center gap-1">
-                    <i className="fa-solid fa-location-dot text-[.62rem] text-orange-500" />
+                    <i className="fa-solid fa-location-dot text-[.62rem] text-[#287DFA]" />
                     {fmtMi(milesFromCentre)} mi from centre
                   </span>
                 )}
-                {milesFromCentre != null && milesFromAirport != null && <span className="text-[#D1D5DB]">·</span>}
+                {milesFromCentre != null && milesFromAirport != null && <span className="text-[#287DFA]/40">·</span>}
                 {milesFromAirport != null && airport && (
                   <span className="inline-flex items-center gap-1">
-                    <i className="fa-solid fa-plane text-[.62rem] text-orange-500" />
+                    <i className="fa-solid fa-plane text-[.62rem] text-[#287DFA]" />
                     {fmtMi(milesFromAirport)} mi from {airport.iata}
                   </span>
                 )}

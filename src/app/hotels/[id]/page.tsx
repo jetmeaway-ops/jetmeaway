@@ -2,11 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { redirectUrl } from '@/lib/redirect';
 import RoomsTable, { type RoomRate } from './RoomsTable';
 import RoomsSkeleton from './RoomsSkeleton';
+
+// Leaflet touches `window` on import, so SSR must be disabled.
+const HotelMap = dynamic(() => import('@/components/HotelMap'), { ssr: false });
 
 interface HotelDetails {
   id: string;
@@ -407,6 +411,31 @@ export default function HotelDetailPage() {
                 <p className="text-[.88rem] text-[#5C6378] font-medium leading-relaxed whitespace-pre-line">
                   {hotel.description.slice(0, 1200)}{hotel.description.length > 1200 ? '…' : ''}
                 </p>
+              </section>
+            )}
+
+            {typeof hotel.latitude === 'number' && typeof hotel.longitude === 'number' && (
+              <section className="bg-white border border-[#E8ECF4] rounded-2xl p-6 mb-5">
+                <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-3">Location</h2>
+                {hotel.address && (
+                  <p className="text-[.82rem] text-[#5C6378] font-semibold mb-3">
+                    {hotel.address}{hotel.city ? `, ${hotel.city}` : ''}
+                  </p>
+                )}
+                <HotelMap
+                  hotels={[{
+                    id: hotel.id,
+                    name: hotel.name,
+                    stars: hotel.stars || 0,
+                    pricePerNight: selectedRate?.pricePerNight ?? (price || 0),
+                    currency: currency || 'GBP',
+                    lat: hotel.latitude,
+                    lng: hotel.longitude,
+                    href: '#',
+                  }]}
+                  centerLat={hotel.latitude}
+                  centerLng={hotel.longitude}
+                />
               </section>
             )}
 
