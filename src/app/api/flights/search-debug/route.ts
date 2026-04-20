@@ -7,7 +7,7 @@ export const runtime = 'edge';
    string we feed into md5() plus the resulting signature, so we can
    eyeball the order and the token concat. Delete once v1 auth works. */
 
-const TP_TOKEN = 'f797fbb7074a15838d5536c10be6f7b5';
+const TP_TOKEN = 'cd373aa9b3cb3e9d84b7a45640adca15';
 
 function collectSignedValues(node: unknown, out: string[]): void {
   if (node === null || node === undefined) return;

@@ -29,7 +29,7 @@
 
 import { md5 } from './md5';
 
-const TP_TOKEN = process.env.TRAVELPAYOUTS_API_TOKEN || 'f797fbb7074a15838d5536c10be6f7b5';
+const TP_TOKEN = process.env.TRAVELPAYOUTS_API_TOKEN || 'cd373aa9b3cb3e9d84b7a45640adca15';
 const TP_MARKER = process.env.TRAVELPAYOUTS_MARKER || '714449';
 const TP_HOST = 'jetmeaway.co.uk';
 
