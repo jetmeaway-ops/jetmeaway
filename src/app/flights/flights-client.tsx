@@ -1097,6 +1097,52 @@ function FlightsContent() {
     setScoutActive(false);
     setScoutAirlineCount(0);
 
+    // Shared across the v1 poll + the Duffel parallel arm so Duffel
+    // offers (which carry offer_id for direct booking) always win for
+    // the same flight key — v1 GDS entries never overwrite them.
+    const mergedByKey = new Map<string, FlightResult>();
+
+    // ── Fire Duffel + v3 cached in parallel via the original endpoint.
+    // Duffel direct-bookable offers must still appear alongside the new
+    // v1 GDS coverage. Non-awaited — merges into results as soon as it
+    // resolves.
+    const duffelParams = new URLSearchParams({
+      origin: originCode,
+      destination: destCode,
+      departure: depDate,
+      adults: String(adults),
+    });
+    if (children > 0) duffelParams.set('children', String(children));
+    if (infants > 0) duffelParams.set('infants', String(infants));
+    if (cabinClass !== 'economy') duffelParams.set('cabin', cabinClass);
+    if (retDate && tripType === 'return') duffelParams.set('return', retDate);
+
+    const duffelPromise = fetch(`/api/flights?${duffelParams}`)
+      .then(r => r.json())
+      .then((data: { flights?: FlightResult[]; error?: string }) => {
+        if (!data || data.error || !data.flights) return;
+        for (const f of data.flights) {
+          const depDay = (f.departure_at || '').slice(0, 10);
+          const key = f.flight_number
+            ? `${f.flight_number}-${depDay}`
+            : `${f.airlineCode}-${depDay}-${f.duration_to}`;
+          const existing = mergedByKey.get(key);
+          // Pure cheapest-wins so Duffel's "premium" fare never hides a
+          // cheaper v1 GDS fare for the same flight. Tie-break goes to
+          // Duffel (direct-bookable) only when prices are equal.
+          if (!existing) { mergedByKey.set(key, f); continue; }
+          if (f.price < existing.price) { mergedByKey.set(key, f); continue; }
+          if (f.price === existing.price && f.source === 'duffel' && !existing.offer_id) {
+            mergedByKey.set(key, f);
+          }
+        }
+        // Render immediately if v1 hasn't surfaced anything yet.
+        const merged = Array.from(mergedByKey.values()).sort((a, b) => a.price - b.price).slice(0, 30);
+        setFlights(merged);
+        setScoutAirlineCount(new Set(merged.map(f => f.airlineCode)).size);
+      })
+      .catch(() => { /* v1 will carry the search on its own */ });
+
     try {
       // ── Kick off a TP v1 async search. This actively queries GDS agents
       // (Amadeus, Sabre…) — unlike v3's cached-only endpoint — so carriers
@@ -1118,9 +1164,15 @@ function FlightsContent() {
       const initData = await initRes.json();
 
       if (!initRes.ok || !initData.searchId) {
-        // Fall back silently to v3 cached path so users never see an
-        // empty results page just because the v1 init misfired.
-        await searchV3Fallback();
+        // v1 init misfired — wait for Duffel to land, then fall back to
+        // v3 only if Duffel also came up empty.
+        await duffelPromise;
+        if (mergedByKey.size === 0) {
+          await searchV3Fallback();
+          return;
+        }
+        setLoading(false);
+        setScoutActive(false);
         return;
       }
 
@@ -1131,7 +1183,6 @@ function FlightsContent() {
       // ── Polling loop. Poll on a rising cadence (0.8s → 1.5s) to catch
       // fast NDC results early without hammering the edge function for
       // slower GDS stragglers. Cap at 20s total.
-      const mergedByKey = new Map<string, FlightResult>();
       const pollDelays = [800, 1200, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500];
       const startedAt = Date.now();
       let consecutiveEmptyDeltas = 0;
@@ -1152,8 +1203,9 @@ function FlightsContent() {
             ? `${f.flight_number}-${depDay}`
             : `${f.airlineCode}-${depDay}-${f.duration_to}`;
           const existing = mergedByKey.get(key);
-          // Stick with the lower price when an agent returns the same
-          // flight later in the poll — Scout's "cheapest wins" rule.
+          // Pure cheapest-wins: a Duffel offer can still be displaced
+          // if v1 finds the same flight at a cheaper GDS fare. We lose
+          // direct-book on that row but never quote a higher price.
           if (!existing || f.price < existing.price) mergedByKey.set(key, f);
         }
 
@@ -1174,12 +1226,24 @@ function FlightsContent() {
 
       setScoutActive(false);
 
-      // If TP v1 returned nothing (rare on niche routes), fall back to
-      // the v3 cached path so we still show SOMETHING useful.
+      // Give Duffel a final moment to land before deciding whether to
+      // fall back — its offers should be merged into the same results
+      // list when they arrive late.
+      await duffelPromise;
+
+      // If TP v1 AND Duffel both returned nothing (rare on niche
+      // routes), fall back to the v3 cached path so we still show
+      // SOMETHING useful.
       if (mergedByKey.size === 0) {
         await searchV3Fallback();
         return;
       }
+
+      // Re-render once after the final Duffel merge so late-arriving
+      // bookable offers appear in the list.
+      const finalMerged = Array.from(mergedByKey.values()).sort((a, b) => a.price - b.price).slice(0, 30);
+      setFlights(finalMerged);
+      setScoutAirlineCount(new Set(finalMerged.map(f => f.airlineCode)).size);
 
       // Fire the date-strip now that the main results have landed.
       void loadDateStrip(Array.from(mergedByKey.values())[0]?.price ?? null);
@@ -1188,10 +1252,17 @@ function FlightsContent() {
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
       return;
     } catch {
-      // v1 failed entirely — fall back to v3 cached. This ensures the
-      // ONE thing a user never sees is a blank results page due to a
-      // transient TP hiccup.
-      await searchV3Fallback();
+      // v1 failed entirely — wait on Duffel and fall back to v3 cached
+      // only if Duffel also came up empty. This ensures the ONE thing
+      // a user never sees is a blank results page due to a transient
+      // TP hiccup.
+      await duffelPromise;
+      if (mergedByKey.size === 0) {
+        await searchV3Fallback();
+        return;
+      }
+      setLoading(false);
+      setScoutActive(false);
       return;
     }
 
