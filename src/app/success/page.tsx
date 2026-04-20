@@ -1,8 +1,57 @@
 import { kv } from '@vercel/kv';
 import { bookWithTransactionId, completeBooking } from '@/lib/liteapi';
 import { sendSms, hotelBookingMessage } from '@/lib/twilio';
+import { upsertBooking, type Booking } from '@/lib/bookings';
 import type { PendingBooking } from '@/app/api/hotels/start-booking/route';
 import type { PendingGuest } from '@/app/api/hotels/pending/[ref]/guest/route';
+
+/**
+ * Mirror a /success-path LiteAPI booking into the unified admin store so the
+ * admin dashboard sees it. Matches the shape used by /api/hotels/book's
+ * own mirrorToUnified — keeping the two in sync is a known sharp edge.
+ * Never throws — admin-store write failing must not break the success page.
+ */
+async function mirrorToAdminStore(
+  record: StoredBooking,
+  opts: {
+    status: Booking['status'];
+    supplierRef: string | null;
+    notes: string;
+    paymentStatus?: Booking['paymentStatus'];
+  },
+): Promise<void> {
+  try {
+    const guestName =
+      `${record.guest?.firstName || ''} ${record.guest?.lastName || ''}`.trim() || 'Guest';
+    const nowIso = new Date().toISOString();
+    const booking: Booking = {
+      id: record.ref,
+      type: 'hotel',
+      supplier: 'liteapi',
+      supplierRef: opts.supplierRef,
+      status: opts.status,
+      customerName: guestName,
+      customerEmail: record.guest?.email || '',
+      customerPhone: record.guest?.phone || null,
+      destination: record.city || '',
+      checkIn: record.checkIn || null,
+      checkOut: record.checkOut || null,
+      guests: (record.adults || 0) + (record.children || 0),
+      title: record.hotelName,
+      totalPence: Math.round((record.totalPrice || 0) * 100),
+      netPence: 0,
+      marginPence: 0,
+      stripePaymentId: record.stripePaymentIntentId || null,
+      paymentStatus: opts.paymentStatus ?? 'paid',
+      createdAt: nowIso,
+      updatedAt: nowIso,
+      notes: opts.notes,
+    };
+    await upsertBooking(booking);
+  } catch (err) {
+    console.error('[/success] mirrorToAdminStore failed', err);
+  }
+}
 
 // LiteAPI prebook+book can take 15–25s. Give the whole flow 60s.
 export const maxDuration = 60;
@@ -318,8 +367,15 @@ async function finalisePaymentSdk(
     return { ok: false, error: 'Booking record not found or expired. Please contact contact@jetmeaway.co.uk with your reference.' };
   }
 
-  // Idempotency: already confirmed
+  // Idempotency: already confirmed. Still mirror to admin store so that
+  // bookings confirmed before the admin-mirror fix land in the dashboard
+  // when the user (or a retry) re-hits /success.
   if (record.state === 'confirmed' && record.liteapiBookingId) {
+    await mirrorToAdminStore(record, {
+      status: 'confirmed',
+      supplierRef: record.liteapiBookingId,
+      notes: `LiteAPI confirmed. Hotel confirmation: ${record.liteapiConfirmationCode ?? 'pending'}`,
+    });
     return { ok: true, booking: record };
   }
 
@@ -370,6 +426,11 @@ async function finalisePaymentSdk(
         liteapiConfirmationCode: booking.hotelConfirmationCode ?? null,
       };
       await kv.set(`pending-booking:${ref}`, updated, { ex: 30 * 24 * 60 * 60 });
+      await mirrorToAdminStore(updated, {
+        status: 'confirmed',
+        supplierRef: booking.bookingId,
+        notes: `LiteAPI confirmed. Hotel confirmation: ${booking.hotelConfirmationCode ?? 'pending'}`,
+      });
       return { ok: true, booking: updated };
     } catch (err: unknown) {
       lastError = err instanceof Error ? err.message : 'Unknown error';
@@ -383,6 +444,11 @@ async function finalisePaymentSdk(
   // All attempts failed
   const updated: StoredBooking = { ...record, state: 'failed', error: lastError };
   await kv.set(`pending-booking:${ref}`, updated, { ex: 24 * 60 * 60 });
+  await mirrorToAdminStore(updated, {
+    status: 'failed',
+    supplierRef: null,
+    notes: `LiteAPI book failed: ${lastError}`,
+  });
 
   // Alert owner via SMS
   try {
