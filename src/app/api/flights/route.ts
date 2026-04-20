@@ -128,7 +128,15 @@ async function searchDuffel(
 
 /** Transform Duffel offers into our standardised flight format (with markup) */
 function transformDuffelOffers(offers: any[], paxCount: number): any[] {
-  return offers.slice(0, 15).map((offer: any) => {
+  // Sort by total amount ascending FIRST so airline variety (PK, EY,
+  // smaller carriers) isn't truncated when Duffel returns an unsorted
+  // batch dominated by one carrier.
+  const sorted = [...offers].sort((a, b) => {
+    const pa = parseFloat(a.total_amount || '0');
+    const pb = parseFloat(b.total_amount || '0');
+    return pa - pb;
+  });
+  return sorted.slice(0, 50).map((offer: any) => {
     const outSlice = offer.slices?.[0];
     const retSlice = offer.slices?.[1] || null;
 
