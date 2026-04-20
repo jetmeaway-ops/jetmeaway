@@ -938,6 +938,70 @@ export async function bookWithTransactionId(params: {
 }
 
 /* ───────────────────────────────────────────────────────────────────────── */
+/*  BOOKING — cancel                                                         */
+/* ───────────────────────────────────────────────────────────────────────── */
+
+export interface CancelResult {
+  ok: boolean;
+  status: string | null;
+  refundAmount: number | null;
+  raw: unknown;
+  error?: string;
+}
+
+/**
+ * Cancel an existing LiteAPI booking. Calls PUT /bookings/{id} with a
+ * cancellation payload — that's the v3.0 documented pattern.
+ *
+ * Returns a structured result rather than throwing, so admin callers can
+ * still mark the booking as cancelled in our store even if LiteAPI refuses
+ * (past deadline, already cancelled, etc.) — the error is captured for
+ * display in the admin notes.
+ */
+export async function cancelBooking(bookingId: string): Promise<CancelResult> {
+  if (!bookingId) return { ok: false, status: null, refundAmount: null, raw: null, error: 'bookingId required' };
+  try {
+    const res = await fetch(`${baseUrl()}/bookings/${encodeURIComponent(bookingId)}`, {
+      method: 'PUT',
+      headers: {
+        'X-API-Key': apiKey(),
+        'Accept': 'application/json',
+      },
+      cache: 'no-store',
+    });
+    const bodyText = await res.text().catch(() => '');
+    let body: any = null;
+    try { body = bodyText ? JSON.parse(bodyText) : null; } catch { /* noop */ }
+
+    if (!res.ok) {
+      return {
+        ok: false,
+        status: null,
+        refundAmount: null,
+        raw: body || bodyText,
+        error: `LiteAPI ${res.status}: ${bodyText.slice(0, 300)}`,
+      };
+    }
+
+    const data = body?.data ?? body ?? {};
+    return {
+      ok: true,
+      status: data.status ?? 'cancelled',
+      refundAmount: typeof data.refundAmount === 'number' ? data.refundAmount : null,
+      raw: body,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      status: null,
+      refundAmount: null,
+      raw: null,
+      error: err instanceof Error ? err.message : 'cancel failed',
+    };
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────────────── */
 /*  BOOKING — completeBooking (legacy Stripe/ACC_CREDIT_CARD flow)           */
 /* ───────────────────────────────────────────────────────────────────────── */
 

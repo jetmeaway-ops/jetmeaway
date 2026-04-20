@@ -10,6 +10,7 @@ import {
   supplierLabel,
   typeIcon,
 } from '@/lib/bookings';
+import CancelButton from './CancelButton';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -150,13 +151,10 @@ export default async function BookingDetail({
           >
             Send SMS
           </button>
-          <button
-            disabled
-            className="px-4 py-2 border border-gray-300 rounded-xl text-sm text-[#5C6378] hover:bg-gray-50 disabled:opacity-50"
-            title="Coming soon"
-          >
-            Request cancellation
-          </button>
+          <CancelButton
+            bookingRef={b.id}
+            disabled={b.status === 'cancelled' || b.status === 'refunded'}
+          />
           <button
             disabled
             className="px-4 py-2 border border-gray-300 rounded-xl text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
@@ -166,7 +164,7 @@ export default async function BookingDetail({
           </button>
         </div>
         <p className="text-xs text-[#8E95A9] mt-3">
-          Actions become active once supplier APIs are connected post-onboarding.
+          Cancellation calls LiteAPI. Email/SMS resend and refunds are not yet wired up.
         </p>
       </div>
     </div>
