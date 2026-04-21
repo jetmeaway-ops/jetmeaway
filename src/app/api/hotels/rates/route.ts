@@ -53,6 +53,15 @@ type BoardOptionOut = {
   /** Phase-3: per-row Scout Deal signal (negotiated only when strictly < market) */
   negotiatedPrice?: number | null;
   marketPrice?: number | null;
+  /** Phase-4: per-row property-payable taxes (city tax / VAT) — shown as an
+   *  honest grand-total line in the RoomsTable UI */
+  excludedTaxes?: number | null;
+  /** v2-plan step-2: ISO timestamp for when free cancellation expires. Null
+   *  for non-refundable rates or when supplier didn't emit a deadline. */
+  cancelDeadline?: string | null;
+  /** v2-plan step-3: supported payment methods (e.g. ["PAY_AT_HOTEL"]).
+   *  Used to render the Pay-at-hotel chip — null/empty hides it. */
+  paymentTypes?: string[] | null;
 };
 
 type CacheShape = { offers: BoardOptionOut[]; storedAt: number };
@@ -88,7 +97,9 @@ export async function GET(req: NextRequest) {
     childrenAges.length > 0 ? { adults, children: childrenAges } : { adults },
   );
 
-  const cacheKey = `hotel-rates:${hotelId}:${checkin}:${checkout}:${adults}:${children}:${childrenAgesRaw}:${rooms}:${currency}`;
+  // v2: bumped 2026-04-21 so cached entries re-fetch with cancelDeadline +
+  // paymentTypes. Old `hotel-rates:*` entries lack those fields.
+  const cacheKey = `hotel-rates:v2:${hotelId}:${checkin}:${checkout}:${adults}:${children}:${childrenAgesRaw}:${rooms}:${currency}`;
 
   try {
     const cached = await kv.get<CacheShape | { offers: BoardOptionOut[] }>(cacheKey);
@@ -160,6 +171,9 @@ async function fetchAndCacheRates(args: FetchArgs): Promise<BoardOptionOut[]> {
         roomName: o.roomName ?? null,
         negotiatedPrice: o.negotiatedPrice ?? null,
         marketPrice: o.marketPrice ?? null,
+        excludedTaxes: o.excludedTaxes ?? null,
+        cancelDeadline: o.cancelDeadline ?? null,
+        paymentTypes: o.paymentTypes ?? null,
       }))
     : [{
         offerId: match.offerId,
@@ -171,6 +185,9 @@ async function fetchAndCacheRates(args: FetchArgs): Promise<BoardOptionOut[]> {
         negotiatedPrice: (match.negotiatedPrice != null && match.marketPrice != null && match.negotiatedPrice < match.marketPrice)
           ? match.negotiatedPrice : null,
         marketPrice: match.marketPrice ?? null,
+        excludedTaxes: match.excludedTaxes ?? null,
+        cancelDeadline: match.cancellationDeadline ?? null,
+        paymentTypes: null,
       }];
 
   try {

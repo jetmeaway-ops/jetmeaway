@@ -148,6 +148,20 @@ export default function Header() {
               </svg>
               GBP
             </span>
+            {/* My Trips — always visible; /account redirects to the bookings
+                list when signed in, otherwise shows the sign-in form. */}
+            <Link
+              href="/account"
+              className={`hidden md:inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl font-bold text-[.76rem] transition-all ${
+                isActive('/account')
+                  ? 'bg-[#FAF3E6] border border-[#E8D8A8] text-[#8a6d00]'
+                  : 'border border-[#E8ECF4] text-[#0a1628] hover:bg-[#FAF3E6] hover:border-[#E8D8A8]'
+              }`}
+              aria-label="My trips"
+            >
+              <i className="fa-solid fa-suitcase-rolling text-[.78rem]" />
+              My Trips
+            </Link>
             <Link
               href="/contact"
               className="hidden md:inline-flex bg-[#0F1119] text-white px-4 py-2.5 rounded-xl font-bold text-[.78rem] transition-all hover:bg-[#0066FF] shadow-[0_4px_16px_rgba(0,0,0,0.12)]"
@@ -246,6 +260,22 @@ export default function Header() {
               {item.label}
             </Link>
           ))}
+        </div>
+
+        {/* Mobile: My Trips — top of Company so it's easy to reach after the
+            booking-related Compare / Discover stacks above. */}
+        <p className="text-[.6rem] font-extrabold uppercase tracking-[2.5px] text-[#5C6378] mb-3 px-2">Your account</p>
+        <div className="flex flex-col gap-0.5 mb-5">
+          <Link
+            href="/account"
+            onClick={() => setMobileOpen(false)}
+            className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold text-[.9rem] transition-all ${
+              isActive('/account') ? 'bg-[#FAF3E6] text-[#8a6d00]' : 'text-[#1A1D2B] hover:bg-[#FAF3E6] hover:text-[#8a6d00]'
+            }`}
+          >
+            <span className="text-lg w-6 text-center">🧳</span>
+            My Trips
+          </Link>
         </div>
 
         <p className="text-[.6rem] font-extrabold uppercase tracking-[2.5px] text-[#5C6378] mb-3 px-2">Company</p>

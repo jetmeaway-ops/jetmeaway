@@ -14,10 +14,15 @@ export const runtime = 'edge';
 export async function GET() {
   const balance = await getBalance();
   if (!balance) {
-    return NextResponse.json(
-      { available: null, error: 'Balance unavailable' },
-      { status: 503 },
-    );
+    // Degrade to 200 so Vercel doesn't flag this as a 5xx anomaly — the
+    // widget handles null gracefully. Duffel's /airlines/balances endpoint
+    // isn't publicly exposed, so this fails by design until we wire up a
+    // real source of truth for the balance.
+    return NextResponse.json({
+      available: null,
+      error: 'Balance unavailable',
+      checkedAt: new Date().toISOString(),
+    });
   }
   return NextResponse.json({
     available: balance.available,

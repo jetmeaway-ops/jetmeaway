@@ -64,6 +64,10 @@ async function mirrorToUnified(
       createdAt: nowIso,
       updatedAt: nowIso,
       notes: opts.notes,
+      // BACKLOG B3 (2026-04-21): carry the free-cancel deadline through so
+      // /api/account/bookings/cancel can gate the self-service button on
+      // "deadline still in the future" without re-fetching LiteAPI.
+      cancellationDeadline: record.cancellationDeadline || null,
     };
 
     await upsertBooking(booking);

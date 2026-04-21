@@ -1,14 +1,22 @@
-# EAS Build archives from the git root. When .easignore is present it
-# REPLACES .gitignore for the archive. Patterns follow gitignore syntax
-# and match anywhere in the tree (so `src/` excludes any directory named
-# src at any depth — including the Next.js web app at the repo root).
+# EAS Build: this file lives at mobile/.easignore and, per gitignore
+# semantics, every pattern below is interpreted relative to THIS directory
+# — mobile/ — NOT the repo root. A leading `/` anchors to mobile/, which
+# is why the previous version wrongly excluded mobile/package.json (the
+# one EAS actually needs). Build 1.0.2 (9) on 2026-04-21 failed with
+# "package.json does not exist in /home/expo/workingdir/build/mobile"
+# exactly because of that misunderstanding.
 #
-# Previous Android build failed in PREPARE_PROJECT because tar on the
-# Linux build server choked extracting Next.js App Router dynamic-route
-# folders (src/app/api/hotels/pending/[ref]/ etc). The web app isn't
-# needed for the Expo mobile build, so we exclude it entirely.
+# Original goal (still valid): keep the Next.js web app (which sits at
+# ../src, ../public, etc. relative to this file) out of the EAS archive
+# so the Linux builder's tar doesn't choke on dynamic-route folder names
+# like src/app/api/hotels/pending/[ref]/.
+#
+# Fix: use unanchored, name-based patterns. gitignore matches any
+# occurrence of a named directory anywhere in the archive tree, so
+# `src/` catches the web app's src/ whether EAS archives from git root
+# or mobile/. No leading `/` — that way mobile/'s own files are safe.
 
-# --- Next.js web app (lives at ../ relative to this file) ---
+# --- Next.js web app directories (match by name, anywhere) ---
 src/
 public/
 docs/
@@ -18,27 +26,27 @@ out/
 coverage/
 build/
 
-# --- Root-level web app config (only exists at repo root, not in mobile/) ---
-# Match by name; won't clash with mobile/package.json since that's what EAS needs.
-/package.json
-/package-lock.json
-/next.config.js
-/next.config.ts
-/next.config.mjs
-/next-env.d.ts
-/tsconfig.json
-/tailwind.config.js
-/tailwind.config.ts
-/postcss.config.js
-/postcss.config.mjs
-/vercel.json
-/README.md
-/AGENTS.md
-/CLAUDE.md
-/middleware.ts
-/middleware.js
-/flights.json
-/offer.json
+# --- Next.js / web app config files by name (not anchored) ---
+# These filenames don't exist inside mobile/, so name-matching is safe.
+next.config.js
+next.config.ts
+next.config.mjs
+next-env.d.ts
+tailwind.config.js
+tailwind.config.ts
+postcss.config.js
+postcss.config.mjs
+middleware.ts
+middleware.js
+flights.json
+offer.json
+AGENTS.md
+CLAUDE.md
+
+# NOTE: Intentionally NOT excluding package.json, package-lock.json,
+# tsconfig.json, vercel.json, or README.md — mobile/ has its own copies
+# of these and EAS needs them. The repo-root versions getting into the
+# archive is harmless (a few extra KB; EAS builds from mobile/ anyway).
 
 # --- Always-excluded ---
 node_modules/

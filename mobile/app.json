@@ -2,7 +2,7 @@
   "expo": {
     "name": "JetMeAway",
     "slug": "jetmeaway",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "scheme": "jetmeaway",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -27,7 +27,7 @@
         "backgroundColor": "#1458B5"
       },
       "package": "uk.co.jetmeaway.app",
-      "versionCode": 1,
+      "versionCode": 3,
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",

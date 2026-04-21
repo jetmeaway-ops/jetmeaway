@@ -64,6 +64,12 @@ export type Booking = {
   createdAt: string;             // ISO timestamp
   updatedAt: string;
   notes: string | null;
+
+  // BACKLOG B3 (2026-04-21): free-cancel deadline copied from the rate at
+  // booking time. Null when the rate is non-refundable or the supplier
+  // doesn't surface one. /api/account/bookings/cancel gates self-service
+  // cancellation on this being in the future.
+  cancellationDeadline?: string | null;
 };
 
 export type BookingEvent = {

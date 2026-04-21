@@ -24,7 +24,10 @@ export async function GET(
 
   // Strip the `la_` prefix added by /api/hotels search results
   const hotelId = rawId.startsWith('la_') ? rawId.slice(3) : rawId;
-  const kvKey = `hotel-details:v1:${hotelId}`;
+  // v4 — bumped 2026-04-21 (BACKLOG B2) so cached entries re-fetch with
+  // the new `reviews` aggregate parallel-fetched from /data/reviews.
+  // Previous v3 entries are missing the reviews object entirely.
+  const kvKey = `hotel-details:v4:${hotelId}`;
 
   try {
     const cached = await kv.get(kvKey);

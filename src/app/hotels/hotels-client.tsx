@@ -105,140 +105,267 @@ const DESTINATIONS = [
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   AIRPORT COORDS — used to show "X mi from airport" on each hotel card
-   Keyed by lowercase city substring; first match wins.
+   AIRPORT COORDS — multi-airport metro groups used for the "X mi from IATA"
+   chip on hotel cards. Every candidate in a matched group is passed to the
+   card; the card picks the closest to each individual hotel so a Crawley
+   hotel shows "3 mi from LGW" while a Hounslow hotel shows "4 mi from LHR".
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const AIRPORT_COORDS: Array<{ match: string; iata: string; lat: number; lng: number }> = [
-  // UK
-  { match: 'london', iata: 'LHR', lat: 51.4700, lng: -0.4543 },
-  { match: 'manchester', iata: 'MAN', lat: 53.3537, lng: -2.2750 },
-  { match: 'edinburgh', iata: 'EDI', lat: 55.9500, lng: -3.3725 },
-  { match: 'glasgow', iata: 'GLA', lat: 55.8719, lng: -4.4331 },
-  { match: 'birmingham', iata: 'BHX', lat: 52.4539, lng: -1.7480 },
-  { match: 'bristol', iata: 'BRS', lat: 51.3827, lng: -2.7191 },
-  { match: 'belfast', iata: 'BFS', lat: 54.6575, lng: -6.2158 },
+type Airport = { iata: string; lat: number; lng: number };
+type AirportGroup = { keywords: string[]; airports: Airport[] };
+
+const AIRPORT_GROUPS: AirportGroup[] = [
+  // UK — include the airport-adjacent towns so reverse-geocoded locations
+  // (e.g. "Crawley" near Gatwick, "Hounslow" near LHR) still trigger the
+  // candidate set and produce a correct IATA chip on each card.
+  { keywords: ['london', 'heathrow', 'hounslow', 'staines', 'gatwick', 'crawley', 'horley', 'stansted', 'bishops stortford', 'luton', 'dunstable', 'city airport', 'greater london'], airports: [
+    { iata: 'LHR', lat: 51.4700, lng: -0.4543 },
+    { iata: 'LGW', lat: 51.1537, lng: -0.1821 },
+    { iata: 'STN', lat: 51.8850, lng: 0.2350 },
+    { iata: 'LTN', lat: 51.8747, lng: -0.3683 },
+    { iata: 'LCY', lat: 51.5053, lng: 0.0553 },
+  ] },
+  { keywords: ['manchester'], airports: [{ iata: 'MAN', lat: 53.3537, lng: -2.2750 }] },
+  { keywords: ['edinburgh'], airports: [{ iata: 'EDI', lat: 55.9500, lng: -3.3725 }] },
+  { keywords: ['glasgow', 'prestwick'], airports: [
+    { iata: 'GLA', lat: 55.8719, lng: -4.4331 },
+    { iata: 'PIK', lat: 55.5094, lng: -4.5867 },
+  ] },
+  { keywords: ['birmingham'], airports: [{ iata: 'BHX', lat: 52.4539, lng: -1.7480 }] },
+  { keywords: ['bristol'], airports: [{ iata: 'BRS', lat: 51.3827, lng: -2.7191 }] },
+  { keywords: ['belfast'], airports: [{ iata: 'BFS', lat: 54.6575, lng: -6.2158 }] },
+  { keywords: ['liverpool'], airports: [{ iata: 'LPL', lat: 53.3336, lng: -2.8497 }] },
+  { keywords: ['newcastle'], airports: [{ iata: 'NCL', lat: 55.0375, lng: -1.6917 }] },
   // France
-  { match: 'paris', iata: 'CDG', lat: 49.0097, lng: 2.5479 },
-  { match: 'nice', iata: 'NCE', lat: 43.6584, lng: 7.2159 },
-  { match: 'lyon', iata: 'LYS', lat: 45.7256, lng: 5.0811 },
-  { match: 'marseille', iata: 'MRS', lat: 43.4393, lng: 5.2214 },
+  { keywords: ['paris', 'charles de gaulle', 'orly', 'beauvais'], airports: [
+    { iata: 'CDG', lat: 49.0097, lng: 2.5479 },
+    { iata: 'ORY', lat: 48.7233, lng: 2.3794 },
+    { iata: 'BVA', lat: 49.4544, lng: 2.1128 },
+  ] },
+  { keywords: ['nice'], airports: [{ iata: 'NCE', lat: 43.6584, lng: 7.2159 }] },
+  { keywords: ['lyon'], airports: [{ iata: 'LYS', lat: 45.7256, lng: 5.0811 }] },
+  { keywords: ['marseille'], airports: [{ iata: 'MRS', lat: 43.4393, lng: 5.2214 }] },
   // Benelux
-  { match: 'amsterdam', iata: 'AMS', lat: 52.3086, lng: 4.7639 },
-  { match: 'brussels', iata: 'BRU', lat: 50.9014, lng: 4.4844 },
+  { keywords: ['amsterdam', 'schiphol'], airports: [{ iata: 'AMS', lat: 52.3086, lng: 4.7639 }] },
+  { keywords: ['brussels', 'charleroi'], airports: [
+    { iata: 'BRU', lat: 50.9014, lng: 4.4844 },
+    { iata: 'CRL', lat: 50.4592, lng: 4.4538 },
+  ] },
   // Germany / Austria
-  { match: 'berlin', iata: 'BER', lat: 52.3667, lng: 13.5033 },
-  { match: 'munich', iata: 'MUC', lat: 48.3538, lng: 11.7861 },
-  { match: 'frankfurt', iata: 'FRA', lat: 50.0333, lng: 8.5706 },
-  { match: 'hamburg', iata: 'HAM', lat: 53.6303, lng: 9.9883 },
-  { match: 'vienna', iata: 'VIE', lat: 48.1103, lng: 16.5697 },
-  { match: 'salzburg', iata: 'SZG', lat: 47.7933, lng: 13.0043 },
+  { keywords: ['berlin'], airports: [{ iata: 'BER', lat: 52.3667, lng: 13.5033 }] },
+  { keywords: ['munich'], airports: [{ iata: 'MUC', lat: 48.3538, lng: 11.7861 }] },
+  { keywords: ['frankfurt'], airports: [{ iata: 'FRA', lat: 50.0333, lng: 8.5706 }] },
+  { keywords: ['hamburg'], airports: [{ iata: 'HAM', lat: 53.6303, lng: 9.9883 }] },
+  { keywords: ['vienna'], airports: [{ iata: 'VIE', lat: 48.1103, lng: 16.5697 }] },
+  { keywords: ['salzburg'], airports: [{ iata: 'SZG', lat: 47.7933, lng: 13.0043 }] },
   // Switzerland
-  { match: 'zurich', iata: 'ZRH', lat: 47.4647, lng: 8.5492 },
-  { match: 'geneva', iata: 'GVA', lat: 46.2381, lng: 6.1090 },
+  { keywords: ['zurich'], airports: [{ iata: 'ZRH', lat: 47.4647, lng: 8.5492 }] },
+  { keywords: ['geneva'], airports: [{ iata: 'GVA', lat: 46.2381, lng: 6.1090 }] },
   // Italy
-  { match: 'rome', iata: 'FCO', lat: 41.8003, lng: 12.2389 },
-  { match: 'milan', iata: 'MXP', lat: 45.6306, lng: 8.7231 },
-  { match: 'venice', iata: 'VCE', lat: 45.5053, lng: 12.3519 },
-  { match: 'naples', iata: 'NAP', lat: 40.8860, lng: 14.2908 },
-  { match: 'florence', iata: 'FLR', lat: 43.8100, lng: 11.2051 },
+  { keywords: ['rome', 'fiumicino', 'ciampino'], airports: [
+    { iata: 'FCO', lat: 41.8003, lng: 12.2389 },
+    { iata: 'CIA', lat: 41.7994, lng: 12.5949 },
+  ] },
+  { keywords: ['milan', 'malpensa', 'linate', 'bergamo'], airports: [
+    { iata: 'MXP', lat: 45.6306, lng: 8.7231 },
+    { iata: 'LIN', lat: 45.4450, lng: 9.2767 },
+    { iata: 'BGY', lat: 45.6739, lng: 9.7042 },
+  ] },
+  { keywords: ['venice'], airports: [{ iata: 'VCE', lat: 45.5053, lng: 12.3519 }] },
+  { keywords: ['naples'], airports: [{ iata: 'NAP', lat: 40.8860, lng: 14.2908 }] },
+  { keywords: ['florence', 'pisa'], airports: [
+    { iata: 'FLR', lat: 43.8100, lng: 11.2051 },
+    { iata: 'PSA', lat: 43.6839, lng: 10.3927 },
+  ] },
   // Spain
-  { match: 'barcelona', iata: 'BCN', lat: 41.2974, lng: 2.0833 },
-  { match: 'madrid', iata: 'MAD', lat: 40.4983, lng: -3.5676 },
-  { match: 'malaga', iata: 'AGP', lat: 36.6749, lng: -4.4991 },
-  { match: 'palma', iata: 'PMI', lat: 39.5517, lng: 2.7388 },
-  { match: 'alicante', iata: 'ALC', lat: 38.2822, lng: -0.5582 },
-  { match: 'valencia', iata: 'VLC', lat: 39.4893, lng: -0.4816 },
-  { match: 'ibiza', iata: 'IBZ', lat: 38.8729, lng: 1.3731 },
-  { match: 'seville', iata: 'SVQ', lat: 37.4180, lng: -5.8931 },
-  { match: 'tenerife', iata: 'TFS', lat: 28.0445, lng: -16.5725 },
-  { match: 'gran canaria', iata: 'LPA', lat: 27.9319, lng: -15.3866 },
-  { match: 'lanzarote', iata: 'ACE', lat: 28.9455, lng: -13.6052 },
-  { match: 'fuerteventura', iata: 'FUE', lat: 28.4527, lng: -13.8638 },
+  { keywords: ['barcelona'], airports: [{ iata: 'BCN', lat: 41.2974, lng: 2.0833 }] },
+  { keywords: ['madrid'], airports: [{ iata: 'MAD', lat: 40.4983, lng: -3.5676 }] },
+  { keywords: ['malaga'], airports: [{ iata: 'AGP', lat: 36.6749, lng: -4.4991 }] },
+  { keywords: ['palma', 'mallorca', 'majorca'], airports: [{ iata: 'PMI', lat: 39.5517, lng: 2.7388 }] },
+  { keywords: ['alicante'], airports: [{ iata: 'ALC', lat: 38.2822, lng: -0.5582 }] },
+  { keywords: ['valencia'], airports: [{ iata: 'VLC', lat: 39.4893, lng: -0.4816 }] },
+  { keywords: ['ibiza'], airports: [{ iata: 'IBZ', lat: 38.8729, lng: 1.3731 }] },
+  { keywords: ['seville'], airports: [{ iata: 'SVQ', lat: 37.4180, lng: -5.8931 }] },
+  { keywords: ['tenerife'], airports: [
+    { iata: 'TFS', lat: 28.0445, lng: -16.5725 },
+    { iata: 'TFN', lat: 28.4827, lng: -16.3415 },
+  ] },
+  { keywords: ['gran canaria'], airports: [{ iata: 'LPA', lat: 27.9319, lng: -15.3866 }] },
+  { keywords: ['lanzarote'], airports: [{ iata: 'ACE', lat: 28.9455, lng: -13.6052 }] },
+  { keywords: ['fuerteventura'], airports: [{ iata: 'FUE', lat: 28.4527, lng: -13.8638 }] },
   // Portugal
-  { match: 'lisbon', iata: 'LIS', lat: 38.7742, lng: -9.1342 },
-  { match: 'porto', iata: 'OPO', lat: 41.2482, lng: -8.6813 },
-  { match: 'faro', iata: 'FAO', lat: 37.0144, lng: -7.9659 },
-  { match: 'madeira', iata: 'FNC', lat: 32.6979, lng: -16.7745 },
+  { keywords: ['lisbon'], airports: [{ iata: 'LIS', lat: 38.7742, lng: -9.1342 }] },
+  { keywords: ['porto'], airports: [{ iata: 'OPO', lat: 41.2482, lng: -8.6813 }] },
+  { keywords: ['faro'], airports: [{ iata: 'FAO', lat: 37.0144, lng: -7.9659 }] },
+  { keywords: ['madeira'], airports: [{ iata: 'FNC', lat: 32.6979, lng: -16.7745 }] },
   // Greece
-  { match: 'athens', iata: 'ATH', lat: 37.9364, lng: 23.9475 },
-  { match: 'santorini', iata: 'JTR', lat: 36.3992, lng: 25.4793 },
-  { match: 'mykonos', iata: 'JMK', lat: 37.4351, lng: 25.3481 },
-  { match: 'crete', iata: 'HER', lat: 35.3397, lng: 25.1802 },
-  { match: 'rhodes', iata: 'RHO', lat: 36.4054, lng: 28.0862 },
-  { match: 'corfu', iata: 'CFU', lat: 39.6019, lng: 19.9117 },
-  { match: 'zakynthos', iata: 'ZTH', lat: 37.7509, lng: 20.8843 },
+  { keywords: ['athens'], airports: [{ iata: 'ATH', lat: 37.9364, lng: 23.9475 }] },
+  { keywords: ['santorini'], airports: [{ iata: 'JTR', lat: 36.3992, lng: 25.4793 }] },
+  { keywords: ['mykonos'], airports: [{ iata: 'JMK', lat: 37.4351, lng: 25.3481 }] },
+  { keywords: ['crete', 'heraklion'], airports: [
+    { iata: 'HER', lat: 35.3397, lng: 25.1802 },
+    { iata: 'CHQ', lat: 35.5317, lng: 24.1497 },
+  ] },
+  { keywords: ['rhodes'], airports: [{ iata: 'RHO', lat: 36.4054, lng: 28.0862 }] },
+  { keywords: ['corfu'], airports: [{ iata: 'CFU', lat: 39.6019, lng: 19.9117 }] },
+  { keywords: ['zakynthos'], airports: [{ iata: 'ZTH', lat: 37.7509, lng: 20.8843 }] },
   // Scandinavia
-  { match: 'copenhagen', iata: 'CPH', lat: 55.6180, lng: 12.6561 },
-  { match: 'stockholm', iata: 'ARN', lat: 59.6519, lng: 17.9186 },
-  { match: 'oslo', iata: 'OSL', lat: 60.1939, lng: 11.1004 },
-  { match: 'helsinki', iata: 'HEL', lat: 60.3172, lng: 24.9633 },
-  { match: 'reykjavik', iata: 'KEF', lat: 63.9850, lng: -22.6056 },
+  { keywords: ['copenhagen'], airports: [{ iata: 'CPH', lat: 55.6180, lng: 12.6561 }] },
+  { keywords: ['stockholm', 'arlanda', 'bromma', 'skavsta'], airports: [
+    { iata: 'ARN', lat: 59.6519, lng: 17.9186 },
+    { iata: 'BMA', lat: 59.3544, lng: 17.9417 },
+    { iata: 'NYO', lat: 58.7886, lng: 16.9122 },
+  ] },
+  { keywords: ['oslo'], airports: [{ iata: 'OSL', lat: 60.1939, lng: 11.1004 }] },
+  { keywords: ['helsinki'], airports: [{ iata: 'HEL', lat: 60.3172, lng: 24.9633 }] },
+  { keywords: ['reykjavik', 'keflavik'], airports: [{ iata: 'KEF', lat: 63.9850, lng: -22.6056 }] },
   // Eastern Europe
-  { match: 'prague', iata: 'PRG', lat: 50.1008, lng: 14.2600 },
-  { match: 'budapest', iata: 'BUD', lat: 47.4394, lng: 19.2617 },
-  { match: 'warsaw', iata: 'WAW', lat: 52.1657, lng: 20.9671 },
-  { match: 'krakow', iata: 'KRK', lat: 50.0777, lng: 19.7848 },
+  { keywords: ['prague'], airports: [{ iata: 'PRG', lat: 50.1008, lng: 14.2600 }] },
+  { keywords: ['budapest'], airports: [{ iata: 'BUD', lat: 47.4394, lng: 19.2617 }] },
+  { keywords: ['warsaw', 'modlin'], airports: [
+    { iata: 'WAW', lat: 52.1657, lng: 20.9671 },
+    { iata: 'WMI', lat: 52.4511, lng: 20.6517 },
+  ] },
+  { keywords: ['krakow'], airports: [{ iata: 'KRK', lat: 50.0777, lng: 19.7848 }] },
   // Croatia
-  { match: 'dubrovnik', iata: 'DBV', lat: 42.5614, lng: 18.2683 },
-  { match: 'split', iata: 'SPU', lat: 43.5389, lng: 16.2980 },
+  { keywords: ['dubrovnik'], airports: [{ iata: 'DBV', lat: 42.5614, lng: 18.2683 }] },
+  { keywords: ['split'], airports: [{ iata: 'SPU', lat: 43.5389, lng: 16.2980 }] },
   // Turkey
-  { match: 'istanbul', iata: 'IST', lat: 41.2753, lng: 28.7519 },
-  { match: 'antalya', iata: 'AYT', lat: 36.8987, lng: 30.8005 },
-  { match: 'bodrum', iata: 'BJV', lat: 37.2506, lng: 27.6643 },
-  { match: 'dalaman', iata: 'DLM', lat: 36.7131, lng: 28.7925 },
+  { keywords: ['istanbul', 'sabiha'], airports: [
+    { iata: 'IST', lat: 41.2753, lng: 28.7519 },
+    { iata: 'SAW', lat: 40.8983, lng: 29.3092 },
+  ] },
+  { keywords: ['antalya'], airports: [{ iata: 'AYT', lat: 36.8987, lng: 30.8005 }] },
+  { keywords: ['bodrum'], airports: [{ iata: 'BJV', lat: 37.2506, lng: 27.6643 }] },
+  { keywords: ['dalaman'], airports: [{ iata: 'DLM', lat: 36.7131, lng: 28.7925 }] },
   // Middle East
-  { match: 'dubai', iata: 'DXB', lat: 25.2532, lng: 55.3657 },
-  { match: 'abu dhabi', iata: 'AUH', lat: 24.4331, lng: 54.6511 },
-  { match: 'doha', iata: 'DOH', lat: 25.2731, lng: 51.6080 },
+  { keywords: ['dubai'], airports: [
+    { iata: 'DXB', lat: 25.2532, lng: 55.3657 },
+    { iata: 'DWC', lat: 24.8967, lng: 55.1614 },
+  ] },
+  { keywords: ['abu dhabi'], airports: [{ iata: 'AUH', lat: 24.4331, lng: 54.6511 }] },
+  { keywords: ['doha'], airports: [{ iata: 'DOH', lat: 25.2731, lng: 51.6080 }] },
   // North Africa
-  { match: 'marrakech', iata: 'RAK', lat: 31.6069, lng: -8.0363 },
-  { match: 'sharm', iata: 'SSH', lat: 27.9773, lng: 34.3950 },
-  { match: 'hurghada', iata: 'HRG', lat: 27.1783, lng: 33.7994 },
-  { match: 'cairo', iata: 'CAI', lat: 30.1219, lng: 31.4056 },
+  { keywords: ['marrakech'], airports: [{ iata: 'RAK', lat: 31.6069, lng: -8.0363 }] },
+  { keywords: ['sharm'], airports: [{ iata: 'SSH', lat: 27.9773, lng: 34.3950 }] },
+  { keywords: ['hurghada'], airports: [{ iata: 'HRG', lat: 27.1783, lng: 33.7994 }] },
+  { keywords: ['cairo'], airports: [{ iata: 'CAI', lat: 30.1219, lng: 31.4056 }] },
   // Indian Ocean
-  { match: 'maldives', iata: 'MLE', lat: 4.1919, lng: 73.5291 },
-  { match: 'mauritius', iata: 'MRU', lat: -20.4302, lng: 57.6836 },
+  { keywords: ['maldives'], airports: [{ iata: 'MLE', lat: 4.1919, lng: 73.5291 }] },
+  { keywords: ['mauritius'], airports: [{ iata: 'MRU', lat: -20.4302, lng: 57.6836 }] },
   // Asia
-  { match: 'bangkok', iata: 'BKK', lat: 13.6900, lng: 100.7501 },
-  { match: 'phuket', iata: 'HKT', lat: 8.1132, lng: 98.3169 },
-  { match: 'bali', iata: 'DPS', lat: -8.7482, lng: 115.1671 },
-  { match: 'singapore', iata: 'SIN', lat: 1.3644, lng: 103.9915 },
-  { match: 'kuala lumpur', iata: 'KUL', lat: 2.7456, lng: 101.7099 },
-  { match: 'tokyo', iata: 'NRT', lat: 35.7720, lng: 140.3929 },
-  { match: 'hong kong', iata: 'HKG', lat: 22.3080, lng: 113.9185 },
-  { match: 'shanghai', iata: 'PVG', lat: 31.1443, lng: 121.8083 },
-  { match: 'beijing', iata: 'PEK', lat: 40.0801, lng: 116.5846 },
-  { match: 'seoul', iata: 'ICN', lat: 37.4602, lng: 126.4407 },
+  { keywords: ['bangkok', 'don mueang'], airports: [
+    { iata: 'BKK', lat: 13.6900, lng: 100.7501 },
+    { iata: 'DMK', lat: 13.9126, lng: 100.6072 },
+  ] },
+  { keywords: ['phuket'], airports: [{ iata: 'HKT', lat: 8.1132, lng: 98.3169 }] },
+  { keywords: ['bali', 'denpasar'], airports: [{ iata: 'DPS', lat: -8.7482, lng: 115.1671 }] },
+  { keywords: ['singapore'], airports: [{ iata: 'SIN', lat: 1.3644, lng: 103.9915 }] },
+  { keywords: ['kuala lumpur'], airports: [{ iata: 'KUL', lat: 2.7456, lng: 101.7099 }] },
+  { keywords: ['tokyo', 'haneda', 'narita'], airports: [
+    { iata: 'HND', lat: 35.5494, lng: 139.7798 },
+    { iata: 'NRT', lat: 35.7720, lng: 140.3929 },
+  ] },
+  { keywords: ['hong kong'], airports: [{ iata: 'HKG', lat: 22.3080, lng: 113.9185 }] },
+  { keywords: ['shanghai', 'pudong', 'hongqiao'], airports: [
+    { iata: 'PVG', lat: 31.1443, lng: 121.8083 },
+    { iata: 'SHA', lat: 31.1979, lng: 121.3363 },
+  ] },
+  { keywords: ['beijing', 'daxing'], airports: [
+    { iata: 'PEK', lat: 40.0801, lng: 116.5846 },
+    { iata: 'PKX', lat: 39.5098, lng: 116.4105 },
+  ] },
+  { keywords: ['seoul', 'incheon', 'gimpo'], airports: [
+    { iata: 'ICN', lat: 37.4602, lng: 126.4407 },
+    { iata: 'GMP', lat: 37.5585, lng: 126.7942 },
+  ] },
   // South Asia
-  { match: 'mumbai', iata: 'BOM', lat: 19.0896, lng: 72.8656 },
-  { match: 'delhi', iata: 'DEL', lat: 28.5562, lng: 77.1000 },
-  { match: 'goa', iata: 'GOI', lat: 15.3808, lng: 73.8314 },
+  { keywords: ['mumbai'], airports: [{ iata: 'BOM', lat: 19.0896, lng: 72.8656 }] },
+  { keywords: ['delhi'], airports: [{ iata: 'DEL', lat: 28.5562, lng: 77.1000 }] },
+  { keywords: ['goa'], airports: [{ iata: 'GOI', lat: 15.3808, lng: 73.8314 }] },
   // Americas
-  { match: 'new york', iata: 'JFK', lat: 40.6413, lng: -73.7781 },
-  { match: 'los angeles', iata: 'LAX', lat: 33.9416, lng: -118.4085 },
-  { match: 'orlando', iata: 'MCO', lat: 28.4312, lng: -81.3081 },
-  { match: 'miami', iata: 'MIA', lat: 25.7933, lng: -80.2906 },
-  { match: 'cancun', iata: 'CUN', lat: 21.0365, lng: -86.8771 },
-  { match: 'toronto', iata: 'YYZ', lat: 43.6777, lng: -79.6248 },
-  { match: 'las vegas', iata: 'LAS', lat: 36.0840, lng: -115.1537 },
+  { keywords: ['new york', 'newark', 'laguardia', 'kennedy'], airports: [
+    { iata: 'JFK', lat: 40.6413, lng: -73.7781 },
+    { iata: 'LGA', lat: 40.7769, lng: -73.8740 },
+    { iata: 'EWR', lat: 40.6895, lng: -74.1745 },
+  ] },
+  { keywords: ['los angeles', 'burbank'], airports: [
+    { iata: 'LAX', lat: 33.9416, lng: -118.4085 },
+    { iata: 'BUR', lat: 34.2007, lng: -118.3587 },
+  ] },
+  { keywords: ['orlando'], airports: [{ iata: 'MCO', lat: 28.4312, lng: -81.3081 }] },
+  { keywords: ['miami', 'fort lauderdale'], airports: [
+    { iata: 'MIA', lat: 25.7933, lng: -80.2906 },
+    { iata: 'FLL', lat: 26.0742, lng: -80.1506 },
+  ] },
+  { keywords: ['cancun'], airports: [{ iata: 'CUN', lat: 21.0365, lng: -86.8771 }] },
+  { keywords: ['toronto'], airports: [{ iata: 'YYZ', lat: 43.6777, lng: -79.6248 }] },
+  { keywords: ['las vegas'], airports: [{ iata: 'LAS', lat: 36.0840, lng: -115.1537 }] },
+  { keywords: ['chicago'], airports: [
+    { iata: 'ORD', lat: 41.9742, lng: -87.9073 },
+    { iata: 'MDW', lat: 41.7868, lng: -87.7522 },
+  ] },
+  { keywords: ['washington'], airports: [
+    { iata: 'DCA', lat: 38.8512, lng: -77.0402 },
+    { iata: 'IAD', lat: 38.9531, lng: -77.4565 },
+  ] },
+  { keywords: ['san francisco', 'oakland'], airports: [
+    { iata: 'SFO', lat: 37.6213, lng: -122.3790 },
+    { iata: 'OAK', lat: 37.7213, lng: -122.2207 },
+  ] },
+  { keywords: ['boston'], airports: [{ iata: 'BOS', lat: 42.3656, lng: -71.0096 }] },
   // Oceania
-  { match: 'sydney', iata: 'SYD', lat: -33.9399, lng: 151.1753 },
-  { match: 'melbourne', iata: 'MEL', lat: -37.6690, lng: 144.8410 },
+  { keywords: ['sydney'], airports: [{ iata: 'SYD', lat: -33.9399, lng: 151.1753 }] },
+  { keywords: ['melbourne'], airports: [
+    { iata: 'MEL', lat: -37.6690, lng: 144.8410 },
+    { iata: 'AVV', lat: -38.0394, lng: 144.4692 },
+  ] },
   // Africa
-  { match: 'cape town', iata: 'CPT', lat: -33.9648, lng: 18.6017 },
-  { match: 'johannesburg', iata: 'JNB', lat: -26.1392, lng: 28.2460 },
+  { keywords: ['cape town'], airports: [{ iata: 'CPT', lat: -33.9648, lng: 18.6017 }] },
+  { keywords: ['johannesburg'], airports: [{ iata: 'JNB', lat: -26.1392, lng: 28.2460 }] },
 ];
 
-function findAirport(dest: string): { iata: string; lat: number; lng: number } | null {
-  if (!dest) return null;
+/** All airports in the groups matched by the destination string. Empty if no metro matches. */
+function findCandidateAirports(dest: string): Airport[] {
+  if (!dest) return [];
   const d = dest.toLowerCase();
-  // Sort by longest match first so "gran canaria" wins over "canaria"
-  const sorted = [...AIRPORT_COORDS].sort((a, b) => b.match.length - a.match.length);
-  for (const a of sorted) {
-    if (d.includes(a.match)) return { iata: a.iata, lat: a.lat, lng: a.lng };
+  // Sort keywords by length (desc) so "gran canaria" beats "canaria".
+  const hits: Airport[] = [];
+  const sorted = [...AIRPORT_GROUPS].sort(
+    (a, b) => Math.max(...b.keywords.map((k) => k.length)) - Math.max(...a.keywords.map((k) => k.length)),
+  );
+  for (const g of sorted) {
+    if (g.keywords.some((k) => d.includes(k))) {
+      for (const a of g.airports) hits.push(a);
+      break; // first metro match wins
+    }
   }
-  return null;
+  return hits;
+}
+
+/** Shared Haversine — miles. Extracted so card + map can agree on distances. */
+function haversineMi(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 3958.8;
+  const toRad = (x: number) => (x * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+/** Pick the closest airport to a hotel from the candidate list. */
+function nearestAirport(hotelLat: number, hotelLng: number, candidates: Airport[]): Airport | null {
+  if (!candidates.length) return null;
+  let best: Airport | null = null;
+  let bestDist = Infinity;
+  for (const a of candidates) {
+    const d = haversineMi(hotelLat, hotelLng, a.lat, a.lng);
+    if (d < bestDist) {
+      bestDist = d;
+      best = a;
+    }
+  }
+  return best;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -454,7 +581,17 @@ type HotelResult = {
    COMPONENTS
    ═══════════════════════════════════════════════════════════════════════════ */
 
-type PlaceResult = { id: string; name: string; description: string; type: string };
+type PlaceResult = {
+  id: string;
+  name: string;
+  description: string;
+  type: string;
+  // Optional — curated neighbourhoods include coordinates + the query string
+  // to feed back to LiteAPI hotel search (e.g. "Paddington, London, UK").
+  lat?: number;
+  lng?: number;
+  query?: string;
+};
 
 /**
  * Curated UK landmark aliases. LiteAPI returns very few (or zero) hotels for
@@ -527,7 +664,14 @@ function DestinationPicker({ value, onChange, onPlaceSelect }: {
   const typeIcon = (t: string) => {
     if (t === 'airport' || t === 'aerodrome') return 'fa-plane';
     if (t === 'hotel' || t === 'lodging') return 'fa-hotel';
+    if (t === 'neighborhood' || t === 'sublocality' || t === 'sublocality_level_1') return 'fa-map-pin';
     return 'fa-location-dot';
+  };
+  const typeLabel = (t: string) => {
+    if (t === 'airport' || t === 'aerodrome') return 'Airport';
+    if (t === 'hotel' || t === 'lodging') return 'Hotel';
+    if (t === 'neighborhood' || t === 'sublocality' || t === 'sublocality_level_1') return 'Area';
+    return 'City';
   };
 
   return (
@@ -570,8 +714,17 @@ function DestinationPicker({ value, onChange, onPlaceSelect }: {
               <li className="px-4 py-1.5 text-[.58rem] font-black uppercase tracking-[2px] text-[#8E95A9] bg-[#F8FAFC] border-b border-[#F1F3F7]">
                 Global Search
               </li>
-              {apiResults.slice(0, 8).map(p => (
-                <li key={p.id} onMouseDown={() => { onChange(p.name); onPlaceSelect(p); setOpen(false); setApiResults([]); }}
+              {apiResults.slice(0, 12).map(p => (
+                <li key={p.id} onMouseDown={() => {
+                  // Curated neighbourhoods come with a pre-formatted `query`
+                  // string ("Paddington, London, UK") — feed that back to the
+                  // search so LiteAPI resolves the right area. Everything else
+                  // just uses the displayName.
+                  onChange(p.query || p.name);
+                  onPlaceSelect(p);
+                  setOpen(false);
+                  setApiResults([]);
+                }}
                   className="px-4 py-2.5 hover:bg-orange-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 flex items-center gap-3">
                   <i className={`fa-solid ${typeIcon(p.type)} text-[.8rem] text-orange-400 w-5 text-center flex-shrink-0`} />
                   <div className="min-w-0">
@@ -579,7 +732,7 @@ function DestinationPicker({ value, onChange, onPlaceSelect }: {
                     {p.description && <span className="text-[.68rem] text-[#8E95A9] font-semibold block truncate">{p.description}</span>}
                   </div>
                   <span className="text-[.55rem] font-bold text-[#B0B8CC] uppercase tracking-wider ml-auto flex-shrink-0">
-                    {p.type === 'airport' || p.type === 'aerodrome' ? 'Airport' : p.type === 'hotel' || p.type === 'lodging' ? 'Hotel' : 'City'}
+                    {typeLabel(p.type)}
                   </span>
                 </li>
               ))}
@@ -738,7 +891,7 @@ function StarFilter({ value, onChange }: { value: number; onChange: (v: number) 
    BOOK DIRECT (LiteAPI) — creates a pending booking then redirects to checkout
    ═══════════════════════════════════════════════════════════════════════════ */
 
-function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, childrenAges, checkin, checkout, searchedDest, tripCityId, buildDetailHref, setScoutHotel, priceView, cityCentre, airport, isCompared, compareFull, onToggleCompare }: {
+function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, childrenAges, checkin, checkout, searchedDest, tripCityId, buildDetailHref, setScoutHotel, priceView, cityCentre, airports, isCompared, compareFull, onToggleCompare, isActive, onHover }: {
   hotel: HotelResult;
   index: number;
   isCheapest: boolean;
@@ -754,24 +907,23 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
   setScoutHotel: (s: { name: string; lat: number; lng: number } | null) => void;
   priceView: 'total' | 'perPerson';
   cityCentre: { lat: number; lng: number } | null;
-  airport: { iata: string; lat: number; lng: number } | null;
+  airports: Airport[];
   isCompared: boolean;
   compareFull: boolean;
   onToggleCompare: () => void;
+  /** Highlighted because the matching map pin is hovered/clicked. */
+  isActive?: boolean;
+  /** Hovering this card notifies the map so it can emphasise the pin. */
+  onHover?: (hovered: boolean) => void;
 }) {
-  // Distance (miles) from city centre and nearest airport
-  const haversineMi = (lat1: number, lng1: number, lat2: number, lng2: number) => {
-    const R = 3958.8; // miles
-    const toRad = (d: number) => (d * Math.PI) / 180;
-    const dLat = toRad(lat2 - lat1);
-    const dLng = toRad(lng2 - lng1);
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-    return 2 * R * Math.asin(Math.sqrt(a));
-  };
+  // Distance (miles) from city centre + the *nearest* candidate airport —
+  // picked per-hotel, so a Crawley hotel labels LGW while a Hounslow hotel
+  // labels LHR even when both were returned by the same "London" search.
   const hasCoords = typeof hotel.lat === 'number' && typeof hotel.lng === 'number';
   const milesFromCentre = hasCoords && cityCentre
     ? haversineMi(hotel.lat!, hotel.lng!, cityCentre.lat, cityCentre.lng)
     : null;
+  const airport = hasCoords ? nearestAirport(hotel.lat!, hotel.lng!, airports) : null;
   const milesFromAirport = hasCoords && airport
     ? haversineMi(hotel.lat!, hotel.lng!, airport.lat, airport.lng)
     : null;
@@ -809,7 +961,12 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
   const bookHotel = { ...h, offerId: displayOfferId, totalPrice: displayTotal, pricePerNight: displayPrice };
 
   return (
-    <div className={`bg-white border rounded-2xl overflow-hidden transition-all hover:shadow-md relative ${isCheapest ? 'border-[#E8D8A8] ring-1 ring-[#E8D8A8]/60' : 'border-[#E8ECF4]'} ${isCompared ? 'ring-2 ring-orange-400 border-orange-300' : ''}`}>
+    <div
+      id={`hotel-card-${hotel.id}`}
+      onMouseEnter={() => onHover?.(true)}
+      onMouseLeave={() => onHover?.(false)}
+      className={`bg-white border rounded-2xl overflow-hidden transition-all hover:shadow-md relative ${isCheapest ? 'border-[#E8D8A8] ring-1 ring-[#E8D8A8]/60' : 'border-[#E8ECF4]'} ${isCompared ? 'ring-2 ring-orange-400 border-orange-300' : ''} ${isActive ? 'ring-2 ring-[#287DFA] shadow-[0_8px_32px_rgba(40,125,250,0.15)]' : ''}`}
+    >
       {/* Compare toggle — card top-right. Price column gets extra top padding
           (md:pt-12 below) so the price never slides under this pill. */}
       <button
@@ -1347,6 +1504,9 @@ function HotelsContent() {
   const [sortBy, setSortBy] = useState<SortBy>('recommended');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [priceView, setPriceView] = useState<'total' | 'perPerson'>('total');
+  // Bidirectional highlight between map pins and list cards. Hovering either
+  // side sets this id; the other side reads it to emphasise the match.
+  const [activeHotelId, setActiveHotelId] = useState<string | number | null>(null);
 
   // Scout sidebar state
   const [scoutHotel, setScoutHotel] = useState<{ name: string; lat: number; lng: number } | null>(null);
@@ -1454,6 +1614,55 @@ function HotelsContent() {
     if (r) setRooms(Math.min(5, Math.max(1, parseInt(r))));
     if (s) setMinStars(Math.min(5, Math.max(0, parseInt(s))));
     if (pid) setSelectedPlaceId(pid);
+  }, []);
+
+  // ── Nearby-on-first-load ──────────────────────────────────────────────
+  // If the page was opened with no URL params AND we haven't already
+  // geolocated in this session, ask for the user's location, reverse-
+  // geocode to a city name, prefill sensible default dates, and let the
+  // auto-search effect below pick it up. Silent opt-out — browser prompt
+  // dismissal just falls back to the empty state.
+  const geolocTried = useRef(false);
+  useEffect(() => {
+    if (geolocTried.current) return;
+    geolocTried.current = true;
+    if (typeof window === 'undefined') return;
+    const p = new URLSearchParams(window.location.search);
+    if (p.get('destination') || p.get('city')) return; // user already has a dest
+    if (!navigator.geolocation) return;
+    // Skip if we already geolocated this session — don't spam the prompt.
+    try {
+      if (sessionStorage.getItem('jma-geoloc-done')) return;
+    } catch {}
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try { sessionStorage.setItem('jma-geoloc-done', '1'); } catch {}
+        const { latitude, longitude } = pos.coords;
+        try {
+          const r = await fetch(`/api/hotels/reverse-geocode?lat=${latitude}&lng=${longitude}`);
+          if (!r.ok) return;
+          const j = await r.json();
+          const name = j.displayName || j.city || '';
+          if (!name) return;
+          // Prefill destination + sensible defaults (tonight + 2 nights)
+          // ONLY if the user hasn't typed anything since mount.
+          setDestination((prev) => prev || name);
+          const d0 = new Date();
+          const d1 = new Date(d0.getTime() + 14 * 86400_000); // two weeks out
+          const d2 = new Date(d1.getTime() + 2 * 86400_000);
+          const fmt = (d: Date) => d.toISOString().split('T')[0];
+          setCheckin((prev) => prev || fmt(d1));
+          setCheckout((prev) => prev || fmt(d2));
+        } catch {
+          // Silent — page still works, user just doesn't get the auto-fill.
+        }
+      },
+      () => {
+        // User denied or timed out — record so we don't keep prompting.
+        try { sessionStorage.setItem('jma-geoloc-done', '1'); } catch {}
+      },
+      { enableHighAccuracy: false, timeout: 6_000, maximumAge: 3_600_000 },
+    );
   }, []);
 
   const today = new Date().toISOString().split('T')[0];
@@ -1637,8 +1846,9 @@ function HotelsContent() {
       }
     : null;
 
-  // Nearest airport for the searched destination (for "X mi from airport" labels)
-  const airport = findAirport(searchedDest);
+  // Candidate airports for the searched metro. Each card picks its own
+  // nearest from this set — so London results mix LHR/LGW/STN/LTN labels.
+  const airports = findCandidateAirports(searchedDest);
 
   // Haversine distance in km
   const distanceKm = (lat1: number, lng1: number, lat2: number, lng2: number) => {
@@ -2020,16 +2230,40 @@ function HotelsContent() {
           {/* Date Matrix Strip — D−3 … D+3 check-in, same-number-of-nights.
               Powered by /api/hotels?mode=datestrip → Hotellook cache.json
               (free, cached 24h in KV). Does NOT touch LiteAPI — 7 extra
-              availability calls per search would be prohibitive on cost. */}
-          {(dateStripLoading || dateStrip.length > 0) && (
-            <DateMatrixStrip
-              type="hotels"
-              options={dateStrip}
-              loading={dateStripLoading}
-              onSelect={handleDateStripSelect}
-              nights={getNights()}
-            />
-          )}
+              availability calls per search would be prohibitive on cost.
+
+              Fill-or-kill coverage gate (BACKLOG B1, 2026-04-21): Hotellook's
+              cache is sparse for a lot of queries — sometimes only the
+              selected cell has a price and the other six render as "—".
+              Half-filled strips look worse than no strip (user sentiment),
+              so we hide the component unless at least 6 of the 7 cells
+              have a real price. On cities where coverage is good the
+              strip still shows; elsewhere it disappears silently. */}
+          {(() => {
+            if (dateStripLoading) {
+              return (
+                <DateMatrixStrip
+                  type="hotels"
+                  options={dateStrip}
+                  loading={dateStripLoading}
+                  onSelect={handleDateStripSelect}
+                  nights={getNights()}
+                />
+              );
+            }
+            if (dateStrip.length === 0) return null;
+            const filled = dateStrip.filter(c => c.price !== null).length;
+            if (filled < 6) return null;
+            return (
+              <DateMatrixStrip
+                type="hotels"
+                options={dateStrip}
+                loading={false}
+                onSelect={handleDateStripSelect}
+                nights={getNights()}
+              />
+            );
+          })()}
 
           {/* Sort + View toolbar */}
           {hotels!.length > 0 && (
@@ -2091,59 +2325,112 @@ function HotelsContent() {
             </section>
           )}
 
-          {/* Section 2A: Map view */}
-          {hotels!.length > 0 && viewMode === 'map' && cityCentre && (
-            <section className="max-w-[1000px] mx-auto px-5 pb-6">
-              <HotelMap
-                centerLat={cityCentre.lat}
-                centerLng={cityCentre.lng}
-                hotels={sortedHotels!
-                  .filter(h => typeof h.lat === 'number' && typeof h.lng === 'number')
-                  .map(h => ({
-                    id: h.id,
-                    name: h.name,
-                    stars: h.stars,
-                    pricePerNight: h.pricePerNight,
-                    currency: h.currency || 'GBP',
-                    lat: h.lat as number,
-                    lng: h.lng as number,
-                    href: buildDetailHref(h),
-                  }))}
-              />
-            </section>
-          )}
-
-          {/* Section 2: Hotel Result Cards */}
-          {hotels!.length > 0 && viewMode === 'list' ? (
-            <section className="max-w-[1000px] mx-auto px-5 pb-6">
-              <div className="space-y-3">
+          {/* ── Map + List ────────────────────────────────────────────────
+              - viewMode === 'list'  → list only, any width (current behaviour)
+              - viewMode === 'map'   → mobile/tablet: map only (toggle back for list)
+                                     → desktop (lg+): side-by-side, sticky map
+              We reuse a single card-render helper so both branches stay in sync. */}
+          {hotels!.length > 0 && (() => {
+            const mapHotels = sortedHotels!
+              .filter((h) => typeof h.lat === 'number' && typeof h.lng === 'number')
+              .map((h) => ({
+                id: h.id,
+                name: h.name,
+                stars: h.stars,
+                pricePerNight: h.pricePerNight,
+                currency: h.currency || 'GBP',
+                lat: h.lat as number,
+                lng: h.lng as number,
+                href: buildDetailHref(h),
+              }));
+            const renderCards = (compact: boolean) => (
+              <div className={compact ? 'space-y-3' : 'space-y-3'}>
                 {sortedHotels!.map((h, i) => (
-                    <HotelCardWrapper
-                      key={h.id || i}
-                      hotel={h}
-                      index={i}
-                      isCheapest={i === 0}
-                      nights={nights}
-                      adults={adults}
-                      children={childCount}
-                      childrenAges={childrenAges}
-                      checkin={checkin}
-                      checkout={checkout}
-                      searchedDest={searchedDest}
-                      tripCityId={tripCityId}
-                      buildDetailHref={buildDetailHref}
-                      setScoutHotel={setScoutHotel}
-                      priceView={priceView}
-                      cityCentre={cityCentre}
-                      airport={airport}
-                      isCompared={compareIds.includes(h.id)}
-                      compareFull={compareIds.length >= 3}
-                      onToggleCompare={() => toggleCompare(h.id)}
-                    />
+                  <HotelCardWrapper
+                    key={h.id || i}
+                    hotel={h}
+                    index={i}
+                    isCheapest={i === 0}
+                    nights={nights}
+                    adults={adults}
+                    children={childCount}
+                    childrenAges={childrenAges}
+                    checkin={checkin}
+                    checkout={checkout}
+                    searchedDest={searchedDest}
+                    tripCityId={tripCityId}
+                    buildDetailHref={buildDetailHref}
+                    setScoutHotel={setScoutHotel}
+                    priceView={priceView}
+                    cityCentre={cityCentre}
+                    airports={airports}
+                    isCompared={compareIds.includes(h.id)}
+                    compareFull={compareIds.length >= 3}
+                    onToggleCompare={() => toggleCompare(h.id)}
+                    isActive={activeHotelId != null && String(activeHotelId) === String(h.id)}
+                    onHover={(hovered) => setActiveHotelId(hovered ? h.id : null)}
+                  />
                 ))}
               </div>
-            </section>
-          ) : null}
+            );
+
+            // List-only view — unchanged max-width
+            if (viewMode === 'list') {
+              return (
+                <section className="max-w-[1000px] mx-auto px-5 pb-6">
+                  {renderCards(false)}
+                </section>
+              );
+            }
+
+            // Map view — split on desktop, full-width map on mobile
+            if (viewMode === 'map' && cityCentre && mapHotels.length > 0) {
+              return (
+                <section className="max-w-[1400px] mx-auto px-5 pb-6">
+                  {/* Desktop split */}
+                  <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_460px] gap-5">
+                    <div className="min-w-0">
+                      {renderCards(true)}
+                    </div>
+                    <div className="sticky top-28 self-start">
+                      <HotelMap
+                        centerLat={cityCentre.lat}
+                        centerLng={cityCentre.lng}
+                        hotels={mapHotels}
+                        activeHotelId={activeHotelId}
+                        onPinHover={(id) => setActiveHotelId(id)}
+                        onPinClick={(id) => {
+                          setActiveHotelId(id);
+                          const el = document.getElementById(`hotel-card-${id}`);
+                          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }}
+                        height="h-[calc(100vh-7rem)]"
+                      />
+                    </div>
+                  </div>
+                  {/* Mobile / tablet — full-width map (toggle back to list to see cards) */}
+                  <div className="lg:hidden">
+                    <HotelMap
+                      centerLat={cityCentre.lat}
+                      centerLng={cityCentre.lng}
+                      hotels={mapHotels}
+                      activeHotelId={activeHotelId}
+                      onPinClick={(id) => {
+                        setActiveHotelId(id);
+                      }}
+                    />
+                  </div>
+                </section>
+              );
+            }
+
+            // Fallback — map requested but no coords; render list.
+            return (
+              <section className="max-w-[1000px] mx-auto px-5 pb-6">
+                {renderCards(false)}
+              </section>
+            );
+          })()}
 
           {/* No results */}
           {hotels!.length === 0 && (

@@ -96,7 +96,9 @@ export async function getPlaces(query: string): Promise<Place[]> {
       types?: string[];
     }>;
   }>(
-    `/data/places?textQuery=${encodeURIComponent(query)}&type=locality,airport,hotel`,
+    // Include neighborhood + sublocality so typed queries like "Paddington" or
+    // "Shoreditch" surface the correct London-adjacent area, not just cities.
+    `/data/places?textQuery=${encodeURIComponent(query)}&type=locality,neighborhood,sublocality,airport,hotel`,
     { method: 'GET' },
     8_000, // fast timeout — autocomplete should be snappy
   );
@@ -237,6 +239,19 @@ export interface HotelOffer {
      *  the UI renders a plain row — no deal ribbon. */
     negotiatedPrice?: number | null;
     marketPrice?: number | null;
+    /** Phase-4: per-row property-payable taxes (city tax / VAT marked
+     *  `included: false`). Kept separate from totalPrice so the customer sees
+     *  the honest grand total without surprises at check-in. */
+    excludedTaxes?: number | null;
+    /** v2-plan step-2: ISO timestamp for when free cancellation expires
+     *  (if refundable) — so the row can say "Free cancellation until
+     *  28 May 2026" instead of a generic badge. Null for non-refundable or
+     *  when the supplier didn't emit a deadline. */
+    cancelDeadline?: string | null;
+    /** v2-plan step-3: array of supported payment methods for this rate
+     *  (e.g. ["PAY_AT_HOTEL", "ACH"]). Used to render the Pay-at-hotel chip
+     *  when the supplier allows it. Null/empty → hidden. */
+    paymentTypes?: string[] | null;
   }>;
 }
 
@@ -479,6 +494,15 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       /** Phase-3 per-row Scout Deal signal */
       negotiatedPrice?: number | null;
       marketPrice?: number | null;
+      /** Phase-4: per-row property-payable taxes (city tax / VAT that LiteAPI
+       *  marks `included: false`). Not added to totalPrice — shown alongside
+       *  so the customer sees the honest grand total rather than discovering
+       *  a surprise at check-in. Null when the rate has no excluded taxes. */
+      excludedTaxes?: number | null;
+      /** v2-plan step-2: free-cancel deadline ISO string, null otherwise. */
+      cancelDeadline?: string | null;
+      /** v2-plan step-3: payment methods (e.g. ["PAY_AT_HOTEL"]). */
+      paymentTypes?: string[] | null;
     };
     const optionsByKey = new Map<string, OptionRow>();
 
@@ -546,6 +570,29 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
         // Phase-3: per-row Scout Deal. negotiated only counts when strictly
         // cheaper than market — otherwise it's noise, not a deal.
         const hasDeal = negPrice != null && Number.isFinite(marketPrice) && negPrice < marketPrice;
+        // Phase-4: per-rate excluded taxes (city tax / VAT payable at
+        // property). Same shape as the offer-level sum, computed per rate so
+        // the table can show each row's true grand total honestly.
+        const rateExcludedTaxes = (typeof r.retailRate === 'object' && r.retailRate)
+          ? ((r.retailRate as { taxesAndFees?: Array<{ amount: number; included?: boolean }> }).taxesAndFees || [])
+              .filter((t) => t.included === false)
+              .reduce((sum, t) => sum + (t.amount || 0), 0)
+          : 0;
+        // v2-plan step-2: free-cancellation deadline. Prefer the v3.0 flat
+        // `cancellationPolicy.deadline`; fall back to the old nested
+        // `cancelPolicyInfos[0].cancelTime` so older supplier payloads still
+        // surface a deadline. Only meaningful when the rate is refundable.
+        const cancelDeadline = isRefundable
+          ? (r.cancellationPolicy?.deadline
+             || r.cancellationPolicies?.cancelPolicyInfos?.[0]?.cancelTime
+             || null)
+          : null;
+        // v2-plan step-3: payment types live at the roomType level in v3.0
+        // (e.g. ["PAY_AT_HOTEL", "ACH"]). Copy the array so downstream code
+        // can't mutate the source.
+        const paymentTypes = Array.isArray(rt.paymentTypes) && rt.paymentTypes.length > 0
+          ? [...rt.paymentTypes]
+          : null;
         const nextRow: OptionRow = {
           offerId: rateOfferId,
           boardType: board,
@@ -555,6 +602,9 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
           roomName,
           negotiatedPrice: hasDeal ? Math.round(negPrice! * 100) / 100 : null,
           marketPrice: Number.isFinite(marketPrice) ? Math.round(marketPrice * 100) / 100 : null,
+          excludedTaxes: rateExcludedTaxes > 0 ? Math.round(rateExcludedTaxes * 100) / 100 : null,
+          cancelDeadline,
+          paymentTypes,
         };
         if (!existing || effectivePrice < existing.totalPrice) {
           optionsByKey.set(mapKey, nextRow);
@@ -690,6 +740,24 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
 /*  HOTEL DETAILS — getHotelDetails                                          */
 /* ───────────────────────────────────────────────────────────────────────── */
 
+/** Phase-4: per-room-category metadata parsed from LiteAPI `/data/hotel`
+ *  rooms[]. Keyed by a normalised room name so the RoomsTable can resolve
+ *  rich detail (photos, size, bed config, in-room amenities) without a
+ *  second network call. Every field is optional — LiteAPI suppliers are
+ *  inconsistent about what they return, so we degrade gracefully. */
+export interface RoomMeta {
+  id: string;
+  name: string;
+  description: string | null;
+  photos: string[];
+  amenities: string[];
+  maxOccupancy: number | null;
+  sizeSqm: number | null;
+  /** Pre-formatted bed string ("1 Queen Bed", "2 Single Beds"). Null when
+   *  the supplier omits bed types. */
+  beds: string | null;
+}
+
 export interface HotelDetails {
   id: string;
   name: string;
@@ -705,6 +773,58 @@ export interface HotelDetails {
   amenities: string[];
   checkInTime: string | null;
   checkOutTime: string | null;
+  /** v2-plan step-1: structured hotel policies (internet, parking, pets,
+   *  children, groups, etc.) from LiteAPI `/data/hotel` `policies[]`. Each
+   *  entry is already HTML-stripped + whitespace-tidied. Empty array when
+   *  the supplier didn't emit any. */
+  policies: HotelPolicy[];
+  /** Phase-4: per-room-category metadata. Empty array when the supplier
+   *  returned no rooms[] section. The RoomsTable looks up rows by
+   *  lowercased roomName — see page.tsx for the memoised lookup map. */
+  rooms: RoomMeta[];
+  /** BACKLOG B2 (2026-04-21): aggregate + recent reviews pulled from LiteAPI
+   *  `/data/reviews`. Always present — when the supplier returns nothing we
+   *  surface an empty object so the UI can render a "No reviews yet" state
+   *  instead of hiding the tab. */
+  reviews: HotelReviews;
+}
+
+/** BACKLOG B2: one review row from LiteAPI `/data/reviews`. Every field is
+ *  optional because LiteAPI supplier coverage is inconsistent — sometimes
+ *  you get just a score + country, sometimes full pros/cons text. */
+export interface HotelReview {
+  name: string;
+  country: string | null;
+  /** Trip type e.g. "Business", "Solo", "Family". LiteAPI doesn't always emit it. */
+  type: string | null;
+  /** ISO date of stay / review. */
+  date: string | null;
+  /** ISO-639 lang code (lowercased) e.g. "en", "fr". */
+  language: string | null;
+  headline: string | null;
+  pros: string | null;
+  cons: string | null;
+  /** 0–10 score for this specific review. */
+  score: number | null;
+}
+
+export interface HotelReviews {
+  /** Aggregate score 0–10. Null when we have zero reviews. */
+  averageScore: number | null;
+  /** Total review count (from `total` when LiteAPI returns it, else list length). */
+  count: number;
+  /** Most-recent list, capped by the fetch limit. */
+  list: HotelReview[];
+}
+
+/** v2-plan step-1: one row from LiteAPI's `policies[]`. `policy_type` looks
+ *  like `POLICY_HOTEL_INTERNET`, `POLICY_HOTEL_PARKING`, etc. We normalise
+ *  the kind to a short enum string so the UI can pick icons without doing
+ *  its own regex work. */
+export interface HotelPolicy {
+  kind: 'internet' | 'parking' | 'pets' | 'children' | 'groups' | 'other';
+  name: string;
+  description: string;
 }
 
 /**
@@ -733,13 +853,64 @@ export async function getHotelDetails(hotelId: string): Promise<HotelDetails | n
       hotelFacilities?: Array<string | { name?: string }>;
       facilities?: Array<string | { name?: string }>;
       amenities?: Array<string | { name?: string }>;
-      checkinCheckoutTimes?: { checkin?: string; checkout?: string };
+      /** v2-plan step-1: real LiteAPI shape has `checkin_start`/`checkin_end`
+       *  not `checkin`. Kept the legacy `checkin` key as a fallback so the
+       *  parser stays tolerant to supplier drift. */
+      checkinCheckoutTimes?: {
+        checkin_start?: string;
+        checkin_end?: string;
+        checkin?: string;
+        checkout?: string;
+        instructions?: unknown;
+        special_instructions?: string;
+      };
+      /** v2-plan step-1: structured policies array — 5 or so entries covering
+       *  internet, parking, pets, children, groups. We forward a cleaned
+       *  version on HotelDetails.policies so the UI can render icon cards. */
+      policies?: Array<{
+        id?: number;
+        policy_type?: string;
+        name?: string;
+        description?: string;
+      }>;
+      /** Phase-4: per-room-category breakdown. LiteAPI field names vary by
+       *  API version; we try each plausible shape. */
+      rooms?: Array<RawRoom>;
+      roomTypes?: Array<RawRoom>;
+      hotelRooms?: Array<RawRoom>;
     };
-    const res = await liteFetch<{ data: RawHotel }>(
-      `/data/hotel?hotelId=${encodeURIComponent(hotelId)}`,
-      { method: 'GET' },
-      12_000,
-    );
+    type RawRoom = {
+      id?: string | number;
+      roomTypeId?: string | number;
+      roomName?: string;
+      name?: string;
+      description?: string;
+      roomDescription?: string;
+      photos?: Array<{ url?: string; urlHd?: string; caption?: string } | string>;
+      images?: Array<{ url?: string; urlHd?: string } | string>;
+      roomAmenities?: Array<string | { name?: string; amenitiesName?: string }>;
+      amenities?: Array<string | { name?: string }>;
+      maxAdults?: number;
+      maxChildren?: number;
+      maxOccupancy?: number;
+      roomSizeSquare?: number;
+      roomSize?: number;
+      sizeSquareMeters?: number;
+      roomSizeUnit?: string;       // "sqm" | "sqft"
+      bedTypes?: Array<{ name?: string; quantity?: number } | string>;
+      beds?: Array<{ name?: string; quantity?: number } | string>;
+    };
+    // BACKLOG B2 (2026-04-21): fetch hotel metadata + reviews in parallel.
+    // Same KV entry will hold both (v4 bump), so the UI never has to do a
+    // second round-trip for the review score chip.
+    const [res, reviews] = await Promise.all([
+      liteFetch<{ data: RawHotel }>(
+        `/data/hotel?hotelId=${encodeURIComponent(hotelId)}`,
+        { method: 'GET' },
+        12_000,
+      ),
+      getHotelReviews(hotelId, 8),
+    ]);
     const h = res.data;
     if (!h) return null;
 
@@ -768,6 +939,122 @@ export async function getHotelDetails(hotelId: string): Promise<HotelDetails | n
       ? rawDesc.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() || null
       : null;
 
+    // Phase-4: parse per-room-category metadata. LiteAPI suppliers are wildly
+    // inconsistent about which field name they use (rooms / roomTypes /
+    // hotelRooms), so we try all three and walk whichever is populated.
+    const rawRooms: RawRoom[] = h.rooms || h.roomTypes || h.hotelRooms || [];
+    const rooms: RoomMeta[] = [];
+    const seenNames = new Set<string>();
+    for (const r of rawRooms) {
+      if (!r || typeof r !== 'object') continue;
+      // Clean the room name using the same rule as the rates pipeline so
+      // "Queen Room - Room Only" collapses to "Queen Room".
+      const rawName = r.roomName || r.name || '';
+      const cleaned = String(rawName)
+        .replace(/\s*[-–—]\s*(room only|bed(?: and| &)? breakfast|breakfast included|half board|full board|all[- ]?inclusive)\s*$/i, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (!cleaned) continue;
+      const dedupeKey = cleaned.toLowerCase();
+      if (seenNames.has(dedupeKey)) continue;
+      seenNames.add(dedupeKey);
+
+      // Photos: accept string URLs or {url, urlHd} objects.
+      const roomPhotos: string[] = [];
+      for (const p of r.photos || r.images || []) {
+        if (!p) continue;
+        const url = typeof p === 'string' ? p : (p.urlHd || p.url);
+        if (url) roomPhotos.push(url);
+      }
+
+      // Amenities: accept string or { name } / { amenitiesName }.
+      const roomAmenities: string[] = [];
+      const rawAms = r.roomAmenities || r.amenities || [];
+      for (const a of rawAms) {
+        if (!a) continue;
+        const name = typeof a === 'string'
+          ? a
+          : (a.name || (a as { amenitiesName?: string }).amenitiesName);
+        if (name && typeof name === 'string') roomAmenities.push(name);
+      }
+
+      // Size: prefer explicit sqm fields. Convert sqft → sqm when the unit
+      // is declared. Otherwise trust the raw number as-is.
+      let sizeSqm: number | null = null;
+      const rawSize = r.roomSizeSquare ?? r.sizeSquareMeters ?? r.roomSize;
+      if (typeof rawSize === 'number' && rawSize > 0) {
+        const unit = (r.roomSizeUnit || 'sqm').toLowerCase();
+        sizeSqm = unit.startsWith('sqft') || unit.includes('square feet')
+          ? Math.round(rawSize * 0.092903)
+          : Math.round(rawSize);
+      }
+
+      // Beds: "1 Queen Bed, 1 Sofa Bed" — comma-joined so the row chip can
+      // truncate politely with CSS.
+      const bedEntries: string[] = [];
+      for (const b of r.bedTypes || r.beds || []) {
+        if (!b) continue;
+        if (typeof b === 'string') { bedEntries.push(b); continue; }
+        const qty = typeof b.quantity === 'number' && b.quantity > 0 ? b.quantity : 1;
+        const name = b.name || '';
+        if (!name) continue;
+        bedEntries.push(qty > 1 ? `${qty} ${name}s` : `${qty} ${name}`);
+      }
+      const beds = bedEntries.length > 0 ? bedEntries.join(', ') : null;
+
+      const maxOcc = r.maxOccupancy
+        ?? (typeof r.maxAdults === 'number'
+          ? r.maxAdults + (typeof r.maxChildren === 'number' ? r.maxChildren : 0)
+          : null);
+
+      const roomDesc = typeof r.description === 'string'
+        ? r.description.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() || null
+        : (typeof r.roomDescription === 'string' ? r.roomDescription.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() || null : null);
+
+      rooms.push({
+        id: String(r.id ?? r.roomTypeId ?? dedupeKey),
+        name: cleaned,
+        description: roomDesc,
+        photos: roomPhotos,
+        amenities: roomAmenities,
+        maxOccupancy: typeof maxOcc === 'number' && maxOcc > 0 ? maxOcc : null,
+        sizeSqm,
+        beds,
+      });
+    }
+
+    // v2-plan step-1: LiteAPI returns `checkin_start` (e.g. "03:00 PM") —
+    // the `checkin` key we used to read never existed. Fall back to the
+    // legacy name in case a future supplier ever emits it.
+    const ciTimes = h.checkinCheckoutTimes || {};
+    const checkInTime = ciTimes.checkin_start || ciTimes.checkin || null;
+    const checkOutTime = ciTimes.checkout || null;
+
+    // v2-plan step-1: normalise LiteAPI policies[] to our HotelPolicy shape.
+    // `policy_type` looks like `POLICY_HOTEL_INTERNET` / `POLICY_HOTEL_PARKING`
+    // / `POLICY_HOTEL_PETS` / `POLICY_CHILDREN` / `POLICY_HOTEL_GROUPS`. We
+    // keep the raw `name` the supplier sent (already humane) and strip HTML
+    // from the description for safe rendering.
+    const policies: HotelPolicy[] = [];
+    for (const p of h.policies || []) {
+      if (!p) continue;
+      const raw = (p.policy_type || '').toUpperCase();
+      let kind: HotelPolicy['kind'] = 'other';
+      if (raw.includes('INTERNET') || raw.includes('WIFI')) kind = 'internet';
+      else if (raw.includes('PARKING')) kind = 'parking';
+      else if (raw.includes('PET')) kind = 'pets';
+      else if (raw.includes('CHILD') || raw.includes('KID')) kind = 'children';
+      else if (raw.includes('GROUP')) kind = 'groups';
+      const name = (p.name || '').toString().trim();
+      const description = (p.description || '')
+        .toString()
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (!name && !description) continue;
+      policies.push({ kind, name: name || 'Policy', description });
+    }
+
     return {
       id: h.id || hotelId,
       name: h.name || hotelId,
@@ -781,12 +1068,104 @@ export async function getHotelDetails(hotelId: string): Promise<HotelDetails | n
       mainPhoto: h.main_photo || h.thumbnail || photos[0] || null,
       photos,
       amenities,
-      checkInTime: h.checkinCheckoutTimes?.checkin || null,
-      checkOutTime: h.checkinCheckoutTimes?.checkout || null,
+      checkInTime,
+      checkOutTime,
+      policies,
+      rooms,
+      reviews,
     };
   } catch (err) {
     console.warn('[liteapi] getHotelDetails failed:', err instanceof Error ? err.message : err);
     return null;
+  }
+}
+
+/**
+ * BACKLOG B2 (2026-04-21): fetch aggregate score + most-recent reviews for a
+ * hotel from LiteAPI `/data/reviews`. Non-fatal: on any failure / empty
+ * response we return a zeroed object so the detail page can render a
+ * "No reviews yet" state instead of hiding the section.
+ *
+ * We defend against two plausible shapes LiteAPI have shipped in past
+ * versions — `{ data: [...] }` and `{ reviews: [...] }` — and against
+ * missing `averageScore` by falling back to a mean of per-review scores.
+ */
+export async function getHotelReviews(
+  hotelId: string,
+  limit: number = 8,
+): Promise<HotelReviews> {
+  if (!hotelId) return { averageScore: null, count: 0, list: [] };
+  try {
+    type RawRev = {
+      averageScore?: number;
+      country?: string;
+      type?: string;
+      name?: string;
+      date?: string;
+      headline?: string;
+      language?: string;
+      pros?: string;
+      cons?: string;
+    };
+    const data = await liteFetch<{
+      data?: RawRev[];
+      reviews?: RawRev[];
+      total?: number;
+      averageScore?: number;
+    }>(
+      `/data/reviews?hotelId=${encodeURIComponent(hotelId)}&limit=${Math.max(1, Math.min(30, limit))}&timeout=5`,
+      { method: 'GET' },
+      8_000,
+    );
+    const raw = Array.isArray(data.data)
+      ? data.data
+      : Array.isArray(data.reviews)
+        ? data.reviews
+        : [];
+    const clean = (v: unknown): string | null => {
+      if (typeof v !== 'string') return null;
+      const t = v.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      return t || null;
+    };
+    const list: HotelReview[] = raw
+      .filter((r): r is RawRev => !!r && typeof r === 'object')
+      .map((r) => ({
+        name: clean(r.name) || 'Anonymous',
+        country: clean(r.country),
+        type: clean(r.type),
+        date: clean(r.date),
+        language: r.language ? String(r.language).trim().toLowerCase() || null : null,
+        headline: clean(r.headline),
+        pros: clean(r.pros),
+        cons: clean(r.cons),
+        score: typeof r.averageScore === 'number' && Number.isFinite(r.averageScore)
+          ? r.averageScore
+          : null,
+      }));
+
+    const perRev = list
+      .map((r) => r.score)
+      .filter((s): s is number => typeof s === 'number');
+    const avg =
+      typeof data.averageScore === 'number' && Number.isFinite(data.averageScore)
+        ? data.averageScore
+        : perRev.length > 0
+          ? perRev.reduce((a, b) => a + b, 0) / perRev.length
+          : null;
+
+    return {
+      averageScore: avg !== null ? Math.round(avg * 10) / 10 : null,
+      count:
+        typeof data.total === 'number' && Number.isFinite(data.total) && data.total > 0
+          ? data.total
+          : list.length,
+      list,
+    };
+  } catch (err) {
+    // Silent fail — reviews are nice-to-have, the main hotel fetch owns
+    // the error UX.
+    console.warn('[liteapi] getHotelReviews failed:', err instanceof Error ? err.message : err);
+    return { averageScore: null, count: 0, list: [] };
   }
 }
 

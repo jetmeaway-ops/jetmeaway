@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!--
+    JetMeAway canonical icon mark — 2026-04-21.
+    Two-tone circular badge: warm gold on the left (~40%), deep brand blue on
+    the right (~60%), joined by a slightly angled edge. White paper-plane
+    rising from lower-left to upper-right with a soft white swoosh tail
+    arcing beneath it.
+
+    DO NOT REGENERATE from any other source. This is the single master for:
+      • mobile/assets/images/icon.png (1024×1024)
+      • mobile/assets/store/play-store-icon-512.png (512×512)
+    See mobile/MOBILE_LOG.md for the governance rules.
+  -->
+  <defs>
+    <clipPath id="circle-clip">
+      <circle cx="512" cy="512" r="480"/>
+    </clipPath>
+
+    <!-- Blue gradient, top-left lit, bottom-right deepens -->
+    <linearGradient id="blue-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#1F6BD2"/>
+      <stop offset="55%"  stop-color="#1458B5"/>
+      <stop offset="100%" stop-color="#0A3B8A"/>
+    </linearGradient>
+
+    <!-- Gold gradient, top-left bright, bottom-right amber -->
+    <linearGradient id="gold-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#FCD15A"/>
+      <stop offset="55%"  stop-color="#F5B820"/>
+      <stop offset="100%" stop-color="#D99A0E"/>
+    </linearGradient>
+
+    <!-- Subtle top-left sheen for depth -->
+    <radialGradient id="sheen" cx="0.28" cy="0.22" r="0.7">
+      <stop offset="0%"   stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Drop shadow for the paper plane -->
+    <filter id="plane-shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+      <feOffset dx="0" dy="4"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.28"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Clipped two-tone fill -->
+  <g clip-path="url(#circle-clip)">
+    <!-- Blue base covers the whole circle -->
+    <rect x="0" y="0" width="1024" height="1024" fill="url(#blue-grad)"/>
+    <!-- Gold polygon on the left with a slight angle (top-edge ~430, bottom-edge ~370) -->
+    <polygon points="0,0 430,0 370,1024 0,1024" fill="url(#gold-grad)"/>
+    <!-- Soft sheen overlay across the whole circle -->
+    <rect x="0" y="0" width="1024" height="1024" fill="url(#sheen)"/>
+  </g>
+
+  <!-- Circle outline ring for crispness at small sizes -->
+  <circle cx="512" cy="512" r="480" fill="none" stroke="#0A3B8A" stroke-width="2" stroke-opacity="0.25"/>
+
+  <!-- Soft swoosh tail beneath the plane -->
+  <path d="M 210 715 Q 470 800 810 590"
+        stroke="#FFFFFF"
+        stroke-width="46"
+        stroke-linecap="round"
+        fill="none"
+        stroke-opacity="0.92"/>
+  <!-- Thinner echo swoosh for motion -->
+  <path d="M 260 785 Q 500 835 750 670"
+        stroke="#FFFFFF"
+        stroke-width="22"
+        stroke-linecap="round"
+        fill="none"
+        stroke-opacity="0.42"/>
+
+  <!--
+    White airliner silhouette — takeoff pose (top-down jet pictogram).
+    Real aircraft shape: pointed nose, narrow fuselage, aggressively
+    swept main wings, twin horizontal tail stabilisers, rounded tail cone.
+    Base geometry points horizontally-right (nose at +260, 0).
+    rotate(-25) tilts the nose 25° above horizontal — takeoff trajectory.
+    Bbox pre-rotation: x ∈ [-262, 260], y ∈ [-200, 200].
+    Bbox post-transform: x ≈ [276, 836], y ≈ [360, 720] — inside the 66%
+    safe zone [174..850] for adaptive foreground compatibility.
+  -->
+  <g transform="translate(600 490) rotate(-25)" filter="url(#plane-shadow)">
+    <!-- Main airliner silhouette: fuselage + swept wings + tail stabs -->
+    <path d="M 260 0
+             C 220 -8 150 -14 60 -18
+             L -40 -200
+             L -110 -200
+             L -70 -28
+             C -120 -22 -160 -18 -185 -18
+             L -220 -85
+             L -260 -85
+             L -245 -10
+             C -258 -6 -262 -2 -262 0
+             C -262 2 -258 6 -245 10
+             L -260 85
+             L -220 85
+             L -185 18
+             C -160 18 -120 22 -70 28
+             L -110 200
+             L -40 200
+             L 60 18
+             C 150 14 220 8 260 0 Z"
+          fill="#FFFFFF"/>
+    <!-- Subtle cool-tint wing underside hint for depth (back wing only) -->
+    <path d="M -70 28 L -110 200 L -40 200 L 60 18 Z"
+          fill="#D9E2F5" fill-opacity="0.55"/>
+  </g>
+</svg>

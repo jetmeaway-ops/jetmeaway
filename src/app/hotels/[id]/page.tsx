@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Header from '@/components/Header';
@@ -8,9 +8,46 @@ import Footer from '@/components/Footer';
 import { redirectUrl } from '@/lib/redirect';
 import RoomsTable, { type RoomRate } from './RoomsTable';
 import RoomsSkeleton from './RoomsSkeleton';
+import RoomDetailModal from './RoomDetailModal';
 
 // Leaflet touches `window` on import, so SSR must be disabled.
 const HotelMap = dynamic(() => import('@/components/HotelMap'), { ssr: false });
+
+interface RoomMeta {
+  id: string;
+  name: string;
+  description: string | null;
+  photos: string[];
+  amenities: string[];
+  maxOccupancy: number | null;
+  sizeSqm: number | null;
+  beds: string | null;
+}
+
+interface HotelPolicy {
+  kind: 'internet' | 'parking' | 'pets' | 'children' | 'groups' | 'other';
+  name: string;
+  description: string;
+}
+
+/** BACKLOG B2 (2026-04-21): one review pulled from LiteAPI /data/reviews. */
+interface HotelReview {
+  name: string;
+  country: string | null;
+  type: string | null;
+  date: string | null;
+  language: string | null;
+  headline: string | null;
+  pros: string | null;
+  cons: string | null;
+  score: number | null;
+}
+
+interface HotelReviews {
+  averageScore: number | null;
+  count: number;
+  list: HotelReview[];
+}
 
 interface HotelDetails {
   id: string;
@@ -27,7 +64,24 @@ interface HotelDetails {
   amenities: string[];
   checkInTime: string | null;
   checkOutTime: string | null;
+  policies?: HotelPolicy[];
+  rooms?: RoomMeta[];
+  /** BACKLOG B2: aggregate score + most-recent reviews. Optional on the
+   *  type because cached v3 entries (rare, expire in 24h) don't carry it. */
+  reviews?: HotelReviews;
 }
+
+/* v2-plan step-4: kind → (icon, accent) for the Policies cards. Keeping
+   icons quiet and champagne-accented so the section sits alongside the
+   facilities grid without shouting. */
+const POLICY_ICON: Record<HotelPolicy['kind'], string> = {
+  internet: 'fa-wifi',
+  parking: 'fa-square-parking',
+  pets: 'fa-paw',
+  children: 'fa-children',
+  groups: 'fa-user-group',
+  other: 'fa-circle-info',
+};
 
 interface SimilarHotel {
   id: number | string;
@@ -75,6 +129,48 @@ const BOARD_TO_PERKS: Record<string, string[]> = {
 };
 const normBoard = (b: string) => b.trim().toLowerCase();
 
+/* Phase-5: Hotel-facility icon resolver. LiteAPI returns facility names as
+   free-form strings ("Free WiFi", "Outdoor swimming pool", "24-hour front
+   desk"), so we map substrings → Font Awesome icons. Keep this list in
+   priority order — the first match wins. Falls back to a generic check so
+   unknown facilities still render neatly in the chip grid. */
+const HOTEL_AMENITY_ICON_MAP: Array<[RegExp, string]> = [
+  [/wi-?fi|internet/i, 'fa-wifi'],
+  [/parking|garage/i, 'fa-square-parking'],
+  [/pool|swim/i, 'fa-person-swimming'],
+  [/gym|fitness/i, 'fa-dumbbell'],
+  [/spa|sauna|jacuzzi|hot tub/i, 'fa-spa'],
+  [/restaurant/i, 'fa-utensils'],
+  [/bar|lounge/i, 'fa-martini-glass-citrus'],
+  [/breakfast/i, 'fa-mug-hot'],
+  [/airport|shuttle|transfer/i, 'fa-plane-arrival'],
+  [/24[- ]?hour|front desk|reception/i, 'fa-bell-concierge'],
+  [/air ?conditioning|climate/i, 'fa-snowflake'],
+  [/heating/i, 'fa-temperature-high'],
+  [/non[- ]?smoking/i, 'fa-ban-smoking'],
+  [/pet|dog|animal/i, 'fa-paw'],
+  [/family|child|kid/i, 'fa-children'],
+  [/laundry|dry clean/i, 'fa-shirt'],
+  [/elevator|lift/i, 'fa-elevator'],
+  [/luggage|baggage|storage/i, 'fa-suitcase-rolling'],
+  [/terrace|garden|patio/i, 'fa-tree'],
+  [/safe|locker/i, 'fa-lock'],
+  [/tv|television/i, 'fa-tv'],
+  [/business|meeting|conference/i, 'fa-briefcase'],
+  [/wheelchair|accessib|disabled/i, 'fa-wheelchair'],
+  [/concierge/i, 'fa-bell-concierge'],
+  [/beach/i, 'fa-umbrella-beach'],
+  [/ski/i, 'fa-person-skiing'],
+  [/balcon/i, 'fa-chimney'],
+];
+
+function resolveAmenityIcon(name: string): string {
+  for (const [re, icon] of HOTEL_AMENITY_ICON_MAP) {
+    if (re.test(name)) return icon;
+  }
+  return 'fa-circle-check';
+}
+
 function Stars({ count }: { count: number | null }) {
   if (!count || count < 1) return null;
   return (
@@ -84,6 +180,31 @@ function Stars({ count }: { count: number | null }) {
       ))}
     </span>
   );
+}
+
+/** BACKLOG B2: Booking-style verbal label for an aggregate review score. */
+function scoreLabel(score: number): string {
+  if (score >= 9) return 'Superb';
+  if (score >= 8) return 'Very good';
+  if (score >= 7) return 'Good';
+  if (score >= 6) return 'Pleasant';
+  if (score >= 4) return 'Mixed';
+  return 'Limited feedback';
+}
+
+/** BACKLOG B2: "2025-11-03" → "Nov 2025". Degrades to raw string on bad input. */
+function formatReviewDate(iso: string): string {
+  try {
+    const d = new Date(iso.length === 10 ? iso + 'T12:00:00Z' : iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString('en-GB', {
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC',
+    });
+  } catch {
+    return iso;
+  }
 }
 
 export default function HotelDetailPage() {
@@ -107,6 +228,11 @@ export default function HotelDetailPage() {
   const [ratesLoading, setRatesLoading] = useState(true);
   const [selectedRate, setSelectedRate] = useState<RoomRate | null>(null);
   const [sidebarBreathe, setSidebarBreathe] = useState(false);
+
+  // Phase-4: Room detail modal state. We track the offerId (not the rate
+  // object) so the modal always reflects the latest row data if the rates
+  // array updates under it.
+  const [modalOfferId, setModalOfferId] = useState<string | null>(null);
 
   // Search context passed from /hotels results (for the Book button)
   const offerId = sp?.get('offerId') || '';
@@ -231,6 +357,20 @@ export default function HotelDetailPage() {
     window.setTimeout(() => setSidebarBreathe(false), 260);
   };
 
+  /* Phase-4: memoised lookup from lowercased room name → room metadata.
+     MUST live here (before any early return) because React's Rules of
+     Hooks require every hook to be called on every render — moving it
+     below the `if (loading)` / `if (error)` returns breaks hook order
+     the first time the page mounts without `hotel` yet loaded. */
+  const roomMetaByName = useMemo(() => {
+    const m = new Map<string, RoomMeta>();
+    for (const r of hotel?.rooms || []) {
+      const key = r.name.toLowerCase().trim();
+      if (key) m.set(key, r);
+    }
+    return m;
+  }, [hotel?.rooms]);
+
   /* Row Reserve click — delegate to the existing handleBook using the
      selected rate's offerId/price/board so the checkout sees the exact
      row the user clicked, not the URL-param offer. */
@@ -343,19 +483,105 @@ export default function HotelDetailPage() {
     ? Math.max(1, Math.round((new Date(checkout).getTime() - new Date(checkin).getTime()) / 86400000))
     : 0;
 
+  const modalRate = modalOfferId ? rates.find((r) => r.offerId === modalOfferId) || null : null;
+  const modalRoomMeta = modalRate
+    ? roomMetaByName.get((modalRate.roomName || '').toLowerCase().trim()) || null
+    : null;
+  const modalBoardLabel = modalRate
+    ? (modalRate.boardType || null)
+    : null;
+
   return (
     <>
       <Header />
-      <main className="max-w-[1100px] mx-auto px-5 pt-28 pb-16">
-        <a href={city ? `/hotels?destination=${encodeURIComponent(city)}&checkin=${checkin}&checkout=${checkout}&adults=${adults}` : '/hotels'} className="text-[.78rem] font-bold text-orange-500 hover:underline">← Back to search</a>
+      <main className="max-w-[1100px] mx-auto px-5 pt-28 pb-24 md:pb-16">
+        {/* BACKLOG B4 (2026-04-21): Prominent "Back to search results" pill.
+            User feedback — the browser back button lands on the empty /hotels
+            state because the landing page is fully client-driven. Build an
+            explicit back link that carries the original search params so
+            /hotels re-hydrates (useEffect on line 1599 of hotels-client.tsx
+            reads them) and auto-fires the search (autoSearched ref at 1831).
+            Falls back to /hotels with no params if we don't have a city. */}
+        <div className="mb-3">
+          <a
+            href={(() => {
+              const qp = new URLSearchParams();
+              if (city) qp.set('destination', city);
+              if (checkin) qp.set('checkin', checkin);
+              if (checkout) qp.set('checkout', checkout);
+              if (adults) qp.set('adults', adults);
+              if (children && children !== '0') qp.set('children', children);
+              if (rooms) qp.set('rooms', rooms);
+              const qs = qp.toString();
+              return qs ? `/hotels?${qs}` : '/hotels';
+            })()}
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-white border border-[#E8ECF4] text-[.78rem] font-poppins font-bold text-[#0a1628] hover:bg-[#FCFAF5] hover:border-[#E8D8A8] shadow-[0_2px_10px_rgba(10,22,40,0.04)] transition-colors"
+            aria-label="Back to search results"
+          >
+            <i className="fa-solid fa-arrow-left text-[.7rem]" />
+            Back to search{city ? ` in ${city}` : ' results'}
+          </a>
+        </div>
 
-        {/* Header */}
-        <div className="mt-3 mb-5">
-          <Stars count={hotel.stars} />
-          <h1 className="font-poppins font-black text-[2rem] md:text-[2.4rem] text-[#1A1D2B] leading-tight mt-1">{hotel.name}</h1>
-          {hotel.address && (
-            <p className="text-[.85rem] text-[#5C6378] font-semibold mt-1">📍 {hotel.address}{hotel.city ? `, ${hotel.city}` : ''}</p>
-          )}
+        {/* Phase-5: Breadcrumb — Home / Hotels / {City} / {Hotel} — anchored
+            left so the hotel title sits on its own line below. Uses native
+            <nav> + aria-label for screen readers. */}
+        <nav aria-label="Breadcrumb" className="text-[.72rem] font-semibold text-[#8E95A9]">
+          <ol className="flex flex-wrap items-center gap-1.5">
+            <li><a href="/" className="hover:text-[#0066FF] transition-colors">Home</a></li>
+            <li aria-hidden>›</li>
+            <li>
+              <a href={city ? `/hotels?destination=${encodeURIComponent(city)}&checkin=${checkin}&checkout=${checkout}&adults=${adults}` : '/hotels'} className="hover:text-[#0066FF] transition-colors">
+                Hotels
+              </a>
+            </li>
+            {city && (
+              <>
+                <li aria-hidden>›</li>
+                <li>
+                  <a href={`/hotels?destination=${encodeURIComponent(city)}&checkin=${checkin}&checkout=${checkout}&adults=${adults}`} className="hover:text-[#0066FF] transition-colors">
+                    {city}
+                  </a>
+                </li>
+              </>
+            )}
+            <li aria-hidden>›</li>
+            <li className="text-[#1A1D2B] truncate max-w-[240px]" title={hotel.name}>{hotel.name}</li>
+          </ol>
+        </nav>
+
+        {/* Header — title row with stars, address, and a review-score tile
+            on the right. The score tile is a placeholder shape until we wire
+            live review data; it carries the structure so the layout stays
+            honest in both states. */}
+        <div className="mt-3 mb-5 flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <Stars count={hotel.stars} />
+            <h1 className="font-poppins font-black text-[2rem] md:text-[2.4rem] text-[#1A1D2B] leading-tight mt-1">{hotel.name}</h1>
+            {hotel.address && (
+              <p className="text-[.85rem] text-[#5C6378] font-semibold mt-1">
+                <i className="fa-solid fa-location-dot text-[.78rem] text-[#287DFA] mr-1" />
+                {hotel.address}{hotel.city ? `, ${hotel.city}` : ''}
+              </p>
+            )}
+            {/* Trust chip row — "Includes all taxes & fees" is the premium
+                cue customers read for in every Booking.com listing. We keep
+                it even when no rate is selected yet. */}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[.68rem] font-bold">
+                <i className="fa-solid fa-receipt text-[.62rem]" />
+                Prices include all taxes & fees
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#FAF3E6] border border-[#E8D8A8] text-[#8a6d00] text-[.68rem] font-bold">
+                <i className="fa-solid fa-hand-holding-dollar text-[.62rem]" />
+                No booking fees
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[.68rem] font-bold">
+                <i className="fa-solid fa-shield-halved text-[.62rem]" />
+                Scout Price Match
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Gallery */}
@@ -385,12 +611,60 @@ export default function HotelDetailPage() {
           </div>
         )}
 
+        {/* Phase-5: Anchor sub-nav — smooth-scrolls to the main sections
+            below. Booking.com's "Overview / Info & prices / Facilities /
+            Reviews / Fine print" row; we keep a shorter Scout-voiced version
+            so the page feels navigable from the top. Uses native anchor
+            links so keyboard + screen-reader navigation comes for free. */}
+        <nav
+          aria-label="Sections"
+          className="sticky top-[72px] z-20 -mx-5 md:-mx-0 px-5 md:px-0 py-2 bg-white/90 backdrop-blur-md border-y border-[#E8ECF4] mb-6"
+        >
+          <ul className="flex gap-1 overflow-x-auto text-[.78rem] font-semibold">
+            <li><a href="#rooms" className="inline-block px-3 py-1.5 rounded-full hover:bg-[#FAF3E6] text-[#0a1628] transition-colors">Rooms &amp; rates</a></li>
+            {hotel.description && (
+              <li><a href="#overview" className="inline-block px-3 py-1.5 rounded-full hover:bg-[#FAF3E6] text-[#0a1628] transition-colors">Overview</a></li>
+            )}
+            {hotel.amenities.length > 0 && (
+              <li><a href="#facilities" className="inline-block px-3 py-1.5 rounded-full hover:bg-[#FAF3E6] text-[#0a1628] transition-colors">Facilities</a></li>
+            )}
+            {typeof hotel.latitude === 'number' && typeof hotel.longitude === 'number' && (
+              <li><a href="#location" className="inline-block px-3 py-1.5 rounded-full hover:bg-[#FAF3E6] text-[#0a1628] transition-colors">Location</a></li>
+            )}
+            {(hotel.checkInTime || hotel.checkOutTime) && (
+              <li><a href="#policies" className="inline-block px-3 py-1.5 rounded-full hover:bg-[#FAF3E6] text-[#0a1628] transition-colors">Policies</a></li>
+            )}
+            {/* BACKLOG B2 (2026-04-21, order tweak 2026-04-21): Reviews anchor
+                is always shown — even when we have zero reviews the section
+                renders a "No reviews yet" state per the ship rule ("Fall back
+                to \"No reviews yet\" if LiteAPI returns nothing — do NOT hide
+                the tab"). Positioned last in the nav so the section order
+                matches the DOM order: ... → Policies → Reviews. */}
+            {/* User request 2026-04-21: show the total review count inline
+                with the Reviews nav link ("Reviews 10,573") — sub-nav has
+                spare horizontal room and the number builds trust before the
+                user even scrolls. Pill is only rendered when we actually
+                have reviews so we don't print "Reviews 0" on empty. */}
+            <li>
+              <a href="#reviews" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-[#FAF3E6] text-[#0a1628] transition-colors">
+                Reviews
+                {hotel.reviews && hotel.reviews.count > 0 && (
+                  <span className="inline-flex items-center rounded-full bg-[#FAF3E6] ring-1 ring-[#E8D8A8] text-[#8a6d00] text-[.66rem] font-black px-2 py-0.5 tabular-nums">
+                    {hotel.reviews.count.toLocaleString()}
+                  </span>
+                )}
+              </a>
+            </li>
+          </ul>
+        </nav>
+
         <div className="grid md:grid-cols-[1fr_340px] gap-6">
           {/* Left: rates table → description → amenities */}
           <div>
             {/* ═══ Scout Rooms Table ═══
                 The primary action. Rendered BEFORE description so the
                 customer sees the rate choices without scrolling. */}
+            <div id="rooms" className="scroll-mt-[140px]" />
             {ratesLoading ? (
               <RoomsSkeleton />
             ) : rates.length > 0 ? (
@@ -399,14 +673,16 @@ export default function HotelDetailPage() {
                   offers={rates}
                   nights={numNights || 1}
                   selectedOfferId={selectedRate?.offerId || null}
+                  roomMetaByName={roomMetaByName}
                   onSelect={handleRowSelect}
                   onReserve={handleRowReserve}
+                  onShowDetails={(oid) => setModalOfferId(oid)}
                 />
               </div>
             ) : null}
 
             {hotel.description && (
-              <section className="bg-white border border-[#E8ECF4] rounded-2xl p-6 mb-5">
+              <section id="overview" className="bg-white border border-[#E8ECF4] rounded-2xl p-6 mb-5 scroll-mt-[140px]">
                 <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-3">About this hotel</h2>
                 <p className="text-[.88rem] text-[#5C6378] font-medium leading-relaxed whitespace-pre-line">
                   {hotel.description.slice(0, 1200)}{hotel.description.length > 1200 ? '…' : ''}
@@ -415,7 +691,7 @@ export default function HotelDetailPage() {
             )}
 
             {typeof hotel.latitude === 'number' && typeof hotel.longitude === 'number' && (
-              <section className="bg-white border border-[#E8ECF4] rounded-2xl p-6 mb-5">
+              <section id="location" className="bg-white border border-[#E8ECF4] rounded-2xl p-6 mb-5 scroll-mt-[140px]">
                 <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-3">Location</h2>
                 {hotel.address && (
                   <p className="text-[.82rem] text-[#5C6378] font-semibold mb-3">
@@ -440,28 +716,239 @@ export default function HotelDetailPage() {
             )}
 
             {hotel.amenities.length > 0 && (
-              <section className="bg-white border border-[#E8ECF4] rounded-2xl p-6 mb-5">
-                <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-3">Amenities</h2>
-                <div className="grid grid-cols-2 gap-2">
-                  {hotel.amenities.slice(0, 24).map((a, i) => (
-                    <div key={i} className="flex items-center gap-2 text-[.82rem] text-[#5C6378] font-semibold">
-                      <i className="fa-solid fa-check text-green-500 text-[.7rem]" />
-                      <span>{a}</span>
-                    </div>
-                  ))}
+              <section id="facilities" className="bg-white border border-[#E8ECF4] rounded-2xl p-6 mb-5 scroll-mt-[140px]">
+                <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-1">Most popular facilities</h2>
+                <p className="text-[.74rem] text-[#8E95A9] font-semibold mb-4">
+                  What this property offers to every guest — pulled live from the hotel&apos;s own facility list.
+                </p>
+                {/* Phase-5: Amenity chip grid — each amenity gets a dedicated
+                    icon drawn from HOTEL_AMENITY_ICON_MAP. Unknown amenities
+                    fall back to a generic check so we never show an empty
+                    square. Three columns on desktop, two on tablet, one on
+                    phone — matches Booking.com's density without feeling
+                    cramped. */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-2.5">
+                  {hotel.amenities.slice(0, 30).map((a, i) => {
+                    const info = resolveAmenityIcon(a);
+                    return (
+                      <div key={i} className="flex items-center gap-2.5 text-[.82rem] text-[#0a1628] font-semibold leading-snug">
+                        <span className="w-7 h-7 rounded-full bg-[#FAF3E6] border border-[#E8D8A8] text-[#8a6d00] flex items-center justify-center shrink-0">
+                          <i className={`fa-solid ${info} text-[.74rem]`} />
+                        </span>
+                        <span className="truncate">{a}</span>
+                      </div>
+                    );
+                  })}
                 </div>
+                {hotel.amenities.length > 30 && (
+                  <p className="mt-4 text-[.72rem] text-[#5C6378] font-semibold">
+                    +{hotel.amenities.length - 30} more facilities available at the property
+                  </p>
+                )}
               </section>
             )}
 
-            {(hotel.checkInTime || hotel.checkOutTime) && (
-              <section className="bg-white border border-[#E8ECF4] rounded-2xl p-6 mb-5">
-                <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-3">Check-in / Check-out</h2>
-                <div className="flex gap-6 text-[.85rem] text-[#5C6378] font-semibold">
-                  {hotel.checkInTime && <div>Check-in from <strong className="text-[#1A1D2B]">{hotel.checkInTime}</strong></div>}
-                  {hotel.checkOutTime && <div>Check-out by <strong className="text-[#1A1D2B]">{hotel.checkOutTime}</strong></div>}
-                </div>
+            {(hotel.checkInTime || hotel.checkOutTime || (hotel.policies && hotel.policies.length > 0)) && (
+              <section id="policies" className="bg-white border border-[#E8ECF4] rounded-2xl p-6 mb-5 scroll-mt-[140px]">
+                <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-1">House rules &amp; policies</h2>
+                <p className="text-[.74rem] text-[#8E95A9] font-semibold mb-4">
+                  Straight from the property — times, parking, pets, children.
+                </p>
+
+                {/* Check-in / Check-out as a pair of champagne tiles — same
+                    visual weight as the sidebar stay-schedule block so the
+                    times read unambiguously. */}
+                {(hotel.checkInTime || hotel.checkOutTime) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+                    {hotel.checkInTime && (
+                      <div className="rounded-xl bg-[#FAF3E6]/60 ring-1 ring-[#E8D8A8]/60 p-3.5">
+                        <div className="text-[.62rem] font-black uppercase tracking-[1.5px] text-[#8a6d00] mb-1">
+                          Check-in from
+                        </div>
+                        <div className="font-[var(--font-playfair)] font-black text-[1.35rem] text-[#0a1628] leading-none">
+                          {hotel.checkInTime}
+                        </div>
+                      </div>
+                    )}
+                    {hotel.checkOutTime && (
+                      <div className="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-3.5">
+                        <div className="text-[.62rem] font-black uppercase tracking-[1.5px] text-slate-500 mb-1">
+                          Check-out by
+                        </div>
+                        <div className="font-[var(--font-playfair)] font-black text-[1.35rem] text-[#0a1628] leading-none">
+                          {hotel.checkOutTime}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* v2-plan step-4: policy cards from LiteAPI `policies[]` —
+                    internet / parking / pets / children / groups. Icon in a
+                    champagne badge on the left, name + description on the
+                    right. Two-column on tablet+. */}
+                {hotel.policies && hotel.policies.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {hotel.policies.map((p, i) => (
+                      <div key={`${p.kind}-${i}`} className="flex gap-3">
+                        <span className="w-9 h-9 rounded-full bg-[#FAF3E6] border border-[#E8D8A8] text-[#8a6d00] flex items-center justify-center shrink-0">
+                          <i className={`fa-solid ${POLICY_ICON[p.kind]} text-[.82rem]`} />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-poppins font-bold text-[.82rem] text-[#0a1628] leading-tight">
+                            {p.name}
+                          </div>
+                          {p.description && (
+                            <p className="text-[.78rem] text-[#5C6378] font-medium leading-snug mt-1">
+                              {p.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </section>
             )}
+
+            {/* BACKLOG B2 (2026-04-21, reorder 2026-04-21): Reviews section.
+                Positioned LAST on the detail page per user request — after
+                Policies, so the page ends on social proof rather than legal
+                copy. Always renders: the header shows a score tile when we
+                have data, and the body falls back to "No reviews yet" when
+                LiteAPI returned nothing. Ship rule was explicit: do NOT hide
+                the section. */}
+            <section id="reviews" className="bg-white border border-[#E8ECF4] rounded-2xl p-6 mb-5 scroll-mt-[140px]">
+              <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
+                <div>
+                  <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-1">Guest reviews</h2>
+                  <p className="text-[.74rem] text-[#8E95A9] font-semibold">
+                    Verified reviews from recent guests — pulled live from our property partner.
+                  </p>
+                </div>
+                {hotel.reviews && typeof hotel.reviews.averageScore === 'number' && hotel.reviews.count > 0 ? (
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl bg-emerald-50 ring-1 ring-emerald-200 px-3 py-2 text-center min-w-[68px]">
+                      <div className="font-[var(--font-playfair)] font-black text-[1.4rem] text-emerald-700 leading-none">
+                        {hotel.reviews.averageScore.toFixed(1)}
+                      </div>
+                      <div className="text-[.58rem] font-black uppercase tracking-wider text-emerald-700 mt-1">
+                        out of 10
+                      </div>
+                    </div>
+                    <div className="text-[.75rem]">
+                      <div className="font-poppins font-black text-[.92rem] text-[#0a1628] leading-tight">
+                        {scoreLabel(hotel.reviews.averageScore)}
+                      </div>
+                      {/* User request 2026-04-21: label "Reviews" on top, total
+                          count directly underneath — two-line stack so the
+                          number reads as the dominant datum. */}
+                      <div className="text-[#8E95A9] font-semibold text-[.66rem] uppercase tracking-[.8px] mt-1">
+                        Reviews
+                      </div>
+                      <div className="text-[#0a1628] font-poppins font-black text-[1.05rem] leading-tight">
+                        {hotel.reviews.count.toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              {hotel.reviews && hotel.reviews.list.length > 0 ? (
+                <>
+                <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {hotel.reviews.list.slice(0, 5).map((r, i) => (
+                    <li
+                      key={`${r.name}-${r.date || i}`}
+                      className="rounded-xl bg-[#FAFBFC] ring-1 ring-[#E8ECF4] p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <div className="min-w-0">
+                          <div className="font-poppins font-bold text-[.82rem] text-[#0a1628] truncate">
+                            {r.name}
+                          </div>
+                          <div className="text-[.68rem] text-[#8E95A9] font-semibold flex items-center gap-1.5 flex-wrap">
+                            {r.country && <span>{r.country}</span>}
+                            {r.type && (
+                              <>
+                                <span aria-hidden>·</span>
+                                <span>{r.type}</span>
+                              </>
+                            )}
+                            {r.date && (
+                              <>
+                                <span aria-hidden>·</span>
+                                <span>{formatReviewDate(r.date)}</span>
+                              </>
+                            )}
+                            {r.language && (
+                              <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[.56rem] font-black uppercase tracking-wider">
+                                {r.language}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {typeof r.score === 'number' && (
+                          <span className="shrink-0 inline-flex items-center justify-center min-w-[36px] h-[28px] rounded-lg bg-emerald-600 text-white text-[.78rem] font-black px-2">
+                            {r.score.toFixed(1)}
+                          </span>
+                        )}
+                      </div>
+                      {r.headline && (
+                        <p className="font-poppins font-bold text-[.82rem] text-[#1A1D2B] mb-1.5 leading-snug">
+                          “{r.headline}”
+                        </p>
+                      )}
+                      {r.pros && (
+                        <div className="flex gap-2 mb-1 items-start">
+                          <i className="fa-solid fa-thumbs-up text-[.68rem] text-emerald-600 mt-0.5 shrink-0" />
+                          <p className="text-[.78rem] text-[#1A1D2B] font-medium leading-snug">
+                            {r.pros}
+                          </p>
+                        </div>
+                      )}
+                      {r.cons && (
+                        <div className="flex gap-2 items-start">
+                          <i className="fa-solid fa-thumbs-down text-[.68rem] text-[#b8860b] mt-0.5 shrink-0" />
+                          <p className="text-[.78rem] text-[#5C6378] font-medium leading-snug">
+                            {r.cons}
+                          </p>
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                {/* BACKLOG B2 tweak (2026-04-21): Booking.com-style review-count
+                    footer beneath the list. Shows how many of the total
+                    verified reviews are visible — anchors social proof at the
+                    bottom of the section so the page closes on a strong
+                    number, not on the last review card. */}
+                <div className="mt-5 pt-4 border-t border-[#E8ECF4] flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-[.82rem] text-[#0a1628] font-poppins font-bold">
+                    Showing {Math.min(5, hotel.reviews.list.length)} of{' '}
+                    <span className="font-black">{hotel.reviews.count.toLocaleString()}</span>{' '}
+                    verified guest review{hotel.reviews.count === 1 ? '' : 's'}
+                  </p>
+                  {typeof hotel.reviews.averageScore === 'number' && (
+                    <p className="text-[.72rem] text-[#5C6378] font-semibold">
+                      <i className="fa-solid fa-shield-check text-emerald-600 mr-1.5" />
+                      {scoreLabel(hotel.reviews.averageScore)} · {hotel.reviews.averageScore.toFixed(1)}/10 average
+                    </p>
+                  )}
+                </div>
+                </>
+              ) : (
+                <div className="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-5 text-center">
+                  <i className="fa-solid fa-comment-dots text-[1.1rem] text-slate-400 mb-2" />
+                  <p className="font-poppins font-bold text-[.86rem] text-[#0a1628] mb-1">
+                    No reviews yet
+                  </p>
+                  <p className="text-[.74rem] text-[#5C6378] font-medium max-w-[380px] mx-auto">
+                    This property hasn&apos;t been reviewed on our network yet. Once guests complete their stay, their feedback will appear here.
+                  </p>
+                </div>
+              )}
+            </section>
           </div>
 
           {/* Right: booking summary.
@@ -750,6 +1237,68 @@ export default function HotelDetailPage() {
           </section>
         )}
       </main>
+
+      {/* Phase-5: Mobile sticky-bottom CTA — pinned to the viewport on
+          phones so the Reserve action is always one tap away, regardless of
+          how far the customer has scrolled into the amenities / description.
+          Hidden on md+ where the sidebar stays in view. */}
+      {(selectedRate || offerId) && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-[150] bg-white/98 backdrop-blur-md border-t border-[#E8ECF4] shadow-[0_-8px_24px_rgba(10,22,40,0.12)] px-4 py-3 flex items-center justify-between gap-3">
+          <div>
+            <div className="text-[.58rem] font-semibold text-slate-500 uppercase tracking-[1.5px]">
+              Total for {numNights || '—'} {numNights === 1 ? 'night' : 'nights'}
+            </div>
+            <div className="font-[var(--font-playfair)] font-black text-[1.4rem] text-[#0a1628] leading-none">
+              {currency === 'GBP' ? '£' : `${currency} `}
+              {selectedRate ? selectedRate.totalPrice.toFixed(2) : (price ? parseFloat(price).toFixed(2) : '—')}
+            </div>
+            {selectedRate?.excludedTaxes != null && selectedRate.excludedTaxes > 0 && (
+              <div className="text-[.62rem] font-medium text-slate-500 mt-0.5">
+                + £{Math.round(selectedRate.excludedTaxes)} city tax at property
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (selectedRate) handleRowReserve(selectedRate.offerId);
+              else handleBook();
+            }}
+            disabled={startingBooking}
+            className="flex-shrink-0 inline-flex items-center gap-2 bg-[#0a1628] hover:bg-[#0066FF] disabled:opacity-60 text-white font-poppins font-bold text-[.82rem] rounded-full px-5 py-3 shadow-[0_8px_18px_rgba(10,22,40,0.25)] transition-all"
+          >
+            {startingBooking ? (
+              <span className="inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+            ) : (
+              <><i className="fa-solid fa-lock text-[.72rem]" /> Reserve →</>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Phase-4: Room detail modal — opens when the user clicks a room
+          thumbnail or "See details" link in the RoomsTable. Reuses
+          handleRowReserve so the primary action stays consistent. */}
+      <RoomDetailModal
+        open={Boolean(modalOfferId && modalRoomMeta)}
+        onClose={() => setModalOfferId(null)}
+        onReserve={() => {
+          if (modalOfferId) {
+            handleRowReserve(modalOfferId);
+          }
+        }}
+        room={modalRoomMeta}
+        totalPrice={modalRate?.totalPrice ?? null}
+        pricePerNight={modalRate?.pricePerNight ?? null}
+        nights={numNights || 1}
+        currency={currency}
+        boardLabel={modalBoardLabel}
+        refundable={modalRate?.refundable ?? null}
+        excludedTaxes={modalRate?.excludedTaxes ?? null}
+        reserving={startingBooking}
+        fallbackPhotos={gallery}
+      />
+
       <Footer />
     </>
   );
