@@ -44,7 +44,10 @@
         {
           "locationWhenInUsePermission": "JetMeAway uses your location to suggest the nearest airport and map the neighbourhood around your hotel. Location is never shared or sold."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-font",
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {
