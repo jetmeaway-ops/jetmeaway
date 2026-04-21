@@ -18,13 +18,14 @@ Items move top → bottom as they ship: `NEXT UP` → `IN FLIGHT` → `DONE`. Ol
 ## IN FLIGHT
 
 ### M1. Mobile app — icon mismatch fix (Play Store rejected 2026-04-21)
-Started 2026-04-21 after user greenlit. All code/asset work done on disk; **awaiting user to run `eas build` + upload + resubmit**. Full state in `mobile/MOBILE_LOG.md`.
-- [x] Canonical SVG masters written (`icon-canonical.svg`, `icon-canonical-foreground.svg`, `wordmark-canonical.svg`)
-- [x] Old SVGs archived as `*.archive.svg`
+Build complete 2026-04-21 (1.0.2 v12 — Expo build `7d908219`). **Awaiting user to upload AAB to Play Console.** Full state in `mobile/MOBILE_LOG.md`.
+- [x] Canonical raster from user's actual logo (`public/Jetmeaway logo for app.jpeg` → `mobile/assets/brand/icon-canonical.png`)
+- [x] Old SVGs + hand-drawn attempts archived as `*.archive.svg`
 - [x] PNGs regenerated via `mobile/scripts/regen-icons.mjs` (icon.png 1024, adaptive-icon.png 1024, play-store-icon-512.png 512)
-- [x] `app.json` bumped → version 1.0.2, versionCode 3 (2 burned by rejected submission)
-- [ ] `eas build --platform android --profile production`
-- [ ] Upload AAB to Play Console
+- [x] `eas.json` hardened — `requireCommit: true` (OneDrive workaround) + `appVersionSource: "remote"`
+- [x] SDK 54 dependency alignment via `npx expo install --fix` (17/17 doctor green)
+- [x] `eas build --platform android --profile production` — build 4 (v12) SUCCESS
+- [ ] Download AAB + upload to Play Console
 - [ ] Re-upload 512×512 hi-res icon in Main store listing
 - [ ] Submit for review
 
@@ -41,6 +42,22 @@ Started 2026-04-21 after user greenlit. All code/asset work done on disk; **awai
 ---
 
 ## DONE (recent)
+
+### V6 — Magic-link dotted-email fix + SESSION_SECRET live — 2026-04-21
+Hotfix after first live sign-in attempt returned `/account?error=expired` even on fresh links.
+
+1. **Root cause in `src/lib/session.ts`.** `verifyToken()` was doing `token.split('.')` and requiring `parts.length === 4`. Token format is `{purpose}.{email}.{expiry}.{sig}` — but every email domain contains at least one `.` (`@gmail.com`, `@foo.co.uk`), so any real user produced 5+ parts and failed the length check. UI rendered that as "expired".
+2. **Fix.** Parse from the known ends: purpose = first part (no dots), sig = last (base64url, `.` → `_`), expiry = second-to-last (digits only), email = everything between rejoined with `.`. `tsc --noEmit` clean.
+3. **Infra.** `SESSION_SECRET` (48 bytes, base64url, sensitive, Production + Preview) added in Vercel. Redeploy `7qevZn6mo` picked it up; `/account` now renders without 500.
+
+Commit: `ee7aabc fix(auth): magic-link verify handles emails with dotted domains`. Pushed as a solo fix — cost-cadence broken once, justified by broken auth on prod.
+
+### M1. Mobile app — icon mismatch fix — BUILT 2026-04-21
+1.0.2 (versionCode 12, build `7d908219-decd-4c52-9b09-0931d771ec2f`) — ✅ Finished, AAB ready for download.
+
+Trail of fixes to get there: `.easignore` rewrite → `cli.requireCommit: true` (OneDrive NTFS workaround) → `npx expo install --fix` (SDK 54 dependency alignment; fixed `enableBundleCompression` gradle crash).
+
+Next: user downloads AAB → Play Console upload → re-upload 512×512 hi-res icon → submit for review.
 
 ### V5 — Hotel detail: Reviews-count prominence + Back-to-search button — 2026-04-21
 Saved plan: `PREMIUM_PLAN_V5.md`.

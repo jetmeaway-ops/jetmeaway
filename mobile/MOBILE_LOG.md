@@ -74,7 +74,7 @@ Regeneration is automated via `mobile/scripts/regen-icons.mjs` — run any time 
 - **Attempt 3 · versionCode 11 (build `06230edb-d162-4e0c-8bf5-9c2f4790c5d0`)** — Prepare/Install/Prebuild/Bundle all passed ✅. Failed at "Run gradlew" after 1m 37s with `Gradle build failed with unknown error`.
   - Root cause: React Native 0.81's Gradle plugin emits `enableBundleCompression = true` in the generated `android/app/build.gradle`, but `package.json` still had `react-native@0.77.2` pinned (and 16 other deps out of sync with SDK 54). The Gradle plugin resolved from 0.77 didn't know the property → compile crash.
   - Fix applied: `npx expo install --fix` inside `mobile/` realigned all 17 flagged deps with SDK 54 expectations. `expo-doctor` now reports 17/17 passing. Committed as `e0ecbd1`.
-- **Attempt 4 · versionCode 12 (build `7d908219-decd-4c52-9b09-0931d771ec2f`)** — IN PROGRESS as of 2026-04-21.
+- **Attempt 4 · versionCode 12 (build `7d908219-decd-4c52-9b09-0931d771ec2f`)** — ✅ **SUCCESS 2026-04-21** · SDK 54.0.0 · fingerprint `ec74fc0` · commit `e0ecbd1` · build 16m 40s / total 17m 22s · AAB available for 29 days. Ready to upload to Play Console.
 
 #### Lessons for next time
 - Don't edit `mobile/android/app/build.gradle` directly — it doesn't exist in the repo (managed workflow). EAS regenerates it each build from the RN template for whichever `react-native` version is in `package.json`. Fix at the `package.json` level instead.
