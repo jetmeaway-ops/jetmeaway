@@ -87,9 +87,17 @@ async function makeToken(purpose: 'magic' | 'session', email: string, ttlSec: nu
 
 async function verifyToken(purpose: 'magic' | 'session', token: string): Promise<string | null> {
   if (!token || typeof token !== 'string') return null;
+  // Token format: `{purpose}.{email}.{expiry}.{sig}`. Email domains contain
+  // dots (`user@gmail.com`, `x@foo.co.uk`), so a naive `split('.')` produces
+  // 5+ parts. Purpose has no dots, expiry is digits only, and sig is base64url
+  // (which replaces `.` with `_`), so only the email can contribute interior
+  // dots — parse from the ends and rejoin the middle as the email.
   const parts = token.split('.');
-  if (parts.length !== 4) return null;
-  const [p, email, expStr, sig] = parts;
+  if (parts.length < 4) return null;
+  const p = parts[0];
+  const sig = parts[parts.length - 1];
+  const expStr = parts[parts.length - 2];
+  const email = parts.slice(1, -2).join('.');
   if (p !== purpose) return null;
   const exp = parseInt(expStr, 10);
   if (!Number.isFinite(exp) || exp < Math.floor(Date.now() / 1000)) return null;
