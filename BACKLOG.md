@@ -17,23 +17,22 @@ Items move top → bottom as they ship: `NEXT UP` → `IN FLIGHT` → `DONE`. Ol
 
 ## IN FLIGHT
 
-### M1. Mobile app — icon mismatch fix (Play Store rejected 2026-04-21)
-Build complete 2026-04-21 (1.0.2 v12 — Expo build `7d908219`). **Awaiting user to upload AAB to Play Console.** Full state in `mobile/MOBILE_LOG.md`.
-- [x] Canonical raster from user's actual logo (`public/Jetmeaway logo for app.jpeg` → `mobile/assets/brand/icon-canonical.png`)
-- [x] Old SVGs + hand-drawn attempts archived as `*.archive.svg`
-- [x] PNGs regenerated via `mobile/scripts/regen-icons.mjs` (icon.png 1024, adaptive-icon.png 1024, play-store-icon-512.png 512)
-- [x] `eas.json` hardened — `requireCommit: true` (OneDrive workaround) + `appVersionSource: "remote"`
-- [x] SDK 54 dependency alignment via `npx expo install --fix` (17/17 doctor green)
-- [x] `eas build --platform android --profile production` — build 4 (v12) SUCCESS
-- [ ] Download AAB + upload to Play Console
-- [ ] Re-upload 512×512 hi-res icon in Main store listing
-- [ ] Submit for review
+### M3. Mobile app — awaiting Google Play review decision (submitted 2026-04-21)
+**10 changes sent for review 2026-04-21.** Quick checks ran (~14 min), then handed off to Google's human review queue. Typical turnaround ≤7 days.
+
+Bundle contents:
+- Production: `jetmeaway 1.0.0.12` (AAB from EAS build `7d908219`, versionCode 12) — full rollout
+- Store listing en-GB: **new App icon 512×512** (fresh upload, old rejected 4/18/2026 asset deleted) + **new Feature graphic 1024×500** (user chose to refresh alongside icon)
+- Countries/regions: add United Kingdom
+- Closed testing Alpha: feedback channel update
+
+No action until Google emails back. Log outcome in `mobile/MOBILE_LOG.md` Version History row.
 
 ---
 
 ## NEXT UP — queued, not started
 
-### M2. Mobile icon clipping test (post EAS build 1.0.2)
+### M2. Mobile icon clipping test (post-approval, when 1.0.2 ships)
 - [ ] Sideload or install the 1.0.2 AAB on a real Android device.
 - [ ] Check launcher under circle + squircle + rounded-square masks (Pixel, Samsung, OnePlus skins vary).
 - [ ] If the gold crescent or plane wing looks shaved at any edge → add an 8% inset to `mobile/scripts/regen-icons.mjs` (wrap canonical logo in a transparent margin before output), regen, bump `versionCode` to 4, rebuild.
@@ -43,6 +42,25 @@ Build complete 2026-04-21 (1.0.2 v12 — Expo build `7d908219`). **Awaiting user
 
 ## DONE (recent)
 
+### M1. Mobile app 1.0.2 — submitted to Google Play review — 2026-04-21 ✅
+End-to-end: rebuilt the rejected 1.0.1 with user's canonical logo, shipped to Google.
+
+1. **Build.** EAS `7d908219`, versionCode 12, SDK 54, commit `e0ecbd1`. Four attempts, root causes logged in `mobile/MOBILE_LOG.md` (.easignore rewrite → OneDrive NTFS tar via `cli.requireCommit` → SDK 54 dep align via `npx expo install --fix`).
+2. **Play Console upload.** AAB attached to Production release `jetmeaway 1.0.0.12` (full rollout, UK).
+3. **Main store listing refresh.** Old rejected 512×512 icon deleted; fresh canonical icon uploaded. User also chose to refresh the 1024×500 Feature graphic alongside (not in rejection scope but timing was right).
+4. **Submitted 2026-04-21.** 10 changes bundled, Publishing overview = "Changes in review". Now M3 — waiting on Google. Review ≤7 days typical.
+
+### V7 — Magic-link sign-in: the second cookie-read bug — 2026-04-21
+First fix in V6 (token parser) was correct but masked a deeper issue. User hit "still bounces to sign-in form" when testing live; traced it to:
+
+**Root cause.** `src/app/account/page.tsx` and `src/app/account/bookings/page.tsx` were both calling `readSessionEmail(cookieStore.toString())`. `ReadonlyRequestCookies.toString()` in Next's `next/headers` does **not** return a cookie header string — it returns an internal debug repr — so `readSessionEmail`'s `split(/;\s*/)` never found `jma_sess=`, returned null, and both pages treated every signed-in visitor as signed-out and bounced them back.
+
+**Fix.** New `readSessionEmailFromCookies(cookieStore)` helper in `src/lib/session.ts` that calls `cookieStore.get(SESSION_COOKIE_NAME)?.value` directly and passes into `verifySessionToken`. Swapped both server pages over to it. API routes were already correct (`req.headers.get('cookie')`).
+
+**Verification.** User retested live — magic link → `/account/bookings` signed in. Prod `6c6b522` Ready on Vercel.
+
+Commit: `6c6b522 fix(account): read session cookie via cookieStore.get, not toString()`. Second solo push in one day — again justified by broken sign-in on prod.
+
 ### V6 — Magic-link dotted-email fix + SESSION_SECRET live — 2026-04-21
 Hotfix after first live sign-in attempt returned `/account?error=expired` even on fresh links.
 
@@ -50,14 +68,7 @@ Hotfix after first live sign-in attempt returned `/account?error=expired` even o
 2. **Fix.** Parse from the known ends: purpose = first part (no dots), sig = last (base64url, `.` → `_`), expiry = second-to-last (digits only), email = everything between rejoined with `.`. `tsc --noEmit` clean.
 3. **Infra.** `SESSION_SECRET` (48 bytes, base64url, sensitive, Production + Preview) added in Vercel. Redeploy `7qevZn6mo` picked it up; `/account` now renders without 500.
 
-Commit: `ee7aabc fix(auth): magic-link verify handles emails with dotted domains`. Pushed as a solo fix — cost-cadence broken once, justified by broken auth on prod.
-
-### M1. Mobile app — icon mismatch fix — BUILT 2026-04-21
-1.0.2 (versionCode 12, build `7d908219-decd-4c52-9b09-0931d771ec2f`) — ✅ Finished, AAB ready for download.
-
-Trail of fixes to get there: `.easignore` rewrite → `cli.requireCommit: true` (OneDrive NTFS workaround) → `npx expo install --fix` (SDK 54 dependency alignment; fixed `enableBundleCompression` gradle crash).
-
-Next: user downloads AAB → Play Console upload → re-upload 512×512 hi-res icon → submit for review.
+Commit: `ee7aabc fix(auth): magic-link verify handles emails with dotted domains`. Real user sign-in required V7 on top — V6 alone wasn't sufficient.
 
 ### V5 — Hotel detail: Reviews-count prominence + Back-to-search button — 2026-04-21
 Saved plan: `PREMIUM_PLAN_V5.md`.
