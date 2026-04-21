@@ -63,6 +63,7 @@ Regeneration is automated via `mobile/scripts/regen-icons.mjs` — run any time 
 | 1.0.1 | 2 | (attempted 2026-04-21, rejected) | **REJECTED** — Misleading Claims / App does not match store listing. Launcher icon ≠ hi-res store icon. |
 | 1.0.2 | 9 | 2026-04-21 | Icon fix — all 3 PNGs derive from user's actual logo (`public/Jetmeaway logo for app.jpeg` extracted to `mobile/assets/brand/icon-canonical.png`). Note: local `app.json` versionCode = 3 is **cosmetic** — `eas.json` has `appVersionSource: "remote"` so EAS's server-side counter auto-incremented 8 → 9. Play Store still accepts (monotonic above live versionCode 1). |
 | 1.0.2 | 12 | 2026-04-21 | SDK 54 dependency alignment — `npx expo install --fix` bumped react 18→19, react-native 0.77→0.81, @expo/metro-runtime 4→6, @expo/vector-icons 14→15, expo-splash-screen 0.29→0.31, +12 more. `expo-doctor` now 17/17. Committed as `e0ecbd1`. |
+| 1.0.2 | 12 | 2026-04-21 (SUBMITTED) | **SENT TO GOOGLE FOR REVIEW** — 10 changes bundled: Production `jetmeaway 1.0.0.12` full rollout + en-GB Store listing (new App icon + new Feature graphic, both uploaded fresh after deleting old rejected assets) + countries/regions (add UK) + Closed testing Alpha feedback channel. "Changes in review" confirmed on Publishing overview. Quick checks running (~14 min), then Google review (typically ≤7 days). |
 
 ### Build log for 1.0.2 — 2026-04-21
 
@@ -90,11 +91,12 @@ Steps 1–3 are done on disk as of 2026-04-21. Steps 4–8 are the remaining man
 1. ✅ **Canonical raster** — `icon-canonical.png` extracted directly from user's `public/Jetmeaway logo for app.jpeg` (rev 2026-04-21 per user: "y cant u adjest our logo"). Wordmark SVG kept for reference.
 2. ✅ **3 PNGs regenerated** — `icon.png`, `adaptive-icon.png`, `play-store-icon-512.png` via `node scripts/regen-icons.mjs`, all deriving from the user's actual logo raster.
 3. ✅ **`app.json` bumped** — `version: 1.0.2`, `versionCode: 3` (2 intentionally skipped).
-4. ⏳ **EAS production build** — user runs: `cd mobile && eas build --platform android --profile production`. ~15–20 min cloud build. Returns `.aab` download URL.
-5. ⏳ **Upload new AAB** — Play Console → Production → Create new release → attach AAB → Save.
-6. ⏳ **Re-upload 512×512 hi-res icon** — Play Console → Main store listing → App icon → upload `mobile/assets/store/play-store-icon-512.png` → Save.
-7. ⏳ **Submit for review** with release note: "Launcher icon and hi-res store icon now match per Misleading Claims policy."
-8. ⏳ **Log outcome** back in this file under Version History (approval date / any follow-up reviewer notes).
+4. ✅ **EAS production build** — SUCCESS on attempt 4, build `7d908219`, versionCode 12, 2026-04-21.
+5. ✅ **Upload new AAB** — Attached to Production release `jetmeaway 1.0.0.12`.
+6. ✅ **Re-upload 512×512 hi-res icon** — Old 4/18/2026 icon deleted from Main store listing, fresh icon uploaded.
+7. ✅ **Feature graphic also refreshed** — (Out of rejection scope but user chose to redo it alongside.) Old feature-graphic.png deleted, new one uploaded.
+8. ✅ **Submitted for review 2026-04-21** — 10 changes bundled, "Changes in review" confirmed on Publishing overview. Quick checks running, then Google review (≤7 days typical).
+9. ⏳ **Log outcome** back in this file under Version History (approval date / any follow-up reviewer notes).
 
 Secondary (defer until after the icon fix ships):
 - Resolve "Jetmeaway" vs "JetMeAway" spelling between wordmark and Play Console title. If wordmark wins → update Play Store app name. If Play Store title wins → redo wordmark. Either way is fine, just needs a decision.

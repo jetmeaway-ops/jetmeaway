@@ -12,7 +12,7 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { readSessionEmail } from '@/lib/session';
+import { readSessionEmailFromCookies } from '@/lib/session';
 import SignInForm from './SignInForm';
 
 export const runtime = 'edge';
@@ -24,8 +24,7 @@ type Props = {
 
 export default async function AccountPage({ searchParams }: Props) {
   const cookieStore = await cookies();
-  const cookieHeader = cookieStore.toString();
-  const email = await readSessionEmail(cookieHeader);
+  const email = await readSessionEmailFromCookies(cookieStore);
   if (email) {
     redirect('/account/bookings');
   }

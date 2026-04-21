@@ -15,7 +15,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { readSessionEmail } from '@/lib/session';
+import { readSessionEmailFromCookies } from '@/lib/session';
 import { listBookings, fmtGbp, fmtDate, statusColor, typeIcon, supplierLabel, type Booking } from '@/lib/bookings';
 import BookingsTabs from './BookingsTabs';
 
@@ -47,7 +47,7 @@ function partition(all: Booking[]): { upcoming: Booking[]; past: Booking[]; canc
 
 export default async function AccountBookingsPage() {
   const cookieStore = await cookies();
-  const email = await readSessionEmail(cookieStore.toString());
+  const email = await readSessionEmailFromCookies(cookieStore);
   if (!email) {
     redirect('/account');
   }

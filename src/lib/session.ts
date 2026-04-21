@@ -174,3 +174,24 @@ export async function readSessionEmail(cookieHeader: string | null | undefined):
   const token = match.slice(SESSION_COOKIE_NAME.length + 1);
   return verifySessionToken(token);
 }
+
+/**
+ * Server-component variant — accepts Next.js's `cookies()` store directly.
+ *
+ * Pages were previously calling `readSessionEmail(cookieStore.toString())`,
+ * but `ReadonlyRequestCookies.toString()` does NOT produce a cookie header
+ * string — it returns Next's internal debug repr, which `readSessionEmail`
+ * then fails to parse. The result: the session cookie is set correctly on
+ * verify, but both `/account` and `/account/bookings` silently treat every
+ * visitor as signed-out and bounce them back to the sign-in form.
+ *
+ * This helper takes a cookie store with a `.get(name)` method (the shape of
+ * `ReadonlyRequestCookies`) and pulls the session cookie out directly.
+ */
+export async function readSessionEmailFromCookies(
+  cookieStore: { get(name: string): { value: string } | undefined },
+): Promise<string | null> {
+  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  if (!token) return null;
+  return verifySessionToken(token);
+}
