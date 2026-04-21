@@ -62,13 +62,24 @@ Regeneration is automated via `mobile/scripts/regen-icons.mjs` — run any time 
 | 1.0.0 | 1 | (live on Play Store) | First release. Older version remains published post-rejection per Google. |
 | 1.0.1 | 2 | (attempted 2026-04-21, rejected) | **REJECTED** — Misleading Claims / App does not match store listing. Launcher icon ≠ hi-res store icon. |
 | 1.0.2 | 9 | 2026-04-21 | Icon fix — all 3 PNGs derive from user's actual logo (`public/Jetmeaway logo for app.jpeg` extracted to `mobile/assets/brand/icon-canonical.png`). Note: local `app.json` versionCode = 3 is **cosmetic** — `eas.json` has `appVersionSource: "remote"` so EAS's server-side counter auto-incremented 8 → 9. Play Store still accepts (monotonic above live versionCode 1). |
+| 1.0.2 | 12 | 2026-04-21 | SDK 54 dependency alignment — `npx expo install --fix` bumped react 18→19, react-native 0.77→0.81, @expo/metro-runtime 4→6, @expo/vector-icons 14→15, expo-splash-screen 0.29→0.31, +12 more. `expo-doctor` now 17/17. Committed as `e0ecbd1`. |
 
-### Build log for 1.0.2 (9) — 2026-04-21
+### Build log for 1.0.2 — 2026-04-21
 
-- **Attempt 1 (build id `b74f3a77-20cf-4908-8a6d-f065596beb7d`)** — FAILED at "Fail job" step after 12s with `"package.json does not exist in /home/expo/workingdir/build/mobile"`.
-  - Root cause: `mobile/.easignore` had `/package.json` and `/package-lock.json` as root-anchored patterns. gitignore semantics for an `.easignore` at `mobile/.easignore` interpret leading-`/` paths relative to `mobile/`, so those patterns were excluding `mobile/package.json` (and `mobile/package-lock.json`, `mobile/tsconfig.json`, `mobile/vercel.json`) from the upload. Previous author's comment "won't clash with mobile/package.json since that's what EAS needs" was incorrect.
-  - Fix applied: rewrote `.easignore` to use unanchored, name-based patterns (`src/`, `next.config.js`, etc.) which match the web-app files wherever they sit in the archive while leaving `mobile/`'s own `package.json`/`tsconfig.json`/`vercel.json` intact. **Never add a `/<filename>` pattern to `mobile/.easignore` without verifying `mobile/<filename>` doesn't exist.**
-- **Attempt 2** — pending re-run of `eas build --platform android --profile production`.
+- **Attempt 1 · versionCode 9 (build `b74f3a77-20cf-4908-8a6d-f065596beb7d`)** — FAILED at "Fail job" step after 12s with `"package.json does not exist in /home/expo/workingdir/build/mobile"`.
+  - *Initial (wrong) diagnosis:* `.easignore` root-anchored patterns. Rewrote to unanchored name-based patterns — didn't fix it.
+  - *Real root cause (found on attempt 2):* OneDrive + Windows NTFS ACLs → when EAS's node-tar packed the workdir, directories were archived with mode 0000, so Linux extract couldn't create `mobile/` and every file inside failed with `tar: Permission denied`.
+- **Attempt 2 · versionCode 10 (build `5843c43e-…`)** — Same error, same step. Log showed cascading `tar: Permission denied` on every file during "Prepare project".
+  - Fix applied: `cli.requireCommit: true` in `eas.json` → EAS uses `git archive` instead of taring the working copy, bypassing the Windows ACL mangling entirely.
+- **Attempt 3 · versionCode 11 (build `06230edb-d162-4e0c-8bf5-9c2f4790c5d0`)** — Prepare/Install/Prebuild/Bundle all passed ✅. Failed at "Run gradlew" after 1m 37s with `Gradle build failed with unknown error`.
+  - Root cause: React Native 0.81's Gradle plugin emits `enableBundleCompression = true` in the generated `android/app/build.gradle`, but `package.json` still had `react-native@0.77.2` pinned (and 16 other deps out of sync with SDK 54). The Gradle plugin resolved from 0.77 didn't know the property → compile crash.
+  - Fix applied: `npx expo install --fix` inside `mobile/` realigned all 17 flagged deps with SDK 54 expectations. `expo-doctor` now reports 17/17 passing. Committed as `e0ecbd1`.
+- **Attempt 4 · versionCode 12 (build `7d908219-decd-4c52-9b09-0931d771ec2f`)** — IN PROGRESS as of 2026-04-21.
+
+#### Lessons for next time
+- Don't edit `mobile/android/app/build.gradle` directly — it doesn't exist in the repo (managed workflow). EAS regenerates it each build from the RN template for whichever `react-native` version is in `package.json`. Fix at the `package.json` level instead.
+- `expo-doctor` version-mismatch warnings are NOT cosmetic — they map directly to Gradle-plugin/template mismatches that crash the Android build. Always run it green before `eas build`.
+- `cli.requireCommit: true` is the correct setting on Windows + OneDrive. Never revert it.
 
 ---
 
