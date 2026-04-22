@@ -8,6 +8,7 @@ import {
   dotwConfirmToBookingRef,
 } from '@/lib/suppliers/dotw-adapter';
 import { upsertBooking, type Booking, type Supplier } from '@/lib/bookings';
+import { notifyBookingConfirmed, notifyBookingDeclined } from '@/lib/notifications';
 import type { PendingBooking } from '../start-booking/route';
 import type { PendingGuest } from '../pending/[ref]/guest/route';
 
@@ -71,6 +72,18 @@ async function mirrorToUnified(
     };
 
     await upsertBooking(booking);
+
+    // Fire-and-forget customer notification. Never blocks, never throws.
+    // Sent only on terminal states the customer cares about.
+    if (opts.status === 'confirmed') {
+      notifyBookingConfirmed(booking).catch((e) =>
+        console.error('notifyBookingConfirmed failed', e),
+      );
+    } else if (opts.status === 'failed' || opts.status === 'refunded') {
+      notifyBookingDeclined(booking, opts.notes).catch((e) =>
+        console.error('notifyBookingDeclined failed', e),
+      );
+    }
   } catch (err) {
     // Admin-store write failing must never break the customer-facing flow.
     console.error('[hotels/book] mirrorToUnified failed', err);

@@ -10,6 +10,7 @@ import {
 import { upsertBooking, type Booking } from '@/lib/bookings';
 import { buildDuffelPassengers, pickLeadPassenger } from '@/lib/duffel-passengers';
 import { reverseMarkup } from '@/lib/travel-logic';
+import { notifyBookingConfirmed, notifyBookingDeclined } from '@/lib/notifications';
 
 export const runtime = 'nodejs';
 
@@ -287,10 +288,10 @@ export async function POST(req: NextRequest) {
   const destCity = outSlice?.destination?.city_name || outSlice?.destination?.iata_code || '';
   const airline = outSlice?.segments?.[0]?.marketing_carrier?.name || '';
 
-  await upsertBooking({
+  const confirmedBooking: Booking = {
     ...pendingBooking,
     status: 'confirmed',
-    supplierRef: order.id,
+    supplierRef: order.booking_reference || order.id,
     netPence,
     marginPence,
     destination: destCity ? `${origin} → ${destCity}` : pendingBooking.destination,
@@ -299,7 +300,13 @@ export async function POST(req: NextRequest) {
       : pendingBooking.title,
     updatedAt: new Date().toISOString(),
     notes: `Confirmed via Duffel balance. Ref: ${order.booking_reference || order.id}`,
-  });
+  };
+  await upsertBooking(confirmedBooking);
+
+  // Fire-and-forget customer notification (email + SMS). Never blocks or throws.
+  notifyBookingConfirmed(confirmedBooking).catch((e) =>
+    console.error('notifyBookingConfirmed failed', e),
+  );
 
   /* ── Step 7: Return ──────────────────────────────────────────────── */
   return NextResponse.json({
@@ -325,15 +332,20 @@ async function refundAndFail(
   } catch (err) {
     console.error('Stripe refund failed', err);
   }
+  const updated: Booking = {
+    ...booking,
+    status: 'refunded',
+    paymentStatus: 'refunded',
+    updatedAt: new Date().toISOString(),
+    notes: reason,
+  };
   try {
-    await upsertBooking({
-      ...booking,
-      status: 'refunded',
-      paymentStatus: 'refunded',
-      updatedAt: new Date().toISOString(),
-      notes: reason,
-    });
+    await upsertBooking(updated);
   } catch (err) {
     console.error('Booking update after refund failed', err);
   }
+  // Fire-and-forget customer notification (email + SMS). Never blocks or throws.
+  notifyBookingDeclined(updated, reason).catch((e) =>
+    console.error('notifyBookingDeclined failed', e),
+  );
 }
