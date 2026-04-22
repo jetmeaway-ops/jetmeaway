@@ -384,7 +384,7 @@ function RateRow({
             e.stopPropagation();
             onReserve();
           }}
-          className={`inline-flex items-center gap-2 font-poppins font-bold text-[.78rem] rounded-full px-5 py-2.5 transition-all duration-200 ease-out
+          className={`inline-flex items-center justify-center gap-2 font-poppins font-bold text-[.8rem] rounded-full px-5 min-h-[44px] transition-all duration-200 ease-out
             ${isSelected
               ? 'bg-[#0a1628] text-white hover:bg-[#0066FF] shadow-[0_6px_18px_rgba(10,22,40,0.18)]'
               : 'bg-white border border-[#0a1628] text-[#0a1628] hover:bg-[#0a1628] hover:text-white'

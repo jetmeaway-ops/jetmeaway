@@ -109,7 +109,15 @@ async function searchDuffel(
         passengers,
         cabin_class: cabinClass,
         return_offers: true,
-        max_connections: 1,
+        // 2 connections unlocks cheap long-haul itineraries (LGW→JFK 2-stop
+        // ≈ £290 where 1-stop is £380, direct £600). We still filter out
+        // silly 3+-stop routings client-side by duration.
+        max_connections: 2,
+        // Duffel's default supplier_timeout is 10s; slow NDC carriers
+        // (BA, AA, LH) often return content at 12-18s and are dropped
+        // silently at the default. 20s captures ~15-20% more inventory
+        // including the cheapest BA/AA fares.
+        supplier_timeout: 20000,
       },
     }),
   });

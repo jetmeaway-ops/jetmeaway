@@ -1101,6 +1101,13 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
                 {nights > 0 && (
                   <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">£{displayTotal} total for {nights} night{nights !== 1 ? 's' : ''}</div>
                 )}
+                {/* Trust chip — the "why us vs Booking" proof. Booking.com shows
+                    pre-tax headline prices; our displayed price is all-in. Loud,
+                    green, never missed. */}
+                <span className="inline-flex items-center gap-1 mt-1.5 text-[.68rem] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <i className="fa-solid fa-circle-check text-[.62rem]" aria-hidden />
+                  Total Price (Inc. All Taxes &amp; Fees)
+                </span>
               </>
             )}
             {/* Signal type badge */}
@@ -1200,7 +1207,7 @@ function BookDirectButton({
   return (
     <a
       href={detailHref}
-      className="bg-gradient-to-r from-[#0066FF] to-[#4C8BFF] hover:from-[#0052CC] hover:to-[#3B7AEE] text-white font-poppins font-black text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap shadow-[0_2px_10px_rgba(0,102,255,0.25)] inline-block"
+      className="bg-gradient-to-r from-[#0066FF] to-[#4C8BFF] hover:from-[#0052CC] hover:to-[#3B7AEE] text-white font-poppins font-black text-[.78rem] px-5 min-h-[44px] inline-flex items-center justify-center rounded-lg transition-all text-center whitespace-nowrap shadow-[0_2px_10px_rgba(0,102,255,0.25)]"
     >
       <i className="fa-solid fa-lock mr-1" /> Book Direct →
     </a>
@@ -1404,7 +1411,7 @@ function CompareModal({ hotels, nights, priceView, adults, childCount, buildDeta
               return (
                 <div key={h.id} className={`border rounded-2xl overflow-hidden flex flex-col ${isCheapest ? 'border-[#E8D8A8] ring-2 ring-[#E8D8A8]/70 bg-[#FFFCF5]' : 'border-[#E8ECF4] bg-white'}`}>
                   <div className="relative aspect-[4/3] bg-[#F1F3F7]">
-                    {photo ? <img src={photo} alt={h.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-3xl">🛏</div>}
+                    {photo ? <img src={photo} alt={h.name} className="w-full h-full object-cover" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center text-3xl">🛏</div>}
                     {isCheapest && (
                       <span className="absolute top-2 left-2 text-[.55rem] font-black uppercase tracking-[1.5px] bg-[#FAF3E6] text-[#8a6d00] ring-1 ring-[#E8D8A8] px-2 py-0.5 rounded-full">
                         Cheapest total

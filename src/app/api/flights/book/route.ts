@@ -226,7 +226,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Booking system busy — refunded' }, { status: 503 });
   }
 
-  if (balance.available < orderAmount + 10) {
+  // Buffer is £2 (not £10). The £10 safety margin was stranding real wallet
+  // balance — e.g. £40 balance couldn't ticket a £33 fare because the check
+  // demanded £43 available, Stripe auto-refunded, and booking "silently
+  // failed". £2 still covers the sub-penny rounding + PRICE_DRIFT_TOLERANCE
+  // edge case without gating live cash.
+  if (balance.available < orderAmount + 2) {
     await refundAndFail(
       stripe,
       pi.id,

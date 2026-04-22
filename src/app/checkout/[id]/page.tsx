@@ -242,6 +242,7 @@ function FlightSummary({ offer, compact }: { offer: OfferData; compact?: boolean
           src={`https://pics.avs.io/60/60/${offer.airlineCode}.png`}
           alt={offer.airline}
           className="w-8 h-8 object-contain rounded"
+          loading="lazy"
           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
         />
         <div>

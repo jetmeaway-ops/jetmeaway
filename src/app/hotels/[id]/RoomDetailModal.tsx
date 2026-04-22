@@ -132,6 +132,7 @@ export default function RoomDetailModal({
                 src={mainPhoto}
                 alt={room.name}
                 className="w-full h-full object-cover"
+                loading="lazy"
               />
               {photos.length > 1 && (
                 <>
@@ -174,7 +175,7 @@ export default function RoomDetailModal({
                   className={`flex-shrink-0 w-20 h-14 rounded-lg overflow-hidden border-2 transition-all ${i === activePhoto ? 'border-[#0a1628]' : 'border-transparent opacity-70 hover:opacity-100'}`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                  <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" loading="lazy" />
                 </button>
               ))}
             </div>

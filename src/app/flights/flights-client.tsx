@@ -792,7 +792,7 @@ function HotDeals({ onSelect }: { onSelect: (destCode: string, destCity: string)
                 <span className="text-[.78rem] font-poppins font-black text-[#1A1D2B] group-hover:text-[#0066FF] transition-colors">
                   {deal.flag} {deal.city}
                 </span>
-                <img src={logo} alt={deal.airline} className="w-5 h-5 object-contain opacity-70"
+                <img src={logo} alt={deal.airline} className="w-5 h-5 object-contain opacity-70" loading="lazy"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               </div>
               <div className="font-poppins font-black text-[1.4rem] text-[#0066FF] leading-none mb-1.5">
@@ -1127,14 +1127,24 @@ function FlightsContent() {
             ? `${f.flight_number}-${depDay}`
             : `${f.airlineCode}-${depDay}-${f.duration_to}`;
           const existing = mergedByKey.get(key);
-          // Pure cheapest-wins so Duffel's "premium" fare never hides a
-          // cheaper v1 GDS fare for the same flight. Tie-break goes to
-          // Duffel (direct-bookable) only when prices are equal.
+          // Direct-bookable wins. Previously we did cheapest-wins which
+          // hid every Duffel offer behind cheaper TP-cached "indicative"
+          // prices that aren't actually bookable on-site. That stripped
+          // every "Book Direct" button from the UI even though we had
+          // live bookable inventory.
+          //
+          // New rule:
+          //  • Duffel offer (source='duffel' && offer_id) always wins
+          //    over a non-Duffel row — price be damned, it's the only
+          //    one the user can actually book here.
+          //  • Among two Duffel rows, cheaper wins.
+          //  • Among two non-Duffel rows, cheaper wins.
+          const incomingDuffel = f.source === 'duffel' && !!f.offer_id;
+          const existingDuffel = existing && existing.source === 'duffel' && !!existing.offer_id;
           if (!existing) { mergedByKey.set(key, f); continue; }
+          if (incomingDuffel && !existingDuffel) { mergedByKey.set(key, f); continue; }
+          if (!incomingDuffel && existingDuffel) continue;
           if (f.price < existing.price) { mergedByKey.set(key, f); continue; }
-          if (f.price === existing.price && f.source === 'duffel' && !existing.offer_id) {
-            mergedByKey.set(key, f);
-          }
         }
         // Render immediately if v1 hasn't surfaced anything yet.
         const merged = Array.from(mergedByKey.values()).sort((a, b) => a.price - b.price).slice(0, 30);
@@ -1203,10 +1213,14 @@ function FlightsContent() {
             ? `${f.flight_number}-${depDay}`
             : `${f.airlineCode}-${depDay}-${f.duration_to}`;
           const existing = mergedByKey.get(key);
-          // Pure cheapest-wins: a Duffel offer can still be displaced
-          // if v1 finds the same flight at a cheaper GDS fare. We lose
-          // direct-book on that row but never quote a higher price.
-          if (!existing || f.price < existing.price) mergedByKey.set(key, f);
+          // Direct-bookable wins. A v1 GDS row (no offer_id) must NOT
+          // displace a Duffel row even if cheaper — we'd lose the
+          // Book Direct button and strand the customer on an affiliate
+          // redirect. Among v1/v1 collisions, cheaper still wins.
+          const existingDuffel = existing && existing.source === 'duffel' && !!existing.offer_id;
+          if (!existing) { mergedByKey.set(key, f); continue; }
+          if (existingDuffel) continue;
+          if (f.price < existing.price) mergedByKey.set(key, f);
         }
 
         const merged = Array.from(mergedByKey.values()).sort((a, b) => a.price - b.price).slice(0, 30);
@@ -1976,7 +1990,7 @@ function FlightsContent() {
                         {/* Airline */}
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-lg bg-[#F8FAFC] border border-[#E8ECF4] flex items-center justify-center flex-shrink-0 overflow-hidden">
-                            <img src={airlineLogo} alt={f.airline} className="w-8 h-8 object-contain"
+                            <img src={airlineLogo} alt={f.airline} className="w-8 h-8 object-contain" loading="lazy"
                               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).parentElement!.innerHTML = '<span class="text-lg">✈</span>'; }} />
                           </div>
                           <div>

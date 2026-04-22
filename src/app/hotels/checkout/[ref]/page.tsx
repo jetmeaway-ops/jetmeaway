@@ -399,7 +399,49 @@ export default function HotelCheckoutPage() {
     <main className="max-w-[860px] mx-auto px-4 sm:px-5 py-6 sm:py-10">
       <a href={`/hotels?destination=${encodeURIComponent(booking.city)}&checkin=${booking.checkIn}&checkout=${booking.checkOut}&adults=${booking.adults}`} className="text-[.78rem] font-bold text-[#0066FF] hover:underline">← Back to search</a>
       <h1 className="font-poppins font-black text-[1.4rem] sm:text-[1.8rem] text-[#1A1D2B] mt-3 mb-1">Confirm your booking</h1>
-      <p className="text-[.82rem] text-[#5C6378] font-semibold mb-5 sm:mb-6">Ref: <span className="font-mono">{booking.ref}</span></p>
+      <p className="text-[.82rem] text-[#5C6378] font-semibold mb-4">Ref: <span className="font-mono">{booking.ref}</span></p>
+
+      {/* Checkout progress — gives the user the finish line so they don't
+          abandon mid-flow. Maps internal steps:
+            locking / price-warning / guest / saving → "Details"
+            payment                                  → "Secure Payment"
+            confirmed (state === 'confirmed')        → "Done" */}
+      {(() => {
+        const done = booking.state === 'confirmed' || booking.state === 'paid';
+        const onPayment = step === 'payment' || done;
+        const stages: Array<{ label: string; active: boolean; complete: boolean }> = [
+          { label: 'Details', active: !onPayment, complete: onPayment },
+          { label: 'Secure Payment', active: step === 'payment' && !done, complete: done },
+          { label: 'Done', active: done, complete: done },
+        ];
+        return (
+          <ol className="flex items-center gap-2 mb-5 sm:mb-6" aria-label="Checkout progress">
+            {stages.map((s, i) => (
+              <li key={s.label} className="flex items-center gap-2 flex-1 last:flex-none">
+                <div
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-[.7rem] sm:text-[.75rem] font-bold whitespace-nowrap ${
+                    s.complete
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : s.active
+                      ? 'bg-[#0066FF] text-white border-[#0066FF]'
+                      : 'bg-white text-[#8E95A9] border-[#E8ECF4]'
+                  }`}
+                >
+                  <span className={`w-4 h-4 rounded-full text-[.6rem] flex items-center justify-center font-black ${
+                    s.complete ? 'bg-emerald-600 text-white' : s.active ? 'bg-white text-[#0066FF]' : 'bg-[#E8ECF4] text-[#8E95A9]'
+                  }`}>
+                    {s.complete ? <i className="fa-solid fa-check text-[.55rem]" aria-hidden /> : i + 1}
+                  </span>
+                  {s.label}
+                </div>
+                {i < stages.length - 1 && (
+                  <div className={`flex-1 h-[2px] rounded-full ${s.complete ? 'bg-emerald-300' : 'bg-[#E8ECF4]'}`} />
+                )}
+              </li>
+            ))}
+          </ol>
+        );
+      })()}
 
       <div className="grid md:grid-cols-[1fr_320px] gap-5 sm:gap-6">
         <div className="bg-white border border-[#E8ECF4] rounded-2xl p-4 sm:p-6">
@@ -775,7 +817,7 @@ export default function HotelCheckoutPage() {
         <aside className="bg-[#F8FAFC] border border-[#E8ECF4] rounded-2xl p-4 sm:p-5 h-fit order-first md:order-last">
           {booking.thumbnail && (
             <img src={booking.thumbnail} alt={booking.hotelName}
-              className="w-full h-36 object-cover rounded-xl mb-3" />
+              className="w-full h-36 object-cover rounded-xl mb-3" loading="lazy" />
           )}
           <StarRow count={booking.stars} />
           <h3 className="font-poppins font-black text-[1rem] text-[#1A1D2B] mb-1">{booking.hotelName}</h3>

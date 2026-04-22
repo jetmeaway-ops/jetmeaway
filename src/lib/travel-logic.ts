@@ -11,12 +11,17 @@
 
 /**
  * Percentage markup applied to every Duffel flight price.
- * 0.10 = 10 % — scales fairly across budget & premium fares.
+ * 0.05 = 5 % — tuned to price competitively against Kiwi.com (0–3 %) and
+ * Trip.com (1–4 %) on LCC fares while still covering Stripe (2.9 % + 20p)
+ * plus support/chargeback buffer. On premium long-haul (£500+) 5 % still
+ * yields £25+ per passenger, which is healthy for a comparison engine.
+ * Previous value (0.10) was pricing us out of the grid on every £30 LCC
+ * ticket — £4 minimum dominated and we lost the cheapest-card slot.
  */
-export const MARKUP_PCT = 0.10;
+export const MARKUP_PCT = 0.05;
 
 /** Minimum markup per passenger (GBP) — covers Stripe fees + chargeback reserve. */
-export const MARKUP_MIN_GBP = 4;
+export const MARKUP_MIN_GBP = 2;
 
 /**
  * @deprecated Legacy fixed markup (£). Kept as a fallback for any code still

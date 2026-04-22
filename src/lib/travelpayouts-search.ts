@@ -202,6 +202,17 @@ function normaliseProposal(p: TPProposal): NormalisedFlight | null {
   // would wreck the UI. Unified_price is in signed-currency so prefer
   // it; raw price is the native-currency fallback, accepted only when
   // the gate confirms currency === 'gbp'.
+  //
+  // CRITICAL unit conversion: TP v1 /flight_search_results returns
+  // `unified_price` in MINOR currency units (pence for GBP), even
+  // when currency: 'gbp' is explicitly signed in the init request.
+  // v3 /prices_for_dates returns major units (pounds) — hence the
+  // mismatch that produced £2,731 ghost-fares on LTN→MIL W4 in the
+  // wild (real fare £27.31). We divide by 100 at the boundary so the
+  // rest of the app keeps its "price = pounds" invariant.
+  //
+  // This is deliberately applied before the £10k sanity cap so that
+  // cap still catches any RUB leak in the expected magnitude range.
   const terms = p.terms || {};
   let price = Infinity;
   for (const t of Object.values(terms)) {
@@ -210,8 +221,10 @@ function normaliseProposal(p: TPProposal): NormalisedFlight | null {
     // currency is treated as untrusted — those are the gates leaking
     // RUB defaults (Etihad EY, Saudia SV, Pegasus PC on LON routes).
     if (cur !== 'gbp') continue;
-    const candidate = typeof t.unified_price === 'number' ? t.unified_price : t.price;
-    if (typeof candidate === 'number' && candidate < price) price = candidate;
+    const rawCandidate = typeof t.unified_price === 'number' ? t.unified_price : t.price;
+    if (typeof rawCandidate !== 'number') continue;
+    const candidate = rawCandidate / 100;  // pence → pounds
+    if (candidate < price) price = candidate;
   }
   if (!Number.isFinite(price)) return null;
   // Last-line sanity check — no LON→anywhere economy fare legitimately
