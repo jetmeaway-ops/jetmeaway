@@ -452,7 +452,22 @@ export async function POST(req: NextRequest) {
     }
 
     if (!authorised) {
-      console.warn('[liteapi-webhook] auth failed — rejecting');
+      // One-off diagnostic so we can see exactly what LiteAPI is sending
+      // vs. what we expect. Safe: never logs the expected secret, only
+      // the first/last few chars of each side and the header names.
+      const allHeaders: Record<string, string> = {};
+      req.headers.forEach((v, k) => {
+        allHeaders[k] = k.toLowerCase().includes('auth') || k.toLowerCase().includes('sig') || k.toLowerCase().includes('token')
+          ? `${v.slice(0, 8)}…${v.slice(-4)} (len=${v.length})`
+          : v;
+      });
+      console.warn(
+        '[liteapi-webhook] auth failed — rejecting. bearer=%s (len=%d) expectLen=%d headers=%s',
+        bearer ? `${bearer.slice(0, 8)}…${bearer.slice(-4)}` : 'null',
+        bearer?.length ?? 0,
+        WEBHOOK_SECRET.length,
+        JSON.stringify(allHeaders),
+      );
       return NextResponse.json(
         { received: false, error: 'Invalid signature' },
         { status: 401 },
