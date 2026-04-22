@@ -27,6 +27,21 @@ const DUFFEL_BASE = 'https://api.duffel.com';
 export const DUFFEL_VERSION: string =
   process.env.DUFFEL_API_VERSION || 'v2';
 
+/**
+ * Build a full Duffel URL. On v3 the `/air/` prefix is dropped from the
+ * Air resources (offers, orders, offer_requests, seat_maps) — see Duffel
+ * v3 migration notes. `/airlines/*` and `/payments/*` paths are unchanged.
+ *
+ * Pass the v2-shaped path (e.g. `/air/offers/xyz`) and this returns whatever
+ * v3 or v2 expects. Safe to call with non-`/air` paths — they pass through.
+ */
+export function duffelUrl(path: string): string {
+  if (DUFFEL_VERSION === 'v3' && path.startsWith('/air/')) {
+    return `${DUFFEL_BASE}${path.replace(/^\/air\//, '/')}`;
+  }
+  return `${DUFFEL_BASE}${path}`;
+}
+
 export type DuffelBalance = {
   available: number;
   currency: string;
@@ -81,7 +96,7 @@ export async function refreshOfferTotal(offerId: string): Promise<{
   if (!DUFFEL_KEY) return null;
 
   try {
-    const res = await fetch(`${DUFFEL_BASE}/air/offers/${offerId}`, {
+    const res = await fetch(duffelUrl(`/air/offers/${offerId}`), {
       headers: {
         Authorization: `Bearer ${DUFFEL_KEY}`,
         'Duffel-Version': DUFFEL_VERSION,
@@ -115,7 +130,7 @@ export async function refreshOfferWithServices(offerId: string): Promise<{
   if (!DUFFEL_KEY) return null;
   try {
     const res = await fetch(
-      `${DUFFEL_BASE}/air/offers/${offerId}?return_available_services=true`,
+      duffelUrl(`/air/offers/${offerId}?return_available_services=true`),
       {
         headers: {
           Authorization: `Bearer ${DUFFEL_KEY}`,
@@ -188,7 +203,7 @@ export async function createBalanceOrder(args: {
     body.data.services = args.services;
   }
 
-  const res = await fetch(`${DUFFEL_BASE}/air/orders`, {
+  const res = await fetch(duffelUrl('/air/orders'), {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${DUFFEL_KEY}`,

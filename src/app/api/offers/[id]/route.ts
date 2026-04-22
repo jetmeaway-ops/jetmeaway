@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { priceBreakdown } from '@/lib/travel-logic';
-import { DUFFEL_VERSION } from '@/lib/duffel';
+import { DUFFEL_VERSION, duffelUrl } from '@/lib/duffel';
 
 export const runtime = 'edge';
 
@@ -18,7 +18,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     // array on the offer, which is how we source extra-bag / seat / meal
     // ancillaries for the "Add extras" step of checkout.
     const res = await fetch(
-      `https://api.duffel.com/air/offers/${id}?return_available_services=true`,
+      duffelUrl(`/air/offers/${id}?return_available_services=true`),
       {
         headers: {
           'Authorization': `Bearer ${DUFFEL_KEY}`,

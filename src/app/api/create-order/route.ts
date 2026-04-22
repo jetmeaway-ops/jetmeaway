@@ -3,7 +3,7 @@ import { Resend } from 'resend';
 import { applyMarkup, saveBookingIntent, MARKUP_GBP } from '@/lib/travel-logic';
 import { sendSms, scoutBookingMessage } from '@/lib/twilio';
 import { buildDuffelPassengers, pickLeadPassenger } from '@/lib/duffel-passengers';
-import { DUFFEL_VERSION } from '@/lib/duffel';
+import { DUFFEL_VERSION, duffelUrl } from '@/lib/duffel';
 
 export const runtime = 'edge';
 
@@ -235,7 +235,7 @@ export async function POST(req: NextRequest) {
 
     const duffelPassengers = buildDuffelPassengers(passengers);
 
-    const orderRes = await fetch('https://api.duffel.com/air/orders', {
+    const orderRes = await fetch(duffelUrl('/air/orders'), {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${DUFFEL_KEY}`,
@@ -277,7 +277,7 @@ export async function POST(req: NextRequest) {
 
     let documentsUrl: string | null = null;
     try {
-      const docsRes = await fetch(`https://api.duffel.com/air/orders/${order.id}/documents`, {
+      const docsRes = await fetch(duffelUrl(`/air/orders/${order.id}/documents`), {
         headers: {
           'Authorization': `Bearer ${DUFFEL_KEY}`,
           'Duffel-Version': DUFFEL_VERSION,

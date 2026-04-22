@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DUFFEL_VERSION } from '@/lib/duffel';
+import { DUFFEL_VERSION, duffelUrl } from '@/lib/duffel';
 
 export const runtime = 'edge';
 
@@ -255,7 +255,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ offe
 
   try {
     // ── 1. Pull the offer so we can stitch segment labels + aircraft info ──
-    const offerRes = await fetch(`https://api.duffel.com/air/offers/${offerId}`, {
+    const offerRes = await fetch(duffelUrl(`/air/offers/${offerId}`), {
       headers: {
         Authorization: `Bearer ${DUFFEL_KEY}`,
         'Duffel-Version': DUFFEL_VERSION,
@@ -292,7 +292,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ offe
     }
 
     // ── 3. Fetch seat maps from Duffel ──
-    const smRes = await fetch(`https://api.duffel.com/air/seat_maps?offer_id=${offerId}`, {
+    const smRes = await fetch(duffelUrl(`/air/seat_maps?offer_id=${offerId}`), {
       headers: {
         Authorization: `Bearer ${DUFFEL_KEY}`,
         'Duffel-Version': DUFFEL_VERSION,

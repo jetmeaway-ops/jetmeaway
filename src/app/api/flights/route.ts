@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import { applyMarkup, logFlightSearch } from '@/lib/travel-logic';
-import { DUFFEL_VERSION } from '@/lib/duffel';
+import { DUFFEL_VERSION, duffelUrl } from '@/lib/duffel';
 
 export const runtime = 'edge';
 
@@ -96,7 +96,7 @@ async function searchDuffel(
   for (let i = 0; i < infants; i++) passengers.push({ age: 1 });
 
   // Create offer request
-  const offerRes = await fetch('https://api.duffel.com/air/offer_requests', {
+  const offerRes = await fetch(duffelUrl('/air/offer_requests'), {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${DUFFEL_KEY}`,
