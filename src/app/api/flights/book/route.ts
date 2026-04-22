@@ -219,19 +219,27 @@ export async function POST(req: NextRequest) {
   // sum of selected service prices to the penny — otherwise the order fails.
   const orderAmount = refreshed.total + servicesTotal;
 
-  /* ── Step 4: Balance check ───────────────────────────────────────── */
+  /* ── Step 4: Balance check (best-effort) ─────────────────────────────
+   * Duffel's /airlines/balances endpoint is not publicly exposed, so
+   * getBalance() returns null in production even with a valid live
+   * token. That was gating EVERY live booking with "Booking system
+   * busy — refunded" — Stripe charged, our code instantly refunded,
+   * Duffel never saw the order.
+   *
+   * New behaviour:
+   *   • If we CAN read the balance and it's short → refund before
+   *     we bother Duffel (fast-fail, saves a roundtrip).
+   *   • If we CAN'T read the balance → proceed. Duffel will reject
+   *     the order itself with an "insufficient balance" error if we
+   *     really are short, which is caught at Step 5's refundAndFail
+   *     with the same outcome for the customer.
+   *
+   * Net result: the ticketing path no longer depends on an endpoint
+   * Duffel doesn't expose. Wallet solvency is validated by Duffel
+   * at order creation — the canonical source of truth anyway.
+   * ─────────────────────────────────────────────────────────────── */
   const balance = await getBalance();
-  if (!balance) {
-    await refundAndFail(stripe, pi.id, pendingBooking, 'Balance service unavailable');
-    return NextResponse.json({ error: 'Booking system busy — refunded' }, { status: 503 });
-  }
-
-  // Buffer is £2 (not £10). The £10 safety margin was stranding real wallet
-  // balance — e.g. £40 balance couldn't ticket a £33 fare because the check
-  // demanded £43 available, Stripe auto-refunded, and booking "silently
-  // failed". £2 still covers the sub-penny rounding + PRICE_DRIFT_TOLERANCE
-  // edge case without gating live cash.
-  if (balance.available < orderAmount + 2) {
+  if (balance && balance.available < orderAmount + 2) {
     await refundAndFail(
       stripe,
       pi.id,
@@ -300,7 +308,7 @@ export async function POST(req: NextRequest) {
     bookingReference: order.booking_reference || order.id,
     orderId: order.id,
     priceDrift: Number(driftPerPerson.toFixed(2)),
-    balance: balance.available,
+    balance: balance?.available ?? null,
   });
 }
 
