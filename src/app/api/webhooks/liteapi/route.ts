@@ -437,6 +437,18 @@ export async function POST(req: NextRequest) {
       authorised = true;
     }
 
+    // Path C: query-string auth (?k=SECRET). Workaround for LiteAPI's
+    // dashboard silently dropping the Authentication Token value — the
+    // Authorization header arrives empty every time. Since LiteAPI lets
+    // you set an arbitrary webhook URL, we put the secret in the URL
+    // instead. Checked before HMAC so it's the fast path for this setup.
+    if (!authorised) {
+      const k = req.nextUrl.searchParams.get('k') || '';
+      if (k && timingSafeEqual(k, WEBHOOK_SECRET)) {
+        authorised = true;
+      }
+    }
+
     // Path B: HMAC-SHA256 of the raw body (future-proofing)
     if (!authorised && sigHeader) {
       const expected = await hmacSha256Hex(WEBHOOK_SECRET, rawBody);
