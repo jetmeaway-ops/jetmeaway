@@ -9,9 +9,13 @@ import { redirectUrl } from '@/lib/redirect';
 import RoomsTable, { type RoomRate } from './RoomsTable';
 import RoomsSkeleton from './RoomsSkeleton';
 import RoomDetailModal from './RoomDetailModal';
+import { chooseDefaultTab } from '@/lib/silentScout';
+import { vibeTagsForSearchedCity } from '@/data/destinations';
 
-// Leaflet touches `window` on import, so SSR must be disabled.
-const HotelMap = dynamic(() => import('@/components/HotelMap'), { ssr: false });
+// Leaflet touches `window` on import, so SSR must be disabled. ScoutSidebar
+// renders its own Leaflet map when embedded on the detail page, replacing the
+// stand-alone HotelMap in the Location section — one map, richer signal.
+const ScoutSidebar = dynamic(() => import('@/components/ScoutSidebar'), { ssr: false });
 
 interface RoomMeta {
   id: string;
@@ -228,6 +232,20 @@ export default function HotelDetailPage() {
   const [ratesLoading, setRatesLoading] = useState(true);
   const [selectedRate, setSelectedRate] = useState<RoomRate | null>(null);
   const [sidebarBreathe, setSidebarBreathe] = useState(false);
+
+  // ── Back-to-top button ──
+  // The detail page is long (rooms → description → facilities → policies →
+  // reviews → similar hotels). Once the user has tapped a section link in
+  // the sticky nav they're deep in the page and need a one-tap escape hatch
+  // back to the hero. Fade in after ~600px of scroll — below that the page
+  // header is still in view and the button is redundant.
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setShowBackToTop(window.scrollY > 600);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   // Phase-4: Room detail modal state. We track the offerId (not the rate
   // object) so the modal always reflects the latest row data if the rates
@@ -491,9 +509,87 @@ export default function HotelDetailPage() {
     ? (modalRate.boardType || null)
     : null;
 
+  // ── SEO: Hotel + AggregateRating + Review JSON-LD ──
+  // Rich snippets for star rating, price, review score. Google uses this for
+  // hotel pack listings and AI Overviews. Built client-side since the page is
+  // a client component; crawlers still index it (Googlebot executes JS).
+  const hotelJsonLd = (() => {
+    const cheapestRate = rates.length > 0
+      ? rates.reduce((min, r) => (r.totalPrice < min.totalPrice ? r : min), rates[0])
+      : null;
+    const priceNum = cheapestRate?.totalPrice ?? (price ? parseFloat(price) : null);
+    const priceCcy = currency || 'GBP';
+    const pageUrl = typeof window !== 'undefined' ? window.location.href : `https://jetmeaway.co.uk/hotels/${hotel.id}`;
+    const schema: Record<string, unknown> = {
+      '@context': 'https://schema.org',
+      '@type': 'Hotel',
+      name: hotel.name,
+      url: pageUrl,
+      ...(hotel.description ? { description: hotel.description.slice(0, 500) } : {}),
+      ...(hotel.mainPhoto ? { image: [hotel.mainPhoto, ...hotel.photos.slice(0, 5)] } : {}),
+      ...(hotel.stars ? { starRating: { '@type': 'Rating', ratingValue: hotel.stars, bestRating: 5 } } : {}),
+      ...(hotel.address || hotel.city || hotel.country
+        ? {
+            address: {
+              '@type': 'PostalAddress',
+              ...(hotel.address ? { streetAddress: hotel.address } : {}),
+              ...(hotel.city ? { addressLocality: hotel.city } : {}),
+              ...(hotel.country ? { addressCountry: hotel.country } : {}),
+            },
+          }
+        : {}),
+      ...(hotel.latitude && hotel.longitude
+        ? { geo: { '@type': 'GeoCoordinates', latitude: hotel.latitude, longitude: hotel.longitude } }
+        : {}),
+      ...(hotel.amenities.length
+        ? {
+            amenityFeature: hotel.amenities.slice(0, 20).map((a) => ({
+              '@type': 'LocationFeatureSpecification',
+              name: a,
+              value: true,
+            })),
+          }
+        : {}),
+      ...(priceNum
+        ? {
+            priceRange: `${priceCcy} ${priceNum}`,
+            makesOffer: {
+              '@type': 'Offer',
+              price: priceNum,
+              priceCurrency: priceCcy,
+              availability: 'https://schema.org/InStock',
+              url: pageUrl,
+            },
+          }
+        : {}),
+      // Note: only aggregateRating is emitted — individual `review` items are
+      // intentionally omitted. Our reviews come from LiteAPI (sourced from
+      // Booking.com) and are not first-party collected. Google's review-snippet
+      // policy treats third-party review arrays as spam risk. Aggregate score +
+      // count is still Google-compliant and drives the star-rating rich snippet.
+      ...(hotel.reviews && hotel.reviews.count > 0 && hotel.reviews.averageScore
+        ? {
+            aggregateRating: {
+              '@type': 'AggregateRating',
+              ratingValue: hotel.reviews.averageScore,
+              reviewCount: hotel.reviews.count,
+              bestRating: 10,
+              worstRating: 1,
+            },
+          }
+        : {}),
+    };
+    return schema;
+  })();
+
   return (
     <>
       <Header />
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(hotelJsonLd) }}
+      />
       <main className="max-w-[1100px] mx-auto px-5 pt-28 pb-24 md:pb-16">
         {/* BACKLOG B4 (2026-04-21): Prominent "Back to search results" pill.
             User feedback — the browser back button lands on the empty /hotels
@@ -698,19 +794,22 @@ export default function HotelDetailPage() {
                     {hotel.address}{hotel.city ? `, ${hotel.city}` : ''}
                   </p>
                 )}
-                <HotelMap
-                  hotels={[{
-                    id: hotel.id,
-                    name: hotel.name,
-                    stars: hotel.stars || 0,
-                    pricePerNight: selectedRate?.pricePerNight ?? (Number(price) || 0),
-                    currency: currency || 'GBP',
-                    lat: hotel.latitude,
-                    lng: hotel.longitude,
-                    href: '#',
-                  }]}
-                  centerLat={hotel.latitude}
-                  centerLng={hotel.longitude}
+                {/* Silent Scout — inline neighbourhood panel.
+                    Replaces the stand-alone Leaflet map with a richer map +
+                    tabbed "what's nearby in 12 min" list. Default tab is
+                    picked silently from party composition × destination vibe
+                    so a 2-adult Lisbon stay lands on Food, a family stay
+                    lands on Family, etc. */}
+                <ScoutSidebar
+                  embedded
+                  hotelName={hotel.name}
+                  latitude={hotel.latitude}
+                  longitude={hotel.longitude}
+                  defaultTab={chooseDefaultTab({
+                    adults: parseInt(adults, 10) || 2,
+                    children: parseInt(children, 10) || 0,
+                    vibeTags: vibeTagsForSearchedCity(city || hotel.city),
+                  })}
                 />
               </section>
             )}
@@ -855,12 +954,25 @@ export default function HotelDetailPage() {
               </div>
 
               {hotel.reviews && hotel.reviews.list.length > 0 ? (
+                (() => {
+                  // Build a Booking.com search link for this property so
+                  // customers can verify the reviews at source. LiteAPI
+                  // reviews are sourced from Booking.com via data partnership
+                  // — linking out honours that origin and closes the "can I
+                  // trust these?" loop in one click. Affiliate aid=318615
+                  // preserved so review click-throughs still earn commission.
+                  const reviewsLiveUrl = `https://www.booking.com/searchresults.html?aid=318615&ss=${encodeURIComponent(`${hotel.name}${hotel.city ? ` ${hotel.city}` : ''}`)}&checkin=${encodeURIComponent(checkin || '')}&checkout=${encodeURIComponent(checkout || '')}&group_adults=${adults}&group_children=${children}&no_rooms=${rooms}&selected_currency=${currency || 'GBP'}`;
+                  return (
                 <>
                 <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {hotel.reviews.list.slice(0, 5).map((r, i) => (
-                    <li
-                      key={`${r.name}-${r.date || i}`}
-                      className="rounded-xl bg-[#FAFBFC] ring-1 ring-[#E8ECF4] p-4"
+                    <li key={`${r.name}-${r.date || ''}-${i}`}>
+                    <a
+                      href={reviewsLiveUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Read this review and all ${hotel.reviews!.count.toLocaleString()} reviews on Booking.com`}
+                      className="block rounded-xl bg-[#FAFBFC] ring-1 ring-[#E8ECF4] p-4 transition-all hover:ring-[#0066FF]/50 hover:bg-white hover:shadow-[0_4px_16px_rgba(0,102,255,0.08)] cursor-pointer"
                     >
                       <div className="flex items-start justify-between gap-3 mb-2">
                         <div className="min-w-0">
@@ -915,6 +1027,7 @@ export default function HotelDetailPage() {
                           </p>
                         </div>
                       )}
+                    </a>
                     </li>
                   ))}
                 </ul>
@@ -926,8 +1039,8 @@ export default function HotelDetailPage() {
                 <div className="mt-5 pt-4 border-t border-[#E8ECF4] flex flex-wrap items-center justify-between gap-3">
                   <p className="text-[.82rem] text-[#0a1628] font-poppins font-bold">
                     Showing {Math.min(5, hotel.reviews.list.length)} of{' '}
-                    <span className="font-black">{hotel.reviews.count.toLocaleString()}</span>{' '}
-                    verified guest review{hotel.reviews.count === 1 ? '' : 's'}
+                    <span className="font-black">{hotel.reviews!.count.toLocaleString()}</span>{' '}
+                    verified guest review{hotel.reviews!.count === 1 ? '' : 's'}
                   </p>
                   {typeof hotel.reviews.averageScore === 'number' && (
                     <p className="text-[.72rem] text-[#5C6378] font-semibold">
@@ -936,7 +1049,23 @@ export default function HotelDetailPage() {
                     </p>
                   )}
                 </div>
+                {/* See-all CTA — the prominent live-verification link.
+                    Opens the Booking.com search result for this property
+                    so the customer can read the full review list on the
+                    source they trust. aid=318615 = our affiliate; even
+                    review click-throughs earn if the user books there. */}
+                <a
+                  href={reviewsLiveUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0066FF] text-white text-[.82rem] font-bold hover:bg-[#0052d6] transition-colors"
+                >
+                  <i className="fa-solid fa-arrow-up-right-from-square text-[.76rem]" aria-hidden />
+                  Read all {hotel.reviews.count.toLocaleString()} reviews on Booking.com
+                </a>
                 </>
+                  );
+                })()
               ) : (
                 <div className="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-5 text-center">
                   <i className="fa-solid fa-comment-dots text-[1.1rem] text-slate-400 mb-2" />
@@ -1300,6 +1429,24 @@ export default function HotelDetailPage() {
       />
 
       <Footer />
+
+      {/* ── Back to top ──
+          Floating round button, fixed bottom-right, only visible once the
+          user has scrolled past the hero. Uses smooth scroll so the jump
+          doesn't feel jarring. Sits above the mobile category bar (z-[101])
+          but below the header menu (z-[200]) and checkout flows. */}
+      <button
+        type="button"
+        aria-label="Back to top"
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        style={{ left: '50%', transform: 'translateX(-50%)' }}
+        className={`fixed bottom-6 z-[150] inline-flex items-center gap-2 px-5 py-3 rounded-full bg-[#0066FF] text-white text-[.85rem] font-bold shadow-[0_6px_20px_rgba(0,102,255,0.45)] transition-opacity duration-200 hover:bg-[#0052d6] ${
+          showBackToTop ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+      >
+        <i className="fa-solid fa-arrow-up text-[.9rem]" aria-hidden />
+        Back to top
+      </button>
     </>
   );
 }

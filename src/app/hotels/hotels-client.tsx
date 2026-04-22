@@ -5,6 +5,8 @@ import dynamic from 'next/dynamic';
 import DateRangePicker from '@/components/DateRangePicker';
 import DateMatrixStrip, { type MatrixOption } from '@/components/DateMatrixStrip';
 import { redirectUrl } from '@/lib/redirect';
+import { chooseDefaultTab } from '@/lib/silentScout';
+import { vibeTagsForSearchedCity } from '@/data/destinations';
 
 const ScoutSidebar = dynamic(() => import('@/components/ScoutSidebar'), { ssr: false });
 const HotelMap = dynamic(() => import('@/components/HotelMap'), { ssr: false });
@@ -2531,6 +2533,11 @@ function HotelsContent() {
           latitude={scoutHotel.lat}
           longitude={scoutHotel.lng}
           onClose={() => setScoutHotel(null)}
+          defaultTab={chooseDefaultTab({
+            adults,
+            children: childCount,
+            vibeTags: vibeTagsForSearchedCity(searchedDest),
+          })}
         />
       )}
 

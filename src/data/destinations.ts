@@ -1,3 +1,6 @@
+import type { VibeTag } from '@/lib/silentScout';
+import { vibesForCountry } from '@/lib/regionVibes';
+
 export interface Destination {
   slug: string;
   city: string;
@@ -15,6 +18,12 @@ export interface Destination {
   /** SEO overrides — when present, used instead of the auto-generated defaults */
   seoTitle?: string;
   metaDescription?: string;
+  /**
+   * Ordered vibe tags for Silent Scout tab defaulting on hotel ScoutSidebar.
+   * First tag is the primary vibe (decides which tab opens by default);
+   * remaining tags are reserved for future ranking inside other tabs.
+   */
+  vibeTags?: VibeTag[];
   /** Scout Sidebar — local intelligence surfaced as a distinct block */
   scout?: {
     morningRitual: string;
@@ -26,6 +35,7 @@ export interface Destination {
 export const DESTINATIONS: Destination[] = [
   {
     slug: 'dubai',
+    vibeTags: ['urban', 'spa'],
     city: 'Dubai',
     country: 'United Arab Emirates',
     iata: 'DXB',
@@ -82,6 +92,7 @@ export const DESTINATIONS: Destination[] = [
   },
   {
     slug: 'istanbul',
+    vibeTags: ['foodie', 'urban'],
     city: 'Istanbul',
     country: 'Turkey',
     iata: 'IST',
@@ -135,6 +146,7 @@ export const DESTINATIONS: Destination[] = [
   },
   {
     slug: 'baku',
+    vibeTags: ['urban', 'foodie'],
     city: 'Baku',
     country: 'Azerbaijan',
     iata: 'GYD',
@@ -188,6 +200,7 @@ export const DESTINATIONS: Destination[] = [
   },
   {
     slug: 'islamabad',
+    vibeTags: ['urban'],
     city: 'Islamabad',
     country: 'Pakistan',
     iata: 'ISB',
@@ -244,6 +257,7 @@ export const DESTINATIONS: Destination[] = [
   },
   {
     slug: 'lahore',
+    vibeTags: ['foodie', 'urban'],
     city: 'Lahore',
     country: 'Pakistan',
     iata: 'LHE',
@@ -300,6 +314,7 @@ export const DESTINATIONS: Destination[] = [
   },
   {
     slug: 'abu-dhabi',
+    vibeTags: ['urban', 'spa'],
     city: 'Abu Dhabi',
     country: 'United Arab Emirates',
     iata: 'AUH',
@@ -351,6 +366,7 @@ export const DESTINATIONS: Destination[] = [
   },
   {
     slug: 'sharjah',
+    vibeTags: ['urban'],
     city: 'Sharjah',
     country: 'United Arab Emirates',
     iata: 'SHJ',
@@ -402,6 +418,7 @@ export const DESTINATIONS: Destination[] = [
   },
   {
     slug: 'muscat',
+    vibeTags: ['urban', 'adventure'],
     city: 'Muscat',
     country: 'Oman',
     iata: 'MCT',
@@ -453,6 +470,7 @@ export const DESTINATIONS: Destination[] = [
   },
   {
     slug: 'doha',
+    vibeTags: ['urban', 'foodie'],
     city: 'Doha',
     country: 'Qatar',
     iata: 'DOH',
@@ -504,6 +522,7 @@ export const DESTINATIONS: Destination[] = [
   },
   {
     slug: 'colombo',
+    vibeTags: ['foodie', 'urban'],
     city: 'Colombo',
     country: 'Sri Lanka',
     iata: 'CMB',
@@ -555,6 +574,7 @@ export const DESTINATIONS: Destination[] = [
   },
   {
     slug: 'marrakech',
+    vibeTags: ['foodie', 'spa'],
     city: 'Marrakech',
     country: 'Morocco',
     iata: 'RAK',
@@ -611,6 +631,7 @@ export const DESTINATIONS: Destination[] = [
   },
   {
     slug: 'london',
+    vibeTags: ['urban', 'foodie'],
     city: 'London',
     country: 'United Kingdom',
     iata: 'LHR',
@@ -667,6 +688,7 @@ export const DESTINATIONS: Destination[] = [
   },
   {
     slug: 'sharm-el-sheikh',
+    vibeTags: ['adventure', 'spa'],
     city: 'Sharm El Sheikh',
     country: 'Egypt',
     iata: 'SSH',
@@ -700,6 +722,7 @@ export const DESTINATIONS: Destination[] = [
   },
   {
     slug: 'budapest',
+    vibeTags: ['spa', 'urban'],
     city: 'Budapest',
     country: 'Hungary',
     iata: 'BUD',
@@ -733,6 +756,7 @@ export const DESTINATIONS: Destination[] = [
   },
   {
     slug: 'lisbon',
+    vibeTags: ['foodie', 'urban'],
     city: 'Lisbon',
     country: 'Portugal',
     iata: 'LIS',
@@ -761,6 +785,7 @@ export const DESTINATIONS: Destination[] = [
   },
   {
     slug: 'baden-baden',
+    vibeTags: ['spa'],
     city: 'Baden-Baden',
     country: 'Germany',
     iata: 'FKB',
@@ -789,6 +814,7 @@ export const DESTINATIONS: Destination[] = [
   },
   {
     slug: 'rome',
+    vibeTags: ['foodie', 'urban'],
     city: 'Rome',
     country: 'Italy',
     iata: 'FCO',
@@ -817,6 +843,7 @@ export const DESTINATIONS: Destination[] = [
   },
   {
     slug: 'porto',
+    vibeTags: ['foodie'],
     city: 'Porto',
     country: 'Portugal',
     iata: 'OPO',
@@ -845,6 +872,7 @@ export const DESTINATIONS: Destination[] = [
   },
   {
     slug: 'berlin',
+    vibeTags: ['urban', 'foodie'],
     city: 'Berlin',
     country: 'Germany',
     iata: 'BER',
@@ -875,4 +903,30 @@ export const DESTINATIONS: Destination[] = [
 
 export function getDestination(slug: string): Destination | undefined {
   return DESTINATIONS.find(d => d.slug === slug);
+}
+
+/**
+ * Resolve ordered vibe tags for a city name as typed into the hotel search
+ * box (e.g. "London", "Dubai", "Lisbon"). Matching is case-insensitive against
+ * Destination.city and Destination.slug.
+ *
+ * Precedence:
+ *   1. Destination's own `vibeTags` (hand-picked editorial)
+ *   2. Country-level fallback via `vibesForCountry`
+ *   3. Empty array — Silent Scout falls back to its generic default
+ *
+ * Safe to call with any string; unknown cities return [] and Silent Scout
+ * gracefully picks 'food' as the neutral default.
+ */
+export function vibeTagsForSearchedCity(searchedDest: string | null | undefined): VibeTag[] {
+  if (!searchedDest) return [];
+  const needle = searchedDest.trim().toLowerCase();
+  if (!needle) return [];
+
+  const match = DESTINATIONS.find(
+    d => d.city.toLowerCase() === needle || d.slug === needle
+  );
+  if (!match) return [];
+  if (match.vibeTags && match.vibeTags.length > 0) return match.vibeTags;
+  return vibesForCountry(match.country);
 }

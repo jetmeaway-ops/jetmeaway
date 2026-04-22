@@ -44,7 +44,21 @@ type Props = {
   hotelName: string;
   latitude: number;
   longitude: number;
-  onClose: () => void;
+  onClose?: () => void;
+  /**
+   * Silent Scout default tab — picked by party composition × destination vibe.
+   * If supplied, this tab is preferred as the initial selection provided it
+   * has at least one POI. If omitted or its category is empty, the sidebar
+   * falls back to the first non-empty tab as before.
+   */
+  defaultTab?: 'wellness' | 'family' | 'food' | 'daily';
+  /**
+   * Embedded (inline) mode — renders the Scout content as a flow-layout card
+   * instead of a fixed overlay. Used on the hotel detail page where Scout
+   * lives inline in the Location section rather than as a slide-over.
+   * Skips overlay/backdrop, close button, and mobile bottom-sheet behaviour.
+   */
+  embedded?: boolean;
 };
 
 // ── Icon mappings ─────────────────────────────────────────────────────────────
@@ -188,7 +202,25 @@ function CompassIllustration() {
 }
 
 // ── Place item ────────────────────────────────────────────────────────────────
-function PlaceItem({ place, categoryColor }: { place: ScoutPlace; categoryColor?: string }) {
+/**
+ * A single nearby POI in the sidebar list.
+ *
+ * When `pinNumber` is supplied we render a numbered badge in the active
+ * tab's category colour, matching the numbered circle on the map. When
+ * it isn't (e.g. the thin-data combined list), we fall back to the icon
+ * treatment so the layout still reads cleanly.
+ */
+function PlaceItem({
+  place,
+  categoryColor,
+  pinNumber,
+  pinBgClass,
+}: {
+  place: ScoutPlace;
+  categoryColor?: string;
+  pinNumber?: number;
+  pinBgClass?: string;
+}) {
   const Icon = TYPE_ICONS[place.type] || MapPin;
   const label = TYPE_LABELS[place.type] || place.type;
 
@@ -198,9 +230,18 @@ function PlaceItem({ place, categoryColor }: { place: ScoutPlace; categoryColor?
         {categoryColor && (
           <span className={`w-2 h-2 rounded-full ${categoryColor} flex-shrink-0`} aria-hidden="true" />
         )}
-        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
-          <Icon size={16} className="text-slate-600" aria-label={label} />
-        </div>
+        {pinNumber && pinBgClass ? (
+          <div
+            className={`w-7 h-7 rounded-full ${pinBgClass} flex items-center justify-center flex-shrink-0 text-white text-[.72rem] font-bold shadow-sm ring-2 ring-white`}
+            aria-label={`Map pin ${pinNumber}`}
+          >
+            {pinNumber}
+          </div>
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
+            <Icon size={16} className="text-slate-600" aria-label={label} />
+          </div>
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-[#1A1D2B] truncate">{place.name}</p>
@@ -215,10 +256,10 @@ function PlaceItem({ place, categoryColor }: { place: ScoutPlace; categoryColor?
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function ScoutSidebar({ hotelName, latitude, longitude, onClose }: Props) {
+export default function ScoutSidebar({ hotelName, latitude, longitude, onClose, defaultTab, embedded = false }: Props) {
   const [data, setData] = useState<ScoutData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'wellness' | 'family' | 'food' | 'daily'>('food');
+  const [activeTab, setActiveTab] = useState<'wellness' | 'family' | 'food' | 'daily'>(defaultTab ?? 'food');
   const sidebarRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [sheetExpanded, setSheetExpanded] = useState(false);
@@ -245,9 +286,13 @@ export default function ScoutSidebar({ hotelName, latitude, longitude, onClose }
       const json = await res.json();
       setData(json);
 
-      // Auto-select first non-empty tab
+      // Silent Scout: prefer the caller-supplied default if it has data,
+      // otherwise fall back to the first non-empty tab in priority order.
       if (json.categories) {
-        for (const tab of ['food', 'daily', 'family', 'wellness'] as const) {
+        const priority: Array<'wellness' | 'family' | 'food' | 'daily'> = defaultTab
+          ? [defaultTab, ...(['food', 'daily', 'family', 'wellness'] as const).filter(t => t !== defaultTab)]
+          : ['food', 'daily', 'family', 'wellness'];
+        for (const tab of priority) {
           if (json.categories[tab]?.length > 0) {
             setActiveTab(tab);
             break;
@@ -268,14 +313,20 @@ export default function ScoutSidebar({ hotelName, latitude, longitude, onClose }
     } finally {
       setLoading(false);
     }
-  }, [latitude, longitude]);
+  }, [latitude, longitude, defaultTab]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   // ── Focus trap & escape ──
   useEffect(() => {
+    // In embedded (inline) mode we do not lock body scroll, steal focus, or
+    // listen for Escape — the Scout card lives in the page flow, not as a
+    // modal. Arrow-key tab navigation is still nice-to-have but not wired
+    // here to keep the inline mode quiet.
+    if (embedded) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key === 'Escape') { onClose?.(); return; }
 
       // Arrow key tab navigation
       if (data && !data.fallback && data.quality !== 'thin' && data.quality !== 'empty') {
@@ -302,7 +353,7 @@ export default function ScoutSidebar({ hotelName, latitude, longitude, onClose }
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = '';
     };
-  }, [onClose, activeTab, data]);
+  }, [onClose, activeTab, data, embedded]);
 
   // ── Mobile drag handlers ──
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -318,7 +369,7 @@ export default function ScoutSidebar({ hotelName, latitude, longitude, onClose }
       setSheetExpanded(true);
     } else if (dragDelta.current > 80) {
       if (sheetExpanded) setSheetExpanded(false);
-      else onClose();
+      else onClose?.();
     }
     dragDelta.current = 0;
   };
@@ -340,9 +391,11 @@ export default function ScoutSidebar({ hotelName, latitude, longitude, onClose }
             <button onClick={fetchData} className="px-4 py-2 bg-[#0d9488] text-white text-sm font-semibold rounded-xl hover:bg-[#0f766e] transition-colors">
               Retry
             </button>
-            <button onClick={onClose} className="px-4 py-2 border border-[#E8ECF4] text-sm font-semibold text-[#5C6378] rounded-xl hover:bg-slate-50 transition-colors">
-              Close
-            </button>
+            {onClose && (
+              <button onClick={onClose} className="px-4 py-2 border border-[#E8ECF4] text-sm font-semibold text-[#5C6378] rounded-xl hover:bg-slate-50 transition-colors">
+                Close
+              </button>
+            )}
           </div>
         </div>
       );
@@ -367,10 +420,14 @@ export default function ScoutSidebar({ hotelName, latitude, longitude, onClose }
           >
             Open Google Maps
           </a>
-          <br />
-          <button onClick={onClose} className="px-4 py-2 border border-[#E8ECF4] text-sm font-semibold text-[#5C6378] rounded-xl hover:bg-slate-50 transition-colors">
-            Close
-          </button>
+          {onClose && (
+            <>
+              <br />
+              <button onClick={onClose} className="px-4 py-2 border border-[#E8ECF4] text-sm font-semibold text-[#5C6378] rounded-xl hover:bg-slate-50 transition-colors">
+                Close
+              </button>
+            </>
+          )}
         </div>
       );
     }
@@ -418,10 +475,18 @@ export default function ScoutSidebar({ hotelName, latitude, longitude, onClose }
 
     // Rich / moderate — tabbed view
     const activeItems = data.categories[activeTab];
+    const activePinBg = CATEGORY_COLORS[activeTab];
 
     return (
       <>
-        <ScoutMap hotelName={hotelName} lat={latitude} lng={longitude} places={mapPlaces} height={isMobile ? 180 : 200} />
+        <ScoutMap
+          hotelName={hotelName}
+          lat={latitude}
+          lng={longitude}
+          places={mapPlaces}
+          height={isMobile ? 180 : 200}
+          activeTab={activeTab}
+        />
 
         {/* Tabs */}
         <div className="flex mt-4 border-b border-[#f1f3f7]" role="tablist" aria-label="Neighbourhood categories">
@@ -447,7 +512,14 @@ export default function ScoutSidebar({ hotelName, latitude, longitude, onClose }
         {/* Results */}
         <div className="mt-2" role="tabpanel" aria-label={`${activeTab} results`}>
           {activeItems.length > 0 ? (
-            activeItems.map((p, i) => <PlaceItem key={`${p.name}-${i}`} place={p} />)
+            activeItems.map((p, i) => (
+              <PlaceItem
+                key={`${p.name}-${i}`}
+                place={p}
+                pinNumber={i + 1}
+                pinBgClass={activePinBg}
+              />
+            ))
           ) : (
             <p className="text-[.78rem] text-[#8E95A9] py-6 text-center px-4">
               {EMPTY_CATEGORY_MESSAGES[activeTab]}
@@ -463,6 +535,23 @@ export default function ScoutSidebar({ hotelName, latitude, longitude, onClose }
       </>
     );
   };
+
+  // ── Embedded (inline) mode — hotel detail page ──
+  if (embedded) {
+    return (
+      <div
+        aria-label={`Neighbourhood scout for ${hotelName}`}
+        className="bg-white outline-none"
+      >
+        <div className="mb-4">
+          <p className="text-[.72rem] text-[#8E95A9] font-semibold uppercase tracking-[1px]">
+            What&apos;s nearby within a 12 min walk
+          </p>
+        </div>
+        {renderContent()}
+      </div>
+    );
+  }
 
   // ── Desktop sidebar ──
   if (!isMobile) {
