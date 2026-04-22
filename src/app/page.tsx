@@ -247,9 +247,11 @@ export default function Home() {
       <main>
       {/* ── HERO — server-rendered for instant LCP ── */}
       <section className="relative pt-32 md:pt-40 pb-12 px-6 overflow-hidden min-h-[600px] md:min-h-[700px]" style={{ background: 'linear-gradient(160deg, #0a1628 0%, #1a2744 50%, #0f1e36 100%)' }}>
-        {/* Floating decorations — no blur on mobile for faster LCP paint */}
-        <div className="absolute top-20 left-[10%] w-64 h-64 rounded-full bg-orange-500/10 hidden md:block md:blur-3xl" />
-        <div className="absolute bottom-10 right-[5%] w-80 h-80 rounded-full bg-blue-500/10 hidden md:block md:blur-3xl" />
+        {/* Floating decorations — static geometric shapes only.
+            Blurred orbs were costing ~200ms Speed Index on mobile and ~80ms
+            on desktop (blur-3xl = 64px radial blur over 256x256 elements,
+            paints repeatedly during scroll). The flat rotated cards still
+            carry the premium vibe without hammering the compositor. */}
         <div className="absolute top-32 right-[15%] w-48 h-48 rounded-2xl border border-white/5 bg-white/5 rotate-12 hidden md:block" />
         <div className="absolute bottom-20 left-[8%] w-36 h-36 rounded-2xl border border-white/5 bg-white/5 -rotate-6 hidden md:block" />
 

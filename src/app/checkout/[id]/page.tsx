@@ -439,38 +439,69 @@ function IncludedPanel({
           </div>
         ))}
 
-        {/* Global fare conditions — refund + change */}
-        <div className="pt-4 border-t border-[#F1F3F7] grid grid-cols-2 gap-3">
-          <div className="flex items-center gap-2">
-            <span
-              className={`w-6 h-6 rounded-md flex items-center justify-center ${
-                refundable ? 'bg-emerald-50 text-emerald-700' : 'bg-[#F1F3F7] text-[#8E95A9]'
-              }`}
-            >
-              <i
-                className={`fa-solid ${refundable ? 'fa-rotate-left' : 'fa-ban'} text-[.7rem]`}
-                aria-hidden
-              />
-            </span>
-            <span className="text-[.72rem] font-semibold text-[#1A1D2B]">
-              {refundable ? 'Refundable' : 'Non-refundable'}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span
-              className={`w-6 h-6 rounded-md flex items-center justify-center ${
-                changeable ? 'bg-emerald-50 text-emerald-700' : 'bg-[#F1F3F7] text-[#8E95A9]'
-              }`}
-            >
-              <i
-                className={`fa-solid ${changeable ? 'fa-pen-to-square' : 'fa-lock'} text-[.7rem]`}
-                aria-hidden
-              />
-            </span>
-            <span className="text-[.72rem] font-semibold text-[#1A1D2B]">
-              {changeable ? 'Changeable' : 'Non-changeable'}
-            </span>
-          </div>
+        {/* Global fare conditions — refund + change.
+            Most short-haul economy fares are non-refundable BUT changeable for
+            an airline fee. We surface that as one honest chip with a light
+            tooltip instead of two ambiguous chips. */}
+        <div className="pt-4 border-t border-[#F1F3F7]">
+          {!refundable && changeable ? (
+            <div className="group relative inline-flex items-center gap-2">
+              <span className="w-6 h-6 rounded-md bg-[#F1F3F7] text-[#8E95A9] flex items-center justify-center">
+                <i className="fa-solid fa-pen-to-square text-[.7rem]" aria-hidden />
+              </span>
+              <span className="text-[.72rem] font-semibold text-[#1A1D2B]">
+                Non-refundable, changeable for a fee
+              </span>
+              <span
+                className="w-4 h-4 rounded-full bg-[#F1F3F7] text-[#5C6378] text-[.55rem] flex items-center justify-center cursor-help"
+                tabIndex={0}
+                aria-describedby="fare-rules-tip"
+              >
+                <i className="fa-solid fa-info" aria-hidden />
+              </span>
+              <span
+                id="fare-rules-tip"
+                role="tooltip"
+                className="pointer-events-none absolute left-0 top-full mt-2 z-10 w-72 rounded-xl bg-white border border-[#E8ECF4] shadow-[0_8px_24px_rgba(0,102,255,0.08)] p-3 text-[.68rem] font-normal leading-relaxed text-[#5C6378] opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition"
+              >
+                <span className="block text-[#1A1D2B] font-semibold mb-1">What this means</span>
+                You won&apos;t get a cash refund if you cancel. You <em>can</em> change the date or route before you fly, but the airline will charge a change fee plus any fare difference. We don&apos;t add a penny on top.
+              </span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`w-6 h-6 rounded-md flex items-center justify-center ${
+                    refundable ? 'bg-emerald-50 text-emerald-700' : 'bg-[#F1F3F7] text-[#8E95A9]'
+                  }`}
+                >
+                  <i
+                    className={`fa-solid ${refundable ? 'fa-rotate-left' : 'fa-ban'} text-[.7rem]`}
+                    aria-hidden
+                  />
+                </span>
+                <span className="text-[.72rem] font-semibold text-[#1A1D2B]">
+                  {refundable ? 'Refundable' : 'Non-refundable'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`w-6 h-6 rounded-md flex items-center justify-center ${
+                    changeable ? 'bg-emerald-50 text-emerald-700' : 'bg-[#F1F3F7] text-[#8E95A9]'
+                  }`}
+                >
+                  <i
+                    className={`fa-solid ${changeable ? 'fa-pen-to-square' : 'fa-lock'} text-[.7rem]`}
+                    aria-hidden
+                  />
+                </span>
+                <span className="text-[.72rem] font-semibold text-[#1A1D2B]">
+                  {changeable ? 'Changeable' : 'Non-changeable'}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
