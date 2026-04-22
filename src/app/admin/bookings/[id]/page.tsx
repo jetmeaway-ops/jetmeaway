@@ -11,6 +11,7 @@ import {
   typeIcon,
 } from '@/lib/bookings';
 import CancelButton from './CancelButton';
+import NotificationButtons from './NotificationButtons';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -137,20 +138,11 @@ export default async function BookingDetail({
           Actions
         </h2>
         <div className="flex flex-wrap gap-3">
-          <button
-            disabled
-            className="px-4 py-2 border border-gray-300 rounded-xl text-sm text-[#5C6378] hover:bg-gray-50 disabled:opacity-50"
-            title="Coming soon"
-          >
-            Resend confirmation email
-          </button>
-          <button
-            disabled
-            className="px-4 py-2 border border-gray-300 rounded-xl text-sm text-[#5C6378] hover:bg-gray-50 disabled:opacity-50"
-            title="Coming soon"
-          >
-            Send SMS
-          </button>
+          <NotificationButtons
+            bookingRef={b.id}
+            hasEmail={Boolean(b.customerEmail)}
+            hasPhone={Boolean(b.customerPhone)}
+          />
           <CancelButton
             bookingRef={b.id}
             disabled={b.status === 'cancelled' || b.status === 'refunded'}
@@ -164,7 +156,7 @@ export default async function BookingDetail({
           </button>
         </div>
         <p className="text-xs text-[#8E95A9] mt-3">
-          Cancellation calls LiteAPI. Email/SMS resend and refunds are not yet wired up.
+          Resend email/SMS sends live via Resend + Twilio. Cancellation calls LiteAPI. Manual refunds are not yet wired up.
         </p>
       </div>
     </div>
