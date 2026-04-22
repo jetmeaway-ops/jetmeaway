@@ -28,16 +28,24 @@ export const DUFFEL_VERSION: string =
   process.env.DUFFEL_API_VERSION || 'v2';
 
 /**
- * Build a full Duffel URL. On v3 the `/air/` prefix is dropped from the
- * Air resources (offers, orders, offer_requests, seat_maps) — see Duffel
- * v3 migration notes. `/airlines/*` and `/payments/*` paths are unchanged.
+ * Build a full Duffel URL.
  *
- * Pass the v2-shaped path (e.g. `/air/offers/xyz`) and this returns whatever
- * v3 or v2 expects. Safe to call with non-`/air` paths — they pass through.
+ * v2: paths stay as-is, appended to https://api.duffel.com
+ *   → https://api.duffel.com/air/offers/xyz
+ *
+ * v3: TWO things change — (a) the base URL gets a /v3 segment, and
+ *   (b) the /air/ prefix is dropped from Air resources (offers, orders,
+ *   offer_requests, seat_maps). `/airlines/*` and `/payments/*` paths
+ *   keep their shape but still live under /v3.
+ *   → https://api.duffel.com/v3/offers/xyz
+ *
+ * Pass the v2-shaped path (e.g. `/air/offers/xyz`) and this returns
+ * whatever the active version expects. Safe for non-/air paths too.
  */
 export function duffelUrl(path: string): string {
-  if (DUFFEL_VERSION === 'v3' && path.startsWith('/air/')) {
-    return `${DUFFEL_BASE}${path.replace(/^\/air\//, '/')}`;
+  if (DUFFEL_VERSION === 'v3') {
+    const stripped = path.startsWith('/air/') ? path.replace(/^\/air\//, '/') : path;
+    return `${DUFFEL_BASE}/v3${stripped}`;
   }
   return `${DUFFEL_BASE}${path}`;
 }
