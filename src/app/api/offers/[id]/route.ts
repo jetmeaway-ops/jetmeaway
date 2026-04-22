@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { priceBreakdown } from '@/lib/travel-logic';
+import { DUFFEL_VERSION } from '@/lib/duffel';
 
 export const runtime = 'edge';
 
@@ -21,7 +22,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       {
         headers: {
           'Authorization': `Bearer ${DUFFEL_KEY}`,
-          'Duffel-Version': 'v2',
+          'Duffel-Version': DUFFEL_VERSION,
           'Accept': 'application/json',
         },
       },

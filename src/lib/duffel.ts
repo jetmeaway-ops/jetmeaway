@@ -16,6 +16,17 @@ const DUFFEL_KEY =
 
 const DUFFEL_BASE = 'https://api.duffel.com';
 
+/**
+ * Duffel API version — single source of truth for the `Duffel-Version`
+ * header. Every call-site in the codebase (lib/duffel.ts + all /api routes
+ * that hit Duffel directly) reads from this constant, which itself reads
+ * from the DUFFEL_API_VERSION env var. Defaults to v2 (what we currently
+ * run on). To roll forward to v3, set DUFFEL_API_VERSION=v3 in Vercel and
+ * redeploy — no code changes required.
+ */
+export const DUFFEL_VERSION: string =
+  process.env.DUFFEL_API_VERSION || 'v2';
+
 export type DuffelBalance = {
   available: number;
   currency: string;
@@ -34,7 +45,7 @@ export async function getBalance(): Promise<DuffelBalance | null> {
     const res = await fetch(`${DUFFEL_BASE}/airlines/balances`, {
       headers: {
         Authorization: `Bearer ${DUFFEL_KEY}`,
-        'Duffel-Version': 'v2',
+        'Duffel-Version': DUFFEL_VERSION,
         Accept: 'application/json',
       },
       // Never cache — balance changes with every ticket issued
@@ -73,7 +84,7 @@ export async function refreshOfferTotal(offerId: string): Promise<{
     const res = await fetch(`${DUFFEL_BASE}/air/offers/${offerId}`, {
       headers: {
         Authorization: `Bearer ${DUFFEL_KEY}`,
-        'Duffel-Version': 'v2',
+        'Duffel-Version': DUFFEL_VERSION,
         Accept: 'application/json',
       },
       cache: 'no-store',
@@ -108,7 +119,7 @@ export async function refreshOfferWithServices(offerId: string): Promise<{
       {
         headers: {
           Authorization: `Bearer ${DUFFEL_KEY}`,
-          'Duffel-Version': 'v2',
+          'Duffel-Version': DUFFEL_VERSION,
           Accept: 'application/json',
         },
         cache: 'no-store',
@@ -181,7 +192,7 @@ export async function createBalanceOrder(args: {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${DUFFEL_KEY}`,
-      'Duffel-Version': 'v2',
+      'Duffel-Version': DUFFEL_VERSION,
       'Content-Type': 'application/json',
       Accept: 'application/json',
     },

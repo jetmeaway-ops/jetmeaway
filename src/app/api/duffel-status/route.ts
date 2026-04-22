@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { DUFFEL_VERSION } from '@/lib/duffel';
 
 export const runtime = 'edge';
 
@@ -26,7 +27,7 @@ export async function GET() {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${DUFFEL_KEY}`,
-        'Duffel-Version': 'v2',
+        'Duffel-Version': DUFFEL_VERSION,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },

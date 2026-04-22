@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { DUFFEL_VERSION } from '@/lib/duffel';
 
 export const runtime = 'edge';
 
@@ -257,7 +258,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ offe
     const offerRes = await fetch(`https://api.duffel.com/air/offers/${offerId}`, {
       headers: {
         Authorization: `Bearer ${DUFFEL_KEY}`,
-        'Duffel-Version': 'v2',
+        'Duffel-Version': DUFFEL_VERSION,
         Accept: 'application/json',
       },
     });
@@ -294,7 +295,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ offe
     const smRes = await fetch(`https://api.duffel.com/air/seat_maps?offer_id=${offerId}`, {
       headers: {
         Authorization: `Bearer ${DUFFEL_KEY}`,
-        'Duffel-Version': 'v2',
+        'Duffel-Version': DUFFEL_VERSION,
         Accept: 'application/json',
       },
     });
