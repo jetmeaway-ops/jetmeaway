@@ -84,6 +84,91 @@ export default async function DestinationPage(
     ],
   };
 
+  // Each neighbourhood as a TouristAttraction — gives Google per-area entities
+  // so we can rank for "<neighbourhood> <city>" long-tail queries.
+  const attractionSchemas = d.neighbourhoods.map(n => ({
+    '@context': 'https://schema.org',
+    '@type': 'TouristAttraction',
+    name: `${n.name}, ${d.city}`,
+    description: n.blurb,
+    containedInPlace: {
+      '@type': 'TouristDestination',
+      name: d.city,
+      address: { '@type': 'PostalAddress', addressCountry: d.country },
+    },
+    touristType: ['UK travellers', 'city breaks'],
+  }));
+
+  // TravelAction (Flight) — tells Google this page is a transactional entry
+  // point for booking UK → d.iata flights and d.city hotels.
+  const travelActionSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'TravelAction',
+    name: `Find flights from the UK to ${d.city}`,
+    fromLocation: { '@type': 'Airport', name: 'London', iataCode: 'LON' },
+    toLocation: { '@type': 'Airport', name: `${d.city} (${d.iata})`, iataCode: d.iata },
+    target: {
+      '@type': 'EntryPoint',
+      urlTemplate: `https://jetmeaway.co.uk/flights?to=${d.iata}`,
+      actionPlatform: [
+        'http://schema.org/DesktopWebPlatform',
+        'http://schema.org/MobileWebPlatform',
+      ],
+    },
+  };
+
+  const reserveActionSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'ReserveAction',
+    name: `Compare ${d.city} hotels`,
+    object: {
+      '@type': 'LodgingBusiness',
+      name: `${d.city} hotels`,
+      address: { '@type': 'PostalAddress', addressCountry: d.country, addressLocality: d.city },
+      priceRange: `£${d.averageNightlyPrice}/night avg`,
+    },
+    target: {
+      '@type': 'EntryPoint',
+      urlTemplate: `https://jetmeaway.co.uk/hotels?destination=${encodeURIComponent(d.city)}`,
+      actionPlatform: [
+        'http://schema.org/DesktopWebPlatform',
+        'http://schema.org/MobileWebPlatform',
+      ],
+    },
+  };
+
+  // TripPlan — packages the city into an itinerary entity Google can surface
+  // in trip-planning carousels and AI Overviews.
+  const tripPlanSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Trip',
+    name: `${d.city} trip from the UK`,
+    description: d.intro,
+    image: d.heroImage,
+    itinerary: d.neighbourhoods.map((n, i) => ({
+      '@type': 'TouristAttraction',
+      position: i + 1,
+      name: `${n.name}, ${d.city}`,
+      description: n.blurb,
+    })),
+    offers: {
+      '@type': 'AggregateOffer',
+      priceCurrency: 'GBP',
+      lowPrice: d.averageNightlyPrice,
+      priceSpecification: {
+        '@type': 'UnitPriceSpecification',
+        price: d.averageNightlyPrice,
+        priceCurrency: 'GBP',
+        unitText: 'NIGHT',
+      },
+    },
+    partOfTrip: {
+      '@type': 'Trip',
+      name: `UK outbound — ${d.city}`,
+      departureTime: `PT${d.flightTimeFromLondonHours}H`,
+    },
+  };
+
   return (
     <>
       <Header />
@@ -99,6 +184,25 @@ export default async function DestinationPage(
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      {attractionSchemas.map((s, i) => (
+        <script
+          key={`attraction-${i}`}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(s) }}
+        />
+      ))}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(travelActionSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(reserveActionSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(tripPlanSchema) }}
       />
 
       {/* Hero */}
@@ -190,12 +294,41 @@ export default async function DestinationPage(
           Where to stay in {d.city}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {d.neighbourhoods.map(n => (
-            <div key={n.name} className="bg-white border border-[#F1F3F7] rounded-2xl p-6 shadow-[0_4px_24px_rgba(0,102,255,0.05)]">
-              <h3 className="font-poppins font-bold text-[1rem] text-[#1A1D2B] mb-2">{n.name}</h3>
-              <p className="text-[.88rem] text-[#5C6378] leading-relaxed">{n.blurb}</p>
-            </div>
-          ))}
+          {d.neighbourhoods.map(n => {
+            // Hand-curated deep-dive pages — add more as we build them.
+            const deepLink = d.slug === 'rome' && n.name === 'Trastevere'
+              ? '/destinations/rome/trastevere'
+              : null;
+            const body = (
+              <>
+                <h3 className="font-poppins font-bold text-[1rem] text-[#1A1D2B] mb-2 flex items-center gap-2">
+                  {n.name}
+                  {deepLink && (
+                    <span className="text-[.6rem] font-black uppercase tracking-[1.5px] bg-[#0066FF]/10 text-[#0066FF] px-2 py-0.5 rounded-full">
+                      Scout Guide
+                    </span>
+                  )}
+                </h3>
+                <p className="text-[.88rem] text-[#5C6378] leading-relaxed">{n.blurb}</p>
+                {deepLink && (
+                  <div className="mt-3 text-[.82rem] font-semibold text-[#0066FF]">Read the full Trastevere guide →</div>
+                )}
+              </>
+            );
+            return deepLink ? (
+              <Link
+                key={n.name}
+                href={deepLink}
+                className="bg-white border border-[#F1F3F7] hover:border-[#0066FF]/30 rounded-2xl p-6 shadow-[0_4px_24px_rgba(0,102,255,0.05)] hover:shadow-[0_8px_32px_rgba(0,102,255,0.12)] transition block"
+              >
+                {body}
+              </Link>
+            ) : (
+              <div key={n.name} className="bg-white border border-[#F1F3F7] rounded-2xl p-6 shadow-[0_4px_24px_rgba(0,102,255,0.05)]">
+                {body}
+              </div>
+            );
+          })}
         </div>
       </section>
 

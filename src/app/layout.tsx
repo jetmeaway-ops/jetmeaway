@@ -22,6 +22,12 @@ import DeferredWidgets from '@/components/DeferredWidgets';
 const GOOGLE_TAG_ID =
   process.env.NEXT_PUBLIC_GOOGLE_ADS_ACCOUNT_ID || 'AW-18079068295';
 
+// GA4 measurement ID — property created 2026-04-23 so we can wire the
+// GBP profile to a verified analytics account and start collecting
+// behaviour data (bounce rate, scroll depth, conversions) alongside
+// the Ads conversion pixel.
+const GA4_ID = process.env.NEXT_PUBLIC_GA4_ID || 'G-4H2K83LKQM';
+
 const poppins = Poppins({
   weight: ['400', '700', '900'],
   subsets: ['latin'],
@@ -255,6 +261,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           competes with LCP. Conversion events fire via sendGAEvent()
           at the point of booking success. */}
       <GoogleAnalytics gaId={GOOGLE_TAG_ID} />
+      {/* GA4 property — injected via the same gtag.js runtime, so both
+          the Ads tag above and this GA4 tag share one gtag('js', ...)
+          init. Next's third-party helper dedupes the script import. */}
+      <GoogleAnalytics gaId={GA4_ID} />
     </html>
   );
 }

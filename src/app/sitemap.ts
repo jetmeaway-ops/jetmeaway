@@ -39,6 +39,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.8,
   }));
 
+  // Neighbourhood-level pSEO seeds — hand-written long-tail pages.
+  // Add one per promising hood as we prove the pattern works.
+  const neighbourhoods: MetadataRoute.Sitemap = [
+    {
+      url: `${BASE}/destinations/rome/trastevere`,
+      lastModified: now,
+      changeFrequency: 'weekly' as const,
+      priority: 0.75,
+    },
+  ];
+
   // Informational routes — trust / legal / partnerships
   const info: MetadataRoute.Sitemap = [
     { url: `${BASE}/about`,                 lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
@@ -67,5 +78,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     posts = [];
   }
 
-  return [...primary, ...info, ...destinations, ...posts];
+  return [...primary, ...info, ...destinations, ...neighbourhoods, ...posts];
 }
