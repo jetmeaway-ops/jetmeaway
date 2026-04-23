@@ -263,12 +263,19 @@ export async function POST(req: NextRequest) {
     services: rawServices.length > 0
       ? rawServices.map((s) => ({ id: s.id, quantity: Math.max(1, Number(s.quantity || 1)) }))
       : undefined,
+    // Stable per (offer, stripe charge) pair — if our fetch dies after
+    // Duffel issued the ticket, a retry gets the cached response instead
+    // of burning the balance on a duplicate order.
+    idempotencyKey: `${offerId}:${pi.id}`,
   });
 
   if (!orderResult.ok) {
     await refundAndFail(stripe, pi.id, pendingBooking, `Duffel failed: ${orderResult.error}`);
     return NextResponse.json(
-      { error: orderResult.error || 'Booking failed — refunded' },
+      {
+        error: orderResult.error || 'Booking failed — refunded',
+        invalidFields: orderResult.invalidFields,
+      },
       { status: orderResult.status },
     );
   }

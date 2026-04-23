@@ -19,34 +19,14 @@ const DUFFEL_BASE = 'https://api.duffel.com';
 /**
  * Duffel API version — single source of truth for the `Duffel-Version`
  * header. Every call-site in the codebase (lib/duffel.ts + all /api routes
- * that hit Duffel directly) reads from this constant, which itself reads
- * from the DUFFEL_API_VERSION env var. Defaults to v2 (what we currently
- * run on). To roll forward to v3, set DUFFEL_API_VERSION=v3 in Vercel and
- * redeploy — no code changes required.
+ * that hit Duffel directly) reads from this constant. Duffel's current
+ * public API is v2; v1 was sunset Jan 2025. If Duffel ever ships a newer
+ * version with a migration window, change this one string.
  */
-export const DUFFEL_VERSION: string =
-  process.env.DUFFEL_API_VERSION || 'v2';
+export const DUFFEL_VERSION = 'v2';
 
-/**
- * Build a full Duffel URL.
- *
- * v2: paths stay as-is, appended to https://api.duffel.com
- *   → https://api.duffel.com/air/offers/xyz
- *
- * v3: TWO things change — (a) the base URL gets a /v3 segment, and
- *   (b) the /air/ prefix is dropped from Air resources (offers, orders,
- *   offer_requests, seat_maps). `/airlines/*` and `/payments/*` paths
- *   keep their shape but still live under /v3.
- *   → https://api.duffel.com/v3/offers/xyz
- *
- * Pass the v2-shaped path (e.g. `/air/offers/xyz`) and this returns
- * whatever the active version expects. Safe for non-/air paths too.
- */
+/** Build a full Duffel URL. Paths are appended to https://api.duffel.com. */
 export function duffelUrl(path: string): string {
-  if (DUFFEL_VERSION === 'v3') {
-    const stripped = path.startsWith('/air/') ? path.replace(/^\/air\//, '/') : path;
-    return `${DUFFEL_BASE}/v3${stripped}`;
-  }
   return `${DUFFEL_BASE}${path}`;
 }
 
@@ -65,7 +45,7 @@ export async function getBalance(): Promise<DuffelBalance | null> {
   if (!DUFFEL_KEY) return null;
 
   try {
-    const res = await fetch(`${DUFFEL_BASE}/airlines/balances`, {
+    const res = await fetch(duffelUrl('/airlines/balances'), {
       headers: {
         Authorization: `Bearer ${DUFFEL_KEY}`,
         'Duffel-Version': DUFFEL_VERSION,
@@ -187,7 +167,19 @@ export async function createBalanceOrder(args: {
   amount: string;
   currency: string;
   services?: Array<{ id: string; quantity: number }>;
-}): Promise<{ ok: true; order: any } | { ok: false; error: string; status: number }> {
+  /**
+   * Idempotency key — stable string derived from the financial txn
+   * (e.g. `${offerId}:${paymentIntentId}`). If the network drops between
+   * Duffel accepting the order and our code reading the response, a retry
+   * with the same key returns Duffel's cached response instead of creating
+   * a duplicate order — preventing balance burn + free ticket. Duffel's
+   * idempotency window is 24h, ample for a single booking attempt.
+   */
+  idempotencyKey?: string;
+}): Promise<
+  | { ok: true; order: any }
+  | { ok: false; error: string; status: number; invalidFields?: InvalidField[] }
+> {
   if (!DUFFEL_KEY) {
     return { ok: false, error: 'Duffel not configured', status: 503 };
   }
@@ -211,25 +203,33 @@ export async function createBalanceOrder(args: {
     body.data.services = args.services;
   }
 
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${DUFFEL_KEY}`,
+    'Duffel-Version': DUFFEL_VERSION,
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  };
+  if (args.idempotencyKey) {
+    headers['Idempotency-Key'] = args.idempotencyKey;
+  }
+
   const res = await fetch(duffelUrl('/air/orders'), {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${DUFFEL_KEY}`,
-      'Duffel-Version': DUFFEL_VERSION,
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
+    headers,
     body: JSON.stringify(body),
   });
 
   if (!res.ok) {
     const text = await res.text();
     let message = 'Duffel order failed';
+    let invalidFields: InvalidField[] | undefined;
     try {
       const j = JSON.parse(text);
       message = j.errors?.[0]?.message || message;
+      const parsed = parseDuffelInvalidFields(j);
+      if (parsed.length > 0) invalidFields = parsed;
     } catch {}
-    return { ok: false, error: message, status: res.status };
+    return { ok: false, error: message, status: res.status, invalidFields };
   }
 
   const json = await res.json();
@@ -238,3 +238,35 @@ export async function createBalanceOrder(args: {
 
 /** Price drift tolerance — if actual price > quoted + this, we refund instead. */
 export const PRICE_DRIFT_TOLERANCE_GBP = 2.0;
+
+/**
+ * Parsed Duffel 422 validation error.
+ *
+ * Duffel returns an array of `{ source: { pointer }, message, ... }` on
+ * validation failures. v3 pointers are RFC 6901 JSON Pointers — e.g.
+ * `/data/passengers/0/given_name`. We keep the raw pointer AND derive an
+ * input-id (`passenger-0-given_name`) the checkout form can highlight
+ * directly. Non-passenger pointers (e.g. `/data/services/0/id`) are still
+ * surfaced via `message` so the generic error toast can display them.
+ */
+export type InvalidField = {
+  pointer: string;      // raw JSON Pointer from Duffel
+  inputId: string | null; // mapped DOM input id, or null if unmappable
+  message: string;
+};
+
+/** Extract `{pointer, message}` rows from a Duffel 422 body. */
+export function parseDuffelInvalidFields(body: any): InvalidField[] {
+  const errs = Array.isArray(body?.errors) ? body.errors : [];
+  const out: InvalidField[] = [];
+  for (const e of errs) {
+    const pointer = String(e?.source?.pointer || '');
+    const message = String(e?.message || 'Invalid value');
+    if (!pointer) continue;
+    // /data/passengers/{N}/{field} → passenger-{N}-{field}
+    const paxMatch = pointer.match(/^\/data\/passengers\/(\d+)\/([A-Za-z_]+)$/);
+    const inputId = paxMatch ? `passenger-${paxMatch[1]}-${paxMatch[2]}` : null;
+    out.push({ pointer, inputId, message });
+  }
+  return out;
+}

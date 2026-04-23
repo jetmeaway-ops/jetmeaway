@@ -1631,6 +1631,33 @@ export default function CheckoutPage() {
       const data = await res.json();
 
       if (!res.ok || data.error) {
+        // Map Duffel 422 invalid_fields (JSON Pointer) → per-passenger field
+        // errors so inputs highlight directly. Refund has already fired
+        // server-side, so the customer sees both the refund notice and
+        // targeted red outlines when they open the passenger step again.
+        if (Array.isArray(data.invalidFields) && data.invalidFields.length > 0) {
+          const DUFFEL_TO_FORM: Record<string, keyof PassengerForm> = {
+            given_name: 'firstName',
+            family_name: 'lastName',
+            born_on: 'dob',
+            gender: 'gender',
+            email: 'email',
+            phone_number: 'phone',
+            phone: 'phone',
+          };
+          setErrors(prev => {
+            const next = prev.map(e => ({ ...e }));
+            for (const f of data.invalidFields as Array<{ pointer: string; message: string }>) {
+              const m = f.pointer.match(/^\/data\/passengers\/(\d+)\/([A-Za-z_]+)$/);
+              if (!m) continue;
+              const idx = Number(m[1]);
+              const formKey = DUFFEL_TO_FORM[m[2]];
+              if (!formKey || !next[idx]) continue;
+              next[idx][formKey] = f.message;
+            }
+            return next;
+          });
+        }
         setOrderError(data.error || 'Booking failed. Please contact support.');
         setStep('payment'); // allow retry / show refund notice
         return;
