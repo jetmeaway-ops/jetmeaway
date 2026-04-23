@@ -19,7 +19,8 @@ import DeferredWidgets from '@/components/DeferredWidgets';
 // strategy, so it never blocks first paint. If we later add GA4
 // (G-*), both IDs can load through the same gtag.js — we'll call
 // gtag('config', 'G-...') from a separate tag.
-const GOOGLE_TAG_ID = 'AW-16538356166';
+const GOOGLE_TAG_ID =
+  process.env.NEXT_PUBLIC_GOOGLE_ADS_ACCOUNT_ID || 'AW-18079068295';
 
 const poppins = Poppins({
   weight: ['400', '700', '900'],
