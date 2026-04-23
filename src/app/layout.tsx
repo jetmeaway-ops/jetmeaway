@@ -110,7 +110,7 @@ const organizationSchema = {
   email: 'contact@jetmeaway.co.uk',
   founder: {
     '@type': 'Person',
-    name: 'Waqar Ul Hassan',
+    name: 'Waqar Ul Hassan Sabir',
   },
   foundingDate: '2026',
   areaServed: {
