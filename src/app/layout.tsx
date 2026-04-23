@@ -10,7 +10,16 @@ import './globals.css';
 import Script from 'next/script';
 import { Poppins, Playfair_Display, DM_Sans } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/react';
+import { GoogleAnalytics } from '@next/third-parties/google';
 import DeferredWidgets from '@/components/DeferredWidgets';
+
+// Google tag ID. `AW-*` = Google Ads conversion tag (not GA4). The
+// <GoogleAnalytics> component from @next/third-parties just injects
+// gtag.js with this id and runs it through Next's afterInteractive
+// strategy, so it never blocks first paint. If we later add GA4
+// (G-*), both IDs can load through the same gtag.js — we'll call
+// gtag('config', 'G-...') from a separate tag.
+const GOOGLE_TAG_ID = 'AW-16538356166';
 
 const poppins = Poppins({
   weight: ['400', '700', '900'],
@@ -240,6 +249,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Travelpayouts tracker removed — causes CORS errors on tp-em.com
             that hurt Best Practices score. Re-add if TP fixes their CORS. */}
       </body>
+      {/* Google tag (gtag.js) for Google Ads conversion tracking.
+          afterInteractive strategy — loads after hydration so it never
+          competes with LCP. Conversion events fire via sendGAEvent()
+          at the point of booking success. */}
+      <GoogleAnalytics gaId={GOOGLE_TAG_ID} />
     </html>
   );
 }

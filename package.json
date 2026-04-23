@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@duffel/components": "^3.13.1",
+    "@next/third-parties": "^16.2.4",
     "@stripe/react-stripe-js": "^6.2.0",
     "@stripe/stripe-js": "^9.2.0",
     "@vercel/analytics": "^2.0.1",
