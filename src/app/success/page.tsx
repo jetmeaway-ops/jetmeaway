@@ -4,6 +4,7 @@ import { sendSms, hotelBookingMessage } from '@/lib/twilio';
 import { upsertBooking, type Booking } from '@/lib/bookings';
 import type { PendingBooking } from '@/app/api/hotels/start-booking/route';
 import type { PendingGuest } from '@/app/api/hotels/pending/[ref]/guest/route';
+import ConversionPixel from '@/components/ConversionPixel';
 
 /**
  * Mirror a /success-path LiteAPI booking into the unified admin store so the
@@ -24,6 +25,14 @@ async function mirrorToAdminStore(
     const guestName =
       `${record.guest?.firstName || ''} ${record.guest?.lastName || ''}`.trim() || 'Guest';
     const nowIso = new Date().toISOString();
+    const totalPence = Math.round((record.totalPrice || 0) * 100);
+    // LiteAPI commission captured at offer-select time → start-booking →
+    // PendingBooking.commission. When set, it's our margin on this row;
+    // otherwise we fall back to 0 (old records + non-commissionable rates).
+    const marginPence = typeof record.commission === 'number' && record.commission > 0
+      ? Math.round(record.commission * 100)
+      : 0;
+    const netPence = Math.max(0, totalPence - marginPence);
     const booking: Booking = {
       id: record.ref,
       type: 'hotel',
@@ -38,9 +47,9 @@ async function mirrorToAdminStore(
       checkOut: record.checkOut || null,
       guests: (record.adults || 0) + (record.children || 0),
       title: record.hotelName,
-      totalPence: Math.round((record.totalPrice || 0) * 100),
-      netPence: 0,
-      marginPence: 0,
+      totalPence,
+      netPence,
+      marginPence,
       stripePaymentId: record.stripePaymentIntentId || null,
       paymentStatus: opts.paymentStatus ?? 'paid',
       createdAt: nowIso,
@@ -671,6 +680,13 @@ export default async function SuccessPage({
 
   return (
     <main className="max-w-[760px] mx-auto px-5 py-12">
+      {/* Google Ads conversion — mounted only on successful booking path,
+          deduped per-ref so reloads don't re-fire. */}
+      <ConversionPixel
+        bookingRef={b.ref || ''}
+        valueGbp={Number(b.totalPrice) || 0}
+        currency={b.currency || 'GBP'}
+      />
       <div className="bg-white border border-[#E8ECF4] rounded-2xl p-8 shadow-sm">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">

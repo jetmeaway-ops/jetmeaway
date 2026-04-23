@@ -12,6 +12,7 @@ import {
 } from '@/lib/bookings';
 import CancelButton from './CancelButton';
 import NotificationButtons from './NotificationButtons';
+import RefundButton from './RefundButton';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -147,16 +148,18 @@ export default async function BookingDetail({
             bookingRef={b.id}
             disabled={b.status === 'cancelled' || b.status === 'refunded'}
           />
-          <button
-            disabled
-            className="px-4 py-2 border border-gray-300 rounded-xl text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
-            title="Coming soon"
-          >
-            Issue refund
-          </button>
+          <RefundButton
+            bookingRef={b.id}
+            totalPence={b.totalPence}
+            disabled={
+              !b.stripePaymentId ||
+              b.paymentStatus === 'refunded' ||
+              b.status === 'refunded'
+            }
+          />
         </div>
         <p className="text-xs text-[#8E95A9] mt-3">
-          Resend email/SMS sends live via Resend + Twilio. Cancellation calls LiteAPI. Manual refunds are not yet wired up.
+          Resend email/SMS sends live via Resend + Twilio. Cancellation calls LiteAPI / supplier. Manual refund calls Stripe directly — doesn&apos;t touch the supplier; use cancel for that.
         </p>
       </div>
     </div>

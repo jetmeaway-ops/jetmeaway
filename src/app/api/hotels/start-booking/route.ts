@@ -58,6 +58,11 @@ export interface PendingBooking {
    *  `remarks` at book time. Captured on the checkout guest form; null / missing
    *  for older records. Max 500 chars, trimmed. No guarantee they honour it. */
   specialRequests?: string | null;
+  /** LiteAPI commission — our merchant margin on this offer, in the offer's
+   *  currency (usually GBP). Captured at offer-select time so the admin can
+   *  show margin on the booking row without re-fetching LiteAPI. Only set
+   *  for LiteAPI offers; DOTW & Webbeds don't expose commission in the rate. */
+  commission?: number;
   state: 'pending' | 'paid' | 'booking' | 'confirmed' | 'failed';
   createdAt: number;
   /** Which wholesale supplier issued this offer. Drives the booking flow branch. */
@@ -117,6 +122,7 @@ export async function POST(req: NextRequest) {
       checkInTime = null,
       checkOutTime = null,
       supplier,
+      commission,
     } = body || {};
 
     if (!offerId || typeof offerId !== 'string') {
@@ -162,6 +168,10 @@ export async function POST(req: NextRequest) {
       ...(typeof cancellationDeadline === 'string' && cancellationDeadline ? { cancellationDeadline } : {}),
       ...(typeof checkInTime === 'string' && checkInTime ? { checkInTime } : {}),
       ...(typeof checkOutTime === 'string' && checkOutTime ? { checkOutTime } : {}),
+      // Commission only stored when supplied (LiteAPI path). Clamped non-negative.
+      ...(Number.isFinite(commission) && commission > 0
+        ? { commission: Math.round(commission * 100) / 100 }
+        : {}),
       // Derive supplier: explicit `supplier` field wins; else infer from offerId prefix
       // (`dotw:...` → dotw, otherwise liteapi).
       supplier: supplier === 'dotw' || offerId.startsWith('dotw:')

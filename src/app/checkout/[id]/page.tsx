@@ -9,6 +9,7 @@ import SeatMapModal, {
   type SeatSelection,
   type SeatSelectionsMap,
 } from '@/components/SeatMapModal';
+import ConversionPixel from '@/components/ConversionPixel';
 
 export const runtime = 'edge';
 
@@ -1689,6 +1690,12 @@ export default function CheckoutPage() {
       {/* ═══════════════ CONFIRMED ═══════════════ */}
       {!loading && !error && offer && step === 'confirmed' && confirmation && (
         <div className="max-w-[680px] mx-auto px-5 pt-36 pb-16">
+          {/* Google Ads conversion — fires once on mount, deduped by ref */}
+          <ConversionPixel
+            bookingRef={confirmation.bookingReference}
+            valueGbp={confirmation.totalAll}
+            currency="GBP"
+          />
           {/* Success banner */}
           <div className="bg-gradient-to-br from-green-600 to-emerald-500 rounded-3xl p-8 text-center mb-6 shadow-[0_8px_32px_rgba(22,163,74,0.25)]">
             <div className="text-5xl mb-3">✓</div>

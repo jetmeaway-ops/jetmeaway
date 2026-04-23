@@ -38,6 +38,13 @@ async function mirrorToUnified(
   try {
     const supplier: Supplier = record.supplier === 'dotw' ? 'dotw' : 'liteapi';
     const totalPence = Math.round(record.totalPrice * 100);
+    // LiteAPI reports commission at offer-select time (/api/hotels/rates ->
+    // /api/hotels/start-booking -> PendingBooking.commission). DOTW doesn't
+    // expose commission in the rate, so stays 0 until their payout reconciles.
+    const marginPence = typeof record.commission === 'number' && record.commission > 0
+      ? Math.round(record.commission * 100)
+      : 0;
+    const netPence = Math.max(0, totalPence - marginPence);
     const guestName =
       `${record.guest.firstName || ''} ${record.guest.lastName || ''}`.trim() || 'Guest';
     const destination = record.city || '';
@@ -58,8 +65,8 @@ async function mirrorToUnified(
       guests: record.adults + (record.children || 0),
       title: record.hotelName,
       totalPence,
-      netPence: 0,
-      marginPence: 0,
+      netPence,
+      marginPence,
       stripePaymentId: record.stripePaymentIntentId || null,
       paymentStatus: opts.paymentStatus ?? 'paid',
       createdAt: nowIso,

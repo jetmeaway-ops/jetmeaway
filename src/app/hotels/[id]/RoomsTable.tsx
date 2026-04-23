@@ -91,6 +91,11 @@ export type RoomRate = {
   /** v2-plan step-3: supported payment methods. When the list includes
    *  `PAY_AT_HOTEL` we render an emerald chip saying so; otherwise silent. */
   paymentTypes?: string[] | null;
+  /** LiteAPI commission — our merchant margin for this row (scaled pro-rata
+   *  from the hotel-level commission reported by LiteAPI). Not displayed in
+   *  the UI; forwarded to /api/hotels/start-booking so the admin unified
+   *  store can show accurate margin on the booking row. */
+  commission?: number | null;
 };
 
 /* The Scout design tokens — pulled out so the page can reuse them on the

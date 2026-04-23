@@ -419,6 +419,12 @@ export default function HotelDetailPage() {
           refundable: rate.refundable,
           checkInTime: hotel.checkInTime || null,
           checkOutTime: hotel.checkOutTime || null,
+          // LiteAPI commission (our merchant margin on this rate) — optional,
+          // only set when the rate response included it. Drives the admin
+          // "Margin" column on the unified bookings store.
+          ...(typeof rate.commission === 'number' && rate.commission > 0
+            ? { commission: rate.commission }
+            : {}),
         }),
       });
       const data = await res.json();

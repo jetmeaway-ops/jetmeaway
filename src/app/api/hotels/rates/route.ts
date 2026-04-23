@@ -62,6 +62,13 @@ type BoardOptionOut = {
   /** v2-plan step-3: supported payment methods (e.g. ["PAY_AT_HOTEL"]).
    *  Used to render the Pay-at-hotel chip — null/empty hides it. */
   paymentTypes?: string[] | null;
+  /** LiteAPI commission — our merchant margin on the booking, in the offer's
+   *  currency. LiteAPI only reports a single commission figure per hotel,
+   *  not per-boardOption, so every row in this array carries the same value
+   *  (the "best rate" commission). Good enough for admin margin approximation
+   *  until LiteAPI exposes per-rate commissions. Null when omitted / not
+   *  applicable (non-commissionable rate). */
+  commission?: number | null;
 };
 
 type CacheShape = { offers: BoardOptionOut[]; storedAt: number };
@@ -161,6 +168,17 @@ async function fetchAndCacheRates(args: FetchArgs): Promise<BoardOptionOut[]> {
   // LiteAPI only populates `boardOptions` when >1 board is available.
   // When there's only a single rate we synthesise a one-element array so
   // the detail page renders a single-row table consistently.
+  // Single commission figure reported for the hotel — stamped onto every row
+  // because LiteAPI doesn't expose per-rate commissions. Scaled pro-rata to
+  // each row's totalPrice vs match.price so a BB upsell-row gets proportionally
+  // more margin than the cheapest RO row rather than the same absolute £.
+  const baseCommission = typeof match.commission === 'number' && match.commission > 0
+    ? match.commission
+    : null;
+  const basePrice = match.price > 0 ? match.price : 1;
+  const scaledCommission = (rowPrice: number): number | null =>
+    baseCommission == null ? null : Math.round((baseCommission * rowPrice / basePrice) * 100) / 100;
+
   const offers: BoardOptionOut[] = (match.boardOptions && match.boardOptions.length > 0)
     ? match.boardOptions.map((o) => ({
         offerId: o.offerId,
@@ -174,6 +192,7 @@ async function fetchAndCacheRates(args: FetchArgs): Promise<BoardOptionOut[]> {
         excludedTaxes: o.excludedTaxes ?? null,
         cancelDeadline: o.cancelDeadline ?? null,
         paymentTypes: o.paymentTypes ?? null,
+        commission: scaledCommission(o.totalPrice),
       }))
     : [{
         offerId: match.offerId,
@@ -188,6 +207,7 @@ async function fetchAndCacheRates(args: FetchArgs): Promise<BoardOptionOut[]> {
         excludedTaxes: match.excludedTaxes ?? null,
         cancelDeadline: match.cancellationDeadline ?? null,
         paymentTypes: null,
+        commission: baseCommission,
       }];
 
   try {
