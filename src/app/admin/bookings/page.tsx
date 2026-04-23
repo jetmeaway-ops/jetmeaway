@@ -9,7 +9,15 @@ import {
   supplierLabel,
   typeIcon,
   type BookingStatus,
+  type BookingType,
 } from '@/lib/bookings';
+
+const TYPE_LABEL: Record<BookingType, string> = {
+  flight: 'Flights',
+  hotel: 'Hotels',
+  car: 'Cars',
+  package: 'Packages',
+};
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,7 +25,7 @@ export const dynamic = 'force-dynamic';
 export default async function BookingsListPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; type?: string }>;
 }) {
   const cookieStore = await cookies();
   const token = cookieStore.get('jma_admin')?.value || '';
@@ -27,9 +35,15 @@ export default async function BookingsListPage({
   const sp = await searchParams;
   const q = (sp.q || '').toLowerCase().trim();
   const statusFilter = sp.status || '';
+  const typeFilter = (sp.type || '') as '' | BookingType;
+  const validType = typeFilter === 'flight' || typeFilter === 'hotel' || typeFilter === 'car' || typeFilter === 'package'
+    ? typeFilter : '';
 
   let bookings = await listBookings();
 
+  if (validType) {
+    bookings = bookings.filter(b => b.type === validType);
+  }
   if (q) {
     bookings = bookings.filter(b =>
       [b.id, b.customerName, b.customerEmail, b.title, b.destination, b.supplierRef || '']
@@ -40,11 +54,13 @@ export default async function BookingsListPage({
     bookings = bookings.filter(b => b.status === statusFilter as BookingStatus);
   }
 
+  const heading = validType ? TYPE_LABEL[validType] : 'Bookings';
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-black mb-1">Bookings</h1>
+          <h1 className="text-3xl font-black mb-1">{heading}</h1>
           <p className="text-[#5C6378] text-sm">
             {bookings.length} result{bookings.length === 1 ? '' : 's'}
           </p>
@@ -54,6 +70,7 @@ export default async function BookingsListPage({
       {/* Filters */}
       <div className="bg-white rounded-2xl border border-gray-200 p-4">
         <form method="get" className="flex flex-col sm:flex-row gap-3">
+          {validType && <input type="hidden" name="type" value={validType} />}
           <input
             type="text"
             name="q"
@@ -82,7 +99,7 @@ export default async function BookingsListPage({
           </button>
           {(q || statusFilter) && (
             <Link
-              href="/admin/bookings"
+              href={validType ? `/admin/bookings?type=${validType}` : '/admin/bookings'}
               className="px-4 py-2 text-[#5C6378] hover:text-[#0066FF] text-sm self-center"
             >
               Clear

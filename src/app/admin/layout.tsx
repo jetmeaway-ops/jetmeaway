@@ -38,9 +38,29 @@ export default async function AdminLayout({
               </span>
             </a>
           </div>
-          <nav className="flex items-center gap-6 text-sm font-medium">
+          <nav className="flex items-center gap-4 text-sm font-medium">
             <a href="/admin" className="text-[#5C6378] hover:text-[#0066FF]">Dashboard</a>
             <a href="/admin/bookings" className="text-[#5C6378] hover:text-[#0066FF]">Bookings</a>
+            <div className="flex items-center gap-2">
+              <a
+                href="/admin/bookings?type=flight"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#0066FF]/10 text-[#0066FF] hover:bg-[#0066FF]/15 transition text-xs font-semibold"
+              >
+                <i className="fa-solid fa-plane" /> Flights
+              </a>
+              <a
+                href="/admin/bookings?type=hotel"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition text-xs font-semibold"
+              >
+                <i className="fa-solid fa-hotel" /> Hotels
+              </a>
+              <a
+                href="/admin/bookings?type=car"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition text-xs font-semibold"
+              >
+                <i className="fa-solid fa-car" /> Cars
+              </a>
+            </div>
             <a href="/" className="text-[#5C6378] hover:text-[#0066FF]">View site ↗</a>
             <form action="/api/admin/logout" method="post">
               <button
