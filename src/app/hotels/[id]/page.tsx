@@ -776,6 +776,7 @@ export default function HotelDetailPage() {
                   nights={numNights || 1}
                   selectedOfferId={selectedRate?.offerId || null}
                   roomMetaByName={roomMetaByName}
+                  fallbackPhoto={hotel.mainPhoto || hotel.photos[0] || null}
                   onSelect={handleRowSelect}
                   onReserve={handleRowReserve}
                   onShowDetails={(oid) => setModalOfferId(oid)}

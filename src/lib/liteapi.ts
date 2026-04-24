@@ -947,11 +947,16 @@ export async function getHotelDetails(hotelId: string): Promise<HotelDetails | n
     const seenNames = new Set<string>();
     for (const r of rawRooms) {
       if (!r || typeof r !== 'object') continue;
-      // Clean the room name using the same rule as the rates pipeline so
-      // "Queen Room - Room Only" collapses to "Queen Room".
+      // Clean the room name using the EXACT same rules as the rates-side
+      // cleanRoomName() so details and rates produce identical keys and the
+      // per-room thumbnail lookup (roomMetaByName) actually hits. The second
+      // replace — stripping parenthesised or bare trailing board labels like
+      // "(Room Only)" — was missing, which silently broke thumbnails for any
+      // supplier that uses bracketed board suffixes on room names.
       const rawName = r.roomName || r.name || '';
       const cleaned = String(rawName)
         .replace(/\s*[-–—]\s*(room only|bed(?: and| &)? breakfast|breakfast included|half board|full board|all[- ]?inclusive)\s*$/i, '')
+        .replace(/\s*\(?\b(room only|breakfast included|half board|full board|all[- ]?inclusive)\b\)?\s*$/i, '')
         .replace(/\s+/g, ' ')
         .trim();
       if (!cleaned) continue;

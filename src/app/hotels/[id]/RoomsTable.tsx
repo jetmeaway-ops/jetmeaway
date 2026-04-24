@@ -123,7 +123,14 @@ const BOARD_MEANS = (raw: string) => {
   };
 };
 
-const fmtGBP = (n: number) => `£${Math.round(n).toLocaleString('en-GB')}`;
+const fmtGBP = (n: number) => {
+  const rounded = Math.round(n * 100) / 100;
+  const isWhole = Number.isInteger(rounded);
+  return `£${rounded.toLocaleString('en-GB', {
+    minimumFractionDigits: isWhole ? 0 : 2,
+    maximumFractionDigits: 2,
+  })}`;
+};
 
 /* v2-plan step-2: format an ISO timestamp to a short human deadline.
    Returns null when the string isn't a real date or sits in the past.
@@ -191,6 +198,7 @@ function RateRow({
   roomName,
   isSelected,
   roomMeta,
+  fallbackPhoto,
   onSelect,
   onReserve,
   onShowDetails,
@@ -203,6 +211,8 @@ function RateRow({
    *  the supplier didn't emit matching room data — the row falls back to the
    *  Phase-1 layout (no thumb, no chips, no "see details" link). */
   roomMeta: RoomMetaInput | null;
+  /** Hotel-level fallback thumbnail when roomMeta lookup misses. */
+  fallbackPhoto?: string | null;
   onSelect: () => void;
   onReserve: () => void;
   onShowDetails?: () => void;
@@ -219,7 +229,7 @@ function RateRow({
 
   // Phase-4: derive the top-3 in-room amenity highlights once per render.
   const roomHighlights = roomMeta ? pickRoomHighlights(roomMeta.amenities) : [];
-  const thumb = roomMeta?.photos?.[0] || null;
+  const thumb = roomMeta?.photos?.[0] || fallbackPhoto || null;
 
   const onKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -410,6 +420,7 @@ export default function RoomsTable({
   roomName,
   selectedOfferId,
   roomMetaByName,
+  fallbackPhoto,
   onSelect,
   onReserve,
   onShowDetails,
@@ -424,6 +435,12 @@ export default function RoomsTable({
    *  (photos/size/beds/amenities). Rows fall back to the Phase-1 layout
    *  when the map doesn't contain a match. */
   roomMetaByName?: Map<string, RoomMetaInput>;
+  /** Hotel-level fallback thumbnail (main photo or first gallery shot).
+   *  Shown on rate rows when per-room metadata lookup misses — suppliers
+   *  often send /hotels/rates roomNames in a totally different format from
+   *  /data/hotel rooms, so the lookup silently misses on most hotels and
+   *  we end up with photo-less rows. A hotel photo is better than none. */
+  fallbackPhoto?: string | null;
   onSelect: (offerId: string) => void;
   onReserve: (offerId: string) => void;
   /** Phase-4: open the room detail modal for a given offerId. Page owns the
@@ -457,6 +474,7 @@ export default function RoomsTable({
               nights={nights}
               roomName={roomName || ''}
               roomMeta={meta}
+              fallbackPhoto={fallbackPhoto ?? null}
               isSelected={rate.offerId === selectedOfferId}
               onSelect={() => onSelect(rate.offerId)}
               onReserve={() => onReserve(rate.offerId)}

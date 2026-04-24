@@ -24,10 +24,12 @@ export async function GET(
 
   // Strip the `la_` prefix added by /api/hotels search results
   const hotelId = rawId.startsWith('la_') ? rawId.slice(3) : rawId;
-  // v4 — bumped 2026-04-21 (BACKLOG B2) so cached entries re-fetch with
-  // the new `reviews` aggregate parallel-fetched from /data/reviews.
-  // Previous v3 entries are missing the reviews object entirely.
-  const kvKey = `hotel-details:v4:${hotelId}`;
+  // v5 — bumped 2026-04-24 so cached entries re-fetch with the aligned
+  // room-name cleaning rule (strips parenthesised/bare trailing board
+  // labels like "(Room Only)"). v4 entries used the weaker cleaner that
+  // broke the rates → details roomMetaByName key match, which is why
+  // per-room thumbnails stopped showing on some hotels.
+  const kvKey = `hotel-details:v5:${hotelId}`;
 
   try {
     const cached = await kv.get(kvKey);
