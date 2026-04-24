@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import BalanceWidget from './BalanceWidget';
+import StripeWidget from './StripeWidget';
 import {
   listBookings,
   summarise,
@@ -56,11 +57,16 @@ export default async function AdminDashboard() {
       </div>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KpiCard label="Gross revenue" value={fmtGbp(stats.grossGbp * 100)} accent="text-[#0066FF]" />
         <KpiCard label="Margin (our take)" value={fmtGbp(stats.marginGbp * 100)} accent="text-green-600" />
         <KpiCard label="Last 7 days" value={`${stats.last7Days} bookings`} accent="text-[#1A1D2B]" />
         <KpiCard label="Upcoming (7d)" value={`${stats.upcomingCheckIns} check-ins`} accent="text-amber-600" />
+      </div>
+
+      {/* Supplier balances */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <StripeWidget />
         <BalanceWidget />
       </div>
 

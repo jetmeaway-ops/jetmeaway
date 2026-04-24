@@ -43,15 +43,18 @@ export default function NotificationButtons({ bookingRef, hasEmail, hasPhone }: 
     }
   }
 
+  const btn =
+    'inline-flex items-center justify-center h-11 px-4 border border-gray-300 bg-white rounded-xl text-sm font-medium text-[#1A1D2B] hover:bg-blue-50 hover:border-[#0066FF] hover:text-[#0066FF] disabled:opacity-50 disabled:hover:bg-white disabled:hover:border-gray-300 disabled:hover:text-[#1A1D2B] transition';
+
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap gap-2">
+    <div className="flex flex-col gap-2 w-full sm:w-auto">
+      <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2">
         <button
           type="button"
           onClick={() => send('email')}
           disabled={!hasEmail || !!busy}
           title={hasEmail ? 'Resend via email' : 'No customer email on record'}
-          className="px-4 py-2 border border-gray-300 rounded-xl text-sm text-[#1A1D2B] hover:bg-blue-50 hover:border-[#0066FF] hover:text-[#0066FF] disabled:opacity-50 disabled:hover:bg-white disabled:hover:border-gray-300 disabled:hover:text-[#1A1D2B] transition"
+          className={btn}
         >
           {busy === 'email' ? 'Sending email…' : 'Resend email'}
         </button>
@@ -60,7 +63,7 @@ export default function NotificationButtons({ bookingRef, hasEmail, hasPhone }: 
           onClick={() => send('sms')}
           disabled={!hasPhone || !!busy}
           title={hasPhone ? 'Resend via SMS' : 'No customer phone on record'}
-          className="px-4 py-2 border border-gray-300 rounded-xl text-sm text-[#1A1D2B] hover:bg-blue-50 hover:border-[#0066FF] hover:text-[#0066FF] disabled:opacity-50 disabled:hover:bg-white disabled:hover:border-gray-300 disabled:hover:text-[#1A1D2B] transition"
+          className={btn}
         >
           {busy === 'sms' ? 'Sending SMS…' : 'Send SMS'}
         </button>
@@ -69,7 +72,7 @@ export default function NotificationButtons({ bookingRef, hasEmail, hasPhone }: 
           onClick={() => send('both')}
           disabled={(!hasEmail && !hasPhone) || !!busy}
           title="Resend via both email and SMS"
-          className="px-4 py-2 border border-gray-300 rounded-xl text-sm text-[#5C6378] hover:bg-gray-50 disabled:opacity-50 transition"
+          className={btn}
         >
           {busy === 'both' ? 'Sending…' : 'Send both'}
         </button>

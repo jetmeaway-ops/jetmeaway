@@ -71,14 +71,17 @@ export default function CancelButton({ bookingRef, disabled }: Props) {
     }
   }
 
+  const btn =
+    'inline-flex items-center justify-center h-11 px-4 border border-gray-300 bg-white rounded-xl text-sm font-medium text-[#1A1D2B] hover:bg-red-50 hover:border-red-300 hover:text-red-700 disabled:opacity-50 disabled:hover:bg-white disabled:hover:border-gray-300 disabled:hover:text-[#1A1D2B] transition';
+
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap gap-2">
+    <div className="flex flex-col gap-2 w-full sm:w-auto">
+      <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2">
         <button
           type="button"
           onClick={cancelViaSupplier}
           disabled={disabled || !!busy}
-          className="px-4 py-2 border border-gray-300 rounded-xl text-sm text-[#1A1D2B] hover:bg-red-50 hover:border-red-300 hover:text-red-700 disabled:opacity-50 transition"
+          className={btn}
         >
           {busy === 'supplier' ? 'Cancelling via LiteAPI…' : 'Cancel via LiteAPI'}
         </button>
@@ -86,7 +89,7 @@ export default function CancelButton({ bookingRef, disabled }: Props) {
           type="button"
           onClick={markCancelledAdminOnly}
           disabled={disabled || !!busy}
-          className="px-4 py-2 border border-gray-300 rounded-xl text-sm text-[#5C6378] hover:bg-gray-50 disabled:opacity-50 transition"
+          className={btn}
         >
           {busy === 'admin' ? 'Marking…' : 'Mark cancelled (admin only)'}
         </button>

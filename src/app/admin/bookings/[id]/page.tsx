@@ -54,6 +54,27 @@ export default async function BookingDetail({
         </span>
       </div>
 
+      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3">
+        <NotificationButtons
+          bookingRef={b.id}
+          hasEmail={Boolean(b.customerEmail)}
+          hasPhone={Boolean(b.customerPhone)}
+        />
+        <CancelButton
+          bookingRef={b.id}
+          disabled={b.status === 'cancelled' || b.status === 'refunded'}
+        />
+        <RefundButton
+          bookingRef={b.id}
+          totalPence={b.totalPence}
+          disabled={
+            !b.stripePaymentId ||
+            b.paymentStatus === 'refunded' ||
+            b.status === 'refunded'
+          }
+        />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Customer */}
         <div className="bg-white rounded-2xl border border-gray-200 p-6">
@@ -133,35 +154,9 @@ export default async function BookingDetail({
         </div>
       )}
 
-      {/* Actions (placeholder — wire up later) */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6">
-        <h2 className="font-bold text-sm text-[#5C6378] uppercase tracking-wide mb-4">
-          Actions
-        </h2>
-        <div className="flex flex-wrap gap-3">
-          <NotificationButtons
-            bookingRef={b.id}
-            hasEmail={Boolean(b.customerEmail)}
-            hasPhone={Boolean(b.customerPhone)}
-          />
-          <CancelButton
-            bookingRef={b.id}
-            disabled={b.status === 'cancelled' || b.status === 'refunded'}
-          />
-          <RefundButton
-            bookingRef={b.id}
-            totalPence={b.totalPence}
-            disabled={
-              !b.stripePaymentId ||
-              b.paymentStatus === 'refunded' ||
-              b.status === 'refunded'
-            }
-          />
-        </div>
-        <p className="text-xs text-[#8E95A9] mt-3">
-          Resend email/SMS sends live via Resend + Twilio. Cancellation calls LiteAPI / supplier. Manual refund calls Stripe directly — doesn&apos;t touch the supplier; use cancel for that.
-        </p>
-      </div>
+      <p className="text-xs text-[#8E95A9]">
+        Resend email/SMS sends live via Resend + Twilio. Cancellation calls LiteAPI / supplier. Manual refund calls Stripe directly — doesn&apos;t touch the supplier; use cancel for that.
+      </p>
     </div>
   );
 }
