@@ -9,7 +9,8 @@
 import './globals.css';
 import Script from 'next/script';
 import { Poppins, Playfair_Display, DM_Sans } from 'next/font/google';
-import { Analytics } from '@vercel/analytics/react';
+// Vercel Analytics now lazy-loaded inside DeferredWidgets so its script
+// never competes with LCP/FCP. See components/DeferredWidgets.tsx.
 import { GoogleAnalytics } from '@next/third-parties/google';
 import DeferredWidgets from '@/components/DeferredWidgets';
 
@@ -236,7 +237,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         {children}
-        <Analytics />
         <DeferredWidgets />
         {/* Font Awesome — injected client-side during idle time so it never
             blocks first paint. Icons (star ratings, step icons, etc) appear

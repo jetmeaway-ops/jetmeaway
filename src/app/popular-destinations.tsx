@@ -1,14 +1,20 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import Image from 'next/image';
 
+// Unsplash URLs without size params — next/image generates the responsive
+// AVIF/WebP set via its CDN proxy. PageSpeed flagged "Improve image delivery
+// 357 KiB" because the previous static 500×665 WebP was over-serving on
+// mobile (cards render 280×380 / 320×380). next/image respects the `sizes`
+// attribute below to ship the right width per breakpoint.
 const DESTINATIONS = [
-  { name: 'Dubai', country: 'UAE', price: 45, tag: 'Popular', img: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=500&h=665&fit=crop&fm=webp&q=75' },
-  { name: 'Barcelona', country: 'Spain', price: 38, tag: 'Trending', img: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=500&h=665&fit=crop&fm=webp&q=75' },
-  { name: 'Bali', country: 'Indonesia', price: 52, tag: 'Exotic', img: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=500&h=665&fit=crop&fm=webp&q=75' },
-  { name: 'Paris', country: 'France', price: 35, tag: 'Classic', img: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=500&h=665&fit=crop&fm=webp&q=75' },
-  { name: 'Istanbul', country: 'Turkey', price: 29, tag: 'Best Value', img: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=500&h=665&fit=crop&fm=webp&q=75' },
-  { name: 'Maldives', country: 'Maldives', price: 89, tag: 'Luxury', img: 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=500&h=665&fit=crop&fm=webp&q=75' },
+  { name: 'Dubai', country: 'UAE', price: 45, tag: 'Popular', img: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c' },
+  { name: 'Barcelona', country: 'Spain', price: 38, tag: 'Trending', img: 'https://images.unsplash.com/photo-1583422409516-2895a77efded' },
+  { name: 'Bali', country: 'Indonesia', price: 52, tag: 'Exotic', img: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4' },
+  { name: 'Paris', country: 'France', price: 35, tag: 'Classic', img: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34' },
+  { name: 'Istanbul', country: 'Turkey', price: 29, tag: 'Best Value', img: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200' },
+  { name: 'Maldives', country: 'Maldives', price: 89, tag: 'Luxury', img: 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8' },
 ];
 
 export default function PopularDestinations() {
@@ -91,8 +97,14 @@ export default function PopularDestinations() {
             style={{ height: '380px' }}
             onClick={(e) => { if (dragging) e.preventDefault(); }}
           >
-            <img src={d.img} alt={d.name} loading="lazy" width={500} height={665}
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+            <Image
+              src={d.img}
+              alt={`${d.name}, ${d.country}`}
+              fill
+              loading="lazy"
+              sizes="(max-width: 768px) 280px, 320px"
+              className="object-cover transition-transform duration-700 group-hover:scale-105"
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent group-hover:from-black/90 group-hover:via-black/40 transition-all duration-500" />
             {/* tag badge — orange-700 on white passes WCAG AA (5.0:1);
                 orange-500 background was 2.93:1 and Lighthouse flagged it. */}
