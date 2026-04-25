@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
+import { listBookings, type Booking } from '@/lib/bookings';
 
 /**
  * Twilio Voice IVR — JetMeAway Helpline
@@ -35,10 +36,10 @@ const DIAL_TIMEOUT_SECONDS = 15;
 
 const MSG = {
   en: {
-    welcome: 'Thank you for calling JetMeAway, your trusted travel comparison engine. Please note, this support line is available 24 hours a day, 7 days a week, and is reserved exclusively for customers with an active JetMeAway booking. To speak with an agent, you must have your booking reference or confirmation number ready. If you do not have an active booking with us, please hang up now and email contact at jetmeaway dot co dot uk, and our team will respond within 24 hours.',
+    welcome: 'Thank you for calling JetMeAway, the United Kingdom\'s smartest travel comparison engine. Our customer care team is available 24 hours a day, 7 days a week, supporting travellers across more than 150 destinations worldwide. Please note, this support line is reserved for customers with an active JetMeAway booking. To speak with our team, please have your booking reference or confirmation number ready — this can be found at the top of your confirmation email. If you have a general enquiry, or do not yet have a booking with us, please hang up and email contact at jetmeaway dot co dot uk, and our team will respond within 24 hours.',
     langSelect: 'For English, press 1. Urdu ke liye, 2 dabayein.',
     dept: 'Please select from the following options. Press 1 for hotel bookings. Press 2 for flight enquiries. Press 3 for car hire. Press 4 for holiday packages. Press 5 for insurance or e-sim. Press 6 for general enquiry.',
-    enterRef: 'Please enter your booking reference using your keypad followed by the hash key, or, after the beep, simply say your booking reference out loud — one letter or number at a time. For example, J, M, A, 2, 0, 2, 6, A, B, C, 1, 2, 3. If you do not have a reference, press hash.',
+    enterRef: 'Please say or type your booking reference now. For example, J, M, A, 2, 0, 2, 6, E, P, 3, N, K, V. If you are typing it on the keypad, press hash when finished. If you do not have a reference, press hash now.',
     noRef: 'No worries. Please note, you can find your booking reference in your confirmation email.',
     bookingFound: 'We found your booking.',
     bookingNotFound: 'Sorry, we could not find a booking with that reference. Please check and try again, or press hash to continue without a reference.',
@@ -63,10 +64,10 @@ const MSG = {
     insuranceDept: 'For travel insurance or e-sim enquiries, please visit jetmeaway dot co dot uk. If you purchased insurance or an e-sim through one of our partner links, please contact the provider directly using the details in your confirmation email.',
   },
   ur: {
-    welcome: 'JetMeAway mein call karne ka shukriya. Baraye meherbani note karein, yeh support line 24 ghante, haftay ke saaton din available hai, aur sirf un customers ke liye hai jin ki JetMeAway ke saath active booking hai. Agent se baat karne ke liye aap ke paas booking reference ya confirmation number hona lazmi hai. Agar aap ki humare saath koi active booking nahi hai, toh baraye meherbani abhi call band karein aur contact at jetmeaway dot co dot uk par email karein. Hamari team 24 ghanton mein jawab degi.',
+    welcome: 'JetMeAway mein call karne ka shukriya. Hum United Kingdom ki smartest travel comparison engine hain. Hamari customer care team 24 ghante, haftay ke saaton din available hai, aur 150 se zyada manzilon par travellers ki madad karti hai. Baraye meherbani note karein, yeh support line sirf un customers ke liye hai jin ki JetMeAway ke saath active booking hai. Hamari team se baat karne ke liye, apna booking reference ya confirmation number taiyaar rakhein — yeh aap ki confirmation email ke shuru mein mojood hai. Agar aam sawal hai, ya abhi koi booking nahi ki, toh baraye meherbani call band karein aur contact at jetmeaway dot co dot uk par email karein — hum 24 ghanton mein jawab denge.',
     langSelect: 'For English, press 1. Urdu ke liye, 2 dabayein.',
     dept: 'Baraye meherbani apna option chunein. Hotel booking ke liye 1 dabayein. Flight ke liye 2 dabayein. Car hire ke liye 3 dabayein. Holiday packages ke liye 4 dabayein. Insurance ya e-sim ke liye 5 dabayein. Aam sawal ke liye 6 dabayein.',
-    enterRef: 'Baraye meherbani apna booking reference keypad se darj karein aur hash dabayein, ya, beep ke baad, apna reference bol kar bata dein — ek ek letter ya number alag alag. Misaal ke taur par, J, M, A, 2, 0, 2, 6, A, B, C, 1, 2, 3. Agar reference nahi hai, toh hash dabayein.',
+    enterRef: 'Baraye meherbani abhi apna booking reference bol kar batayein ya keypad se darj karein. Misaal ke taur par, J, M, A, 2, 0, 2, 6, E, P, 3, N, K, V. Agar keypad se type kar rahe hain, toh hash dabayein. Agar reference nahi hai, toh abhi hash dabayein.',
     noRef: 'Koi baat nahi. Aap ka booking reference aap ki confirmation email mein mojood hai.',
     bookingFound: 'Humne aap ki booking dhundh li hai.',
     bookingNotFound: 'Maaf kijiye, is reference se koi booking nahi mili. Baraye meherbani dobara check karein, ya hash dabayein.',
@@ -249,15 +250,55 @@ async function stepLookupRef(lang: Lang, dept: string, digits: string) {
 
   let record: any = null;
   let ref = candidateRefs[0];
-  for (const candidate of candidateRefs) {
-    try {
-      const r = await kv.get<any>(`pending-booking:${candidate}`);
-      if (r) {
-        record = r;
-        ref = candidate;
-        break;
-      }
-    } catch { /* try next */ }
+
+  // 1. Primary: scan the unified bookings store. This is where every real
+  //    booking (hotel via LiteAPI, flight via Duffel, etc.) is mirrored,
+  //    keyed by both our canonical id (JMA-2026-0001) and the supplier's
+  //    own reference (e.g. Duffel "KCJ52B4", LiteAPI booking id). The IVR
+  //    used to skip this and only check the legacy `pending-booking:*`
+  //    keys, which is why callers reading their real confirmation number
+  //    were told "we could not find a booking with that reference".
+  try {
+    const all = await listBookings();
+    // Build probe set: alnum (hyphen-stripped), shaped (JMA-YYYY-CODE), and
+    // the original digits. We compare against both the booking's canonical
+    // id and its supplier reference, each stripped to alphanumerics so
+    // "JMA-2026-0001" spoken as one string matches "JMA20260001".
+    const stripAlnum = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const probes = [alnum, lookupKey, shaped ? stripAlnum(shaped) : null, stripAlnum(digits)]
+      .filter((x): x is string => !!x);
+    const match = all.find((b: Booking) => {
+      const id = stripAlnum(b.id || '');
+      const sup = stripAlnum(b.supplierRef || '');
+      return probes.some(p => p === id || p === sup);
+    });
+    if (match) {
+      record = {
+        hotelName: match.type === 'hotel' ? match.title : null,
+        airline: match.type === 'flight' ? match.title : null,
+        destination: match.destination,
+        checkin: match.checkIn,
+        checkout: match.checkOut,
+        guests: match.guests,
+        totalPrice: (match.totalPence / 100).toFixed(2),
+        state: match.status,
+      };
+      ref = match.id;
+    }
+  } catch { /* fall through to legacy */ }
+
+  // 2. Legacy fallback: pending-booking:* keys (pre-unified-store bookings).
+  if (!record) {
+    for (const candidate of candidateRefs) {
+      try {
+        const r = await kv.get<any>(`pending-booking:${candidate}`);
+        if (r) {
+          record = r;
+          ref = candidate;
+          break;
+        }
+      } catch { /* try next */ }
+    }
   }
 
   let bookingInfo = '';
@@ -274,7 +315,7 @@ async function stepLookupRef(lang: Lang, dept: string, digits: string) {
         (record.guests ? `Number of guests: ${record.guests}. ` : '') +
         (record.passengers ? `Number of passengers: ${record.passengers}. ` : '') +
         (record.totalPrice ? `Total amount: ${record.totalPrice} pounds. ` : '') +
-        (record.state === 'confirmed' ? 'Booking status: confirmed.' : 'Booking status: pending.');
+        `Booking status: ${record.state || 'pending'}.`;
     } else {
       bookingInfo = `Aap ka booking reference hai ${ref}. ` +
         (record.hotelName ? `Hotel: ${record.hotelName}. ` : '') +
@@ -287,7 +328,7 @@ async function stepLookupRef(lang: Lang, dept: string, digits: string) {
         (record.guests ? `Mehmaan: ${record.guests}. ` : '') +
         (record.passengers ? `Musafir: ${record.passengers}. ` : '') +
         (record.totalPrice ? `Kul raqam: ${record.totalPrice} pounds. ` : '') +
-        (record.state === 'confirmed' ? 'Booking ki halat: confirmed.' : 'Booking ki halat: pending.');
+        `Booking ki halat: ${record.state || 'pending'}.`;
     }
   }
 
