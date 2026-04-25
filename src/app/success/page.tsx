@@ -704,7 +704,7 @@ export default async function SuccessPage({
             <strong className="text-[#1A1D2B] text-right">
               {b.hotelName}
               {b.stars && b.stars > 0 ? (
-                <span className="block mt-0.5" aria-label={`${b.stars} star hotel`}>
+                <span className="block mt-0.5" role="img" aria-label={`${b.stars} star hotel`}>
                   {Array.from({ length: Math.min(5, Math.round(b.stars)) }).map((_, i) => (
                     <i key={i} className="fa-solid fa-star text-amber-400 text-[.7rem] ml-0.5" />
                   ))}

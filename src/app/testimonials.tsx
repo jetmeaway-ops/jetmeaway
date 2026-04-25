@@ -50,7 +50,7 @@ const REVIEWS = [
 
 function Stars({ value, size = '.95rem' }: { value: number; size?: string }) {
   return (
-    <div className="flex gap-0.5" aria-label={`${value} out of 5 stars`}>
+    <div className="flex gap-0.5" role="img" aria-label={`${value} out of 5 stars`}>
       {[1, 2, 3, 4, 5].map(s => (
         <i
           key={s}

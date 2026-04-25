@@ -78,7 +78,7 @@ function ScoutFinalCheck({ refundable, deadline }: { refundable: boolean | null 
 function StarRow({ count }: { count: number }) {
   if (!count || count < 1) return null;
   return (
-    <div className="flex items-center gap-0.5 mb-1" aria-label={`${count} star hotel`}>
+    <div className="flex items-center gap-0.5 mb-1" role="img" aria-label={`${count} star hotel`}>
       {Array.from({ length: Math.min(5, Math.round(count)) }).map((_, i) => (
         <i key={i} className="fa-solid fa-star text-amber-400 text-[.7rem]" />
       ))}

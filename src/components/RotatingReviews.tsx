@@ -103,8 +103,9 @@ export default function RotatingReviews() {
           {r.saved}
         </span>
 
-        {/* Dots */}
-        <div className="flex items-center gap-1.5 shrink-0" role="tablist" aria-label="Review selector">
+        {/* Dots — visual dot stays small, hit area is a min 24×24 wrapper
+            (Lighthouse and WCAG 2.5.5 require ≥24px touch targets). */}
+        <div className="flex items-center shrink-0" role="tablist" aria-label="Review selector">
           {REVIEWS.map((_, i) => (
             <button
               key={i}
@@ -113,8 +114,13 @@ export default function RotatingReviews() {
               aria-selected={i === idx}
               aria-label={`Review ${i + 1}`}
               onClick={() => setIdx(i)}
-              className={`h-1.5 rounded-full transition-all ${i === idx ? 'w-5 bg-orange-400' : 'w-1.5 bg-white/25 hover:bg-white/50'}`}
-            />
+              className="flex items-center justify-center min-w-[24px] min-h-[24px] px-1"
+            >
+              <span
+                aria-hidden="true"
+                className={`block h-1.5 rounded-full transition-all ${i === idx ? 'w-5 bg-orange-400' : 'w-1.5 bg-white/40 group-hover:bg-white/60'}`}
+              />
+            </button>
           ))}
         </div>
       </div>

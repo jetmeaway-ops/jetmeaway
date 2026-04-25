@@ -63,7 +63,7 @@ export default function PopularDestinations() {
     <section className="py-14 bg-[#C8D0E0] overflow-hidden">
       <div className="max-w-[1100px] mx-auto px-6 mb-10">
         <div className="flex items-center justify-center gap-2 mb-2">
-          <p className="text-[.65rem] font-black uppercase tracking-[3px] text-orange-700 font-[var(--font-dm-sans)]">Trending Now</p>
+          <p className="text-[.65rem] font-black uppercase tracking-[3px] text-orange-800 font-[var(--font-dm-sans)]">Trending Now</p>
           <span className="flex items-center gap-1.5 bg-green-50 border border-green-200 text-green-700 text-[.58rem] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
             <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
             Live prices
@@ -94,7 +94,9 @@ export default function PopularDestinations() {
             <img src={d.img} alt={d.name} loading="lazy" width={500} height={665}
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent group-hover:from-black/90 group-hover:via-black/40 transition-all duration-500" />
-            <span className="absolute top-3 left-3 bg-orange-500 text-white text-[.58rem] font-black uppercase tracking-wider px-2.5 py-1 rounded-full z-[2]">{d.tag}</span>
+            {/* tag badge — orange-700 on white passes WCAG AA (5.0:1);
+                orange-500 background was 2.93:1 and Lighthouse flagged it. */}
+            <span className="absolute top-3 left-3 bg-orange-700 text-white text-[.58rem] font-black uppercase tracking-wider px-2.5 py-1 rounded-full z-[2]">{d.tag}</span>
             <div className="absolute top-3 right-3 z-[2] animate-bob">
               <div className="backdrop-blur-md bg-white/20 border border-white/30 rounded-xl px-3 py-1.5 shadow-lg">
                 <p className="font-poppins font-black text-white text-[.72rem] leading-none">From &pound;{d.price}</p>

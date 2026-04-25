@@ -58,10 +58,12 @@ const PROVIDERS = ['Expedia', 'Trip.com', 'Aviasales', 'GetYourGuide', 'Viator',
 
 function LogoScroll() {
   return (
-    <section className="py-4 bg-[#C8D0E0] border-y border-[#b6c0d3] overflow-hidden">
-      <div className="flex animate-scroll">
+    <section className="py-4 bg-[#C8D0E0] border-y border-[#b6c0d3] overflow-hidden" aria-label="Trusted travel providers">
+      <div className="flex animate-scroll" aria-hidden="true">
         {[...PROVIDERS, ...PROVIDERS].map((name, i) => (
-          <span key={i} className="flex-shrink-0 mx-8 font-[var(--font-dm-sans)] font-bold text-[.85rem] tracking-wide text-[#5C6378] uppercase whitespace-nowrap">
+          // text-[#3a4154] passes WCAG AA (4.5:1) on the #C8D0E0 backdrop;
+          // the previous #5C6378 was 3.5:1 and Lighthouse flagged it.
+          <span key={i} className="flex-shrink-0 mx-8 font-[var(--font-dm-sans)] font-bold text-[.85rem] tracking-wide text-[#3a4154] uppercase whitespace-nowrap">
             {name}
           </span>
         ))}
@@ -88,7 +90,7 @@ function HowItWorks() {
   return (
     <section className="py-10 px-6 bg-white">
       <div className="max-w-[1100px] mx-auto">
-        <p className="text-center text-[.65rem] font-black uppercase tracking-[3px] text-orange-700 mb-1.5 font-[var(--font-dm-sans)]">Simple Process</p>
+        <p className="text-center text-[.65rem] font-black uppercase tracking-[3px] text-orange-800 mb-1.5 font-[var(--font-dm-sans)]">Simple Process</p>
         <h2 className="text-center font-[var(--font-playfair)] text-[1.8rem] md:text-[2.2rem] font-black text-[#0a1628] mb-6">How It Works</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {STEPS.map((s) => (
@@ -128,7 +130,7 @@ function WhatWeCompare() {
   return (
     <section className="py-10 px-6 bg-[#C8D0E0]">
       <div className="max-w-[1100px] mx-auto">
-        <p className="text-center text-[.65rem] font-black uppercase tracking-[3px] text-orange-700 mb-1.5 font-[var(--font-dm-sans)]">All In One Place</p>
+        <p className="text-center text-[.65rem] font-black uppercase tracking-[3px] text-orange-800 mb-1.5 font-[var(--font-dm-sans)]">All In One Place</p>
         <h2 className="text-center font-[var(--font-playfair)] text-[1.8rem] md:text-[2.2rem] font-black text-[#0a1628] mb-6">What We Compare</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {CATEGORIES.map((c) => (
@@ -222,7 +224,9 @@ function CtaSection() {
         </h2>
         <p className="font-[var(--font-dm-sans)] text-[.95rem] text-[#5C6378] mb-8">Join thousands of UK travellers saving money across 15+ providers</p>
         <a href="/hotels"
-          className="inline-block bg-orange-500 hover:bg-orange-600 text-white font-poppins font-black text-[1rem] px-10 py-4 rounded-xl shadow-[0_8px_30px_rgba(249,115,22,0.35)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(249,115,22,0.4)]">
+          // bg-orange-700 + white text = 5.0:1 contrast (passes WCAG AA);
+          // previous orange-500 was 2.93:1 and Lighthouse flagged it.
+          className="inline-block bg-orange-700 hover:bg-orange-800 text-white font-poppins font-black text-[1rem] px-10 py-4 rounded-xl shadow-[0_8px_30px_rgba(194,65,12,0.35)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(194,65,12,0.4)]">
           Compare Hotel Prices Now
         </a>
       </div>
