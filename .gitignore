@@ -61,3 +61,8 @@ offer.json
 scripts/*.local.json
 scripts/broadcast-contacts*.json
 !scripts/broadcast-contacts.example.json
+
+# Claude Code memory snapshot — human-readable mirror of ~/.claude/projects/...
+# Contains private notes, customer phone numbers, partner deal terms.
+# NEVER commit. Live source of truth lives in ~/.claude/ (also gitignored above).
+jetmeaway-memory/
