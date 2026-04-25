@@ -206,9 +206,12 @@ export default function FlightSearch() {
 
   return (
     <div className="max-w-[680px] mx-auto w-full">
-      {/* ── Floating Command Bar — glassmorphic dark, single horizontal row ── */}
+      {/* ── Floating Command Bar — glassmorphic dark, single horizontal row ──
+          backdrop-blur is GPU-expensive on mobile (repaints every scroll
+          frame inside the hero). Solid translucent dark on mobile, glass
+          kept on md+ where the GPU can handle it. */}
       <div ref={ref}
-        className="relative z-50 backdrop-blur-2xl bg-white/[.08] border border-white/15 rounded-2xl shadow-[0_24px_60px_-20px_rgba(0,0,0,0.6),0_8px_24px_-8px_rgba(255,140,40,0.15)] p-2.5 flex items-center gap-2">
+        className="relative z-50 bg-[#0a1628]/85 md:bg-white/[.08] md:backdrop-blur-2xl border border-white/15 rounded-2xl shadow-[0_8px_24px_-8px_rgba(0,0,0,0.5)] md:shadow-[0_24px_60px_-20px_rgba(0,0,0,0.6),0_8px_24px_-8px_rgba(255,140,40,0.15)] p-2.5 flex items-center gap-2">
 
         {/* Origin pill — glass within glass */}
         <div ref={originRef} className="relative flex-shrink-0">
@@ -277,7 +280,7 @@ export default function FlightSearch() {
               const dest = DESTINATIONS.find(d => d.code === s.code);
               return (
                 <button key={`recent-${s.code}`} type="button" onMouseDown={() => dest && goToFlights(dest)}
-                  className="px-3 py-1.5 backdrop-blur-md bg-orange-400/15 hover:bg-orange-400/25 border border-orange-300/30 hover:border-orange-300/60 rounded-full text-[.74rem] font-bold text-orange-100 transition-all">
+                  className="px-3 py-1.5 md:backdrop-blur-md bg-orange-400/15 hover:bg-orange-400/25 border border-orange-300/30 hover:border-orange-300/60 rounded-full text-[.74rem] font-bold text-orange-100 transition-all">
                   <span className="mr-1" aria-hidden="true">{s.flag}</span>{s.city}
                 </button>
               );
@@ -288,12 +291,12 @@ export default function FlightSearch() {
         {/* Popular destinations */}
         {POPULAR.slice(0, 5).map(d => (
           <button key={`pop-${d.code}`} type="button" onMouseDown={() => goToFlights(d)}
-            className="px-3 py-1.5 backdrop-blur-md bg-white/[.06] hover:bg-white/15 border border-white/15 hover:border-white/30 rounded-full text-[.74rem] font-semibold text-white/80 hover:text-white transition-all">
+            className="px-3 py-1.5 md:backdrop-blur-md bg-white/[.06] hover:bg-white/15 border border-white/15 hover:border-white/30 rounded-full text-[.74rem] font-semibold text-white/80 hover:text-white transition-all">
             <span className="mr-1" aria-hidden="true">{d.flag}</span>{d.city}
           </button>
         ))}
         <button type="button" onMouseDown={surpriseMe}
-          className="px-3 py-1.5 backdrop-blur-md bg-gradient-to-r from-purple-400/15 to-pink-400/15 hover:from-purple-400/25 hover:to-pink-400/25 border border-purple-300/30 hover:border-purple-300/60 rounded-full text-[.74rem] font-bold text-purple-100 transition-all">
+          className="px-3 py-1.5 md:backdrop-blur-md bg-gradient-to-r from-purple-400/15 to-pink-400/15 hover:from-purple-400/25 hover:to-pink-400/25 border border-purple-300/30 hover:border-purple-300/60 rounded-full text-[.74rem] font-bold text-purple-100 transition-all">
           🎲 Surprise me
         </button>
       </div>

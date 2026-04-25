@@ -47,7 +47,12 @@ export default function Header() {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-[100] p-3.5 px-5">
-        <div className="max-w-[1200px] mx-auto flex justify-between items-center backdrop-blur-[20px] saturate-[1.8] bg-white/[.78] border border-white/30 rounded-3xl px-5 py-3 shadow-[0_32px_64px_-15px_rgba(0,0,0,0.1)]">
+        {/* Glassmorphism (backdrop-blur + saturate) is GPU-expensive on
+            mobile — repaints every scroll frame and was the dominant
+            LCP/Speed Index drag on PageSpeed. We now keep the glass look
+            on md+ and serve mobile a flat, opaque white pill that paints
+            in zero milliseconds. Visually almost identical at thumb-zoom. */}
+        <div className="max-w-[1200px] mx-auto flex justify-between items-center bg-white border border-slate-200/70 md:bg-white/[.78] md:border-white/30 md:backdrop-blur-[20px] md:saturate-[1.8] rounded-3xl px-5 py-3 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.12)] md:shadow-[0_32px_64px_-15px_rgba(0,0,0,0.1)]">
 
           {/* LEFT: Blog link + Logo (Blog sits LEFT of the logo for content-first prominence) */}
           <div className="flex items-center gap-3 md:gap-4 flex-shrink-0">

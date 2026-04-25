@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type Review = {
   quote: string;
@@ -26,16 +26,47 @@ const REVIEWS: Review[] = [
 export default function RotatingReviews() {
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
+  // active is gated by the section coming into view AND the browser being
+  // idle — stops the setInterval (and the layout/paint work it triggers
+  // every 4.5s) from running before LCP. The first review is still
+  // server-rendered so the bar looks "filled" instantly without JS.
+  const [active, setActive] = useState(false);
+  const sectionRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    if (paused) return;
+    if (active) return;
+    const node = sectionRef.current;
+    if (!node) return;
+    let cancelled = false;
+    const arm = () => { if (!cancelled) setActive(true); };
+    if (typeof IntersectionObserver === 'undefined') {
+      // Old browser fallback — defer until idle
+      const id = setTimeout(arm, 2500);
+      return () => { cancelled = true; clearTimeout(id); };
+    }
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some(e => e.isIntersecting)) {
+        // Hand off to idle callback so we never compete with LCP/INP
+        const idle = (window as unknown as { requestIdleCallback?: (cb: () => void) => number }).requestIdleCallback;
+        if (idle) idle(arm);
+        else setTimeout(arm, 200);
+        io.disconnect();
+      }
+    }, { rootMargin: '200px' });
+    io.observe(node);
+    return () => { cancelled = true; io.disconnect(); };
+  }, [active]);
+
+  useEffect(() => {
+    if (!active || paused) return;
     const t = setInterval(() => setIdx(i => (i + 1) % REVIEWS.length), 4500);
     return () => clearInterval(t);
-  }, [paused]);
+  }, [active, paused]);
 
   const r = REVIEWS[idx];
   return (
     <section
+      ref={sectionRef}
       className="bg-gradient-to-b from-[#0a1628] to-[#0F1119] border-b border-white/10"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
