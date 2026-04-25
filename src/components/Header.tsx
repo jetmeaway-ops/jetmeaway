@@ -64,7 +64,15 @@ export default function Header() {
               <span>Blog</span>
             </Link>
             <Link href="/" className="flex-shrink-0" aria-label="JetMeAway home">
-              <Image src="/jetmeaway-logo.png" alt="Jetmeaway" className="h-9 w-auto rounded-none" width={141} height={36} priority />
+              <Image
+                src="/jetmeaway-logo.png"
+                alt="Jetmeaway"
+                className="h-9 w-auto rounded-none"
+                width={141}
+                height={36}
+                priority
+                fetchPriority="high"
+              />
             </Link>
           </div>
 
@@ -88,7 +96,11 @@ export default function Header() {
               );
             })}
 
-            {/* Discover dropdown (hover on desktop, focus-within for keyboard) */}
+            {/* Discover dropdown (hover on desktop, focus-within for keyboard).
+                aria-expanded is intentionally omitted — the panel opens purely
+                from CSS :hover/:focus-within state, so we cannot truthfully
+                report the boolean. aria-haspopup signals the relationship,
+                aria-controls points screen readers at the panel id. */}
             <div className="relative group">
               <button
                 type="button"
@@ -97,15 +109,15 @@ export default function Header() {
                     ? 'bg-[#0066FF] text-white shadow-[0_4px_12px_rgba(0,102,255,0.3)]'
                     : 'text-slate-400 group-hover:text-[#0066FF] group-hover:bg-blue-50'
                 }`}
-                aria-haspopup="true"
-                aria-expanded="false"
+                aria-haspopup="menu"
+                aria-controls="discover-menu"
               >
-                <span className="text-sm leading-none">🧭</span>
+                <span className="text-sm leading-none" aria-hidden="true">🧭</span>
                 Discover
-                <span className="text-[.6rem] opacity-60">▾</span>
+                <span className="text-[.6rem] opacity-60" aria-hidden="true">▾</span>
               </button>
               {/* Dropdown panel. pt-1 creates a hover-bridge so the mouse can move from button → panel without leaving the group hover zone. */}
-              <div className="absolute top-full right-0 pt-1 invisible opacity-0 translate-y-1 group-hover:visible group-hover:opacity-100 group-hover:translate-y-0 focus-within:visible focus-within:opacity-100 focus-within:translate-y-0 transition-all duration-150 min-w-[180px]">
+              <div id="discover-menu" role="menu" className="absolute top-full right-0 pt-1 invisible opacity-0 translate-y-1 group-hover:visible group-hover:opacity-100 group-hover:translate-y-0 focus-within:visible focus-within:opacity-100 focus-within:translate-y-0 transition-all duration-150 min-w-[180px]">
                 <div className="bg-white border border-[#E8ECF4] rounded-2xl shadow-[0_24px_48px_-12px_rgba(0,0,0,0.18)] p-2">
                   {DISCOVER_ITEMS.map(item => (
                     <Link
@@ -171,7 +183,9 @@ export default function Header() {
             {/* Hamburger */}
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              aria-label="Toggle menu"
+              aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-menu"
               className="lg:hidden flex flex-col gap-[5px] p-2.5"
             >
               <span className={`w-5 h-0.5 bg-[#0F1119] rounded-sm transition-all ${mobileOpen ? 'rotate-45 translate-y-[7px]' : ''}`}></span>
@@ -186,6 +200,7 @@ export default function Header() {
       <nav
         className="lg:hidden fixed left-0 right-0 z-[101] bg-white border-b border-slate-200 shadow-md"
         style={{ top: '90px' }}
+        aria-label="Mobile categories"
       >
         <div className="flex overflow-x-auto gap-1.5 px-3 py-2.5" style={{ scrollbarWidth: 'none' }}>
           {MOBILE_STICKY_NAV.map(item => {
@@ -212,7 +227,14 @@ export default function Header() {
       {mobileOpen && <div className="fixed inset-0 bg-[#0F1119]/30 z-[150]" onClick={() => setMobileOpen(false)} />}
 
       {/* Mobile slide-out menu */}
-      <div className={`fixed top-0 ${mobileOpen ? 'right-0' : '-right-full'} w-[300px] h-full bg-white z-[200] pt-20 px-5 transition-all duration-300 border-l border-slate-100 flex flex-col overflow-y-auto`}>
+      <div
+        id="mobile-menu"
+        role="dialog"
+        aria-modal={mobileOpen ? 'true' : undefined}
+        aria-label="Main menu"
+        aria-hidden={!mobileOpen}
+        className={`fixed top-0 ${mobileOpen ? 'right-0' : '-right-full'} w-[300px] h-full bg-white z-[200] pt-20 px-5 transition-all duration-300 border-l border-slate-100 flex flex-col overflow-y-auto`}
+      >
         <p className="text-[.6rem] font-extrabold uppercase tracking-[2.5px] text-[#5C6378] mb-3 px-2">Compare</p>
         <div className="flex flex-col gap-0.5 mb-5">
           {NAV.map(item => {
