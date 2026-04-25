@@ -439,6 +439,35 @@ type FlightResult = {
   link: string | null;
 };
 
+/* ───────────────────────────────────────────────────────────────────────────
+   mergeFlightsKeepAllDuffel — chronic regression guard.
+
+   Every TP row is an affiliate redirect (we lose the customer + margin).
+   Every Duffel row is direct-bookable on jetmeaway.co.uk (we earn margin).
+   So Duffel rows MUST always appear on top of the search results, regardless
+   of price. The previous `sort(byPrice).slice(0, 30)` repeatedly buried Duffel
+   offers behind cheaper TP "indicative" decoys — fixed many times, regressed
+   many times.
+
+   Rule: keep every Duffel row (offer_id present), cap only the TP/redirect
+   rows to the top-N cheapest. Final order = Duffel-cheapest-first, then
+   TP-cheapest-first.
+
+   Read memory project_duffel_top_of_search.md before changing this.
+   ─────────────────────────────────────────────────────────────────────────── */
+const TP_ROW_CAP = 30;
+function mergeFlightsKeepAllDuffel(rows: FlightResult[]): FlightResult[] {
+  const direct: FlightResult[] = [];
+  const redirect: FlightResult[] = [];
+  for (const f of rows) {
+    if (f.source === 'duffel' && f.offer_id) direct.push(f);
+    else redirect.push(f);
+  }
+  direct.sort((a, b) => a.price - b.price);
+  redirect.sort((a, b) => a.price - b.price);
+  return [...direct, ...redirect.slice(0, TP_ROW_CAP)];
+}
+
 type CalendarDay = {
   depart_date: string;
   return_date?: string;
@@ -1147,7 +1176,10 @@ function FlightsContent() {
           if (f.price < existing.price) { mergedByKey.set(key, f); continue; }
         }
         // Render immediately if v1 hasn't surfaced anything yet.
-        const merged = Array.from(mergedByKey.values()).sort((a, b) => a.price - b.price).slice(0, 30);
+        // Slicing preserves ALL Duffel direct-bookable rows (any price) and
+        // caps only the affiliate-redirect rows, so the Book Now CTA never
+        // disappears just because TP returned 30 cheap-looking decoys.
+        const merged = mergeFlightsKeepAllDuffel(Array.from(mergedByKey.values()));
         setFlights(merged);
         setScoutAirlineCount(new Set(merged.map(f => f.airlineCode)).size);
       })
@@ -1223,7 +1255,9 @@ function FlightsContent() {
           if (f.price < existing.price) mergedByKey.set(key, f);
         }
 
-        const merged = Array.from(mergedByKey.values()).sort((a, b) => a.price - b.price).slice(0, 30);
+        // ⚠ DO NOT replace with a flat sort+slice — Duffel rows must
+        // always show on top regardless of price. See mergeFlightsKeepAllDuffel.
+        const merged = mergeFlightsKeepAllDuffel(Array.from(mergedByKey.values()));
         setFlights(merged);
         setScoutAirlineCount(new Set(merged.map(f => f.airlineCode)).size);
 
@@ -1255,7 +1289,9 @@ function FlightsContent() {
 
       // Re-render once after the final Duffel merge so late-arriving
       // bookable offers appear in the list.
-      const finalMerged = Array.from(mergedByKey.values()).sort((a, b) => a.price - b.price).slice(0, 30);
+      // ⚠ DO NOT replace with a flat sort+slice — Duffel rows must
+      // always show on top regardless of price. See mergeFlightsKeepAllDuffel.
+      const finalMerged = mergeFlightsKeepAllDuffel(Array.from(mergedByKey.values()));
       setFlights(finalMerged);
       setScoutAirlineCount(new Set(finalMerged.map(f => f.airlineCode)).size);
 
