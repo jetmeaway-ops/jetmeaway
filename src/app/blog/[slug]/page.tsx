@@ -3,8 +3,27 @@ import { compileMDX } from 'next-mdx-remote/rsc';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import MidArticleCta from '@/components/blog/MidArticleCta';
 import { getAllPostSlugs, getPostBySlug, formatPostDate } from '@/lib/blog';
 import type { Metadata } from 'next';
+
+/**
+ * Split MDX source at roughly the middle H2 so we can inject the
+ * MidArticleCta between two halves. If a post has fewer than 2 H2
+ * headings the CTA falls through to "after the entire body" — still
+ * better than nothing on a thin post. We split on the H2 marker
+ * (newline + ## + space) and re-prefix the second half with `## `.
+ */
+function splitMdxAtMiddleH2(source: string): { first: string; second: string | null } {
+  const parts = source.split(/\n##\s/);
+  if (parts.length < 3) return { first: source, second: null };
+  // parts[0] is everything before the first H2, parts[1..] are sections.
+  const sectionCount = parts.length - 1;
+  const middle = Math.max(1, Math.floor(sectionCount / 2));
+  const before = [parts[0], ...parts.slice(1, middle + 1).map((s, i) => (i === 0 ? `\n## ${s}` : `## ${s}`))].join('');
+  const after = parts.slice(middle + 1).map(s => `## ${s}`).join('\n');
+  return { first: before, second: after || null };
+}
 
 /**
  * Statically pre-render every post at build time. New posts dropped into
@@ -103,13 +122,22 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const post = getPostBySlug(slug);
   if (!post) notFound();
 
-  // Compile the MDX body. Frontmatter is already parsed by gray-matter
-  // in the lib helper, so we pass the body content directly.
-  const { content } = await compileMDX({
-    source: post.content,
+  // Compile the MDX body in two halves so we can drop the in-body CTA
+  // between them. If the post has <2 H2 headings, splitMdxAtMiddleH2
+  // returns second=null and we fall back to single-compile + CTA after.
+  const { first: firstSource, second: secondSource } = splitMdxAtMiddleH2(post.content);
+  const { content: firstContent } = await compileMDX({
+    source: firstSource,
     components: mdxComponents,
     options: { parseFrontmatter: false },
   });
+  const secondContent = secondSource
+    ? (await compileMDX({
+        source: secondSource,
+        components: mdxComponents,
+        options: { parseFrontmatter: false },
+      })).content
+    : null;
 
   // JSON-LD Article schema — gives Google the rich-result signal and
   // helps establish topical authority for the travel niche.
@@ -222,8 +250,12 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           />
         </div>
 
-        {/* MDX body */}
-        <div className="max-w-[760px] mx-auto px-5">{content}</div>
+        {/* MDX body — split around an in-body CTA */}
+        <div className="max-w-[760px] mx-auto px-5">
+          {firstContent}
+          <MidArticleCta city={post.ctaCity ?? null} flightCode={post.ctaFlightsTo ?? null} />
+          {secondContent}
+        </div>
 
         {/* End-of-post CTA */}
         <div className="max-w-[760px] mx-auto px-5 mt-16">

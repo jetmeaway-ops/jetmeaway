@@ -39,6 +39,13 @@ export interface BlogPostFrontmatter {
    *  timestamp (e.g. "April 17, 2026 — 21:00 BST"). Rendered as a red
    *  pill near the article header and used as `dateModified` in JSON-LD. */
   liveAlert?: string;
+  /** Optional — populates the in-body MidArticleCta with a city-specific
+   *  hotel CTA. e.g. `ctaCity: "Dubai"` → "Compare Hotels in Dubai" → /hotels?city=Dubai.
+   *  Posts without this still show a generic CTA. */
+  ctaCity?: string;
+  /** Optional — IATA code for the secondary "Cheapest Flights to X" button.
+   *  Pair with ctaCity for the most contextual CTA. e.g. `ctaFlightsTo: "DXB"`. */
+  ctaFlightsTo?: string;
 }
 
 export type BlogPost = BlogPostFrontmatter & {
@@ -68,6 +75,8 @@ export function getAllPosts(): BlogPost[] {
       author: data.author as string | undefined,
       faqs: Array.isArray(data.faqs) ? (data.faqs as FAQ[]) : undefined,
       liveAlert: (data.liveAlert as string | undefined) ?? undefined,
+      ctaCity: (data.ctaCity as string | undefined) ?? undefined,
+      ctaFlightsTo: (data.ctaFlightsTo as string | undefined) ?? undefined,
       content,
     };
   });
