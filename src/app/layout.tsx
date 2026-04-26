@@ -149,6 +149,10 @@ const organizationSchema = {
     // Keep this list short and factual. Add profiles only as they
     // go live so the schema never advertises dead links.
     'https://find-and-update.company-information.service.gov.uk/company/17140522',
+    'https://www.linkedin.com/company/115094573',
+    'https://www.instagram.com/jetmeaway/',
+    'https://www.tiktok.com/@jetmeaway',
+    'https://x.com/jetmeawayy',
   ],
   contactPoint: {
     '@type': 'ContactPoint',
