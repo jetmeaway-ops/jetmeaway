@@ -1154,6 +1154,15 @@ export default function HotelDetailPage() {
                     {currency === 'GBP' ? '£' : `${currency} `}{parseFloat(price).toFixed(2)}
                   </div>
                 )}
+                {/* Wholesale-rate signal — appears under the price in
+                    the booking sidebar. Free-cancellation note matches
+                    real LiteAPI behaviour: flexible rates carry a
+                    cancellation deadline, locked rates clearly don't.
+                    No comparative claims against named competitors. */}
+                <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[.7rem] font-bold leading-snug">
+                  <span aria-hidden="true">💰</span>
+                  Live wholesale rate · Free cancellation on flexible rates
+                </div>
               </>
             )}
             <div className="mt-4 space-y-2 text-[.82rem] text-[#5C6378] font-semibold">

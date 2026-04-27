@@ -13,6 +13,7 @@ import { Poppins, Playfair_Display, DM_Sans } from 'next/font/google';
 // never competes with LCP/FCP. See components/DeferredWidgets.tsx.
 import { GoogleAnalytics } from '@next/third-parties/google';
 import DeferredWidgets from '@/components/DeferredWidgets';
+import MicrosoftClarity from '@/components/MicrosoftClarity';
 
 // Google tag ID. `AW-*` = Google Ads conversion tag (not GA4). The
 // <GoogleAnalytics> component from @next/third-parties just injects
@@ -269,6 +270,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           the Ads tag above and this GA4 tag share one gtag('js', ...)
           init. Next's third-party helper dedupes the script import. */}
       <GoogleAnalytics gaId={GA4_ID} />
+      {/* Microsoft Clarity — session recordings + heatmaps so we can
+          watch how real users navigate the hotel funnel and see exactly
+          where they drop off. Silently no-ops without NEXT_PUBLIC_CLARITY_ID. */}
+      <MicrosoftClarity />
     </html>
   );
 }

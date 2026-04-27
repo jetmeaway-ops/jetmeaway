@@ -208,11 +208,16 @@ export default function HotelCheckoutPage() {
   }, [booking, ref]);
 
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  // Phone: at least 7 digits after stripping spaces / dashes / parens / leading +.
+  // The previous "≥ 6 chars" rule let blatantly invalid numbers through, which
+  // then failed silently at LiteAPI/DOTW after the user had already submitted.
+  const phoneDigits = phone.replace(/[\s\-().+]/g, '');
+  const phoneOk = /^\d{7,15}$/.test(phoneDigits);
   const formOk =
-    firstName.trim().length >= 1 &&
-    lastName.trim().length >= 1 &&
+    firstName.trim().length >= 2 &&
+    lastName.trim().length >= 2 &&
     emailOk &&
-    phone.trim().length >= 6;
+    phoneOk;
 
   const fmtPrice = (amount: number) =>
     booking?.currency === 'GBP' ? `£${amount.toFixed(2)}` : `${booking?.currency} ${amount.toFixed(2)}`;
@@ -308,7 +313,13 @@ export default function HotelCheckoutPage() {
   //   DOTW: creates a Stripe PaymentIntent and renders <StripeCardForm>
   const handleContinueToPayment = async () => {
     if (!booking || !formOk) return;
-    if (!isDotw && !prebookResult) return;
+    // Used to silently return here if the prebook hadn't landed yet — leaving
+    // the user clicking a non-responsive button. Now we surface it so they
+    // can refresh or wait for the rate-lock to finish instead of bouncing.
+    if (!isDotw && !prebookResult) {
+      setStepError("Hold on — we're still locking your rate. Try again in a few seconds, or refresh if this keeps happening.");
+      return;
+    }
     setStep('saving');
     setStepError(null);
 
@@ -608,11 +619,19 @@ export default function HotelCheckoutPage() {
                 </div>
               </div>
 
+              {/* Reassurance band — sits directly above the primary CTA.
+                  Three honest signals: card processed by our PSP, no
+                  booking fees added, no surprise line items at the end.
+                  Keeps the user confident at the highest-friction click. */}
+              <div className="mt-5 sm:mt-6 flex items-center justify-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-3 sm:px-4 py-2.5 text-[.74rem] sm:text-[.78rem] font-semibold text-emerald-800 leading-snug">
+                <span aria-hidden="true">🔒</span>
+                <span className="text-center">Secure payment · No booking fees · No hidden charges</span>
+              </div>
               <button
                 type="button"
                 onClick={handleContinueToPayment}
                 disabled={!formOk}
-                className="w-full mt-5 sm:mt-6 bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-60 disabled:cursor-not-allowed text-white font-poppins font-black text-[.92rem] sm:text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(0,102,255,0.3)] flex items-center justify-center gap-2"
+                className="w-full mt-3 bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-60 disabled:cursor-not-allowed text-white font-poppins font-black text-[.92rem] sm:text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(0,102,255,0.3)] flex items-center justify-center gap-2"
               >
                 <i className="fa-solid fa-credit-card text-[.85rem]" /> Continue to payment
               </button>

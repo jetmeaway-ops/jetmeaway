@@ -1111,6 +1111,15 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
                 </span>
               </>
             )}
+            {/* Wholesale-rate signal — always visible (both per-night
+                and per-person views). Honest framing: we surface the
+                live wholesale rate from LiteAPI/RateHawk and never add
+                booking fees on top. No comparative claims against
+                named competitors. */}
+            <span className="inline-flex items-center gap-1 mt-1.5 text-[.68rem] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <i className="fa-solid fa-circle-check text-[.62rem]" aria-hidden />
+              Live wholesale rate · No booking fees
+            </span>
             {/* Signal type badge */}
             {h.signalType && (
               <span className={`inline-flex items-center gap-1 mt-1.5 text-[.6rem] font-bold uppercase tracking-[0.8px] px-2 py-0.5 rounded-full ${
