@@ -399,7 +399,57 @@ const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
   'glasgow': { lat: 55.8642, lng: -4.2518 },
   'liverpool': { lat: 53.4084, lng: -2.9916 },
   'birmingham': { lat: 52.4862, lng: -1.8904 },
+  // London boroughs / sub-areas — needed because LiteAPI treats their
+  // Google Place IDs as "Greater London" regional pointers and returns
+  // hotels from anywhere in the metro area. Distance post-filter
+  // (RADIUS_KM) trims results back to actual borough proximity.
+  'croydon': { lat: 51.3724, lng: -0.1018 },
+  'wembley': { lat: 51.5560, lng: -0.2796 },
+  'stratford': { lat: 51.5416, lng: -0.0042 },
+  'greenwich': { lat: 51.4826, lng: 0.0077 },
+  'hammersmith': { lat: 51.4923, lng: -0.2229 },
+  'kensington': { lat: 51.4988, lng: -0.1749 },
+  'shoreditch': { lat: 51.5236, lng: -0.0796 },
+  'canary wharf': { lat: 51.5054, lng: -0.0235 },
+  'docklands': { lat: 51.5004, lng: -0.0235 },
 };
+
+// Radius (km) within which a hotel must lie of the searched city centre
+// to be returned. For London-borough scale searches we want ~10km so
+// neighbouring boroughs (Greenwich/Hammersmith) don't get pulled in
+// when the visitor explicitly asked for Croydon. For full-metro
+// searches (London, NYC, Tokyo) we want a generous radius so visitors
+// who type "London" still see hotels in Westminster, Shoreditch, etc.
+// Default for any city not listed: 25km (errs toward inclusive).
+const CITY_RADIUS_KM: Record<string, number> = {
+  // London boroughs — strict so a "Croydon" search doesn't return Hammersmith
+  'croydon': 10,
+  'wembley': 10,
+  'stratford': 10,
+  'greenwich': 10,
+  'hammersmith': 10,
+  'kensington': 8,
+  'shoreditch': 8,
+  'canary wharf': 8,
+  'docklands': 8,
+  // Full-metro searches — keep wide
+  'london': 25,
+  'new york': 25,
+  'paris': 20,
+  'tokyo': 30,
+};
+const DEFAULT_RADIUS_KM = 25;
+
+/** Haversine distance in km between two lat/lng points. */
+function distanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const R = 6371;
+  const dLat = (b.lat - a.lat) * Math.PI / 180;
+  const dLng = (b.lng - a.lng) * Math.PI / 180;
+  const lat1 = a.lat * Math.PI / 180;
+  const lat2 = b.lat * Math.PI / 180;
+  const x = Math.sin(dLat / 2) ** 2 + Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+  return 2 * R * Math.asin(Math.sqrt(x));
+}
 
 const CURATED: Record<string, CuratedHotel[]> = {
   'barcelona': [
@@ -873,7 +923,11 @@ export async function GET(req: NextRequest) {
   const cacheCity = placeId || cityKey;
   // v12 — quarantined DOTW/RateHawk rows (details endpoint can't resolve them yet)
   // and fixed doubled `dotw_`/`rh_` id prefix from supplier adapters.
-  const kvKey = `hotels:v12:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
+  // v13 — added geo-proximity post-filter (passesGeo). London-borough searches
+  // (Croydon, Wembley, etc) used to leak Greater-London results because LiteAPI
+  // treats the borough's Google Place ID as a metro pointer. Bumping the cache
+  // version invalidates any cached "Croydon → Docklands+Hammersmith" responses.
+  const kvKey = `hotels:v13:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
 
   // Group occupancy bypass: large groups (>4 guests) always get fresh prices
   // because cached availability/room blocks may not hold for that many people.
@@ -946,6 +1000,24 @@ export async function GET(req: NextRequest) {
     if (minStars === 0) return true;
     if (minStars === 5) return h.stars >= 5;
     return h.stars >= minStars;
+  };
+
+  // Geo-proximity filter — guards against LiteAPI returning Greater-London-
+  // wide results when a Google Place ID for a London borough (e.g. Croydon)
+  // gets passed as a regional pointer. Only applies when we have known
+  // coordinates for the searched city. Hotels missing lat/lng are kept
+  // (we don't have enough to judge) and so are hotels within RADIUS_KM.
+  // 2026-04-27: real bug — searching Croydon was returning Docklands,
+  // Hammersmith, Greenwich, Canary Wharf hotels mixed with the actual
+  // Croydon ones because LiteAPI treats borough place IDs as metro pointers.
+  const cityCentre = CITY_COORDS[cityKey];
+  const radiusKm = CITY_RADIUS_KM[cityKey] ?? DEFAULT_RADIUS_KM;
+  const passesGeo = <T extends { lat?: number; lng?: number; latitude?: number; longitude?: number }>(h: T) => {
+    if (!cityCentre) return true; // unknown city — trust upstream
+    const lat = h.lat ?? h.latitude;
+    const lng = h.lng ?? h.longitude;
+    if (typeof lat !== 'number' || typeof lng !== 'number') return true; // missing coords — keep
+    return distanceKm(cityCentre, { lat, lng }) <= radiusKm;
   };
 
   // Normalise RateHawk results the same way as LiteAPI
@@ -1056,7 +1128,7 @@ export async function GET(req: NextRequest) {
         bookable: false,
         ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
       }));
-      const apiHotels = (await mergeApis()).filter(passesStars);
+      const apiHotels = (await mergeApis()).filter(passesStars).filter(passesGeo);
       const hotels = [...apiHotels, ...curatedHotels.filter(passesStars)];
 
       const result = { hotels, city: match.charAt(0).toUpperCase() + match.slice(1), checkin, checkout, adults: adultsNum, liteapiCount: apiHotels.length };
@@ -1065,7 +1137,7 @@ export async function GET(req: NextRequest) {
     }
 
     // No curated match — still try APIs as a last resort
-    const apiHotels = (await mergeApis()).filter(passesStars);
+    const apiHotels = (await mergeApis()).filter(passesStars).filter(passesGeo);
     if (apiHotels.length > 0) {
       const result = { hotels: apiHotels, city, checkin, checkout, adults: adultsNum, liteapiCount: apiHotels.length };
       try { await kv.set(kvKey, result, { ex: KV_TTL }); } catch {}
@@ -1087,7 +1159,7 @@ export async function GET(req: NextRequest) {
     bookable: false,
     ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
   }));
-  const apiHotels = (await mergeApis()).filter(passesStars);
+  const apiHotels = (await mergeApis()).filter(passesStars).filter(passesGeo);
   // Bookable API hotels first, curated deep-link hotels after
   const hotels = [...apiHotels, ...curatedHotels.filter(passesStars)];
 
