@@ -169,6 +169,27 @@ export default function DateRangePicker({
             <MonthGrid monthStart={viewMonth} />
             <MonthGrid monthStart={nextMonth} hideOnMobile />
           </div>
+          {/* Mobile-only bottom nav. The original ‹ › arrows live at the
+              top of the popup, but on phones the user scrolls down to
+              tap a date and then has to scroll all the way back up just
+              to switch month. Real Clarity recording 2026-04-27 caught
+              this: visitor mashing through dates, getting lost, bailing.
+              Bottom pills mirror the top arrows so they can keep moving
+              forward without scrolling back. md:hidden so the desktop
+              two-month view (which doesn't have the scroll problem)
+              stays clean. */}
+          <div className="flex items-center justify-between gap-2 mt-3 md:hidden">
+            <button type="button" disabled={!canGoBack}
+              onClick={() => setViewMonth(prevMonth)}
+              className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-[#F1F3F7] text-[#5C6378] font-poppins font-bold text-[.78rem] disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#E8ECF4] transition-colors">
+              ‹ Previous month
+            </button>
+            <button type="button"
+              onClick={() => setViewMonth(nextMonth)}
+              className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-[#F1F3F7] text-[#5C6378] font-poppins font-bold text-[.78rem] hover:bg-[#E8ECF4] transition-colors">
+              Next month ›
+            </button>
+          </div>
           <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-[#F1F3F7]">
             <div className="text-[.72rem] font-semibold text-[#5C6378]">
               {oneWay

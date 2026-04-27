@@ -1166,6 +1166,17 @@ function FlightsContent() {
     setScoutActive(false);
     setScoutAirlineCount(0);
 
+    // Scroll the results section into view IMMEDIATELY so mobile users
+    // see the loading state instead of staring at the search form. Real
+    // Clarity recording (2026-04-27) caught a visitor clicking the
+    // Search button THREE times in 35s because the loader was rendering
+    // below the fold on their phone — they never knew the search fired.
+    // setTimeout 50ms gives React a tick to mount the loading section
+    // before we try to scroll to its ref.
+    setTimeout(() => {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+
     // Persist this search so the user comes back to a pre-filled form.
     saveSticky<StickyFlights>('flights', {
       origin: originCode,
@@ -1809,8 +1820,17 @@ function FlightsContent() {
         }} />
       )}
 
-      {/* ── Loading State ── */}
-      {loading && <LoadingState origin={originCode} dest={destCode} />}
+      {/* ── Loading State ──
+          Ref attached so handleSearch can scroll the user down to the
+          loader the instant they tap Search. Without this, mobile users
+          stare at the form, don't notice the button text changed to
+          "Searching…", and tap Search again 2-3 times. Real Clarity
+          recording 2026-04-27 caught this exact pattern. */}
+      {loading && (
+        <div ref={resultsRef}>
+          <LoadingState origin={originCode} dest={destCode} />
+        </div>
+      )}
 
       {/* ── API Error ── */}
       {apiError && (
