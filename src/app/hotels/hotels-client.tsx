@@ -684,7 +684,7 @@ function DestinationPicker({ value, onChange, onPlaceSelect }: {
           onChange={e => handleInput(e.target.value)}
           onFocus={() => setOpen(true)}
           className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-orange-400 focus:bg-white transition-all placeholder:text-[#B0B8CC] pr-10" />
-        {searching && (
+        {open && searching && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
             <div className="w-4 h-4 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
           </div>
@@ -697,10 +697,12 @@ function DestinationPicker({ value, onChange, onPlaceSelect }: {
           {q.length >= 2 && LANDMARK_ALIASES.filter(l => l.match.test(q)).map(l => (
             <li key={`landmark-${l.label}`}
               onMouseDown={() => {
+                if (debounceRef.current) clearTimeout(debounceRef.current);
                 onChange(l.searchAs);
                 onPlaceSelect({ id: l.placeId, name: l.searchAs, description: l.sublabel, type: 'locality' });
                 setOpen(false);
                 setApiResults([]);
+                setSearching(false);
               }}
               className="px-4 py-3 hover:bg-orange-50 cursor-pointer transition-colors border-b border-[#F1F3F7] flex items-center gap-3 bg-orange-50/40">
               <i className="fa-solid fa-mountain-sun text-[.85rem] text-orange-500 w-5 text-center flex-shrink-0" />
@@ -723,10 +725,12 @@ function DestinationPicker({ value, onChange, onPlaceSelect }: {
                   // string ("Paddington, London, UK") — feed that back to the
                   // search so LiteAPI resolves the right area. Everything else
                   // just uses the displayName.
+                  if (debounceRef.current) clearTimeout(debounceRef.current);
                   onChange(p.query || p.name);
                   onPlaceSelect(p);
                   setOpen(false);
                   setApiResults([]);
+                  setSearching(false);
                 }}
                   className="px-4 py-2.5 hover:bg-orange-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 flex items-center gap-3">
                   <i className={`fa-solid ${typeIcon(p.type)} text-[.8rem] text-orange-400 w-5 text-center flex-shrink-0`} />
@@ -750,7 +754,13 @@ function DestinationPicker({ value, onChange, onPlaceSelect }: {
                 </li>
               )}
               {staticFiltered.map(c => (
-                <li key={c} onMouseDown={() => { onChange(c); onPlaceSelect(null); setOpen(false); }}
+                <li key={c} onMouseDown={() => {
+                  if (debounceRef.current) clearTimeout(debounceRef.current);
+                  onChange(c);
+                  onPlaceSelect(null);
+                  setOpen(false);
+                  setSearching(false);
+                }}
                   className={`px-4 py-2.5 hover:bg-orange-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 flex items-center gap-3 ${value === c ? 'bg-orange-50' : ''}`}>
                   <i className="fa-solid fa-location-dot text-[.8rem] text-[#B0B8CC] w-5 text-center flex-shrink-0" />
                   <span className="font-poppins font-semibold text-[.85rem] text-[#1A1D2B]">{c}</span>
@@ -1132,31 +1142,14 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
               </span>
             )}
           </div>
-          <div className="flex flex-col gap-1.5 w-full">
-            {h.bookable && displayOfferId && (
-              <BookDirectButton hotel={bookHotel} checkIn={checkin} checkOut={checkout} adults={adults} nights={nights} city={searchedDest} detailHref={detailHref} />
-            )}
-            <a href={redirectUrl(tripUrl, 'Trip.com', searchedDest, 'hotels')}
-              className="bg-[#287DFA] hover:bg-[#1A6AE0] text-white font-poppins font-bold text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap">
-              Trip.com →
-            </a>
-            <a href={redirectUrl(expediaUrl, 'Expedia', searchedDest, 'hotels')}
-              className="bg-[#1B2B65] hover:bg-[#142050] text-white font-poppins font-bold text-[.72rem] px-4 py-2.5 rounded-lg transition-all text-center whitespace-nowrap">
-              Expedia →
-            </a>
+          <div className="flex flex-col gap-2 w-full">
+            <BookDirectButton hotel={bookHotel} checkIn={checkin} checkOut={checkout} adults={adults} nights={nights} city={searchedDest} detailHref={detailHref} />
+            <div className="flex flex-wrap gap-x-3 gap-y-0.5 justify-center text-[.62rem] text-[#8E95A9] font-semibold">
+              <span>✅ No hidden fees</span>
+              <span>✅ Free cancellation on most rooms</span>
+              <span>✅ Secure payment</span>
+            </div>
           </div>
-          {h.lat && h.lng ? (
-            <button type="button"
-              onClick={() => setScoutHotel({ name: h.name, lat: h.lat!, lng: h.lng! })}
-              className="text-[.68rem] font-bold text-teal-600 border border-teal-200 hover:bg-teal-50 px-3 py-1.5 rounded-lg transition-all cursor-pointer">
-              Explore Neighbourhood 🧭
-            </button>
-          ) : (
-            <button type="button" disabled
-              className="text-[.68rem] font-bold text-gray-400 border border-gray-200 px-3 py-1.5 rounded-lg cursor-default opacity-50">
-              Explore Neighbourhood 🧭
-            </button>
-          )}
         </div>
       </div>
     </div>
@@ -1217,9 +1210,9 @@ function BookDirectButton({
   return (
     <a
       href={detailHref}
-      className="bg-gradient-to-r from-[#0066FF] to-[#4C8BFF] hover:from-[#0052CC] hover:to-[#3B7AEE] text-white font-poppins font-black text-[.78rem] px-5 min-h-[44px] inline-flex items-center justify-center rounded-lg transition-all text-center whitespace-nowrap shadow-[0_2px_10px_rgba(0,102,255,0.25)]"
+      className="w-full bg-gradient-to-r from-[#0066FF] to-[#4C8BFF] hover:from-[#0052CC] hover:to-[#3B7AEE] text-white font-poppins font-black text-[.82rem] px-5 py-3 inline-flex items-center justify-center rounded-xl transition-all text-center shadow-[0_4px_14px_rgba(0,102,255,0.35)] hover:scale-[1.01]"
     >
-      <i className="fa-solid fa-lock mr-1" /> Book Direct →
+      <i className="fa-solid fa-lock mr-1.5" /> Book Direct — Best Price →
     </a>
   );
 }
@@ -1229,10 +1222,10 @@ function BookDirectButton({
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const LOADING_MSGS = [
-  'Checking Trip.com...',
-  'Comparing Expedia...',
   'Searching live rates...',
+  'Comparing wholesale prices...',
   'Finding the best rates...',
+  'Checking direct availability...',
 ];
 
 function HotelSkeletonCard() {
@@ -1890,6 +1883,11 @@ function HotelsContent() {
   };
 
   const filteredHotels = hotels ? hotels.filter(h => {
+    // Direct-bookable only (2026-04-28). LiteAPI rows have an offerId we
+    // can take through our own checkout — those earn us full commission.
+    // Curated/non-bookable rows used to fall back to Trip.com but the
+    // multi-CTA was confusing trust and diluting the "Book Now" message.
+    if (!h.bookable || !h.offerId) return false;
     if (refundableOnly && h.refundable !== true) return false;
     if (boardFilter === 'any') return true;
     // Check top-level boardType AND all boardOptions
@@ -2048,13 +2046,13 @@ function HotelsContent() {
             className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(245,158,11,0.3)]">
             {loading ? 'Searching…' : 'Search Hotels →'}
           </button>
-          <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">Free comparison · Prices shown here · Click any hotel to book on the provider</p>
+          <p className="text-center text-[11px] leading-snug text-[#8E95A9] font-semibold mt-1.5">Book directly — no redirects, no hidden fees, best price guaranteed</p>
         </div>
 
       {/* ── Hot Deals ── */}
       {!searched && !loading && (
         <section
-          className="pt-10 pb-6 px-5"
+          className="pt-4 md:pt-10 pb-6 px-5"
           style={{ background: 'linear-gradient(180deg, #EAD9C2 0%, #DFC8A9 50%, #EAD9C2 100%)' }}
         >
           <div className="max-w-[1100px] mx-auto">
@@ -2468,45 +2466,42 @@ function HotelsContent() {
             );
           })()}
 
-          {/* No results */}
-          {hotels!.length === 0 && (
-            <section className="max-w-[860px] mx-auto px-5 py-8">
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
-                <span className="text-3xl mb-3 block">🔎</span>
-                <p className="font-poppins font-bold text-[.95rem] text-[#1A1D2B] mb-2">
-                  We couldn&apos;t find cached hotel prices for {searchedDest}.
+          {/* Empty state — only renders inside the {searched && !loading
+              && hotels !== null} branch above, so we know a search has run
+              and the response is back. Covers two scenarios that look
+              identical to the user:
+              1. API returned 0 hotels at all
+              2. API returned hotels but none were direct-bookable
+              After dropping Trip.com/Expedia fallbacks (2026-04-28) we'd
+              otherwise show a blank gap before the cross-sell tiles. */}
+          {(hotels!.length === 0 || sortedHotels!.length === 0) && (
+            <section className="max-w-[600px] mx-auto px-6 py-12">
+              <div className="flex flex-col items-center justify-center text-center bg-white border border-[#E8ECF4] rounded-3xl px-6 py-10 shadow-[0_8px_30px_rgba(10,22,40,0.08)]">
+                <div className="text-5xl mb-4" aria-hidden>🏨</div>
+                <h3 className="font-poppins font-black text-[1.2rem] text-[#1A1D2B] mb-2">
+                  No live rates right now
+                </h3>
+                <p className="text-[.85rem] text-[#5C6378] font-semibold max-w-sm mb-6 leading-relaxed">
+                  We couldn&apos;t find bookable rooms for those dates. Try adjusting your dates or guests, or search a nearby destination.
                 </p>
-                <p className="text-[.78rem] text-[#8E95A9] font-semibold">
-                  Compare live prices directly across our providers below.
-                </p>
+                <div className="flex flex-col gap-3 w-full max-w-xs">
+                  <button
+                    type="button"
+                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                    className="w-full py-3 rounded-2xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.85rem] transition-all shadow-[0_4px_14px_rgba(0,102,255,0.25)]"
+                  >
+                    🔍 Adjust Search
+                  </button>
+                  <a
+                    href="/packages"
+                    className="w-full py-3 rounded-2xl border border-[#E8ECF4] hover:bg-[#F8FAFC] text-[#1A1D2B] font-poppins font-semibold text-[.85rem] text-center transition-all"
+                  >
+                    📦 Try Holiday Packages Instead
+                  </a>
+                </div>
               </div>
             </section>
           )}
-
-          {/* Section 3: Provider Comparison Strip */}
-          <section className="max-w-[1000px] mx-auto px-5 pb-8">
-            <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">Also Compare on These Providers</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {PROVIDERS.map(p => {
-                const url = p.getUrl(searchedDest, checkin, checkout, adults, childCount, childrenAges);
-                return (
-                  <div key={p.name} className="bg-white border border-[#E8ECF4] rounded-xl p-4 flex flex-col items-center text-center hover:border-orange-300 hover:shadow-md transition-all">
-                    <div className="w-10 h-10 rounded-lg bg-[#F8FAFC] border border-[#E8ECF4] flex items-center justify-center text-xl mb-2">{p.logo}</div>
-                    <div className="font-poppins font-bold text-[.85rem] text-[#1A1D2B] mb-1">{p.name}</div>
-                    {cheapest ? (
-                      <div className="text-[.75rem] font-bold text-orange-600 mb-2">From £{cheapest.pricePerNight}/night</div>
-                    ) : (
-                      <div className="text-[.72rem] font-semibold text-[#8E95A9] mb-2">Check Price</div>
-                    )}
-                    <a href={redirectUrl(url, p.name, searchedDest, 'hotels')}
-                      className="w-full bg-orange-500 hover:bg-orange-600 text-white font-poppins font-bold text-[.72rem] py-2 rounded-lg transition-all">
-                      Search {p.name} →
-                    </a>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
 
           {/* Section D: Cross-sell */}
           <section className="max-w-[1000px] mx-auto px-5 pb-8">

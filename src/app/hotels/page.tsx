@@ -7,8 +7,8 @@ import { HOTELS_FAQS } from '@/lib/page-faqs';
 export const runtime = 'edge';
 
 export const metadata = {
-  title: 'Compare Hotel Prices from 6 Providers | JetMeAway',
-  description: 'Compare hotel prices from Booking.com, Expedia, Trip.com, Hotels.com, Agoda and Trivago. Find the best hotel deals worldwide.',
+  title: 'Book Hotels Direct — Live Wholesale Rates | JetMeAway',
+  description: 'Book hotels direct with JetMeAway. Live wholesale rates from 30+ suppliers, total prices including all taxes & fees, free cancellation on most rooms. No booking fees.',
 };
 
 export default function HotelsPage() {

@@ -4,8 +4,6 @@ import {
   BackHandler,
   Linking,
   Platform,
-  RefreshControl,
-  ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
@@ -42,8 +40,12 @@ export default function App() {
 
   const webviewRef = useRef<WebView>(null);
   const [canGoBack, setCanGoBack] = useState(false);
+  // Only the first navigation shows the full-screen spinner. Subsequent
+  // SPA route changes inside the WebView are silent — otherwise the
+  // overlay flashes on every search submit and competes with the site's
+  // own loading UI.
+  const [hasFirstLoaded, setHasFirstLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   // Android hardware back → WebView back when possible
   useEffect(() => {
@@ -83,60 +85,51 @@ export default function App() {
     }
   }, []);
 
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    webviewRef.current?.reload();
-    // WebView onLoadEnd will clear it; belt-and-braces timeout
-    setTimeout(() => setRefreshing(false), 1500);
-  }, []);
-
   if (!fontsLoaded) return null;
 
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
       <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
-        <ScrollView
-          contentContainerStyle={styles.flex}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={Colors.primary}
-              colors={[Colors.primary]}
-            />
-          }
-          // WebView owns scroll; ScrollView is just the pull-to-refresh host
-          scrollEnabled={false}
-        >
-          <WebView
-            ref={webviewRef}
-            source={{ uri: HOME_URL }}
-            onNavigationStateChange={onNavigationStateChange}
-            onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
-            onLoadStart={() => setIsLoading(true)}
-            onLoadEnd={() => {
-              setIsLoading(false);
-              setRefreshing(false);
-            }}
-            startInLoadingState
-            allowsBackForwardNavigationGestures
-            pullToRefreshEnabled
-            javaScriptEnabled
-            domStorageEnabled
-            sharedCookiesEnabled
-            thirdPartyCookiesEnabled
-            originWhitelist={['https://*', 'http://*']}
-            setSupportMultipleWindows={false}
-            applicationNameForUserAgent="JetMeAway/1.0 Mobile"
-            style={styles.webview}
-          />
-          {isLoading ? (
-            <View style={styles.loadingOverlay} pointerEvents="none">
-              <ActivityIndicator size="large" color={Colors.primary} />
-            </View>
-          ) : null}
-        </ScrollView>
+        <WebView
+          ref={webviewRef}
+          source={{ uri: HOME_URL }}
+          onNavigationStateChange={onNavigationStateChange}
+          onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
+          onLoadStart={() => {
+            if (!hasFirstLoaded) setIsLoading(true);
+          }}
+          onLoadEnd={() => {
+            setIsLoading(false);
+            setHasFirstLoaded(true);
+          }}
+          startInLoadingState
+          allowsBackForwardNavigationGestures
+          // pullToRefreshEnabled removed: scrolling fast to the top of a
+          // search results page was triggering a full reload, wiping the
+          // user's form state and search results. The site has its own
+          // refresh affordances (logo tap, in-page Search button).
+          pullToRefreshEnabled={false}
+          // bounces=false (iOS) + overScrollMode="never" (Android): without
+          // these, the rubber-band overscroll at top/bottom of search pages
+          // was being interpreted as a pull-to-refresh gesture and resetting
+          // the page even after pullToRefreshEnabled was off.
+          bounces={false}
+          overScrollMode="never"
+          javaScriptEnabled
+          domStorageEnabled
+          sharedCookiesEnabled
+          thirdPartyCookiesEnabled
+          originWhitelist={['https://*', 'http://*']}
+          setSupportMultipleWindows={false}
+          applicationNameForUserAgent="JetMeAway/1.0 Mobile"
+          style={styles.webview}
+        />
+        {isLoading && !hasFirstLoaded ? (
+          <View style={styles.loadingOverlay} pointerEvents="none">
+            <ActivityIndicator size="large" color={Colors.primary} />
+          </View>
+        ) : null}
       </SafeAreaView>
     </SafeAreaProvider>
   );

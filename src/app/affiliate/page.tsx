@@ -27,7 +27,7 @@ export default function AffiliateDisclosure() {
           <p className="font-bold text-[#1A1D2B] mt-3">Travel Aggregators</p>
           <p>Expedia Affiliate Program (via Partnerize), Travelpayouts Network (powering Aviasales and Hotellook integrations), and Trip.com Alliance Partner Programme.</p>
           <p className="font-bold text-[#1A1D2B] mt-3">Hotels</p>
-          <p>Nuitee (LiteAPI) for direct hotel inventory, plus comparison links to Booking.com, Expedia, Trip.com, Hotels.com, Agoda, and Trivago.</p>
+          <p>We integrate live hotel inventory via LiteAPI (Nuitee). When you complete a booking through our site, we may earn a commission from the hotel or our booking technology partner at no additional cost to you.</p>
           <p className="font-bold text-[#1A1D2B] mt-3">Tours &amp; Activities</p>
           <p>GetYourGuide, Viator, and Klook.</p>
           <p className="font-bold text-[#1A1D2B] mt-3">eSIM &amp; Connectivity</p>

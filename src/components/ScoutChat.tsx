@@ -80,7 +80,7 @@ export default function ScoutChat() {
           </span>
         )}
         {/* Avatar circle */}
-        <span className="relative w-16 h-16 rounded-full bg-gradient-to-br from-[#0066FF] to-[#4F46E5] shadow-[0_10px_28px_rgba(0,102,255,0.45)] flex items-center justify-center text-white text-[1.55rem] ring-4 ring-white group-hover:scale-105 transition-transform">
+        <span className="relative w-12 h-12 rounded-full bg-gradient-to-br from-[#0066FF] to-[#4F46E5] shadow-[0_8px_22px_rgba(0,102,255,0.45)] flex items-center justify-center text-white text-[1.05rem] ring-2 ring-white group-hover:scale-105 transition-transform">
           {open ? (
             <i className="fa-solid fa-xmark"></i>
           ) : (
@@ -88,7 +88,7 @@ export default function ScoutChat() {
           )}
           {/* Online pulse dot */}
           {!open && (
-            <span className="absolute bottom-1 right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full ring-2 ring-white">
+            <span className="absolute bottom-0.5 right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white">
               <span className="absolute inset-0 rounded-full bg-emerald-500 animate-ping opacity-75"></span>
             </span>
           )}
