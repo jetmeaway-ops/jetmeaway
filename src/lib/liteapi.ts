@@ -323,7 +323,13 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     address?: string;
     city?: string;
     country?: string;
+    // LiteAPI v3 actually returns `starRating` (camelCase). The legacy
+    // `stars` and `rating` aliases are also accepted because the sandbox
+    // response shape is not 100% consistent. Without this, every hotel
+    // card rendered with empty stars (2026-04-28).
     stars?: number;
+    starRating?: number;
+    rating?: number;
     main_photo?: string;
     hotelImages?: Array<{ url?: string } | string>;
     latitude?: number;
@@ -452,6 +458,8 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
         city?: string;
         country?: string;
         stars?: number;
+        starRating?: number;
+        rating?: number;
         main_photo?: string;
         latitude?: number;
         longitude?: number;
@@ -696,7 +704,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       address: h?.address || meta?.address,
       city: h?.city || meta?.city,
       country: h?.country || meta?.country,
-      stars: h?.stars ?? meta?.stars,
+      stars: h?.starRating ?? h?.stars ?? (h as { rating?: number })?.rating ?? meta?.starRating ?? meta?.stars ?? meta?.rating,
       thumbnail: h?.main_photo || meta?.main_photo || firstImage || null,
       latitude: h?.latitude ?? meta?.latitude ?? null,
       longitude: h?.longitude ?? meta?.longitude ?? null,
