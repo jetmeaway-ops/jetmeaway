@@ -1654,54 +1654,15 @@ function HotelsContent() {
     else if (sticky?.placeId && !dest) setSelectedPlaceId(sticky.placeId);
   }, []);
 
-  // ── Nearby-on-first-load ──────────────────────────────────────────────
-  // If the page was opened with no URL params AND we haven't already
-  // geolocated in this session, ask for the user's location, reverse-
-  // geocode to a city name, prefill sensible default dates, and let the
-  // auto-search effect below pick it up. Silent opt-out — browser prompt
-  // dismissal just falls back to the empty state.
-  const geolocTried = useRef(false);
-  useEffect(() => {
-    if (geolocTried.current) return;
-    geolocTried.current = true;
-    if (typeof window === 'undefined') return;
-    const p = new URLSearchParams(window.location.search);
-    if (p.get('destination') || p.get('city')) return; // user already has a dest
-    if (!navigator.geolocation) return;
-    // Skip if we already geolocated this session — don't spam the prompt.
-    try {
-      if (sessionStorage.getItem('jma-geoloc-done')) return;
-    } catch {}
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try { sessionStorage.setItem('jma-geoloc-done', '1'); } catch {}
-        const { latitude, longitude } = pos.coords;
-        try {
-          const r = await fetch(`/api/hotels/reverse-geocode?lat=${latitude}&lng=${longitude}`);
-          if (!r.ok) return;
-          const j = await r.json();
-          const name = j.displayName || j.city || '';
-          if (!name) return;
-          // Prefill destination + sensible defaults (tonight + 2 nights)
-          // ONLY if the user hasn't typed anything since mount.
-          setDestination((prev) => prev || name);
-          const d0 = new Date();
-          const d1 = new Date(d0.getTime() + 14 * 86400_000); // two weeks out
-          const d2 = new Date(d1.getTime() + 2 * 86400_000);
-          const fmt = (d: Date) => d.toISOString().split('T')[0];
-          setCheckin((prev) => prev || fmt(d1));
-          setCheckout((prev) => prev || fmt(d2));
-        } catch {
-          // Silent — page still works, user just doesn't get the auto-fill.
-        }
-      },
-      () => {
-        // User denied or timed out — record so we don't keep prompting.
-        try { sessionStorage.setItem('jma-geoloc-done', '1'); } catch {}
-      },
-      { enableHighAccuracy: false, timeout: 6_000, maximumAge: 3_600_000 },
-    );
-  }, []);
+  // Geolocation auto-fill removed 2026-04-27 — real Clarity recording
+  // showed a mobile visitor land on /hotels with the form pre-filled to
+  // "Greater London" + future dates and an auto-fired search underneath.
+  // Owner's call: "no pre filled and keep asking again and again for
+  // location". Visitors should always start with a clean form and pick
+  // their own destination. URL-shared links (?destination=...) still
+  // pre-fill via the param effect above; sticky search restores their
+  // own previous search but does NOT trigger an auto-search any more
+  // (see the tightened auto-search effect below).
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -1724,6 +1685,15 @@ function HotelsContent() {
     setLoading(true);
     setSearched(true);
     setSearchedDest(destination);
+
+    // Scroll to results container as soon as search fires. Same pattern
+    // as flights — without it, mobile users tap Search, see no change
+    // (loader is below the fold), and tap repeatedly thinking it's
+    // broken. setTimeout 50ms gives React a tick to render the loader
+    // before we scroll.
+    setTimeout(() => {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
 
     // Persist this search so the next visit pre-fills the form.
     saveSticky<StickyHotels>('hotels', {
@@ -1876,13 +1846,23 @@ function HotelsContent() {
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
-  // Auto-search when URL params are present
+  // Auto-search ONLY when the URL itself carries the search params (i.e.
+  // a shareable link like /hotels?destination=Belek&checkin=...&checkout=...).
+  // Sticky-restored values must NOT trigger an auto-search — the visitor
+  // should be the one to tap Search, otherwise we get the "page loads,
+  // results appear unbidden, user feels things are happening to them"
+  // problem the 2026-04-27 Clarity recording exposed.
   const autoSearched = useRef(false);
   useEffect(() => {
-    if (!autoSearched.current && destination && checkin && checkout) {
-      autoSearched.current = true;
-      handleSearch();
-    }
+    if (autoSearched.current) return;
+    if (!destination || !checkin || !checkout) return;
+    if (typeof window === 'undefined') return;
+    const p = new URLSearchParams(window.location.search);
+    const urlHasFullSearch =
+      (p.get('destination') || p.get('city')) && p.get('checkin') && p.get('checkout');
+    if (!urlHasFullSearch) return;
+    autoSearched.current = true;
+    handleSearch();
   }, [destination, checkin, checkout, handleSearch]);
 
   // Compute centre of hotels that have coordinates — used as "city centre"
@@ -2242,8 +2222,15 @@ function HotelsContent() {
         </section>
       )}
 
-      {/* ── Loading ── */}
-      {loading && <LoadingState dest={destination} />}
+      {/* ── Loading ──
+          Wrapped with the resultsRef so the handleSearch scrollIntoView
+          lands on the loader the moment the search fires. Mirror of the
+          fix on /flights. */}
+      {loading && (
+        <div ref={resultsRef}>
+          <LoadingState dest={destination} />
+        </div>
+      )}
 
       {/* ── Error ── */}
       {apiError && (
