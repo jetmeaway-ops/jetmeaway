@@ -655,11 +655,15 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     const bestOfferId = bestRate?.offerId || bestRoomType?.offerId;
     if (!bestRoomType || !bestRate || !bestOfferId) continue;
 
-    // Flatten the map, sort cheapest-first, cap at 12 so long supplier
-    // inventory lists don't overwhelm the rates table.
+    // Flatten the map, sort cheapest-first. Cap raised from 12 → 50 so
+    // the search-card "N room types available" chip can count distinct
+    // room names accurately. The old cap was producing "12 room types
+    // available" on every well-stocked hotel because 4 rooms × 3 boards
+    // = 12 (room×board) combos hit the slice (2026-04-28). The detail-
+    // page rates table still scrolls fine at 50 rows.
     const allOptions = Array.from(optionsByKey.values())
       .sort((a, b) => a.totalPrice - b.totalPrice)
-      .slice(0, 12);
+      .slice(0, 50);
 
     // ── PRICE: handle v3.0 flat numbers AND old nested objects ──
     let marketRaw: number;

@@ -520,6 +520,10 @@ type BoardOption = {
   totalPrice: number;
   pricePerNight: number;
   refundable: boolean;
+  /** Room name from LiteAPI, e.g. "Deluxe King". Used to count
+   *  distinct room types for the search-card chip. May be null when
+   *  the supplier didn't surface a specific name for the rate. */
+  roomName?: string | null;
 };
 
 type DealHotel = {
@@ -1090,16 +1094,38 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
           {/* Scout Summary — single-line teaser instead of the rate dump.
               Click flows to the detail page where the Scout Rooms Table
               does the real work. */}
-          {opts && opts.length > 1 && (
-            <a
-              href={detailHref}
-              className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FAF3E6] ring-1 ring-[#E8D8A8] text-[#6b5500] text-[.7rem] font-bold hover:bg-[#F5E9C8] transition-colors w-fit"
-            >
-              <i className="fa-solid fa-sparkles text-[.6rem]" />
-              {opts.length} room type{opts.length !== 1 ? 's' : ''} available
-              <span className="opacity-70">→</span>
-            </a>
-          )}
+          {/* Room-type chip — counts DISTINCT room names, not the
+              flattened (room × board) combinations. boardOptions can
+              carry up to 50 (roomName, boardType) entries from LiteAPI,
+              so the old `opts.length` was producing "12 room types
+              available" on every well-stocked hotel — wrong (it was
+              counting rate combos, capped at 12) and looked hardcoded.
+              (2026-04-28). Now: hotel with 4 rooms × 3 boards = "4 room
+              types available". Hotels with no roomName at all hide
+              the chip rather than show a meaningless "0". */}
+          {(() => {
+            if (!opts || opts.length === 0) return null;
+            const roomNames = new Set(
+              opts
+                .map(o => (o.roomName || '').trim().toLowerCase())
+                .filter(n => n.length > 0)
+            );
+            const roomCount = roomNames.size;
+            // Hide chip when there's nothing to compare. A "1 room type
+            // available" pill adds no value — there's no choice to make
+            // and nothing to click through to. Sell variety only.
+            if (roomCount <= 1) return null;
+            return (
+              <a
+                href={detailHref}
+                className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FAF3E6] ring-1 ring-[#E8D8A8] text-[#6b5500] text-[.7rem] font-bold hover:bg-[#F5E9C8] transition-colors w-fit"
+              >
+                <i className="fa-solid fa-sparkles text-[.6rem]" />
+                {roomCount} room type{roomCount !== 1 ? 's' : ''} available
+                <span className="opacity-70">→</span>
+              </a>
+            );
+          })()}
           <a href={detailHref} className="text-[.7rem] text-orange-600 font-bold mt-2 inline-block">View details →</a>
         </div>
 
