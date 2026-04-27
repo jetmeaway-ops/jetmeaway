@@ -53,7 +53,7 @@ export default function Contact() {
         name: 'Can I book a flight or hotel directly on JetMeAway?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Yes — hotels book directly through JetMeAway. You search, compare and pay all in one place, with no redirects and no hidden fees. Your confirmation lands in your inbox instantly. For flights and packages we route you to our ATOL-licensed partners (Expedia and Trip.com) to complete your booking with full financial protection.',
+          text: 'Yes — both flights and hotels book directly through JetMeAway. You search, compare and pay all in one place. Your hotel confirmation and flight e-ticket land in your inbox instantly. No redirects, no hidden fees. For holiday packages we route you to our trusted affiliate partners to complete your booking with full ATOL financial protection.',
         },
       },
       {
@@ -69,7 +69,7 @@ export default function Contact() {
         name: 'Who do I contact if I have a problem with my booking?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'It depends on how you booked. Hotels booked on JetMeAway: contact us directly at contact@jetmeaway.co.uk — we are the merchant of record and will handle your cancellation, change or refund. Flights or packages booked via a partner (Expedia or Trip.com): contact the provider first; if they are unresponsive, email us and we will help you escalate.',
+          text: 'It depends on how you booked. Hotel booked on JetMeAway: contact us directly at contact@jetmeaway.co.uk — we handle your cancellation, change or refund directly. Flight booked on JetMeAway: contact us directly at contact@jetmeaway.co.uk — we will issue your refund or manage your change request. Holiday package booked via a partner: contact the provider first (Expedia or Trip.com); if they are unresponsive, email us and we will help you escalate.',
         },
       },
       {
@@ -129,7 +129,7 @@ export default function Contact() {
               <span className="text-[.78rem] text-[#8E95A9]">Or use the contact form and we&apos;ll get back to you within 24 hours.</span>
             </>} />
             <InfoItem icon="fa-clock" title="Response Time" desc={<><span className="text-[.78rem] text-[#8E95A9]">Mon–Fri: Within 24 hours<br/>Weekends: Within 48 hours</span></>} />
-            <InfoItem icon="fa-shield-halved" title="Booking Queries" desc={<span className="text-[.78rem] text-[#8E95A9]">For hotel bookings made directly on JetMeAway, email <a href="mailto:contact@jetmeaway.co.uk" className="text-[#0066FF] font-bold hover:underline">contact@jetmeaway.co.uk</a> and we will help you directly. For flights and packages booked via our partners, please contact the provider first — then come to us if they are unresponsive.</span>} />
+            <InfoItem icon="fa-shield-halved" title="Booking Queries" desc={<span className="text-[.78rem] text-[#8E95A9]">For hotels and flights booked directly on JetMeAway, email <a href="mailto:contact@jetmeaway.co.uk" className="text-[#0066FF] font-bold hover:underline">contact@jetmeaway.co.uk</a> and we will help you directly. For holiday packages booked via our affiliate partners, please contact the provider first — then come to us if they are unresponsive.</span>} />
           </div>
 
           {/* Form */}
@@ -160,9 +160,9 @@ export default function Contact() {
           <h2 className="font-poppins font-bold text-[1rem] text-[#0066FF] mb-4">❓ FAQ</h2>
           <div className="space-y-3.5">
             <FAQ q="Is JetMeAway free to use?" a="Yes. JetMeAway is 100% free for travellers. We earn a commission from our partner providers when you book, but this never affects the price you pay." />
-            <FAQ q="Can I book a flight or hotel directly on JetMeAway?" a={`Yes — hotels book directly through JetMeAway. You search, compare and pay all in one place, with no redirects and no hidden fees. Your confirmation lands in your inbox instantly.\n\nFor flights and packages we route you to our ATOL-licensed partners (Expedia and Trip.com) to complete your booking with full financial protection.`} />
+            <FAQ q="Can I book a flight or hotel directly on JetMeAway?" a={`Yes — both flights and hotels book directly through JetMeAway. You search, compare and pay all in one place. Your hotel confirmation and flight e-ticket land in your inbox instantly. No redirects, no hidden fees.\n\nFor holiday packages we route you to our trusted affiliate partners to complete your booking with full ATOL financial protection.`} />
             <FAQ q="Is JetMeAway a registered UK company?" a="Yes. JetMeAway is registered in England & Wales with Companies House number 17140522. We are a UK travel comparison site operating under UK consumer law." />
-            <FAQ q="Who do I contact if I have a problem with my booking?" a={`It depends on how you booked:\n\n🏨 Hotel booked on JetMeAway — contact us directly at contact@jetmeaway.co.uk. We are the merchant of record and will handle your cancellation, change or refund.\n\n✈️ Flight or package booked via a partner — contact the provider first (Expedia or Trip.com). If they are unresponsive, email us and we will help you escalate.`} />
+            <FAQ q="Who do I contact if I have a problem with my booking?" a={`It depends on how you booked:\n\n🏨 Hotel booked on JetMeAway — contact us directly at contact@jetmeaway.co.uk. We handle your cancellation, change or refund directly.\n\n✈️ Flight booked on JetMeAway — contact us directly at contact@jetmeaway.co.uk. We will issue your refund or manage your change request.\n\n📦 Holiday package booked via a partner — contact the provider first (Expedia or Trip.com). If they are unresponsive, email us and we will help you escalate.`} />
             <FAQ q="How quickly does JetMeAway reply to messages?" a="Monday to Friday we aim to reply within 24 hours. Weekend messages are answered within 48 hours. For urgent booking issues we recommend contacting the provider directly for the fastest response." />
             <FAQ q="Does JetMeAway sell my personal data?" a="No. We never sell user data. We only share the minimum details required to complete a search or booking with the partner you choose. See our Privacy Policy for full details." />
             <FAQ q="How does JetMeAway make money?" a="We receive a referral commission from travel providers when a traveller books through a link on our site. This keeps JetMeAway free to use and does not change the price you pay the provider." />
