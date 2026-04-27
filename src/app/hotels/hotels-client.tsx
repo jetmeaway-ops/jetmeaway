@@ -1186,11 +1186,11 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
               </span>
             )}
           </div>
-          <div className="flex flex-col gap-2 w-full">
+          <div className="flex flex-col items-end gap-1.5 w-full mt-1">
             <BookDirectButton hotel={bookHotel} checkIn={checkin} checkOut={checkout} adults={adults} nights={nights} city={searchedDest} detailHref={detailHref} />
-            <div className="flex flex-wrap gap-x-3 gap-y-0.5 justify-center text-[.62rem] text-[#8E95A9] font-semibold">
+            <div className="flex flex-wrap gap-x-3 gap-y-0.5 justify-end text-[10px] text-[#9CA3AF] font-medium">
               <span>✅ No hidden fees</span>
-              <span>✅ Free cancellation on most rooms</span>
+              <span>✅ Free cancellation</span>
               <span>✅ Secure payment</span>
             </div>
           </div>
@@ -1254,7 +1254,7 @@ function BookDirectButton({
   return (
     <a
       href={detailHref}
-      className="w-full bg-gradient-to-r from-[#0066FF] to-[#4C8BFF] hover:from-[#0052CC] hover:to-[#3B7AEE] text-white font-poppins font-black text-[.82rem] px-5 py-3 inline-flex items-center justify-center rounded-xl transition-all text-center shadow-[0_4px_14px_rgba(0,102,255,0.35)] hover:scale-[1.01]"
+      className="inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-full bg-[#0a0f2e] hover:bg-[#111827] text-[#f5a623] font-poppins font-semibold text-[.72rem] whitespace-nowrap transition-all duration-200 hover:scale-[1.02] shadow-sm"
     >
       <i className="fa-solid fa-lock mr-1.5" /> Book Direct — Best Price →
     </a>
