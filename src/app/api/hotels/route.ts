@@ -266,19 +266,24 @@ async function fetchLiteApiHotels(
     return [];
   }
 
-  // When placeId is given we skip geocoding entirely — faster & more accurate
-  let resolvedCity: string | undefined;
-  let resolvedCountry: string | undefined;
-  if (!placeId) {
-    const countryCode = await resolveCountryCode(cityKey);
-    if (!countryCode) {
-      console.warn('[liteapi] could not resolve country code for city:', cityKey);
-      return [];
-    }
-    resolvedCity = cityKey.charAt(0).toUpperCase() + cityKey.slice(1);
-    resolvedCountry = countryCode;
+  // We DELIBERATELY ignore the Google Place ID for the LiteAPI call —
+  // owner's instruction 2026-04-27. LiteAPI treats borough-level Google
+  // Place IDs (Croydon, Wembley etc) as Greater-London regional pointers
+  // and returns hotels from Docklands, Hammersmith, Greenwich etc when
+  // the visitor only asked for Croydon. cityName + countryCode lookup
+  // works correctly. The placeId is still used as a cache-key suffix
+  // (kvKey) so two visitors picking the same Place ID share a cache hit,
+  // but it's never sent to LiteAPI itself. The placeId argument is
+  // kept in the signature to preserve callsite compatibility.
+  void placeId; // intentionally unused for LiteAPI lookup
+  const countryCode = await resolveCountryCode(cityKey);
+  if (!countryCode) {
+    console.warn('[liteapi] could not resolve country code for city:', cityKey);
+    return [];
   }
-  const cityName = resolvedCity || cityKey.charAt(0).toUpperCase() + cityKey.slice(1);
+  const resolvedCity = cityKey.charAt(0).toUpperCase() + cityKey.slice(1);
+  const resolvedCountry = countryCode;
+  const cityName = resolvedCity;
 
   // Build occupancy: one entry per room. Split adults across rooms (min 1 per
   // room). Put all children in the first room — LiteAPI allows uneven splits.
@@ -306,9 +311,8 @@ async function fetchLiteApiHotels(
   try {
     const result = await Promise.race([
       liteapiGetHotels({
-        ...(placeId
-          ? { destinationId: placeId }
-          : { cityName: resolvedCity, countryCode: resolvedCountry }),
+        cityName: resolvedCity,
+        countryCode: resolvedCountry,
         checkIn: checkin,
         checkOut: checkout,
         occupancy,
@@ -320,11 +324,11 @@ async function fetchLiteApiHotels(
         setTimeout(() => reject(new Error('LiteAPI timeout')), timeoutMs),
       ),
     ]);
-    console.log(`[liteapi] ${cityName} (${placeId || resolvedCountry || '?'}) ${checkin}→${checkout}: ${result.length} offers in ${Date.now() - t0}ms`);
+    console.log(`[liteapi] ${cityName} (${resolvedCountry}) ${checkin}→${checkout}: ${result.length} offers in ${Date.now() - t0}ms`);
     return result;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    console.warn(`[liteapi] ${cityName} (${placeId || resolvedCountry || '?'}) fetch failed after ${Date.now() - t0}ms:`, message);
+    console.warn(`[liteapi] ${cityName} (${resolvedCountry}) fetch failed after ${Date.now() - t0}ms:`, message);
     return [];
   }
 }
