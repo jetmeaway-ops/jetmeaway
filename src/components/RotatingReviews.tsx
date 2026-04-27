@@ -73,15 +73,38 @@ export default function RotatingReviews() {
       aria-label="Customer reviews"
     >
       <div className="max-w-[1100px] mx-auto px-6 py-4 flex items-center justify-center gap-5 flex-wrap">
-        {/* Trustpilot score badge */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Trustpilot score badge — now a clickable link to our public
+            Trustpilot profile. Clarity recording on 2026-04-27 caught a
+            real customer dead-clicking the rating three times in 8s,
+            then bailing — they were trying to verify the reviews and
+            getting nothing. The dead click was a top-of-funnel trust
+            killer. Until we wire the official Microsoft TrustBox widget
+            (waiting on Business Unit ID + API token), at least let them
+            land on the actual Trustpilot page. */}
+        <a
+          href="https://uk.trustpilot.com/review/jetmeaway.co.uk"
+          target="_blank"
+          rel="noopener nofollow"
+          aria-label="See JetMeAway reviews on Trustpilot (opens in new tab)"
+          className="flex items-center gap-2 shrink-0 hover:opacity-90 transition-opacity cursor-pointer group"
+        >
           <span className="inline-flex items-center gap-0.5">
             {[0, 1, 2, 3].map(i => <span key={i} className="text-emerald-400 text-[.95rem]">★</span>)}
             <span className="text-emerald-400/70 text-[.95rem]">★</span>
           </span>
           <span className="font-poppins font-black text-white text-[.85rem]">4.1</span>
-          <span className="font-[var(--font-dm-sans)] text-white/50 text-[.7rem]">on Trustpilot</span>
-        </div>
+          <span className="font-[var(--font-dm-sans)] text-white/50 text-[.7rem] group-hover:text-white/80 transition-colors">on Trustpilot</span>
+          {/* External-link icon — subtle but tells the user this is clickable */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 16 16"
+            fill="currentColor"
+            className="w-2.5 h-2.5 text-white/40 group-hover:text-white/70 transition-colors"
+            aria-hidden="true"
+          >
+            <path d="M9 2a1 1 0 0 0 0 2h2.586L6.293 9.293a1 1 0 1 0 1.414 1.414L13 5.414V8a1 1 0 1 0 2 0V3a1 1 0 0 0-1-1H9zM4 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-2a1 1 0 1 0-2 0v2H4V6h2a1 1 0 1 0 0-2H4z" />
+          </svg>
+        </a>
 
         <span className="hidden md:inline w-px h-5 bg-white/15" aria-hidden />
 
