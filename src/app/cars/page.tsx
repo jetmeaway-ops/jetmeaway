@@ -7,6 +7,7 @@ import DateRangePicker from '@/components/DateRangePicker';
 import { redirectUrl } from '@/lib/redirect';
 import { PageSchema } from '@/lib/page-schema';
 import { CARS_FAQS } from '@/lib/page-faqs';
+import { saveSticky, loadSticky, type StickyCars } from '@/lib/sticky-search';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    LOCATIONS — verified EconomyBookings airports
@@ -387,7 +388,8 @@ function CarsContent() {
 
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  // Read URL params
+  // Read URL params (URL wins) — fall back to sticky search for any field
+  // the URL doesn't supply. Stale dates dropped silently.
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     const loc = p.get('location') || '';
@@ -397,13 +399,33 @@ function CarsContent() {
     const pTime = p.get('pickupTime') || '';
     const dTime = p.get('dropoffTime') || '';
     const age = p.get('age') || '';
+
+    const sticky = loadSticky<StickyCars>('cars');
+    const today = new Date().toISOString().split('T')[0];
+
     if (loc) setLocation(loc);
+    else if (sticky?.location) setLocation(sticky.location);
+
     if (ret) { setReturnLocation(ret); setDifferentReturn(true); }
+    else if (sticky?.returnLocation) {
+      setReturnLocation(sticky.returnLocation);
+      setDifferentReturn(true);
+    }
+
     if (pickup) setPickupDate(pickup);
+    else if (sticky?.pickupDate && sticky.pickupDate >= today) setPickupDate(sticky.pickupDate);
+
     if (dropoff) setDropoffDate(dropoff);
+    else if (sticky?.dropoffDate && sticky.dropoffDate >= today) setDropoffDate(sticky.dropoffDate);
+
     if (pTime) setPickupTime(pTime);
+    else if (sticky?.pickupTime) setPickupTime(sticky.pickupTime);
+
     if (dTime) setDropoffTime(dTime);
+    else if (sticky?.dropoffTime) setDropoffTime(sticky.dropoffTime);
+
     if (age) setDriverAge(age);
+    else if (sticky?.age) setDriverAge(sticky.age);
   }, []);
 
   const today = new Date().toISOString().split('T')[0];
@@ -432,6 +454,17 @@ function CarsContent() {
     setSearchedReturnLoc(differentReturn ? returnLocation : location);
     setLoading(true);
     setSearched(false);
+
+    // Persist this search so the user comes back to a pre-filled form.
+    saveSticky<StickyCars>('cars', {
+      location,
+      returnLocation: differentReturn ? returnLocation : '',
+      pickupDate,
+      dropoffDate,
+      pickupTime,
+      dropoffTime,
+      age: driverAge,
+    });
 
     setTimeout(() => {
       setLoading(false);

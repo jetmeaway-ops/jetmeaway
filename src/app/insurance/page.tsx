@@ -8,13 +8,55 @@ import { redirectUrl } from '@/lib/redirect';
 import { PageSchema } from '@/lib/page-schema';
 import { INSURANCE_FAQS } from '@/lib/page-faqs';
 
+// Live-affiliate providers — only providers with a confirmed affiliate
+// relationship appear with a working CTA. Ekta is a marketplace itself, so
+// a single affiliate gives the customer 30+ underlying insurers to choose
+// from.
 const PROVIDERS = [
   {
     name: 'Ekta Traveling',
     logo: '🛡',
-    desc: 'Comprehensive cover from £3/day. Medical, cancellation & luggage.',
+    desc: 'Marketplace of 30+ insurers including AIG, Allianz & ERV. Cover from £3/day.',
     badge: 'Best Value',
     url: 'https://tp.media/r?campaign_id=225&marker=714449&p=5869&trs=512633&u=https%3A%2F%2Fektatraveling.com',
+  },
+];
+
+// Comparison shortlist — direct partner-website links so customers can
+// quote elsewhere. We don't earn on these clicks (affiliates pending
+// approval — see the project memory file). Listed so /insurance feels
+// like an actual comparison, not a one-provider redirect. Each link is
+// the public homepage; do NOT add referral params we haven't earned.
+const COMPARE_LINKS = [
+  {
+    name: 'Staysure',
+    desc: "UK's largest travel insurer for over-50s and pre-existing conditions.",
+    url: 'https://www.staysure.co.uk/',
+    note: 'Affiliate pending',
+  },
+  {
+    name: 'SafetyWing',
+    desc: 'Nomad cover for long-stay travellers and remote workers — monthly billing.',
+    url: 'https://safetywing.com/nomad-insurance',
+    note: 'Affiliate pending',
+  },
+  {
+    name: 'AXA',
+    desc: 'Single-trip and annual cover from a major UK insurer. FCA-regulated.',
+    url: 'https://www.axa.co.uk/insurance/personal/travel/',
+    note: 'Affiliate pending',
+  },
+  {
+    name: 'World Nomads',
+    desc: 'Adventure-friendly cover popular with backpackers and gap-year travellers.',
+    url: 'https://www.worldnomads.com/',
+    note: 'Affiliate pending',
+  },
+  {
+    name: 'Allianz Travel',
+    desc: 'Trip cancellation, medical and emergency assistance worldwide.',
+    url: 'https://www.allianz-assistance.co.uk/',
+    note: 'Affiliate pending',
   },
 ];
 
@@ -156,9 +198,10 @@ export default function InsurancePage() {
         </div>
       </section>
 
-      <section className="max-w-[1100px] mx-auto px-5 pb-16">
-        <p className="text-[.65rem] font-extrabold uppercase tracking-[3px] text-[#8E95A9] mb-1.5">All Providers</p>
-        <h2 className="font-poppins text-[1.4rem] font-black text-[#1A1D2B] mb-6">Travel Insurance Provider</h2>
+      <section className="max-w-[1100px] mx-auto px-5 pb-10">
+        <p className="text-[.65rem] font-extrabold uppercase tracking-[3px] text-[#8E95A9] mb-1.5">Live Quote Partner</p>
+        <h2 className="font-poppins text-[1.4rem] font-black text-[#1A1D2B] mb-2">Get an instant quote</h2>
+        <p className="text-[.78rem] text-[#5C6378] font-semibold mb-6 max-w-[640px]">Ekta Traveling is itself a marketplace — one form, prices from 30+ underwriters including AIG, Allianz, ERV and Mondial.</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {PROVIDERS.map(p => (
             <a key={p.name} href={redirectUrl(p.url, p.name, destination || 'your trip', 'insurance')} target="_blank" rel="noopener"
@@ -170,6 +213,32 @@ export default function InsurancePage() {
               </div>
               <p className="text-[.75rem] text-[#5C6378] font-semibold leading-relaxed mb-3">{p.desc}</p>
               <span className="text-[.72rem] font-black text-green-600 group-hover:underline">Get a Quote →</span>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      {/* Compare elsewhere — direct (unmonetised) links to other reputable
+          UK insurers so customers can sanity-check Ekta's price. We're
+          honest about the affiliate status; once approvals land we'll wire
+          their tracking IDs and remove the "affiliate pending" badge. */}
+      <section className="max-w-[1100px] mx-auto px-5 pb-16">
+        <div className="flex items-center justify-between flex-wrap gap-3 mb-2">
+          <p className="text-[.65rem] font-extrabold uppercase tracking-[3px] text-[#8E95A9]">Compare Elsewhere</p>
+          <span className="text-[.6rem] font-bold text-[#8E95A9] bg-[#F8FAFC] border border-[#F1F3F7] px-2.5 py-1 rounded-full">No affiliate code · direct site link</span>
+        </div>
+        <h2 className="font-poppins text-[1.4rem] font-black text-[#1A1D2B] mb-2">Other reputable insurers</h2>
+        <p className="text-[.78rem] text-[#5C6378] font-semibold mb-6 max-w-[640px]">We list these so you can sanity-check the marketplace price. Affiliate partnerships are in progress — for now JetMeAway earns nothing on these clicks.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {COMPARE_LINKS.map(c => (
+            <a key={c.name} href={c.url} target="_blank" rel="noopener nofollow sponsored"
+              className="block p-5 bg-white border border-[#F1F3F7] rounded-2xl hover:border-emerald-200 hover:shadow-md transition-all group">
+              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                <span className="font-poppins font-extrabold text-[.92rem] text-[#1A1D2B]">{c.name}</span>
+                <span className="text-[.55rem] font-black uppercase tracking-[1.5px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-100">{c.note}</span>
+              </div>
+              <p className="text-[.75rem] text-[#5C6378] font-semibold leading-relaxed mb-3">{c.desc}</p>
+              <span className="text-[.72rem] font-black text-emerald-600 group-hover:underline">Visit {c.name} →</span>
             </a>
           ))}
         </div>

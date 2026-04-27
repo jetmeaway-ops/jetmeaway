@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import DateRangePicker from '@/components/DateRangePicker';
 import DateMatrixStrip, { type MatrixOption, type ScoutTip } from '@/components/DateMatrixStrip';
 import { redirectUrl } from '@/lib/redirect';
+import { saveSticky, loadSticky, type StickyFlights } from '@/lib/sticky-search';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    AIRPORTS — 20 UK departures + 250+ worldwide destinations
@@ -1061,23 +1062,62 @@ function FlightsContent() {
     const dep = p.get('departure') || '';
     const ret = p.get('return') || '';
 
-    // Origin priority: URL param → user's saved preference → London (LON).
-    // London is the house default — no geolocation, no nearest-airport
-    // guessing. If a previous visit let the customer pick e.g. Manchester,
-    // that's preserved via localStorage.
+    // Sticky search — used to fill ANY field the URL doesn't supply. URL
+    // always wins so shareable links stay honest. We read once on mount.
+    const sticky = loadSticky<StickyFlights>('flights');
+
+    // Origin priority: URL param → sticky search → saved-airport preference
+    // → London (LON). London is the house default; no geolocation guessing.
     if (!o) {
       const saved = localStorage.getItem('jma_departure_airport');
-      setInitOrigin(saved || 'LON');
+      setInitOrigin(sticky?.origin || saved || 'LON');
     } else {
       setInitOrigin(o);
     }
 
-    if (d) setInitDest(d);
+    if (d) {
+      setInitDest(d);
+    } else if (sticky?.dest) {
+      setInitDest(sticky.dest);
+      if (sticky.destCity) setDestCity(sticky.destCity);
+    }
     if (destCityParam && d) setDestCity(destCityParam);
-    if (dep) setDepDate(dep);
-    if (ret) { setRetDate(ret); setTripType('return'); }
+    if (dep) {
+      setDepDate(dep);
+    } else if (sticky?.departure) {
+      // Don't restore stale dates — past departures get dropped silently.
+      const today = new Date().toISOString().split('T')[0];
+      if (sticky.departure >= today) setDepDate(sticky.departure);
+    }
+    if (ret) {
+      setRetDate(ret);
+      setTripType('return');
+    } else if (sticky?.return) {
+      const today = new Date().toISOString().split('T')[0];
+      if (sticky.return >= today) {
+        setRetDate(sticky.return);
+        setTripType(sticky.tripType === 'one-way' ? 'one-way' : 'return');
+      }
+    } else if (sticky?.tripType === 'one-way') {
+      setTripType('one-way');
+    }
+    // Pax — only restore if the URL doesn't include them at all.
+    const urlAdults = p.get('adults');
+    if (!urlAdults && sticky?.adults) setAdults(Math.min(9, Math.max(1, sticky.adults)));
+    const urlChildren = p.get('children');
+    if (!urlChildren && sticky?.children) setChildren(Math.min(8, Math.max(0, sticky.children)));
+    const urlInfants = p.get('infants');
+    if (!urlInfants && sticky?.infants) setInfants(Math.min(8, Math.max(0, sticky.infants)));
+
     const cab = (p.get('cabin') || '').toLowerCase();
-    if (cab === 'premium_economy' || cab === 'business' || cab === 'first') setCabinClass(cab);
+    if (cab === 'premium_economy' || cab === 'business' || cab === 'first') {
+      setCabinClass(cab);
+    } else if (!cab && sticky?.cabin) {
+      const sc = sticky.cabin.toLowerCase();
+      if (sc === 'premium_economy' || sc === 'business' || sc === 'first' || sc === 'economy') {
+        setCabinClass(sc as typeof cabinClass);
+      }
+    }
   }, []);
 
   /**
@@ -1125,6 +1165,21 @@ function FlightsContent() {
     setSearched(true);
     setScoutActive(false);
     setScoutAirlineCount(0);
+
+    // Persist this search so the user comes back to a pre-filled form.
+    saveSticky<StickyFlights>('flights', {
+      origin: originCode,
+      originCity,
+      dest: destCode,
+      destCity,
+      departure: depDate,
+      return: tripType === 'return' ? retDate : '',
+      adults,
+      children,
+      infants,
+      cabin: cabinClass,
+      tripType,
+    });
 
     // Shared across the v1 poll + the Duffel parallel arm so Duffel
     // offers (which carry offer_id for direct booking) always win for

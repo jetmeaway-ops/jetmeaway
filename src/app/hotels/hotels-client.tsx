@@ -7,6 +7,7 @@ import DateMatrixStrip, { type MatrixOption } from '@/components/DateMatrixStrip
 import { redirectUrl } from '@/lib/redirect';
 import { chooseDefaultTab } from '@/lib/silentScout';
 import { vibeTagsForSearchedCity } from '@/data/destinations';
+import { saveSticky, loadSticky, type StickyHotels } from '@/lib/sticky-search';
 
 const ScoutSidebar = dynamic(() => import('@/components/ScoutSidebar'), { ssr: false });
 const HotelMap = dynamic(() => import('@/components/HotelMap'), { ssr: false });
@@ -1604,7 +1605,8 @@ function HotelsContent() {
 
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  // Read URL params
+  // Read URL params (URL wins) — fall back to sticky search for any field
+  // the URL doesn't supply. Stale dates are silently dropped.
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     const dest = p.get('destination') || p.get('city') || '';
@@ -1615,14 +1617,32 @@ function HotelsContent() {
     const r = p.get('rooms');
     const s = p.get('stars');
     const pid = p.get('placeId');
+
+    const sticky = loadSticky<StickyHotels>('hotels');
+    const today = new Date().toISOString().split('T')[0];
+
     if (dest) setDestination(dest);
+    else if (sticky?.destination) setDestination(sticky.destination);
+
     if (cin) setCheckin(cin);
+    else if (sticky?.checkin && sticky.checkin >= today) setCheckin(sticky.checkin);
+
     if (cout) setCheckout(cout);
+    else if (sticky?.checkout && sticky.checkout >= today) setCheckout(sticky.checkout);
+
     if (a) setAdults(Math.min(10, Math.max(1, parseInt(a))));
+    else if (sticky?.adults) setAdults(Math.min(10, Math.max(1, sticky.adults)));
+
     if (c) setChildCount(Math.min(5, Math.max(0, parseInt(c))));
+    else if (typeof sticky?.children === 'number') setChildCount(Math.min(5, Math.max(0, sticky.children)));
+
     if (r) setRooms(Math.min(5, Math.max(1, parseInt(r))));
+    else if (sticky?.rooms) setRooms(Math.min(5, Math.max(1, sticky.rooms)));
+
     if (s) setMinStars(Math.min(5, Math.max(0, parseInt(s))));
+
     if (pid) setSelectedPlaceId(pid);
+    else if (sticky?.placeId && !dest) setSelectedPlaceId(sticky.placeId);
   }, []);
 
   // ── Nearby-on-first-load ──────────────────────────────────────────────
@@ -1695,6 +1715,17 @@ function HotelsContent() {
     setLoading(true);
     setSearched(true);
     setSearchedDest(destination);
+
+    // Persist this search so the next visit pre-fills the form.
+    saveSticky<StickyHotels>('hotels', {
+      destination,
+      placeId: selectedPlaceId || undefined,
+      checkin,
+      checkout,
+      adults,
+      children: childCount,
+      rooms,
+    });
 
     // Prefetch Trip.com cityId in the background so "Trip.com →" buttons
     // land on a results page with inventory already loaded. Non-blocking —

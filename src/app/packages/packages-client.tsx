@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import DateRangePicker from '@/components/DateRangePicker';
 import { redirectUrl } from '@/lib/redirect';
+import { saveSticky, loadSticky, type StickyPackages } from '@/lib/sticky-search';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DESTINATIONS (matches hotels page)
@@ -450,7 +451,8 @@ function PackagesContent() {
 
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  // Read URL params + localStorage
+  // Read URL params + sticky search + legacy localStorage airport pref.
+  // Priority for every field: URL > sticky > legacy fallback > house default.
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     const d = p.get('dest') || p.get('to') || p.get('destination') || '';
@@ -459,15 +461,30 @@ function PackagesContent() {
     const ret = p.get('return') || '';
     const a = p.get('adults');
     const c = p.get('children');
-    if (d) setDest(d);
-    if (dep) setDepDate(dep);
-    if (ret) setRetDate(ret);
-    if (a) setAdults(Math.max(1, parseInt(a)));
-    if (c) setChildren(Math.max(0, parseInt(c)));
 
-    // From field: URL param > user's saved preference > London default.
+    const sticky = loadSticky<StickyPackages>('packages');
+    const today = new Date().toISOString().split('T')[0];
+
+    if (d) setDest(d);
+    else if (sticky?.dest) setDest(sticky.dest);
+
+    if (dep) setDepDate(dep);
+    else if (sticky?.departure && sticky.departure >= today) setDepDate(sticky.departure);
+
+    if (ret) setRetDate(ret);
+    else if (sticky?.return && sticky.return >= today) setRetDate(sticky.return);
+
+    if (a) setAdults(Math.max(1, parseInt(a)));
+    else if (sticky?.adults) setAdults(Math.max(1, sticky.adults));
+
+    if (c) setChildren(Math.max(0, parseInt(c)));
+    else if (typeof sticky?.children === 'number') setChildren(Math.max(0, sticky.children));
+
+    // From field: URL > sticky > saved-airport pref > London default.
     if (f) {
       setFrom(f);
+    } else if (sticky?.from) {
+      setFrom(sticky.from);
     } else {
       try {
         const stored = localStorage.getItem('jma_departure_airport');
@@ -508,6 +525,16 @@ function PackagesContent() {
     setCheapestFlight(null);
     setCheapestHotel(null);
     setFlightAirline('');
+
+    // Persist this search so the user comes back to a pre-filled form.
+    saveSticky<StickyPackages>('packages', {
+      from,
+      dest,
+      departure: depDate,
+      return: retDate,
+      adults,
+      children,
+    });
 
     // Extract IATA codes
     const fromMatch = from.match(/\(([A-Z]{3})\)/);

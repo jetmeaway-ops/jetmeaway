@@ -281,7 +281,9 @@ function ExploreContent() {
   const [toursLoading, setToursLoading] = useState(false);
   const [toursError, setToursError] = useState('');
 
-  // Read URL params
+  // Read URL params + sticky search. If neither carries a destination,
+  // pre-load Barcelona so the page lands with live tours visible — empty
+  // states made the page feel broken.
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     const dest = p.get('destination') || p.get('dest') || '';
@@ -291,7 +293,26 @@ function ExploreContent() {
       setDestination(dest);
       setSearchedDest(dest);
       setSearched(true);
+      return;
     }
+    try {
+      const sticky = window.localStorage.getItem('jma_sticky_search:explore');
+      if (sticky) {
+        const parsed = JSON.parse(sticky) as { v?: number; d?: { dest?: string; date?: string } };
+        if (parsed?.d?.dest) {
+          setDestination(parsed.d.dest);
+          setSearchedDest(parsed.d.dest);
+          setSearched(true);
+          if (parsed.d.date) setTravelDate(parsed.d.date);
+          return;
+        }
+      }
+    } catch { /* ignore */ }
+    // Default to Barcelona — has curated experiences as a guaranteed fallback
+    // even if Viator returns nothing.
+    setDestination('Barcelona');
+    setSearchedDest('Barcelona');
+    setSearched(true);
   }, []);
 
   // Fetch Viator tours when destination changes
@@ -321,6 +342,13 @@ function ExploreContent() {
     if (!destination) return;
     setSearchedDest(destination);
     setSearched(true);
+    // Persist for next visit.
+    try {
+      window.localStorage.setItem(
+        'jma_sticky_search:explore',
+        JSON.stringify({ v: 1, t: Date.now(), d: { dest: destination, date: travelDate } }),
+      );
+    } catch { /* ignore */ }
   };
 
   const destKey = searchedDest.toLowerCase();
@@ -421,6 +449,21 @@ function ExploreContent() {
                 {tours.map((tour) => (
                   <TourCard key={tour.productCode} tour={tour} />
                 ))}
+              </div>
+            )}
+
+            {/* No-tours fallback — when API succeeds but returns nothing.
+                Without this the section just sits empty under its heading
+                and the page feels broken. We surface the curated list (if
+                we have one) plus a "compare providers" cue so the user
+                always has somewhere to click. */}
+            {!toursLoading && !toursError && tours.length === 0 && (
+              <div className="bg-[#F8FAFC] border border-[#E8ECF4] rounded-2xl p-5 mb-6">
+                <p className="text-[.82rem] text-[#5C6378] font-semibold">
+                  No live Viator inventory matched <strong className="text-[#1A1D2B]">{searchedDest}</strong>
+                  {activity ? <> for <strong className="text-[#1A1D2B]">{activity}</strong></> : null}.
+                  Try a different city or scroll down to compare on GetYourGuide and Klook.
+                </p>
               </div>
             )}
           </section>
@@ -533,25 +576,40 @@ function ExploreContent() {
         </>
       )}
 
-      {/* Popular destinations (when not searched) */}
-      {!searched && (
-        <section className="max-w-[1000px] mx-auto px-5 py-8">
-          <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-4">Popular Destinations for Activities</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {POPULAR.map(d => (
-              <button key={d.name} onClick={() => { setDestination(d.name); setSearchedDest(d.name); setSearched(true); }}
-                className="group relative rounded-2xl overflow-hidden h-44 block border border-[#E8ECF4] hover:shadow-lg transition-all text-left">
-                <img src={d.photo} alt={d.name} loading="lazy" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <div className="font-poppins font-black text-white text-[.95rem]">{d.name}</div>
-                  <div className="text-[.65rem] text-white/70 font-semibold">{d.count.toLocaleString()}+ activities</div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Popular destinations — always visible. Acts as both the "browse"
+          state on first visit AND a quick-switch surface after a search.
+          Pre-search the destination on click and scroll back up. */}
+      <section className="max-w-[1000px] mx-auto px-5 py-8">
+        <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-4">
+          {searched ? 'Try Another Destination' : 'Popular Destinations for Activities'}
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {POPULAR.map(d => (
+            <button key={d.name} onClick={() => {
+              setDestination(d.name);
+              setSearchedDest(d.name);
+              setSearched(true);
+              try {
+                window.localStorage.setItem(
+                  'jma_sticky_search:explore',
+                  JSON.stringify({ v: 1, t: Date.now(), d: { dest: d.name, date: travelDate } }),
+                );
+              } catch { /* ignore */ }
+              if (typeof window !== 'undefined') {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }}
+              className="group relative rounded-2xl overflow-hidden h-44 block border border-[#E8ECF4] hover:shadow-lg transition-all text-left">
+              <img src={d.photo} alt={d.name} loading="lazy" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-4">
+                <div className="font-poppins font-black text-white text-[.95rem]">{d.name}</div>
+                <div className="text-[.65rem] text-white/70 font-semibold">{d.count.toLocaleString()}+ activities</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </section>
 
       {/* Tips */}
       <section className="max-w-[860px] mx-auto px-5 pb-16">

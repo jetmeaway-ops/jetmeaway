@@ -53,7 +53,7 @@ export default function Contact() {
         name: 'Can I book a flight or hotel directly on JetMeAway?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'For most inventory we are a comparison engine — we redirect you to the trusted partner (Booking.com, Expedia, Trip.com and others) to complete your booking securely on their site.',
+          text: 'For most inventory we are a comparison engine — we redirect you to the trusted partner (Expedia, Trip.com, Aviasales and others) to complete your booking securely on their site. Hotel direct bookings via LiteAPI and flight direct bookings via Duffel happen on our own site.',
         },
       },
       {
@@ -160,7 +160,7 @@ export default function Contact() {
           <h2 className="font-poppins font-bold text-[1rem] text-[#0066FF] mb-4">❓ FAQ</h2>
           <div className="space-y-3.5">
             <FAQ q="Is JetMeAway free to use?" a="Yes. JetMeAway is 100% free for travellers. We earn a commission from our partner providers when you book, but this never affects the price you pay." />
-            <FAQ q="Can I book a flight or hotel directly on JetMeAway?" a="For most inventory we are a comparison engine — we redirect you to the trusted partner (Booking.com, Expedia, Trip.com and others) to complete your booking securely on their site." />
+            <FAQ q="Can I book a flight or hotel directly on JetMeAway?" a="For most inventory we are a comparison engine — we redirect you to the trusted partner (Expedia, Trip.com, Aviasales and others) to complete your booking securely on their site. Hotel direct bookings via LiteAPI and flight direct bookings via Duffel happen on our own site." />
             <FAQ q="Is JetMeAway a registered UK company?" a="Yes. JetMeAway is registered in England & Wales with Companies House number 17140522. We are a UK travel comparison site operating under UK consumer law." />
             <FAQ q="Who do I contact if I have a problem with my booking?" a="Because your booking contract is with the travel provider, please contact them first for cancellations, changes, refunds or complaints. If the provider is unresponsive, email us at contact@jetmeaway.co.uk and we will help you escalate." />
             <FAQ q="How quickly does JetMeAway reply to messages?" a="Monday to Friday we aim to reply within 24 hours. Weekend messages are answered within 48 hours. For urgent booking issues we recommend contacting the provider directly for the fastest response." />
