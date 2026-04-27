@@ -963,6 +963,8 @@ export async function GET(req: NextRequest) {
       id: `la_${o.hotelId}`,
       name: o.hotelName,
       stars: o.stars ?? 0,
+      reviewCount: o.reviewCount ?? null,
+      reviewScore: o.reviewScore ?? null,
       pricePerNight: Math.round((o.pricePerNight ?? o.price / nights) * 100) / 100,
       totalPrice: Math.round(o.price * 100) / 100,
       currency: o.currency || 'GBP',

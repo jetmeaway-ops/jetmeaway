@@ -191,6 +191,12 @@ export interface HotelOffer {
   city?: string;
   country?: string;
   stars?: number;
+  /** Aggregate review count from LiteAPI directory listing. Optional —
+   *  populated only when the supplier surfaces it in the search response.
+   *  Used to render a "★★★★ · 4,834 reviews" chip on search cards. */
+  reviewCount?: number;
+  /** 0-10 aggregate review score. Pairs with reviewCount on the chip. */
+  reviewScore?: number;
   thumbnail?: string | null;
   latitude?: number | null;
   longitude?: number | null;
@@ -330,6 +336,19 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     stars?: number;
     starRating?: number;
     rating?: number;
+    // LiteAPI v3 carries aggregate review data in the hotel directory
+    // response — the field naming varies by sandbox/prod, so we accept
+    // any of `reviewCount`/`numReviews`/`reviewsCount` for the count and
+    // `reviewScore`/`averageRating`/`guestRating` for the 0-10 score.
+    // If LiteAPI doesn't surface these here we silently fall back to no
+    // chip on the card; we'd need a separate /data/reviews batch call
+    // to populate them. (2026-04-28)
+    reviewCount?: number;
+    numReviews?: number;
+    reviewsCount?: number;
+    reviewScore?: number;
+    averageRating?: number;
+    guestRating?: number;
     main_photo?: string;
     hotelImages?: Array<{ url?: string } | string>;
     latitude?: number;
@@ -460,6 +479,12 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
         stars?: number;
         starRating?: number;
         rating?: number;
+        reviewCount?: number;
+        numReviews?: number;
+        reviewsCount?: number;
+        reviewScore?: number;
+        averageRating?: number;
+        guestRating?: number;
         main_photo?: string;
         latitude?: number;
         longitude?: number;
@@ -705,6 +730,10 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       city: h?.city || meta?.city,
       country: h?.country || meta?.country,
       stars: h?.starRating ?? h?.stars ?? (h as { rating?: number })?.rating ?? meta?.starRating ?? meta?.stars ?? meta?.rating,
+      reviewCount: h?.reviewCount ?? h?.numReviews ?? h?.reviewsCount
+        ?? meta?.reviewCount ?? meta?.numReviews ?? meta?.reviewsCount,
+      reviewScore: h?.reviewScore ?? h?.averageRating ?? h?.guestRating
+        ?? meta?.reviewScore ?? meta?.averageRating ?? meta?.guestRating,
       thumbnail: h?.main_photo || meta?.main_photo || firstImage || null,
       latitude: h?.latitude ?? meta?.latitude ?? null,
       longitude: h?.longitude ?? meta?.longitude ?? null,

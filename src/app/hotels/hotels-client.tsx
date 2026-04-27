@@ -554,6 +554,11 @@ type HotelResult = {
   id: number | string;
   name: string;
   stars: number;
+  /** Aggregate review count from LiteAPI directory listing — populated
+   *  only when supplier surfaces it. Used to show "4,834 reviews" chip. */
+  reviewCount?: number | null;
+  /** 0-10 aggregate review score — pairs with reviewCount on the chip. */
+  reviewScore?: number | null;
   pricePerNight: number;
   location: string;
   district: string | null;
@@ -1029,7 +1034,20 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
         {/* Info */}
         <div className="p-5 flex flex-col justify-center">
           <a href={detailHref} className="hover:bg-[#F8FAFC] transition-colors">
-            <div className="mb-1"><Stars count={h.stars} /></div>
+            <div className="mb-1 flex items-center gap-2 flex-wrap">
+              <Stars count={h.stars} />
+              {typeof h.reviewCount === 'number' && h.reviewCount > 0 && (
+                <span className="inline-flex items-center gap-1 text-[.68rem] font-bold text-[#5C6378]">
+                  {typeof h.reviewScore === 'number' && h.reviewScore > 0 && (
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <i className="fa-solid fa-thumbs-up text-[.55rem]" aria-hidden />
+                      {h.reviewScore.toFixed(1)}
+                    </span>
+                  )}
+                  <span>{h.reviewCount.toLocaleString()} reviews</span>
+                </span>
+              )}
+            </div>
             <h3 className="font-[var(--font-playfair)] font-black text-[1.2rem] text-[#0a1628] tracking-tight mb-1 leading-tight">{h.name}</h3>
             {h.district && <p className="text-[.75rem] text-[#8E95A9] font-semibold mb-1">📍 {h.district}</p>}
             {(milesFromCentre != null || milesFromAirport != null) && (
