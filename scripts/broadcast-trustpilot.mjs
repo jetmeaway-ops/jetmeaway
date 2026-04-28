@@ -70,7 +70,7 @@ const MESSAGE = [
   '',
   '⭐ https://uk.trustpilot.com/evaluate/jetmeaway.co.uk',
   '🌍 jetmeaway.co.uk',
-  '📞 0117 463 0606',
+  '📞 0800 652 6699 (free from UK)',
 ].join('\n');
 
 // --- Arg parsing -------------------------------------------------------

@@ -53,7 +53,7 @@ Once your Play Console account is approved:
    - Feature graphic → upload `assets/store/feature-graphic.png`
    - Phone screenshots → need at least 2, see Step 5 below
    - Category: Travel & Local
-   - Contact details: email contact@jetmeaway.co.uk, website jetmeaway.co.uk, phone +44 117 463 0606
+   - Contact details: email contact@jetmeaway.co.uk, website jetmeaway.co.uk, phone +44 800 652 6699
    - Privacy policy: https://jetmeaway.co.uk/privacy
 4. **App content** tab:
    - Privacy policy URL → https://jetmeaway.co.uk/privacy

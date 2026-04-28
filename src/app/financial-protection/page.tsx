@@ -41,7 +41,7 @@ export default function FinancialProtection() {
 
           <div className="mt-8 pt-6 border-t border-[#F1F3F7]">
             <p className="text-[.78rem] text-[#8E95A9]">
-              For booking support, call <a href="tel:+441174630606" className="text-[#0066FF] font-bold">0117 463 0606</a> or email <a href="mailto:contact@jetmeaway.co.uk" className="text-[#0066FF] font-bold">contact@jetmeaway.co.uk</a>.
+              For booking support, call <a href="tel:+448006526699" className="text-[#0066FF] font-bold">0800 652 6699</a> (free from UK) or email <a href="mailto:contact@jetmeaway.co.uk" className="text-[#0066FF] font-bold">contact@jetmeaway.co.uk</a>.
             </p>
           </div>
         </div>

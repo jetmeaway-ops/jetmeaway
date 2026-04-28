@@ -64,5 +64,5 @@ travel, flights, hotels, booking, holiday, packages, city guide, neighbourhood, 
 
 Website: https://jetmeaway.co.uk
 Email: contact@jetmeaway.co.uk
-Phone: +44 117 463 0606
+Phone: +44 800 652 6699 (free from UK)
 Privacy policy: https://jetmeaway.co.uk/privacy

@@ -11,8 +11,8 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const URL = 'https://jetmeaway.co.uk/?utm_source=poster&utm_medium=shopfront&utm_campaign=a1_q2_2026';
-const PHONE_DISPLAY = '+44 117 463 0606';   // JetMeAway call centre
-const PHONE_HOURS = '24/7 · UK CALL CENTRE';
+const PHONE_DISPLAY = '0800 652 6699';   // JetMeAway call centre — UK freephone
+const PHONE_HOURS = 'FREE · 24/7 · UK CALL CENTRE';
 
 const BLEED = 3;
 const W = 594, H = 841;

@@ -12,7 +12,7 @@ const jsonLd = [
     url: 'https://jetmeaway.co.uk',
     logo: 'https://jetmeaway.co.uk/jetmeaway-logo.png',
     email: 'contact@jetmeaway.co.uk',
-    telephone: '+44-117-463-0606',
+    telephone: '+44-800-652-6699',
     description:
       'JetMeAway is a UK-registered travel comparison and booking platform. Prices are locked at booking — we never call or email to demand additional payment.',
     address: {
@@ -25,7 +25,7 @@ const jsonLd = [
     contactPoint: {
       '@type': 'ContactPoint',
       email: 'contact@jetmeaway.co.uk',
-      telephone: '+44-117-463-0606',
+      telephone: '+44-800-652-6699',
       contactType: 'customer support',
       areaServed: 'GB',
       availableLanguage: ['English'],

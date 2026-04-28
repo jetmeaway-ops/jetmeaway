@@ -41,8 +41,8 @@ export default function Footer() {
         </div>
         <div className="max-w-[800px] mb-7">
           <div className="text-[.55rem] uppercase tracking-[2.5px] font-extrabold text-white/75 mb-1.5">Booking Support</div>
-          <a href="tel:+441174630606" className="inline-block font-poppins font-bold text-[.75rem] text-[#FFD700] hover:text-white transition-colors mb-1.5">
-            +44 117 463 0606
+          <a href="tel:+448006526699" className="inline-block font-poppins font-bold text-[.75rem] text-[#FFD700] hover:text-white transition-colors mb-1.5">
+            +44 800 652 6699 <span className="text-[.6rem] font-bold uppercase tracking-[1.5px] text-emerald-300 ml-1">Free</span>
           </a>
           <p className="text-[.72rem] text-white/75 leading-relaxed font-semibold">24/7 for active bookings. Email <a href="mailto:contact@jetmeaway.co.uk" className="text-white/85 hover:text-white underline">contact@jetmeaway.co.uk</a> for other enquiries.</p>
         </div>
