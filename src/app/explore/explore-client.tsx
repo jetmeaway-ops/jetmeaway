@@ -197,7 +197,7 @@ function TourCard({ tour }: { tour: Tour }) {
     <a
       href={redirectUrl(tour.bookingUrl, 'Viator', tour.title, 'explore')}
       target="_blank"
-      rel="noopener noreferrer"
+      rel="noopener noreferrer sponsored"
       className="group bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden hover:shadow-lg transition-all flex flex-col"
     >
       {/* Image */}
@@ -208,6 +208,18 @@ function TourCard({ tour }: { tour: Tour }) {
             alt={tour.title}
             loading="lazy"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={(e) => {
+              const el = e.currentTarget;
+              el.style.display = 'none';
+              const parent = el.parentElement;
+              if (parent && !parent.querySelector('[data-img-fallback]')) {
+                const ph = document.createElement('div');
+                ph.setAttribute('data-img-fallback', '');
+                ph.className = 'w-full h-full flex items-center justify-center text-[#B0B8CC] text-3xl';
+                ph.textContent = '🎫';
+                parent.appendChild(ph);
+              }
+            }}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-[#B0B8CC] text-3xl">🎫</div>
@@ -499,6 +511,7 @@ function ExploreContent() {
                         </div>
                       </div>
                       <a href={redirectUrl(url, p.name, searchedDest, 'explore')}
+                        target="_blank" rel="noopener noreferrer sponsored"
                         className="bg-teal-500 hover:bg-teal-600 text-white font-poppins font-bold text-[.82rem] px-6 py-3 rounded-xl transition-all whitespace-nowrap shadow-sm">
                         Search {p.name} →
                       </a>
@@ -533,6 +546,7 @@ function ExploreContent() {
                         </div>
                       </div>
                       <a href={redirectUrl(url, exp.provider, searchedDest, 'explore')}
+                        target="_blank" rel="noopener noreferrer sponsored"
                         className="mt-3 block w-full text-center bg-teal-50 hover:bg-teal-100 text-teal-700 font-poppins font-bold text-[.75rem] py-2.5 rounded-xl transition-all border border-teal-200">
                         View on {exp.provider} →
                       </a>
@@ -600,7 +614,18 @@ function ExploreContent() {
               }
             }}
               className="group relative rounded-2xl overflow-hidden h-44 block border border-[#E8ECF4] hover:shadow-lg transition-all text-left">
-              <img src={d.photo} alt={d.name} loading="lazy" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+              <img src={d.photo} alt={d.name} loading="lazy" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                onError={(e) => {
+                  const el = e.currentTarget;
+                  el.style.display = 'none';
+                  if (el.parentElement && !el.parentElement.querySelector('[data-img-fallback]')) {
+                    const ph = document.createElement('div');
+                    ph.setAttribute('data-img-fallback', '');
+                    ph.className = 'absolute inset-0 bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center text-4xl';
+                    ph.textContent = '🌍';
+                    el.parentElement.appendChild(ph);
+                  }
+                }} />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-4">
                 <div className="font-poppins font-black text-white text-[.95rem]">{d.name}</div>

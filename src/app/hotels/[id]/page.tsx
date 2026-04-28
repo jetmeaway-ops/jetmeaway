@@ -276,6 +276,23 @@ export default function HotelDetailPage() {
 
   useEffect(() => {
     let cancelled = false;
+    // Curated hotel IDs are numeric (1-200); the details endpoint can only
+    // resolve LiteAPI IDs (alphanumeric like `lp6558ae6f`) and DOTW/RH rows
+    // are quarantined. Don't bother fetching for a curated row — bounce back
+    // to the search page so the user lands on something useful instead of
+    // a dead-end "Hotel not found" message. Preserves their original search
+    // context so the page restores their dates/guests.
+    if (/^\d+$/.test(String(id))) {
+      const params = new URLSearchParams();
+      if (city) params.set('city', city);
+      if (checkin) params.set('checkin', checkin);
+      if (checkout) params.set('checkout', checkout);
+      if (adults) params.set('adults', adults);
+      if (children) params.set('children', children);
+      if (rooms) params.set('rooms', rooms);
+      window.location.replace(`/hotels${params.toString() ? '?' + params.toString() : ''}`);
+      return;
+    }
     (async () => {
       try {
         const res = await fetch(`/api/hotels/details/${encodeURIComponent(id)}`, { cache: 'force-cache' });
@@ -290,7 +307,7 @@ export default function HotelDetailPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [id]);
+  }, [id, city, checkin, checkout, adults, children, rooms]);
 
   // Fetch similar hotels in the same city
   useEffect(() => {

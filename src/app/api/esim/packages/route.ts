@@ -20,6 +20,11 @@ export async function GET(req: NextRequest) {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'eSIM packages lookup failed';
     console.error('[esim/packages]', message);
-    return NextResponse.json({ packages: [], error: message }, { status: 500 });
+    // Soft-fail: return 200 with empty list + fallback flag so the eSIM page
+    // shows direct Airalo / Yesim affiliate CTAs instead of a 500-driven
+    // "Could not load live plans" banner. The page still earns commission
+    // through tpk.lu shortlinks even when LiteAPI is down or the key is
+    // briefly unset (2026-04-28).
+    return NextResponse.json({ packages: [], country, error: message, fallback: true }, { status: 200 });
   }
 }

@@ -1139,13 +1139,24 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
             )}
             {priceView === 'perPerson' ? (
               <>
-                {h.marketPrice != null && h.negotiatedPrice != null && h.negotiatedPrice < h.marketPrice && (
-                  <div className="text-[.72rem] text-[#8E95A9] font-bold line-through mb-0.5">£{Math.round(h.marketPrice / Math.max(1, adults))}/person</div>
-                )}
-                <div className="font-[var(--font-playfair)] font-black text-[1.65rem] text-[#0a1628] tracking-tight leading-none">£{Math.round(displayTotal / Math.max(1, adults))}<span className="text-[.7rem] font-semibold text-[#8E95A9] tracking-normal">/person</span></div>
-                {nights > 0 && (
-                  <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">£{displayTotal} total · {nights} night{nights !== 1 ? 's' : ''} · {adults} guest{adults !== 1 ? 's' : ''}</div>
-                )}
+                {/* Per-person divides by total guests (adults + children) so a 2A+2C
+                    booking shows the correct quarter-of-total figure. Previously
+                    divided by adults only, overstating per-person cost when kids
+                    were included (2026-04-28 fix). */}
+                {(() => {
+                  const guests = Math.max(1, adults + (children || 0));
+                  return (
+                    <>
+                      {h.marketPrice != null && h.negotiatedPrice != null && h.negotiatedPrice < h.marketPrice && (
+                        <div className="text-[.72rem] text-[#8E95A9] font-bold line-through mb-0.5">£{Math.round(h.marketPrice / guests)}/person</div>
+                      )}
+                      <div className="font-[var(--font-playfair)] font-black text-[1.65rem] text-[#0a1628] tracking-tight leading-none">£{Math.round(displayTotal / guests)}<span className="text-[.7rem] font-semibold text-[#8E95A9] tracking-normal">/person</span></div>
+                      {nights > 0 && (
+                        <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">£{displayTotal} total · {nights} night{nights !== 1 ? 's' : ''} · {guests} guest{guests !== 1 ? 's' : ''}</div>
+                      )}
+                    </>
+                  );
+                })()}
               </>
             ) : (
               <>
@@ -1458,7 +1469,18 @@ function CompareModal({ hotels, nights, priceView, adults, childCount, buildDeta
               return (
                 <div key={h.id} className={`border rounded-2xl overflow-hidden flex flex-col ${isCheapest ? 'border-[#E8D8A8] ring-2 ring-[#E8D8A8]/70 bg-[#FFFCF5]' : 'border-[#E8ECF4] bg-white'}`}>
                   <div className="relative aspect-[4/3] bg-[#F1F3F7]">
-                    {photo ? <img src={photo} alt={h.name} className="w-full h-full object-cover" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center text-3xl">🛏</div>}
+                    {photo ? <img src={photo} alt={h.name} className="w-full h-full object-cover" loading="lazy"
+                      onError={(e) => {
+                        const el = e.currentTarget;
+                        el.style.display = 'none';
+                        if (el.parentElement && !el.parentElement.querySelector('[data-img-fallback]')) {
+                          const ph = document.createElement('div');
+                          ph.setAttribute('data-img-fallback', '');
+                          ph.className = 'w-full h-full flex items-center justify-center text-3xl';
+                          ph.textContent = '🛏';
+                          el.parentElement.appendChild(ph);
+                        }
+                      }} /> : <div className="w-full h-full flex items-center justify-center text-3xl">🛏</div>}
                     {isCheapest && (
                       <span className="absolute top-2 left-2 text-[.55rem] font-black uppercase tracking-[1.5px] bg-[#FAF3E6] text-[#8a6d00] ring-1 ring-[#E8D8A8] px-2 py-0.5 rounded-full">
                         Cheapest total

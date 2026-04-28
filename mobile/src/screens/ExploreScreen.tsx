@@ -173,14 +173,13 @@ export default function ExploreScreen() {
       }
       const json = await res.json();
       if (json.hotels && json.hotels.length > 0) {
-        // Add approximate coordinates around city center
-        const cityCoords = CITY_COORDS[searchCity] || { lat: 51.5074, lng: -0.1278 };
-        const withCoords = json.hotels.map((h: NearbyHotel, i: number) => ({
-          ...h,
-          lat: h.lat || cityCoords.lat + (Math.random() - 0.5) * 0.04,
-          lng: h.lng || cityCoords.lng + (Math.random() - 0.5) * 0.04,
-        }));
-        setHotels(withCoords);
+        // Pass through real coords only. We used to inject randomised offsets
+        // around the city centre when LiteAPI didn't return lat/lng, but that
+        // showed pins for hotels that weren't actually at those locations —
+        // a trust-eroding lie on a brand-new product. The map renderer below
+        // already handles missing-coord rows by skipping their marker; the
+        // list view shows them just fine.
+        setHotels(json.hotels as NearbyHotel[]);
       } else {
         setHotels([]);
       }

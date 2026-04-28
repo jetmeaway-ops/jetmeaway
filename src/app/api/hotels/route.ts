@@ -9,6 +9,62 @@ export const runtime = 'edge';
 
 const KV_TTL = 43200; // 12 hours
 
+/** Airport / landmark name → nearest city LiteAPI actually has hotels for.
+ *  LiteAPI's /data/hotels treats these as airport types and returns 0 rows
+ *  when sent as cityName. Rewrite happens BEFORE resolveCountryCode so we
+ *  also bypass the stale `geocode:cc:gatwick → GB` Nominatim KV cache. */
+const AIRPORT_TO_CITY: Record<string, string> = {
+  // UK airports
+  'gatwick': 'horley',
+  'heathrow': 'london',
+  'stansted': 'london',
+  'luton': 'luton',
+  'london city': 'london',
+  'london city airport': 'london',
+  'manchester airport': 'manchester',
+  'birmingham airport': 'birmingham',
+  'edinburgh airport': 'edinburgh',
+  'glasgow airport': 'glasgow',
+  // London outer-suburbs that LiteAPI's /data/hotels has no city entry for.
+  // We alias to "london" so /data/hotels returns Greater-London inventory
+  // rather than 0 results. Croydon/Wembley/Greenwich/Docklands etc are
+  // intentionally NOT aliased here — those already work via the haversine
+  // post-filter at hotels-client.tsx (geo-proximity narrows London-wide
+  // results to the borough). Only suburbs that LiteAPI returns 0 for AND
+  // that are not in the geo-filter coord map get aliased. Added 2026-04-28
+  // after user reported Coulsdon → 0 hotels.
+  'coulsdon': 'london',
+  'purley': 'london',
+  'caterham': 'london',
+  'kenley': 'london',
+  'whyteleafe': 'london',
+  'warlingham': 'london',
+  // EU
+  'cdg': 'paris', 'charles de gaulle': 'paris', 'orly': 'paris',
+  'fco': 'rome', 'fiumicino': 'rome',
+  'mxp': 'milan', 'malpensa': 'milan',
+  'bcn': 'barcelona',
+  'mad': 'madrid', 'barajas': 'madrid',
+  'ams': 'amsterdam', 'schiphol': 'amsterdam',
+  'fra': 'frankfurt',
+  'muc': 'munich',
+  'zrh': 'zurich',
+  // US
+  'jfk': 'new york', 'lga': 'new york', 'ewr': 'new york', 'newark': 'new york',
+  'lax': 'los angeles',
+  'mco': 'orlando',
+  'mia': 'miami',
+  'ord': 'chicago', "o'hare": 'chicago',
+  'sfo': 'san francisco',
+  'las': 'las vegas', 'mccarran': 'las vegas', 'harry reid': 'las vegas',
+  // Asia / ME
+  'dxb': 'dubai',
+  'doh': 'doha',
+  'sin': 'singapore', 'changi': 'singapore',
+  'hnd': 'tokyo', 'haneda': 'tokyo', 'narita': 'tokyo',
+  'bkk': 'bangkok', 'suvarnabhumi': 'bangkok',
+};
+
 /** City → ISO-3166 alpha-2 country code for LiteAPI lookups */
 const CITY_COUNTRY: Record<string, string> = {
   // Spain
@@ -19,6 +75,7 @@ const CITY_COUNTRY: Record<string, string> = {
   'london': 'GB', 'edinburgh': 'GB', 'manchester': 'GB', 'glasgow': 'GB',
   'liverpool': 'GB', 'birmingham': 'GB', 'bristol': 'GB', 'leeds': 'GB',
   'belfast': 'GB', 'cardiff': 'GB', 'dublin': 'IE',
+  'horley': 'GB', 'crawley': 'GB', 'luton': 'GB',
   // France
   'paris': 'FR', 'nice': 'FR', 'lyon': 'FR', 'marseille': 'FR',
   // Italy
@@ -915,7 +972,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(response);
   }
 
-  const cityKey = city.toLowerCase().trim();
+  const rawCityKey = city.toLowerCase().trim();
+  // Rewrite airport/landmark names → nearest city LiteAPI knows. Without this,
+  // searches for "Gatwick", "Heathrow", "JFK" etc return 0 hotels because
+  // LiteAPI's /data/hotels?cityName=Gatwick has no city by that name.
+  // Runs before resolveCountryCode so it also bypasses any stale Nominatim
+  // KV cache that mapped the airport name to a country code.
+  const cityKey = AIRPORT_TO_CITY[rawCityKey] || rawCityKey;
+  if (cityKey !== rawCityKey) {
+    console.log(`[hotels] rewriting "${rawCityKey}" → "${cityKey}" (airport→city alias)`);
+  }
   const adultsNum = parseInt(adults);
   const childrenNum = Math.max(0, Math.min(4, parseInt(childrenParam) || 0));
   const childAges = childrenAgesParam
@@ -931,7 +997,8 @@ export async function GET(req: NextRequest) {
   // (Croydon, Wembley, etc) used to leak Greater-London results because LiteAPI
   // treats the borough's Google Place ID as a metro pointer. Bumping the cache
   // version invalidates any cached "Croydon → Docklands+Hammersmith" responses.
-  const kvKey = `hotels:v13:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
+  // v14 — airport→city aliasing + non-GBP offer filter + sanity floor
+  const kvKey = `hotels:v14:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
 
   // Group occupancy bypass: large groups (>4 guests) always get fresh prices
   // because cached availability/room blocks may not hold for that many people.

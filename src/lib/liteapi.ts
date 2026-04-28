@@ -704,9 +704,29 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
           .reduce((sum, t) => sum + (t.amount || 0), 0)
       : 0;
     const roomCount = (bestRoomType.rates || []).length || 1;
-    const extraTaxes = perRoomExcluded * roomCount;
-    const commissionArr = bestRate.commission || [];
+    // Clamp negative supplier-side adjustments — taxes-and-fees field has been
+    // observed to carry refund deltas as negative entries which would make
+    // priceBeforeTax less than priceTotal, confusing the UI.
+    const extraTaxes = Math.max(0, perRoomExcluded * roomCount);
+    const commissionArr = Array.isArray(bestRate.commission) ? bestRate.commission : [];
     const commission = commissionArr.length > 0 ? commissionArr.reduce((s, c) => s + (c.amount || 0), 0) : null;
+
+    // ── Sanity + currency guards ────────────────────────────────────────────
+    // We render every price as £-prefixed on the client and don't FX-convert.
+    // If LiteAPI returned a non-GBP currency (some US/Asia hotels in sandbox
+    // ignore the requested currency) OR the per-night price is suspiciously
+    // low (< £10/night, almost certainly a unit/test-data bug like the £4
+    // Vegas offers seen 2026-04-28), drop the offer entirely instead of
+    // showing a wrong number.
+    const perNightForGuard = nights > 0 ? finalPrice / nights : finalPrice;
+    if (finalCurrency && finalCurrency !== 'GBP') {
+      console.warn(`[liteapi:drop] hotel=${entry.hotelId} non-GBP currency=${finalCurrency} price=${finalPrice} — dropped (no FX layer)`);
+      continue;
+    }
+    if (finalPrice > 0 && perNightForGuard < 10) {
+      console.warn(`[liteapi:drop] hotel=${entry.hotelId} suspiciously low pricePerNight=£${perNightForGuard.toFixed(2)} (total=£${finalPrice}, nights=${nights}) — dropped as data anomaly`);
+      continue;
+    }
 
     const priceBeforeTax = finalPrice > 0 ? finalPrice + extraTaxes : null;
     const pricePerNight = finalPrice > 0 ? finalPrice / nights : null;
@@ -729,7 +749,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     offers.push({
       offerId: bestOfferId,
       hotelId: entry.hotelId,
-      hotelName: h?.name || meta?.name || entry.hotelId,
+      hotelName: (h?.name?.trim?.() || meta?.name?.trim?.() || entry.hotelId),
       address: h?.address || meta?.address,
       city: h?.city || meta?.city,
       country: h?.country || meta?.country,
