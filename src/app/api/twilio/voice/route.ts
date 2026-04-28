@@ -536,19 +536,27 @@ function stepDialAgent(lang: Lang, ref: string, attempt: number) {
   const m = MSG[lang];
   const actionUrl = `/api/twilio/voice?step=dial-result&lang=${lang}&ref=${ref}&attempt=${attempt}`;
 
-  // Attempt 1: full apology + hold preamble + music clip (caller hears
-  // something meaningful before the first ring). <Play> plays the full
-  // audio file to completion, so we only include it on the first attempt
-  // to keep subsequent retry cycles short (~20s each instead of minutes).
+  // Owner spec 2026-04-28: caller should wait 10-12 minutes before being
+  // connected to a customer advisor. Two reasons:
+  //   - Filters non-urgent calls (people who'd hang up in 2 min won't wait 10)
+  //   - Hold music gets time to fully play, reinforcing the brand
+  // Attempt 1 builds up ~10:18 of structured wait (apology + hold-music
+  // playback + reassurance pauses) before the first <Dial>. Agent typically
+  // answers between 10:30 and 11:00 of caller time.
   //
-  // Attempts 2-5: just "still trying" + the dial ring tone. This keeps
-  // the total retry window bounded to ~1-2 minutes maximum.
+  // Attempts 2-5 (only fire if attempt 1 doesn't connect within 15s):
+  // brief "still trying" + ring tone, ~18s each. Worst-case total:
+  // 10:18 + 5×18s = 11:48 — within the 10-12 min window.
   const preamble = attempt === 1
-    ? say(m.sorry, lang) +
-      pause(1) +
-      say(m.holdMsg, lang) +
-      `<Play>${HOLD_MUSIC_URL}</Play>` +
-      say(m.holdMusic, lang)
+    ? say(m.sorry, lang) +                    // ~3s
+      pause(1) +                              // 1s
+      say(m.holdMsg, lang) +                  // ~5s
+      `<Play>${HOLD_MUSIC_URL}</Play>` +      // ~8 min (full track)
+      say(m.holdMusic, lang) +                // ~3s
+      pause(60) +                             // 60s
+      say(m.tryingAgent, lang) +              // ~3s
+      pause(60) +                             // 60s
+      say(m.holdMusic, lang)                  // ~3s — total ~10:18 elapsed
     : say(m.tryingAgent, lang);
 
   return twiml(
