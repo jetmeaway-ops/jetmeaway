@@ -5,12 +5,7 @@ export const runtime = ‘edge’;
 export async function POST(req) {
 try {
 const body = await req.json();
-
-```
-// Handle both array and object payloads from Vercel Log Drain
 const events = Array.isArray(body) ? body : [body];
-
-// Filter for errors only
 const errors = events.filter(e =>
   e.level === 'error' ||
   e.level === 'fatal' ||
@@ -27,7 +22,8 @@ const errorText = errors
   .join('\n')
   .slice(0, 2000);
 
-// Ask Claude to analyse the error
+const prompt = 'You are a bug analyst for Jetmeaway, a Next.js travel comparison website. A runtime error was detected on the live site. In 2-3 sentences max, explain what went wrong and how to fix it. Be very concise. Error: ' + errorText;
+
 const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
   method: 'POST',
   headers: {
@@ -38,43 +34,29 @@ const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
   body: JSON.stringify({
     model: 'claude-sonnet-4-6',
     max_tokens: 300,
-    messages: [{
-      role: 'user',
-      content: `You are a bug analyst for Jetmeaway, a Next.js travel comparison website. 
-```
-
-A runtime error was detected on the live site. In 2-3 sentences max, explain what went wrong and how to fix it. Be very concise.
-
-Error:
-${errorText}`
-}]
-})
+    messages: [{ role: 'user', content: prompt }]
+  })
 });
 
-```
 const claudeData = await claudeRes.json();
 const summary = claudeData?.content?.[0]?.text || 'Could not analyse error.';
 
-// Send SMS via Twilio
 const sid = process.env.TWILIO_ACCOUNT_SID;
 const token = process.env.TWILIO_AUTH_TOKEN;
 const from = process.env.TWILIO_PHONE_FROM;
 const to = process.env.TWILIO_PHONE_TO;
+const smsBody = 'Jetmeaway Bug: ' + summary + ' Check Vercel logs.';
 
-const smsBody = `🚨 Jetmeaway Bug\n\n${summary}\n\nCheck Vercel logs for details.`;
-
-await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
+await fetch('https://api.twilio.com/2010-04-01/Accounts/' + sid + '/Messages.json', {
   method: 'POST',
   headers: {
-    'Authorization': 'Basic ' + btoa(`${sid}:${token}`),
+    'Authorization': 'Basic ' + btoa(sid + ':' + token),
     'Content-Type': 'application/x-www-form-urlencoded'
   },
   body: new URLSearchParams({ From: from, To: to, Body: smsBody })
 });
 
 return NextResponse.json({ ok: true, message: 'Bug reported via SMS' });
-```
-
 } catch (err) {
 return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
 }
