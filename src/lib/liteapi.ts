@@ -791,12 +791,32 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       }
     }
 
-    // Sanity floor: per-night price < £10 is almost always a unit-conversion
-    // bug (cents-as-dollars or wrong field). Evaluated AFTER FX so we judge
-    // the GBP equivalent, not the raw native-currency value.
+    // ── Sanity floors by star tier (in GBP, post-FX) ──────────────────────
+    // We've seen LiteAPI's sandbox return synthetic test data with absurd
+    // prices (Vegas 4★ hotels at £15/night). Showing those on the site
+    // looks like a scam — visitors don't trust prices that good. Drop
+    // any offer whose per-night GBP price is below the realistic floor
+    // for its star tier:
+    //   5★ ≥ £45    4★ ≥ £35    3★ ≥ £20    2★ ≥ £12    unrated/1★ ≥ £8
+    // These floors are deliberately low so we don't hide genuine budget
+    // hotels in cheap markets (Hanoi, Marrakech, Sofia) — they only kill
+    // the obviously-broken sandbox rows.
+    const stars = entry.hotel?.starRating
+      ?? entry.hotel?.stars
+      ?? (entry.hotel as { rating?: number } | undefined)?.rating
+      ?? hotelDirectory.get(entry.hotelId)?.starRating
+      ?? hotelDirectory.get(entry.hotelId)?.stars
+      ?? hotelDirectory.get(entry.hotelId)?.rating
+      ?? 0;
     const perNightForGuard = nights > 0 ? finalPrice / nights : finalPrice;
-    if (finalPrice > 0 && perNightForGuard < 10) {
-      console.warn(`[liteapi:drop] hotel=${entry.hotelId} pricePerNight=£${perNightForGuard.toFixed(2)} (total=£${finalPrice}, nights=${nights}) — dropped as data anomaly`);
+    let floorGBP: number;
+    if (stars >= 5) floorGBP = 45;
+    else if (stars >= 4) floorGBP = 35;
+    else if (stars >= 3) floorGBP = 20;
+    else if (stars >= 2) floorGBP = 12;
+    else floorGBP = 8;
+    if (finalPrice > 0 && perNightForGuard < floorGBP) {
+      console.warn(`[liteapi:drop] hotel=${entry.hotelId} stars=${stars} perNight=£${perNightForGuard.toFixed(2)} (floor=£${floorGBP}) — dropped as data anomaly`);
       continue;
     }
 

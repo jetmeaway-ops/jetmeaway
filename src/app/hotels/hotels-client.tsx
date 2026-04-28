@@ -1582,6 +1582,10 @@ function HotelsContent() {
   const [sortBy, setSortBy] = useState<SortBy>('recommended');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [priceView, setPriceView] = useState<'total' | 'perPerson'>('total');
+  // Pagination — `pageSize` 0 means "All". Default 20 strikes a balance
+  // between long-list scroll fatigue and not hiding inventory.
+  const [pageSize, setPageSize] = useState<number>(20);
+  const [currentPage, setCurrentPage] = useState<number>(1);
   // Bidirectional highlight between map pins and list cards. Hovering either
   // side sets this id; the other side reads it to emphasise the match.
   const [activeHotelId, setActiveHotelId] = useState<string | number | null>(null);
@@ -1979,6 +1983,32 @@ function HotelsContent() {
 
   const cheapest = sortedHotels && sortedHotels.length > 0 ? sortedHotels[0] : null;
   const nights = getNights();
+
+  // ── Pagination ────────────────────────────────────────────────────────────
+  // pageSize === 0 → show all. Otherwise slice into pages of `pageSize`.
+  const totalResults = sortedHotels?.length || 0;
+  const totalPages = pageSize === 0 ? 1 : Math.max(1, Math.ceil(totalResults / pageSize));
+  // Clamp page to a valid range whenever filters/sort/page-size change.
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
+  const pageStart = pageSize === 0 ? 0 : (safePage - 1) * pageSize;
+  const pageEnd = pageSize === 0 ? totalResults : Math.min(totalResults, pageStart + pageSize);
+  const pagedHotels = sortedHotels ? sortedHotels.slice(pageStart, pageEnd) : null;
+
+  // Reset to page 1 whenever the sorted set changes meaningfully — sort,
+  // filter, page-size, or the hotel list itself. Without this you can land
+  // on page 4 of an old search when a new search returns 12 results.
+  useEffect(() => { setCurrentPage(1); }, [sortBy, boardFilter, refundableOnly, pageSize, totalResults]);
+
+  // Smooth-scroll to top of results section on page change so users don't
+  // stay scrolled at the previous page's last card.
+  const onChangePage = useCallback((p: number) => {
+    setCurrentPage(p);
+    if (typeof window !== 'undefined') {
+      requestAnimationFrame(() => {
+        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+  }, []);
 
   // Build the href for a hotel's detail page, carrying search context.
   // Curated (non-LiteAPI) cards have no internal detail page — route them to
@@ -2421,6 +2451,24 @@ function HotelsContent() {
                     <option value="distance" disabled={!cityCentre}>Distance from centre</option>
                   </select>
                 </div>
+
+                {/* Results-per-page selector */}
+                <div className="flex items-center gap-2">
+                  <label htmlFor="hotel-page-size" className="text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9]">Per page</label>
+                  <select
+                    id="hotel-page-size"
+                    value={pageSize}
+                    onChange={e => setPageSize(parseInt(e.target.value, 10))}
+                    className="px-3 py-2 rounded-xl border border-[#E8ECF4] bg-white text-[.8rem] font-bold text-[#1A1D2B] outline-none focus:border-orange-400 cursor-pointer"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={30}>30</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                    <option value={0}>All</option>
+                  </select>
+                </div>
               </div>
             </section>
           )}
@@ -2445,12 +2493,12 @@ function HotelsContent() {
               }));
             const renderCards = (compact: boolean) => (
               <div className={compact ? 'space-y-3' : 'space-y-3'}>
-                {sortedHotels!.map((h, i) => (
+                {pagedHotels!.map((h, i) => (
                   <HotelCardWrapper
                     key={h.id || i}
                     hotel={h}
-                    index={i}
-                    isCheapest={i === 0}
+                    index={pageStart + i}
+                    isCheapest={pageStart + i === 0}
                     nights={nights}
                     adults={adults}
                     children={childCount}
@@ -2531,6 +2579,69 @@ function HotelsContent() {
               </section>
             );
           })()}
+
+          {/* ── Pagination nav ────────────────────────────────────────────
+              Only renders when we have more results than the current page
+              size (or pageSize === 0 = All — no pages, no nav). Keeps the
+              UI clean for small result sets. */}
+          {pageSize > 0 && totalResults > pageSize && (
+            <section className="max-w-[1000px] mx-auto px-5 pb-10">
+              <nav
+                role="navigation"
+                aria-label="Hotel results pagination"
+                className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white border border-[#E8ECF4] rounded-2xl px-5 py-4"
+              >
+                <div className="text-[.78rem] text-[#5C6378] font-semibold">
+                  Showing <span className="font-black text-[#1A1D2B]">{pageStart + 1}–{pageEnd}</span> of <span className="font-black text-[#1A1D2B]">{totalResults}</span> hotels
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => onChangePage(safePage - 1)}
+                    disabled={safePage <= 1}
+                    aria-label="Previous page"
+                    className="px-3 py-2 rounded-lg border border-[#E8ECF4] bg-white text-[.78rem] font-bold text-[#1A1D2B] hover:bg-[#F8FAFC] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    ← Prev
+                  </button>
+                  {/* Compact page-number buttons. Show first, last, current,
+                      ±1 around current, and ellipses for skipped ranges. */}
+                  {(() => {
+                    const pages: (number | '...')[] = [];
+                    const push = (n: number | '...') => { if (pages[pages.length - 1] !== n) pages.push(n); };
+                    for (let p = 1; p <= totalPages; p++) {
+                      if (p === 1 || p === totalPages || Math.abs(p - safePage) <= 1) push(p);
+                      else if (p < safePage) push(safePage - 2 > 1 ? '...' : p);
+                      else push(safePage + 2 < totalPages ? '...' : p);
+                    }
+                    return pages.map((p, idx) => p === '...' ? (
+                      <span key={`gap-${idx}`} className="px-2 text-[.78rem] text-[#8E95A9] font-bold" aria-hidden>…</span>
+                    ) : (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => onChangePage(p)}
+                        aria-current={p === safePage ? 'page' : undefined}
+                        aria-label={`Page ${p}`}
+                        className={`min-w-[36px] px-3 py-2 rounded-lg text-[.78rem] font-bold transition-colors ${p === safePage ? 'bg-[#0a1628] text-white' : 'border border-[#E8ECF4] bg-white text-[#1A1D2B] hover:bg-[#F8FAFC]'}`}
+                      >
+                        {p}
+                      </button>
+                    ));
+                  })()}
+                  <button
+                    type="button"
+                    onClick={() => onChangePage(safePage + 1)}
+                    disabled={safePage >= totalPages}
+                    aria-label="Next page"
+                    className="px-3 py-2 rounded-lg border border-[#E8ECF4] bg-white text-[.78rem] font-bold text-[#1A1D2B] hover:bg-[#F8FAFC] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Next →
+                  </button>
+                </div>
+              </nav>
+            </section>
+          )}
 
           {/* Empty state — only renders inside the {searched && !loading
               && hotels !== null} branch above, so we know a search has run
