@@ -20,9 +20,11 @@ import { listBookings, type Booking } from '@/lib/bookings';
 
 const FORWARD_NUMBER = process.env.TWILIO_FORWARD_NUMBER || '';
 
-/* Hold music — Twilio-hosted S3 clip that we loop between dial attempts.
-   Used anywhere we want to keep the caller entertained while waiting. */
-const HOLD_MUSIC_URL = 'http://com.twilio.music.soft-rock.s3.amazonaws.com/Strehlow_-_Holding_Pattern.mp3';
+/* Hold music — JetMeAway brand track ("jetmeaway-pulse.mp3"), served from
+   our own domain so callers hear our identity instead of Twilio's stock
+   soft-rock placeholder. Hosted at /public/audio/ so Next ships it as a
+   static asset on every Vercel deploy. Looped between dial attempts. */
+const HOLD_MUSIC_URL = 'https://jetmeaway.co.uk/audio/jetmeaway-pulse.mp3';
 
 /* Max times we'll try to reach an agent before giving up and playing
    the fallback "no agent available" message. */
