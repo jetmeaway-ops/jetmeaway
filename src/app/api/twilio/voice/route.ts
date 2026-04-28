@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
-import { listBookings, type Booking } from '@/lib/bookings';
+import { listBookings, getBookingsByPhone, type Booking } from '@/lib/bookings';
 
 /**
  * Twilio Voice IVR — JetMeAway Helpline
@@ -64,6 +64,8 @@ const MSG = {
     carDept: 'For car hire enquiries, please visit jetmeaway dot co dot uk slash cars to compare prices across our partner providers. If you have an existing car hire booking, please contact the rental company directly using the details in your confirmation email.',
     packageDept: 'For holiday package enquiries, please visit jetmeaway dot co dot uk slash packages to compare deals from Expedia, Trip dot com, and other providers. If you booked a package through one of our partner links, please contact the provider directly for any changes.',
     insuranceDept: 'For travel insurance or e-sim enquiries, please visit jetmeaway dot co dot uk. If you purchased insurance or an e-sim through one of our partner links, please contact the provider directly using the details in your confirmation email.',
+    phoneMatchOffer: 'We have found a booking under this phone number.', // followed by booking summary + the prompt below
+    phoneMatchPrompt: 'Press 1 to continue with this booking, or press 2 to enter a different reference.',
   },
   ur: {
     welcome: 'JetMeAway mein call karne ka shukriya. Hum United Kingdom ki smartest travel comparison engine hain. Hamari customer care team 24 ghante, haftay ke saaton din available hai, aur 150 se zyada manzilon par travellers ki madad karti hai. Baraye meherbani note karein, yeh support line sirf un customers ke liye hai jin ki JetMeAway ke saath active booking hai. Hamari team se baat karne ke liye, apna booking reference ya confirmation number taiyaar rakhein — yeh aap ki confirmation email ke shuru mein mojood hai. Agar aam sawal hai, ya abhi koi booking nahi ki, toh baraye meherbani call band karein aur contact at jetmeaway dot co dot uk par email karein — hum 24 ghanton mein jawab denge.',
@@ -92,6 +94,8 @@ const MSG = {
     carDept: 'Car hire ke sawalaat ke liye, jetmeaway dot co dot uk slash cars par jayein. Agar aap ne car book ki hai toh rental company se seedha rabta karein.',
     packageDept: 'Holiday package ke sawalaat ke liye, jetmeaway dot co dot uk slash packages par jayein. Agar aap ne kisi partner se book kiya hai toh un se seedha rabta karein.',
     insuranceDept: 'Insurance ya e-sim ke sawalaat ke liye, jetmeaway dot co dot uk par jayein. Provider se seedha rabta karein.',
+    phoneMatchOffer: 'Humne is phone number par ek booking dhundh li hai.',
+    phoneMatchPrompt: 'Is booking ke saath continue karne ke liye 1 dabayein, ya alag reference darj karne ke liye 2 dabayein.',
   },
 };
 
@@ -141,15 +145,31 @@ function pause(seconds = 1) {
 
 /* ── Step Handlers ────────────────────────────────────────────────────── */
 
-function step1Welcome() {
-  const g = gather('/api/twilio/voice?step=lang', { numDigits: 1, timeout: 8 });
+async function step1Welcome(callerNumber: string) {
+  // Caller-ID match: look up bookings by phone. If we find one, thread its
+  // ID through the next step's URL param so we can offer to use it after
+  // language select. Withheld / unmatched numbers fall through to the
+  // existing flow unchanged.
+  let matchSuffix = '';
+  try {
+    const matches = await getBookingsByPhone(callerNumber);
+    if (matches.length > 0) {
+      // Use the most recent (already sorted newest-first by getBookingsByPhone).
+      // If the caller has multiple bookings, the post-language confirm step
+      // offers them this one; declining ("press 2") falls back to ref entry
+      // where they can speak the ref of the other booking instead.
+      matchSuffix = `&amp;match=${encodeURIComponent(matches[0].id)}`;
+    }
+  } catch { /* phone lookup failed — fall through to standard flow */ }
+
+  const g = gather(`/api/twilio/voice?step=lang${matchSuffix}`, { numDigits: 1, timeout: 8 });
   return twiml(
     say(MSG.en.welcome, 'en') +
     pause(1) +
     g.open +
     say(MSG.en.langSelect, 'en') +
     g.close +
-    `<Redirect>/api/twilio/voice?step=lang&amp;timeout=1</Redirect>`
+    `<Redirect>/api/twilio/voice?step=lang&amp;timeout=1${matchSuffix}</Redirect>`
   );
 }
 
@@ -162,6 +182,42 @@ function step2Dept(lang: Lang) {
     g.close +
     say(m.dept, lang) +
     `<Redirect>/api/twilio/voice?step=start&amp;lang=${lang}</Redirect>`
+  );
+}
+
+/** Caller's phone matched a booking on file. Read out a short summary and
+ *  ask if they want to use it. Press 1 → straight into stepLookupRef with
+ *  the matched booking ID (skips the "say your reference" step entirely).
+ *  Press 2 → fall through to the standard department menu. */
+async function stepConfirmPhoneMatch(lang: Lang, matchId: string) {
+  const m = MSG[lang];
+  // Resolve the booking summary fresh — KV state may have changed between
+  // the phone-match lookup at welcome and now.
+  let summaryLine = '';
+  try {
+    const all = await listBookings();
+    const b = all.find(x => x.id === matchId);
+    if (b) {
+      if (lang === 'en') {
+        summaryLine = `Your ${b.type} booking at ${b.title}` +
+          (b.checkIn ? `, checking in on ${b.checkIn}` : '') + '.';
+      } else {
+        summaryLine = `Aap ki ${b.type} booking, ${b.title}` +
+          (b.checkIn ? `, check-in ${b.checkIn}` : '') + '.';
+      }
+    }
+  } catch { /* if lookup fails, skip the summary line */ }
+
+  const g = gather(`/api/twilio/voice?step=phoneMatch&lang=${lang}&match=${encodeURIComponent(matchId)}`, { numDigits: 1, timeout: 8 });
+  return twiml(
+    g.open +
+    say(m.phoneMatchOffer, lang) +
+    (summaryLine ? pause(1) + say(summaryLine, lang) : '') +
+    pause(1) +
+    say(m.phoneMatchPrompt, lang) +
+    g.close +
+    // If they don't press anything, default to the standard department flow
+    `<Redirect>/api/twilio/voice?step=dept&amp;lang=${lang}</Redirect>`
   );
 }
 
@@ -527,6 +583,7 @@ export async function POST(req: NextRequest) {
   const lang = (url.searchParams.get('lang') || 'en') as Lang;
   const dept = url.searchParams.get('dept') || '1';
   const ref = url.searchParams.get('ref') || '';
+  const match = url.searchParams.get('match') || '';
 
   // Parse Twilio form body
   const body = await req.text();
@@ -535,17 +592,34 @@ export async function POST(req: NextRequest) {
   // caller actually spoke. Otherwise fall back to DTMF digits.
   const speech = params.get('SpeechResult') || '';
   const digits = speech.trim() || params.get('Digits') || '';
+  // Caller's number (E.164, e.g. +447863750285). Twilio passes this on
+  // the very first webhook call — used for caller-ID booking match.
+  const callerFrom = params.get('From') || '';
 
   switch (step) {
     case 'start':
-      return step1Welcome();
+      return await step1Welcome(callerFrom);
 
     case 'lang': {
       const timeout = url.searchParams.get('timeout');
-      if (timeout) return step2Dept('en'); // Default to English on timeout
-      const selectedLang: Lang = digits === '2' ? 'ur' : 'en';
+      const defaultLang: Lang = digits === '2' ? 'ur' : 'en';
+      const langOnTimeout: Lang = 'en';
+      const selectedLang = timeout ? langOnTimeout : defaultLang;
+      // If caller-ID matched a booking at welcome, offer to use it before
+      // the standard department menu. The caller can still decline (press 2)
+      // and proceed to the normal flow.
+      if (match) return await stepConfirmPhoneMatch(selectedLang, match);
       // 24/7 — no business hours gate. Proceed straight to department menu.
       return step2Dept(selectedLang);
+    }
+
+    case 'phoneMatch': {
+      // Press 1 → use the phone-matched booking. Treat the booking ID as
+      // if the caller had spoken it, so stepLookupRef finds it via its
+      // existing alphanumeric matcher.
+      if (digits === '1' && match) return await stepLookupRef(lang, '1', match);
+      // Press 2 (or anything else / timeout) → fall through to standard menu.
+      return step2Dept(lang);
     }
 
     case 'dept':
@@ -576,7 +650,7 @@ export async function POST(req: NextRequest) {
     }
 
     default:
-      return step1Welcome();
+      return await step1Welcome(callerFrom);
   }
 }
 

@@ -106,6 +106,31 @@ export async function getBooking(id: string): Promise<Booking | null> {
   return all.find(b => b.id === id) || null;
 }
 
+/** Strip a phone number to just digits, then keep the last 10. Lets us
+ *  match across whatever format customers entered at booking time
+ *  ("+44 786 123 4567", "07861234567", "(786) 123-4567" all collapse to
+ *  the same 10-digit suffix). 10 digits is the right length for UK
+ *  mobile (drop leading 0 / +44) and most international formats — short
+ *  enough to be format-tolerant, long enough to avoid false matches. */
+function phoneTail(raw: string | null | undefined): string {
+  if (!raw) return '';
+  const digits = String(raw).replace(/\D/g, '');
+  return digits.slice(-10);
+}
+
+/** Find bookings whose customerPhone matches the given caller-ID number.
+ *  Twilio sends caller IDs in E.164 (e.g. +447863750285). We compare the
+ *  last 10 digits to be tolerant of how the customer originally entered
+ *  their number at booking time. Returns newest-first. */
+export async function getBookingsByPhone(callerNumber: string): Promise<Booking[]> {
+  const tail = phoneTail(callerNumber);
+  if (!tail) return [];
+  const all = await listBookings();
+  return all
+    .filter(b => phoneTail(b.customerPhone) === tail)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
 export async function upsertBooking(booking: Booking): Promise<void> {
   const all = await listBookings();
   const idx = all.findIndex(b => b.id === booking.id);
