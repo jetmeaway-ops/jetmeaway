@@ -112,17 +112,22 @@ function say(text: string, lang: Lang = 'en') {
   return `<Say voice="${voice}" language="${language}">${escXml(text)}</Say>`;
 }
 
-function gather(action: string, opts: { numDigits?: number; finishOnKey?: string; timeout?: number; speech?: boolean; speechTimeout?: number | 'auto' } = {}) {
+function gather(action: string, opts: { numDigits?: number; finishOnKey?: string; timeout?: number; speech?: boolean; speechTimeout?: number | 'auto'; speechModel?: 'numbers_and_commands' | 'phone_call' | 'experimental_utterances' | 'experimental_conversations' } = {}) {
   const nd = opts.numDigits ? ` numDigits="${opts.numDigits}"` : '';
   const fk = opts.finishOnKey !== undefined ? ` finishOnKey="${opts.finishOnKey}"` : '';
   const to = ` timeout="${opts.timeout || 5}"`;
   const input = opts.speech ? 'speech dtmf' : 'dtmf';
-  // speechTimeout="auto" tells Twilio to end the speech recognition when the
-  // caller stops talking — perfect for booking refs of unknown length.
+  // speechTimeout: numeric value = seconds of silence before ending recognition.
+  // "auto" cuts off after ~1s silence — too aggressive for spelled-out refs
+  // where callers naturally pause between letters.
   const st = opts.speech ? ` speechTimeout="${opts.speechTimeout ?? 'auto'}"` : '';
-  // 'numbers_and_commands' model is more accurate for short alphanumerics
-  // than the default 'phone_call' general-purpose model.
-  const model = opts.speech ? ` speechModel="numbers_and_commands"` : '';
+  // Default to 'phone_call' (general-purpose, handles longer dictation
+  // including multi-character alphanumerics like JMA-2026-EP3NKV).
+  // 'numbers_and_commands' is biased toward short structured utterances
+  // and was prematurely ending booking-ref dictation. Caller can override
+  // per-gather via opts.speechModel.
+  const sm = opts.speechModel || 'phone_call';
+  const model = opts.speech ? ` speechModel="${sm}"` : '';
   return { open: `<Gather action="${escXml(action)}"${nd}${fk}${to}${st}${model} input="${input}">`, close: '</Gather>' };
 }
 
@@ -166,18 +171,23 @@ function step3EnterRef(lang: Lang, dept: string) {
   // (e.g. JMA-2026-ABC123) can't type letters on a phone keypad, so we
   // let them speak the reference instead.
   //
-  // speechTimeout=5 (NOT "auto"): JMA refs are 14 characters spelled
-  // letter-by-letter, and callers naturally pause for ~1s between letters.
-  // "auto" (~1s silence cutoff) was chopping refs after the 4th letter.
-  // 5s silence threshold lets callers pause naturally without being cut
-  // off, but still ends within reasonable time after they finish.
-  // initial timeout 15 (was 10): give callers time to fish out their
-  // confirmation email before they start speaking.
+  // speechTimeout=10 (NOT "auto"): JMA refs are 14 characters spelled
+  // letter-by-letter, and callers naturally pause for ~1-2s between letters.
+  // "auto" (~1s silence cutoff) was chopping refs after the 4th letter,
+  // and 5s was still cutting off some callers. 10s is generous enough
+  // that even slow dictation completes, but not so long that the line
+  // feels broken if a caller falls silent for other reasons.
+  // initial timeout 15: give callers time to fish out their confirmation
+  // email before they start speaking.
+  // speechModel "phone_call" (general-purpose): handles longer
+  // dictations like JMA-2026-EP3NKV better than the default
+  // numbers_and_commands which is biased toward short utterances.
   const g = gather(`/api/twilio/voice?step=ref&lang=${lang}&dept=${dept}`, {
     finishOnKey: '#',
     timeout: 15,
     speech: true,
-    speechTimeout: 5,
+    speechTimeout: 10,
+    speechModel: 'phone_call',
   });
   return twiml(
     g.open +
