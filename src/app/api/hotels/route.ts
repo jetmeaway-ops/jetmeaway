@@ -63,6 +63,49 @@ const AIRPORT_TO_CITY: Record<string, string> = {
   'sin': 'singapore', 'changi': 'singapore',
   'hnd': 'tokyo', 'haneda': 'tokyo', 'narita': 'tokyo',
   'bkk': 'bangkok', 'suvarnabhumi': 'bangkok',
+  // Common alt-spellings — LiteAPI uses ONE canonical spelling per city,
+  // so visitors typing the English variant get 0 results. Map English/local
+  // alt → the spelling LiteAPI actually has indexed (verified by hitting
+  // /data/hotels with each variant). Added 2026-04-28 after user reported
+  // "Marrakesh" → 0 hotels (LiteAPI uses "Marrakech").
+  'marrakesh': 'marrakech',
+  'lisboa': 'lisbon',
+  'köln': 'cologne', 'koeln': 'cologne',
+  'münchen': 'munich', 'muenchen': 'munich',
+  'wien': 'vienna',
+  'firenze': 'florence',
+  'napoli': 'naples',
+  'venezia': 'venice',
+  'praha': 'prague',
+  'genève': 'geneva', 'geneve': 'geneva',
+  'athína': 'athens', 'athina': 'athens',
+  'moskva': 'moscow',
+  'bombay': 'mumbai',
+  'peking': 'beijing',
+  'sharm': 'sharm el sheikh', 'sharm-el-sheikh': 'sharm el sheikh',
+  'sharm el-sheikh': 'sharm el sheikh',
+  'abudhabi': 'abu dhabi', 'abu-dhabi': 'abu dhabi',
+  'kualalumpur': 'kuala lumpur', 'kuala-lumpur': 'kuala lumpur', 'kl': 'kuala lumpur',
+  'hochiminh': 'ho chi minh city', 'saigon': 'ho chi minh city',
+  'ho chi minh': 'ho chi minh city', 'hcmc': 'ho chi minh city',
+  'newyork': 'new york', 'new-york': 'new york', 'nyc': 'new york',
+  'losangeles': 'los angeles', 'los-angeles': 'los angeles', 'la': 'los angeles',
+  'sanfrancisco': 'san francisco', 'san-francisco': 'san francisco', 'sf': 'san francisco',
+  'lasvegas': 'las vegas', 'las-vegas': 'las vegas', 'vegas': 'las vegas',
+  'goldcoast': 'gold coast', 'gold-coast': 'gold coast',
+  'capetown': 'cape town', 'cape-town': 'cape town',
+  'mexicocity': 'mexico city', 'mexico-city': 'mexico city',
+  'puntacana': 'punta cana', 'punta-cana': 'punta cana',
+  'rio': 'rio de janeiro', 'rio-de-janeiro': 'rio de janeiro',
+  'buenosaires': 'buenos aires', 'buenos-aires': 'buenos aires',
+  'saopaulo': 'sao paulo', 'sao-paulo': 'sao paulo', 'são paulo': 'sao paulo',
+  'hk': 'hong kong', 'hongkong': 'hong kong', 'hong-kong': 'hong kong',
+  'rahimyarkhan': 'rahim yar khan', 'rahim-yar-khan': 'rahim yar khan',
+  'chiangmai': 'chiang mai', 'chiang-mai': 'chiang mai',
+  'phuket island': 'phuket',
+  'victoriafalls': 'victoria falls', 'victoria-falls': 'victoria falls',
+  'playadelcarmen': 'playa del carmen', 'playa-del-carmen': 'playa del carmen',
+  'monteguebay': 'montego bay', 'montego-bay': 'montego bay',
 };
 
 /** City → ISO-3166 alpha-2 country code for LiteAPI lookups */
@@ -997,8 +1040,8 @@ export async function GET(req: NextRequest) {
   // (Croydon, Wembley, etc) used to leak Greater-London results because LiteAPI
   // treats the borough's Google Place ID as a metro pointer. Bumping the cache
   // version invalidates any cached "Croydon → Docklands+Hammersmith" responses.
-  // v14 — airport→city aliasing + non-GBP offer filter + sanity floor
-  const kvKey = `hotels:v14:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
+  // v15 — added alt-spelling aliases (Marrakesh→Marrakech, Lisboa→Lisbon, etc.)
+  const kvKey = `hotels:v15:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
 
   // Group occupancy bypass: large groups (>4 guests) always get fresh prices
   // because cached availability/room blocks may not hold for that many people.
