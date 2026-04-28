@@ -150,7 +150,7 @@ async function step1Welcome(callerNumber: string) {
   // ID through the next step's URL param so we can offer to use it after
   // language select. Withheld / unmatched numbers fall through to the
   // existing flow unchanged.
-  let matchSuffix = '';
+  let matchId = '';
   try {
     const matches = await getBookingsByPhone(callerNumber);
     // Diagnostic — visible in Vercel logs. Lets us prove whether the
@@ -161,20 +161,29 @@ async function step1Welcome(callerNumber: string) {
       // If the caller has multiple bookings, the post-language confirm step
       // offers them this one; declining ("press 2") falls back to ref entry
       // where they can speak the ref of the other booking instead.
-      matchSuffix = `&amp;match=${encodeURIComponent(matches[0].id)}`;
+      matchId = matches[0].id;
     }
   } catch (e) {
     console.warn(`[ivr:phone-match] lookup failed:`, e);
   }
 
-  const g = gather(`/api/twilio/voice?step=lang${matchSuffix}`, { numDigits: 1, timeout: 8 });
+  // IMPORTANT: pass URL params with PLAIN `&` to gather() — the helper runs
+  // the action string through escXml() which encodes `&` → `&amp;` once.
+  // Passing `&amp;match=...` here would double-escape to `&amp;amp;match=...`
+  // and Twilio would receive a literal "amp;match" param instead of "match".
+  // This is why `match` was empty in the lang handler in 5802e36 / 38a0aeb.
+  const gatherSuffix = matchId ? `&match=${encodeURIComponent(matchId)}` : '';
+  // The <Redirect> tag writes XML directly (no escXml()), so its `&` MUST
+  // be entity-encoded as `&amp;` here.
+  const redirectSuffix = matchId ? `&amp;match=${encodeURIComponent(matchId)}` : '';
+  const g = gather(`/api/twilio/voice?step=lang${gatherSuffix}`, { numDigits: 1, timeout: 8 });
   return twiml(
     say(MSG.en.welcome, 'en') +
     pause(1) +
     g.open +
     say(MSG.en.langSelect, 'en') +
     g.close +
-    `<Redirect>/api/twilio/voice?step=lang&amp;timeout=1${matchSuffix}</Redirect>`
+    `<Redirect>/api/twilio/voice?step=lang&amp;timeout=1${redirectSuffix}</Redirect>`
   );
 }
 
