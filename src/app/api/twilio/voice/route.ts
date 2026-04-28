@@ -165,11 +165,19 @@ function step3EnterRef(lang: Lang, dept: string) {
   // Accept BOTH keypad and speech. Callers with letter-containing refs
   // (e.g. JMA-2026-ABC123) can't type letters on a phone keypad, so we
   // let them speak the reference instead.
+  //
+  // speechTimeout=5 (NOT "auto"): JMA refs are 14 characters spelled
+  // letter-by-letter, and callers naturally pause for ~1s between letters.
+  // "auto" (~1s silence cutoff) was chopping refs after the 4th letter.
+  // 5s silence threshold lets callers pause naturally without being cut
+  // off, but still ends within reasonable time after they finish.
+  // initial timeout 15 (was 10): give callers time to fish out their
+  // confirmation email before they start speaking.
   const g = gather(`/api/twilio/voice?step=ref&lang=${lang}&dept=${dept}`, {
     finishOnKey: '#',
-    timeout: 10,
+    timeout: 15,
     speech: true,
-    speechTimeout: 'auto',
+    speechTimeout: 5,
   });
   return twiml(
     g.open +
