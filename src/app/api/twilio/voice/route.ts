@@ -153,6 +153,9 @@ async function step1Welcome(callerNumber: string) {
   let matchSuffix = '';
   try {
     const matches = await getBookingsByPhone(callerNumber);
+    // Diagnostic — visible in Vercel logs. Lets us prove whether the
+    // phone-match feature is firing for a given caller, and if not, why.
+    console.log(`[ivr:phone-match] from="${callerNumber}" matches=${matches.length}` + (matches[0] ? ` first=${matches[0].id} (${matches[0].title})` : ''));
     if (matches.length > 0) {
       // Use the most recent (already sorted newest-first by getBookingsByPhone).
       // If the caller has multiple bookings, the post-language confirm step
@@ -160,7 +163,9 @@ async function step1Welcome(callerNumber: string) {
       // where they can speak the ref of the other booking instead.
       matchSuffix = `&amp;match=${encodeURIComponent(matches[0].id)}`;
     }
-  } catch { /* phone lookup failed — fall through to standard flow */ }
+  } catch (e) {
+    console.warn(`[ivr:phone-match] lookup failed:`, e);
+  }
 
   const g = gather(`/api/twilio/voice?step=lang${matchSuffix}`, { numDigits: 1, timeout: 8 });
   return twiml(
