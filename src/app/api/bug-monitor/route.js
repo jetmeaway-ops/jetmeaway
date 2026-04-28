@@ -1,67 +1,69 @@
-import { NextResponse } from ‘next/server’;
+import { NextResponse } from 'next/server';
 
-export const runtime = ‘edge’;
+export const runtime = 'edge';
 
 export async function POST(req) {
-try {
-const body = await req.json();
-const events = Array.isArray(body) ? body : [body];
-const errors = events.filter(e =>
-  e.level === 'error' ||
-  e.level === 'fatal' ||
-  e.type === 'error' ||
-  (e.message && /error|exception|failed|crash/i.test(e.message))
-);
+  try {
+    const body = await req.json();
+    const events = Array.isArray(body) ? body : [body];
 
-if (errors.length === 0) {
-  return NextResponse.json({ ok: true, message: 'No errors' });
-}
+    const errors = events.filter(e =>
+      e.level === 'error' ||
+      e.level === 'fatal' ||
+      e.type === 'error' ||
+      (e.message && /error|exception|failed|crash/i.test(e.message))
+    );
 
-const errorText = errors
-  .map(e => e.message || e.body || JSON.stringify(e))
-  .join('\n')
-  .slice(0, 2000);
+    if (errors.length === 0) {
+      return NextResponse.json({ ok: true, message: 'No errors' });
+    }
 
-const prompt = 'You are a bug analyst for Jetmeaway, a Next.js travel comparison website. A runtime error was detected on the live site. In 2-3 sentences max, explain what went wrong and how to fix it. Be very concise. Error: ' + errorText;
+    const errorText = errors
+      .map(e => e.message || e.body || JSON.stringify(e))
+      .join('\n')
+      .slice(0, 2000);
 
-const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'x-api-key': process.env.ANTHROPIC_API_KEY,
-    'anthropic-version': '2023-06-01'
-  },
-  body: JSON.stringify({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 300,
-    messages: [{ role: 'user', content: prompt }]
-  })
-});
+    const prompt = 'You are a bug analyst for Jetmeaway. Explain what went wrong and how to fix it in 2 sentences. Error: ' + errorText;
 
-const claudeData = await claudeRes.json();
-const summary = claudeData?.content?.[0]?.text || 'Could not analyse error.';
+    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 300,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
 
-const sid = process.env.TWILIO_ACCOUNT_SID;
-const token = process.env.TWILIO_AUTH_TOKEN;
-const from = process.env.TWILIO_PHONE_FROM;
-const to = process.env.TWILIO_PHONE_TO;
-const smsBody = 'Jetmeaway Bug: ' + summary + ' Check Vercel logs.';
+    const claudeData = await claudeRes.json();
+    const summary = claudeData?.content?.[0]?.text || 'Could not analyse error.';
 
-await fetch('https://api.twilio.com/2010-04-01/Accounts/' + sid + '/Messages.json', {
-  method: 'POST',
-  headers: {
-    'Authorization': 'Basic ' + btoa(sid + ':' + token),
-    'Content-Type': 'application/x-www-form-urlencoded'
-  },
-  body: new URLSearchParams({ From: from, To: to, Body: smsBody })
-});
+    const sid = process.env.TWILIO_ACCOUNT_SID;
+    const token = process.env.TWILIO_AUTH_TOKEN;
+    const from = process.env.TWILIO_PHONE_FROM;
+    const to = process.env.TWILIO_PHONE_TO;
+    const smsBody = 'Jetmeaway Bug: ' + summary;
 
-return NextResponse.json({ ok: true, message: 'Bug reported via SMS' });
-} catch (err) {
-return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
-}
+    await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Basic ' + btoa(sid + ':' + token),
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({ From: from, To: to, Body: smsBody }).toString()
+    });
+
+    return NextResponse.json({ ok: true, message: 'Bug reported via SMS' });
+
+  } catch (err) {
+    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+  }
 }
 
 export async function GET() {
-return NextResponse.json({ ok: true, message: ‘Bug monitor is active’ });
+  return NextResponse.json({ ok: true, message: 'Bug monitor is active' });
 }
