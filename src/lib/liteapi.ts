@@ -687,11 +687,12 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       negotiatedRaw = undefined; // old format has no negotiated rate
     }
 
-    // Final price = negotiated if cheaper, else market
-    const finalPrice = (negotiatedRaw != null && negotiatedRaw > 0 && negotiatedRaw < marketRaw)
+    // Final price = negotiated if cheaper, else market.
+    // `let` not `const` because the FX block below may convert in place.
+    let finalPrice = (negotiatedRaw != null && negotiatedRaw > 0 && negotiatedRaw < marketRaw)
       ? negotiatedRaw : marketRaw;
 
-    const finalCurrency =
+    let finalCurrency =
       extractCurrency(bestRoomType.suggestedSellingPrice) ??
       extractCurrency(bestRoomType.offerRetailRate) ??
       currency;
@@ -711,20 +712,91 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     const commissionArr = Array.isArray(bestRate.commission) ? bestRate.commission : [];
     const commission = commissionArr.length > 0 ? commissionArr.reduce((s, c) => s + (c.amount || 0), 0) : null;
 
-    // ── Sanity + currency guards ────────────────────────────────────────────
-    // We render every price as £-prefixed on the client and don't FX-convert.
-    // If LiteAPI returned a non-GBP currency (some US/Asia hotels in sandbox
-    // ignore the requested currency) OR the per-night price is suspiciously
-    // low (< £10/night, almost certainly a unit/test-data bug like the £4
-    // Vegas offers seen 2026-04-28), drop the offer entirely instead of
-    // showing a wrong number.
-    const perNightForGuard = nights > 0 ? finalPrice / nights : finalPrice;
+    // ── FX + sanity guards ─────────────────────────────────────────────────
+    // LiteAPI sometimes ignores the requested `currency=GBP` and returns the
+    // supplier's native currency (MAD for Marrakech, EUR for parts of EU,
+    // USD for Vegas). The client renders all prices with a £ symbol, so we
+    // FX-convert here before sending. Rates are baked into the table below
+    // (refreshed quarterly). For travel-comparison this is fine — the user
+    // is comparing approximate prices, not transacting; the booking flow
+    // pulls a fresh quote in GBP from LiteAPI.
+    //
+    // History (2026-04-28): we initially dropped non-GBP offers entirely
+    // ("better empty than wrong"), which silently killed Marrakech results
+    // where every offer comes back in MAD. Switched to convert-and-show.
+    const FX_TO_GBP: Record<string, number> = {
+      GBP: 1,
+      USD: 0.79,
+      EUR: 0.85,
+      MAD: 0.079,   // Moroccan Dirham
+      AED: 0.215,   // UAE Dirham
+      QAR: 0.217,   // Qatari Riyal
+      OMR: 2.06,    // Omani Rial
+      SAR: 0.211,   // Saudi Riyal
+      EGP: 0.016,   // Egyptian Pound
+      TRY: 0.024,   // Turkish Lira
+      JPY: 0.0051,  // Japanese Yen
+      CNY: 0.108,   // Chinese Yuan
+      HKD: 0.101,   // Hong Kong Dollar
+      KRW: 0.00057, // Korean Won
+      SGD: 0.588,   // Singapore Dollar
+      MYR: 0.171,   // Malaysian Ringgit
+      THB: 0.023,   // Thai Baht
+      IDR: 0.00005, // Indonesian Rupiah
+      VND: 0.000031,// Vietnamese Dong
+      INR: 0.0095,  // Indian Rupee
+      LKR: 0.0026,  // Sri Lankan Rupee
+      NPR: 0.0059,  // Nepalese Rupee
+      PKR: 0.0028,  // Pakistani Rupee
+      AZN: 0.46,    // Azerbaijani Manat
+      AMD: 0.002,   // Armenian Dram
+      GEL: 0.30,    // Georgian Lari
+      KZT: 0.0016,  // Kazakh Tenge
+      UZS: 0.000064,// Uzbek Som
+      AUD: 0.51,    // Australian Dollar
+      NZD: 0.47,    // NZ Dollar
+      CAD: 0.57,    // Canadian Dollar
+      MXN: 0.039,   // Mexican Peso
+      BRL: 0.13,    // Brazilian Real
+      ARS: 0.00075, // Argentine Peso
+      CHF: 0.88,    // Swiss Franc
+      DKK: 0.114,   // Danish Krone
+      SEK: 0.074,   // Swedish Krona
+      NOK: 0.072,   // Norwegian Krone
+      PLN: 0.198,   // Polish Zloty
+      CZK: 0.034,   // Czech Koruna
+      HUF: 0.0022,  // Hungarian Forint
+      ZAR: 0.042,   // South African Rand
+      MVR: 0.051,   // Maldivian Rufiyaa
+      MUR: 0.017,   // Mauritian Rupee
+      KES: 0.0061,  // Kenyan Shilling
+      TND: 0.25,    // Tunisian Dinar
+      HRK: 0.113,   // Croatian Kuna (legacy — replaced by EUR but some rows still use)
+    };
+
     if (finalCurrency && finalCurrency !== 'GBP') {
-      console.warn(`[liteapi:drop] hotel=${entry.hotelId} non-GBP currency=${finalCurrency} price=${finalPrice} — dropped (no FX layer)`);
-      continue;
+      const fx = FX_TO_GBP[finalCurrency.toUpperCase()];
+      if (fx && fx > 0) {
+        const before = finalPrice;
+        // Convert all price fields in place so the rest of the function
+        // works as if LiteAPI had returned GBP from the start.
+        marketRaw = marketRaw * fx;
+        if (negotiatedRaw != null) negotiatedRaw = negotiatedRaw * fx;
+        finalPrice = finalPrice * fx;
+        finalCurrency = 'GBP';
+        console.log(`[liteapi:fx] hotel=${entry.hotelId} ${before.toFixed(2)} → £${finalPrice.toFixed(2)} (rate=${fx})`);
+      } else {
+        console.warn(`[liteapi:drop] hotel=${entry.hotelId} unknown currency=${finalCurrency} — no FX rate available, dropping`);
+        continue;
+      }
     }
+
+    // Sanity floor: per-night price < £10 is almost always a unit-conversion
+    // bug (cents-as-dollars or wrong field). Evaluated AFTER FX so we judge
+    // the GBP equivalent, not the raw native-currency value.
+    const perNightForGuard = nights > 0 ? finalPrice / nights : finalPrice;
     if (finalPrice > 0 && perNightForGuard < 10) {
-      console.warn(`[liteapi:drop] hotel=${entry.hotelId} suspiciously low pricePerNight=£${perNightForGuard.toFixed(2)} (total=£${finalPrice}, nights=${nights}) — dropped as data anomaly`);
+      console.warn(`[liteapi:drop] hotel=${entry.hotelId} pricePerNight=£${perNightForGuard.toFixed(2)} (total=£${finalPrice}, nights=${nights}) — dropped as data anomaly`);
       continue;
     }
 
