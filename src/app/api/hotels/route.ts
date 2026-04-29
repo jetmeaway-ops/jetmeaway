@@ -418,10 +418,12 @@ async function fetchLiteApiHotels(
         occupancy,
         currency: 'GBP',
         guestNationality: 'GB',
-        // 200 hotelIds blew the 12s /hotels/rates timeout in prod and
-        // returned 0 Paris results. Reverted to 50 same-day; proper
-        // coverage fix is direct hotel-by-name lookup (option B).
-        limit: 50,
+        // 200 hotels per search. Previous attempt (commit d8713ad) blew the
+        // 12s /hotels/rates timeout because all 200 hotelIds went into one
+        // POST. Now safe at 200 because the rates fetch chunks into 4× 50
+        // parallel calls (see liteapi.ts getHotels). Each chunk stays well
+        // within timeout; total wall-clock unchanged. (2026-04-29)
+        limit: 200,
       }),
       new Promise<HotelOffer[]>((_, reject) =>
         setTimeout(() => reject(new Error('LiteAPI timeout')), timeoutMs),
@@ -1047,7 +1049,9 @@ export async function GET(req: NextRequest) {
   // v18 — bumped 2026-04-29 to invalidate v17 "0 results" entries
   // captured during the 200-hotel timeout incident. v18 reverts to
   // a 50-hotel slice so live rates come back inside the 12s budget.
-  const kvKey = `hotels:v18:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
+  // v19 — back to 200 hotels but with chunked rates fetch (4×50 in parallel)
+  // so we don't blow the timeout. Invalidates v18's 50-hotel cached pages.
+  const kvKey = `hotels:v19:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
 
   // Group occupancy bypass: large groups (>4 guests) always get fresh prices
   // because cached availability/room blocks may not hold for that many people.

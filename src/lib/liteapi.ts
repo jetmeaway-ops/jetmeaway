@@ -596,7 +596,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     if (typeof v === 'object' && v.currency) return v.currency;
     return undefined;
   }
-  const ratesRes = await liteFetch<{
+  type RatesResponse = {
     data: Array<{
       hotelId: string;
       /** v3.0: AI signal at hotel/search level (e.g. "high_demand") */
@@ -622,10 +622,39 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       };
       roomTypes?: RoomType[];
     }>;
-  }>('/hotels/rates', {
-    method: 'POST',
-    body: JSON.stringify(ratesBody),
-  });
+  };
+
+  // CHUNKING: /hotels/rates with 200 hotelIds in one shot blew the 12s
+  // edge timeout in prod (commit b16a820 had to revert a 50→200 bump
+  // 2026-04-29). Solution: split into batches of 50 and fetch in parallel.
+  // Each individual call stays well under the timeout; total wall-clock
+  // time is roughly the same as a single 50-hotel call. We can now serve
+  // up to ~200 hotels per search without breaking Paris (or any city
+  // with deep inventory).
+  const RATES_CHUNK_SIZE = 50;
+  const chunks: string[][] = [];
+  for (let i = 0; i < hotelIds.length; i += RATES_CHUNK_SIZE) {
+    chunks.push(hotelIds.slice(i, i + RATES_CHUNK_SIZE));
+  }
+
+  const chunkResults = await Promise.all(
+    chunks.map((chunkIds) =>
+      liteFetch<RatesResponse>('/hotels/rates', {
+        method: 'POST',
+        body: JSON.stringify({ ...ratesBody, hotelIds: chunkIds }),
+      }).catch((err: unknown) => {
+        // One failed chunk shouldn't kill the whole search — log it and
+        // return an empty data array so the other chunks still surface.
+        const message = err instanceof Error ? err.message : 'rates chunk failed';
+        console.warn(`[liteapi:rates] chunk of ${chunkIds.length} failed:`, message);
+        return { data: [] } as RatesResponse;
+      }),
+    ),
+  );
+
+  const ratesRes: RatesResponse = {
+    data: chunkResults.flatMap((r) => r.data || []),
+  };
 
   const nights = Math.max(
     1,
