@@ -418,7 +418,11 @@ async function fetchLiteApiHotels(
         occupancy,
         currency: 'GBP',
         guestNationality: 'GB',
-        limit: 50,
+        // Bumped 50→200 (2026-04-29) — large cities (Paris, London) have
+        // thousands of hotels in LiteAPI inventory, and a 50-hotel slice
+        // was missing well-known properties like Motel One Paris-Porte
+        // de Versailles. 200 trades latency/cost for coverage.
+        limit: 200,
       }),
       new Promise<HotelOffer[]>((_, reject) =>
         setTimeout(() => reject(new Error('LiteAPI timeout')), timeoutMs),
