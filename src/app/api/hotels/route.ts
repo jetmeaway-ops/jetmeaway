@@ -410,19 +410,27 @@ async function fetchLiteApiHotels(
   const t0 = Date.now();
   try {
     // Two-track parallel fetch:
-    //   PRIMARY (150) — broad coverage, no star filter. LiteAPI's default
-    //   ordering for big cities (Paris/London/NYC) skews heavily toward
-    //   4-star properties, so this alone leaves budget travellers with no
-    //   cheap options. Owner spec: "scout is not only for rich people, its
-    //   for everyone — students just book anything cheap, mostly hostels"
-    //   (2026-04-29).
-    //   BUDGET (50) — explicit 0/1/2/3-star filter to guarantee budget
-    //   coverage including hostels and unclassified properties (0-star).
-    //   If LiteAPI ignores the starRating param the budget fetch returns
-    //   the same set as primary; dedup-by-hotelId below is a no-op cost.
     //
-    // Both calls share the 12s timeout race so a slow LiteAPI doesn't
-    // block the search indefinitely.
+    //   PRIMARY (500) — broad coverage, no star filter. LiteAPI's default
+    //   ordering for big cities (Paris/London/NYC) skews heavily toward
+    //   4-star properties so the cheapest segments only surface deeper
+    //   into the list. Owner verified from their LiteAPI dashboard: Paris
+    //   has 1,967 properties starting at £38 (hotelF1 / Adonis / Executive
+    //   Hotel etc) — but the first 150 returned by the default-order list
+    //   bottomed out at £80. Pulling 500 surfaces those budget tiers.
+    //   Brand-spec: "scout is not only for rich people, its for everyone —
+    //   students just book anything cheap, mostly hostels".
+    //
+    //   BUDGET (50) — explicit 0/1/2/3-star filter as a belt-and-braces
+    //   guarantee. If LiteAPI ignores the starRating param the budget
+    //   fetch returns the same set as primary; dedup-by-hotelId below is
+    //   a no-op cost. If LiteAPI honours it, we pick up budget properties
+    //   the primary fetch missed.
+    //
+    // Bandwidth: each LiteAPI rates fetch chunks into 50-hotel batches in
+    // parallel (see liteapi.ts getHotels). With limit=500 + 50, that's
+    // ~11 parallel /hotels/rates calls. Wall-clock time stays close to
+    // the slowest single chunk (~3-5s); doesn't blow the 12s timeout.
     const fetchTimeout = new Promise<HotelOffer[]>((_, reject) =>
       setTimeout(() => reject(new Error('LiteAPI timeout')), timeoutMs),
     );
@@ -436,7 +444,7 @@ async function fetchLiteApiHotels(
           occupancy,
           currency: 'GBP',
           guestNationality: 'GB',
-          limit: 150,
+          limit: 500,
         }),
         fetchTimeout,
       ]).catch((err: unknown) => {
