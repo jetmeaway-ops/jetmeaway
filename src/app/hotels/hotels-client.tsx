@@ -651,6 +651,7 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
   const [apiResults, setApiResults] = useState<PlaceResult[]>([]);
   const [searching, setSearching] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
@@ -703,9 +704,13 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
   return (
     <div ref={ref} className="relative">
       <div className="relative">
-        <input type="text" placeholder="City, area, airport or hotel name" value={value} autoComplete="off"
+        <input ref={inputRef} type="text" placeholder="City, area, airport or hotel name" value={value} autoComplete="off"
           onChange={e => handleInput(e.target.value)}
-          onFocus={() => setOpen(true)}
+          // Select existing text on focus so any leftover query (e.g. a
+          // hotel name from a previous pick) is wiped on the first keystroke
+          // — fixes "have to delete before searching again" bug after a
+          // hotel-detail navigation + browser back.
+          onFocus={(e) => { setOpen(true); e.currentTarget.select(); }}
           className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-orange-400 focus:bg-white transition-all placeholder:text-[#B0B8CC] pr-10" />
         {open && searching && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -760,9 +765,14 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
                   //     first. Falls back to a city-name search when LiteAPI
                   //     can't map the place.
                   if (p.type === 'hotel' || p.type === 'lodging') {
+                    // Clear UI state and blur the input so when the user
+                    // returns from the hotel detail page (browser back or
+                    // BFCache restore) the search box is a clean slate
+                    // instead of holding the previous hotel name.
                     setOpen(false);
                     setApiResults([]);
-                    onChange(p.name);
+                    onChange('');
+                    inputRef.current?.blur();
 
                     const buildStayQuery = () => {
                       const sp = stayParams || {};
