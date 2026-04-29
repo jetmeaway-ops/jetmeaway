@@ -69,6 +69,17 @@ export async function POST(req: NextRequest) {
       const driftPct = driftAbs / searchPrice;
       if (driftPct > 0.05 || driftAbs > 5) {
         console.warn(`[hotels/prebook] price drift rejected: search=£${searchPrice.toFixed(2)} new=£${newPrice.toFixed(2)} drift=${(driftPct * 100).toFixed(1)}% (£${driftAbs.toFixed(2)})`);
+        // Semantic bug — price the customer was shown != price LiteAPI now
+        // wants. Customer about to abandon. Owner needs to know if this
+        // happens repeatedly (could indicate FX flux, supplier reprice, or
+        // stale cache).
+        reportBug('Hotel price drift > 5% rejected at prebook', {
+          ref,
+          searchPrice,
+          newPrice,
+          driftPercent: Math.round(driftPct * 1000) / 10,
+          driftAbs: Math.round(driftAbs * 100) / 100,
+        });
         return NextResponse.json({
           success: false,
           error: 'price_changed',

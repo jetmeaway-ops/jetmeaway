@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import { resolvePlaceIdToHotelId } from '@/lib/liteapi';
+import { reportBug } from '@/lib/report-bug';
 
 export const runtime = 'edge';
 
@@ -54,6 +55,21 @@ export async function GET(req: NextRequest) {
     // fallback city search to "same tier" alternatives instead of dumping
     // the user into a generic Paris-wide search where 5-star searchers see
     // hostels and budget travellers see luxury.
+    //
+    // Also fire a bug report when the rejection happened BECAUSE OF a brand
+    // mismatch (tierHint present means we had candidates, just no name match).
+    // This is exactly the "hotel mismatch" semantic bug owner asked us to
+    // catch — LiteAPI returned a hotel whose brand didn't match what the
+    // user clicked. Email lets owner spot supplier-coverage gaps and
+    // proactively decide whether to reach out for direct inventory.
+    if (result.tierHint && expectedName) {
+      reportBug('Hotel name mismatch — LiteAPI returned wrong brand for Place ID', {
+        expectedName,
+        placeId,
+        proximityBestTier: result.tierHint,
+        hint: 'LiteAPI does not carry this exact property; user fell back to city search',
+      });
+    }
     return NextResponse.json(
       { ok: false, error: 'No hotel mapped to placeId', tierHint: result.tierHint ?? null },
       { status: 404 },

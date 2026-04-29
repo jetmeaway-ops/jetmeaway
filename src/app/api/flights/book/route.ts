@@ -9,6 +9,7 @@ import {
 } from '@/lib/duffel';
 import { upsertBooking, type Booking } from '@/lib/bookings';
 import { buildDuffelPassengers, pickLeadPassenger } from '@/lib/duffel-passengers';
+import { reportBug } from '@/lib/report-bug';
 import { reverseMarkup } from '@/lib/travel-logic';
 import { notifyBookingConfirmed, notifyBookingDeclined } from '@/lib/notifications';
 
@@ -69,6 +70,10 @@ export async function POST(req: NextRequest) {
   try {
     pi = await stripe.paymentIntents.retrieve(paymentIntentId);
   } catch (err: any) {
+    reportBug('Flight booking — Stripe PaymentIntent retrieve failed', {
+      paymentIntentId,
+      error: err?.message ?? String(err),
+    });
     return NextResponse.json(
       { error: 'Could not verify payment', detail: err?.message },
       { status: 400 },
