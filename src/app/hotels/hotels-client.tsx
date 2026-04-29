@@ -708,13 +708,14 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
           onChange={e => handleInput(e.target.value)}
           // Sticky search re-entry pattern (after hotel pick + browser back):
           //   • setOpen(true) re-opens the dropdown
-          //   • re-fetch when the value still looks like a real query so the
-          //     dropdown populates without the user having to retype
+          //   • re-fetch on every focus when the value looks like a real
+          //     query — guarantees a fresh response (KV-cached, so cheap)
+          //     and avoids relying on possibly-stale apiResults from BFCache
           //   • select() highlights existing text so the first keystroke
           //     wipes it cleanly for a fresh search
           onFocus={(e) => {
             setOpen(true);
-            if (value.length >= 2 && apiResults.length === 0) fetchPlaces(value);
+            if (value.length >= 2) fetchPlaces(value);
             e.currentTarget.select();
           }}
           className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-orange-400 focus:bg-white transition-all placeholder:text-[#B0B8CC] pr-10" />
