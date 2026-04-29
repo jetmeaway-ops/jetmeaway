@@ -771,7 +771,25 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
                   //     /data/places — resolve via /api/hotels/resolve-place
                   //     first. Falls back to a city-name search when LiteAPI
                   //     can't map the place.
-                  if (p.type === 'hotel' || p.type === 'lodging') {
+                  //
+                  // Type matching: Google Places returns "hotel", "lodging",
+                  // "establishment", "point_of_interest", and others for
+                  // bookable properties. Searching "Motel One Paris" returned
+                  // type="establishment" rows that we used to treat as cities
+                  // — sending "Motel One Paris Porte de Versailles" to LiteAPI
+                  // as a cityName always returns 0. We now treat any non-city
+                  // type as a candidate hotel and let the resolve-place
+                  // endpoint be the source of truth — if it maps to a real
+                  // LiteAPI hotelId we navigate to it; if not we fall back to
+                  // city-name search using the description's first segment.
+                  // Fixes the lost Motel One Paris booking 2026-04-29.
+                  const cityLikeTypes = new Set([
+                    'city', 'locality', 'country', 'region',
+                    'administrative_area_level_1', 'administrative_area_level_2',
+                    'sublocality', 'neighborhood', 'neighbourhood',
+                  ]);
+                  const looksLikeHotel = !cityLikeTypes.has(p.type);
+                  if (looksLikeHotel) {
                     // Keep the chosen hotel name in the input (sticky) so
                     // the user has context when they return from the detail
                     // page. The select-on-focus + re-fetch-on-focus handlers
