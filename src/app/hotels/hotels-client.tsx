@@ -772,23 +772,29 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
                   //     first. Falls back to a city-name search when LiteAPI
                   //     can't map the place.
                   //
-                  // Type matching: Google Places returns "hotel", "lodging",
-                  // "establishment", "point_of_interest", and others for
-                  // bookable properties. Searching "Motel One Paris" returned
-                  // type="establishment" rows that we used to treat as cities
-                  // — sending "Motel One Paris Porte de Versailles" to LiteAPI
-                  // as a cityName always returns 0. We now treat any non-city
-                  // type as a candidate hotel and let the resolve-place
-                  // endpoint be the source of truth — if it maps to a real
-                  // LiteAPI hotelId we navigate to it; if not we fall back to
-                  // city-name search using the description's first segment.
-                  // Fixes the lost Motel One Paris booking 2026-04-29.
-                  const cityLikeTypes = new Set([
-                    'city', 'locality', 'country', 'region',
-                    'administrative_area_level_1', 'administrative_area_level_2',
-                    'sublocality', 'neighborhood', 'neighbourhood',
+                  // Type matching uses an ALLOW-list (was a deny-list): only
+                  // types that genuinely represent a single bookable property
+                  // get the resolve-place treatment. Earlier deny-list logic
+                  // routed `geocode` (= a city like Agadir) and `political`
+                  // (= an admin area) through resolve-place, where LiteAPI's
+                  // proximity match returned the nearest popular hotel and
+                  // brand-validation passed because the city name often
+                  // appears in the hotel's name ("Agadir" matches "The View
+                  // Agadir"). Net effect: typing a city name landed users on
+                  // a single hotel detail page instead of search results.
+                  //
+                  //   hotel / lodging              — definitively a hotel
+                  //   establishment / POI          — possibly a hotel
+                  //                                   (Motel One Paris was
+                  //                                    type=establishment)
+                  //   geocode / political /        — definitely a city or
+                  //   locality / country / region    region; do city search
+                  //   transportation_service /     — airports etc; city
+                  //   street_address                 search the address
+                  const hotelLikeTypes = new Set([
+                    'hotel', 'lodging', 'establishment', 'point_of_interest',
                   ]);
-                  const looksLikeHotel = !cityLikeTypes.has(p.type);
+                  const looksLikeHotel = p.isLiteApiHotel || hotelLikeTypes.has(p.type);
                   if (looksLikeHotel) {
                     // Keep the chosen hotel name in the input (sticky) so
                     // the user has context when they return from the detail

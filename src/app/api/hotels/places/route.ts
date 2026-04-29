@@ -92,9 +92,15 @@ export async function GET(req: NextRequest) {
     }))
     .filter((c) => !existingNames.has(`${c.name.toLowerCase()}|${c.description.toLowerCase().split(' — ')[0]}`));
 
-  // Order: hotel-name matches first (most specific), then places, then curated.
+  // Order: places (cities/regions/airports) first, then hotel-name matches,
+  // then curated neighbourhoods. Hotels-first was wrong — typing "Lahore"
+  // showed Pearl Continental Lahore at the top of the dropdown, so users
+  // hitting Enter or clicking the first result landed on a single-hotel
+  // detail page instead of a city search. Cities and regions are the
+  // common-case intent for autocomplete; hotels-by-name are the long-tail
+  // case and stay accessible just below the city.
   // Cap at 15 so the dropdown stays scannable.
-  const merged = [...hotelRows, ...places, ...curated].slice(0, 15);
+  const merged = [...places, ...hotelRows, ...curated].slice(0, 15);
 
   // Only cache when we actually got *something* from LiteAPI — caching an
   // empty response (e.g. transient LiteAPI failure on the very first query)
