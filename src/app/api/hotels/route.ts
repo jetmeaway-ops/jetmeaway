@@ -1045,9 +1045,10 @@ export async function GET(req: NextRequest) {
   // treats the borough's Google Place ID as a metro pointer. Bumping the cache
   // version invalidates any cached "Croydon → Docklands+Hammersmith" responses.
   // v15 — added alt-spelling aliases (Marrakesh→Marrakech, Lisboa→Lisbon, etc.)
-  // v16 — invalidate any 0-result cache entries from the FX-rollout window
-  // (Gatwick / Horley / Vegas etc cached as empty before FX layer landed).
-  const kvKey = `hotels:v16:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
+  // v17 — bumped 2026-04-29 to invalidate v16 entries that were captured
+  // under the 50-hotel /data/hotels slice; v17+ pulls 200 so big cities
+  // surface properties like Motel One Paris-Porte de Versailles.
+  const kvKey = `hotels:v17:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
 
   // Group occupancy bypass: large groups (>4 guests) always get fresh prices
   // because cached availability/room blocks may not hold for that many people.
