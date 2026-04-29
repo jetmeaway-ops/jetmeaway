@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import { prebookWithPaymentSdk } from '@/lib/liteapi';
+import { reportBug } from '@/lib/report-bug';
 import type { PendingBooking } from '../start-booking/route';
 
 // Node runtime — LiteAPI prebook can take 15-25s, Edge times out too early
@@ -105,6 +106,7 @@ export async function POST(req: NextRequest) {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Prebook failed';
     console.error('[hotels/prebook]', message);
+    reportBug('Hotel prebook failed', { ref, error: message, stack: err instanceof Error ? err.stack?.slice(0, 800) : undefined });
     return NextResponse.json(
       { success: false, error: message },
       { status: 500 },

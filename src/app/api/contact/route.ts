@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { reportBug } from '@/lib/report-bug';
 
 export const runtime = 'edge';
 
@@ -44,12 +45,15 @@ export async function POST(req: NextRequest) {
     if (!res.ok) {
       const body = await res.text();
       console.error('[contact] Resend error:', body);
+      reportBug('Contact form Resend send failed', { status: res.status, resendError: body.slice(0, 400) });
       return NextResponse.json({ error: 'Failed to send message' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
-    console.error('[contact]', err instanceof Error ? err.message : err);
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[contact]', msg);
+    reportBug('Contact form handler errored', { error: msg });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

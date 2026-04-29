@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import { getHotels as liteapiGetHotels, type HotelOffer } from '@/lib/liteapi';
 import { dedupeKey } from '@/lib/giata';
+import { reportBug } from '@/lib/report-bug';
 
 // Stays on edge for low-latency search. DOTW's node-only transport
 // (MD5 + gzip) is proxied through `/api/hotels/dotw-search` (nodejs runtime).
@@ -485,6 +486,15 @@ async function fetchLiteApiHotels(
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.warn(`[liteapi] ${cityName} (${resolvedCountry}) fetch failed after ${Date.now() - t0}ms:`, message);
+    // Soft signal — search returns 0 hotels (handled gracefully by the
+    // curated fallback) but owner should still know LiteAPI is misbehaving.
+    reportBug('LiteAPI hotel search failed', {
+      city: cityName,
+      country: resolvedCountry,
+      checkin,
+      checkout,
+      error: message,
+    });
     return [];
   }
 }

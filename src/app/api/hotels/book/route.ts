@@ -9,6 +9,7 @@ import {
 } from '@/lib/suppliers/dotw-adapter';
 import { upsertBooking, type Booking, type Supplier } from '@/lib/bookings';
 import { notifyBookingConfirmed, notifyBookingDeclined } from '@/lib/notifications';
+import { reportBug } from '@/lib/report-bug';
 import type { PendingBooking } from '../start-booking/route';
 import type { PendingGuest } from '../pending/[ref]/guest/route';
 
@@ -261,6 +262,15 @@ export async function POST(req: NextRequest) {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Booking failed';
     console.error('[hotels/book]', message);
+    // CRITICAL — a booking failure means a customer just lost a transaction.
+    // Owner needs to know in real time, not next time they check Vercel logs.
+    reportBug('Hotel BOOKING failed (post-payment)', {
+      ref,
+      error: message,
+      supplier: record?.supplier ?? 'unknown',
+      hotelName: record?.hotelName ?? null,
+      stack: err instanceof Error ? err.stack?.slice(0, 800) : undefined,
+    });
     try {
       const cur = await kv.get<PendingBooking>(`pending-booking:${ref}`);
       if (cur && cur.state !== 'confirmed') {

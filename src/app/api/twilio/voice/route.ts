@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import { listBookings, getBookingsByPhone, type Booking } from '@/lib/bookings';
+import { reportBug } from '@/lib/report-bug';
 
 /**
  * Twilio Voice IVR — JetMeAway Helpline
@@ -618,6 +619,11 @@ export async function POST(req: NextRequest) {
   // the very first webhook call — used for caller-ID booking match.
   const callerFrom = params.get('From') || '';
 
+  // Wrap the entire step-machine in a try/catch so an unexpected throw
+  // (KV outage, malformed Twilio payload, downstream crash) ends the call
+  // gracefully with an apology TwiML instead of a 500 — and the owner
+  // gets an email alert so they can chase the underlying bug.
+  try {
   switch (step) {
     case 'start':
       return await step1Welcome(callerFrom);
@@ -673,6 +679,24 @@ export async function POST(req: NextRequest) {
 
     default:
       return await step1Welcome(callerFrom);
+  }
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error('[twilio:voice] handler crashed:', errMsg);
+    reportBug('IVR handler crashed', {
+      step,
+      lang,
+      digits: digits.slice(0, 80),
+      callerFrom,
+      error: errMsg,
+      stack: err instanceof Error ? err.stack?.slice(0, 800) : undefined,
+    });
+    // Return graceful TwiML so the caller hears an apology + hangup
+    // rather than dead air or Twilio's generic "application error".
+    return twiml(
+      say('Sorry, we had a technical issue. Please email contact at jetmeaway dot co dot uk and we will get back to you shortly. Goodbye.', 'en') +
+      '<Hangup/>'
+    );
   }
 }
 
