@@ -377,6 +377,17 @@ export interface GetHotelsParams {
   currency?: string;        // default GBP
   guestNationality?: string; // default GB (ISO-3166 alpha-2)
   limit?: number;           // max hotels to fetch rates for (default 25)
+  /**
+   * Optional star-rating filter applied at the /data/hotels list call
+   * (e.g. [1, 2, 3] for budget tier). LiteAPI's default response order
+   * for big cities (Paris/London/NYC) skews heavily toward 4-star
+   * properties, leaving budget travellers with no cheap options. The
+   * route handler does a parallel "budget tier" fetch with this param
+   * to guarantee 1-3★ coverage. If LiteAPI ignores the param the
+   * budget-tier results just duplicate the primary fetch (deduped by
+   * hotelId) — no harm.
+   */
+  starRatings?: number[];
 }
 
 export interface HotelOffer {
@@ -508,6 +519,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     currency = 'GBP',
     guestNationality = 'GB',
     limit = 25,
+    starRatings,
   } = params;
 
   if (!destinationId && !(cityName && countryCode)) {
@@ -563,6 +575,15 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     } else {
       listQuery.set('cityName', cityName!);
       listQuery.set('countryCode', countryCode!);
+    }
+    if (starRatings && starRatings.length > 0) {
+      // Comma-separated star tiers, e.g. "0,1,2,3" for budget-and-unrated.
+      // 0 covers hostels and properties LiteAPI hasn't classified — students
+      // and budget travellers don't filter by stars, they book whatever's
+      // cheap. Best-guess at LiteAPI's param name is `starRating` (singular)
+      // accepting a CSV; if the API ignores the param it just returns the
+      // unfiltered set, which the caller dedupes against the primary fetch.
+      listQuery.set('starRating', starRatings.join(','));
     }
     const list = await liteFetch<{ data: HotelMeta[] }>(
       `/data/hotels?${listQuery.toString()}`,

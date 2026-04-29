@@ -409,28 +409,71 @@ async function fetchLiteApiHotels(
 
   const t0 = Date.now();
   try {
-    const result = await Promise.race([
-      liteapiGetHotels({
-        cityName: resolvedCity,
-        countryCode: resolvedCountry,
-        checkIn: checkin,
-        checkOut: checkout,
-        occupancy,
-        currency: 'GBP',
-        guestNationality: 'GB',
-        // 200 hotels per search. Previous attempt (commit d8713ad) blew the
-        // 12s /hotels/rates timeout because all 200 hotelIds went into one
-        // POST. Now safe at 200 because the rates fetch chunks into 4× 50
-        // parallel calls (see liteapi.ts getHotels). Each chunk stays well
-        // within timeout; total wall-clock unchanged. (2026-04-29)
-        limit: 200,
+    // Two-track parallel fetch:
+    //   PRIMARY (150) — broad coverage, no star filter. LiteAPI's default
+    //   ordering for big cities (Paris/London/NYC) skews heavily toward
+    //   4-star properties, so this alone leaves budget travellers with no
+    //   cheap options. Owner spec: "scout is not only for rich people, its
+    //   for everyone — students just book anything cheap, mostly hostels"
+    //   (2026-04-29).
+    //   BUDGET (50) — explicit 0/1/2/3-star filter to guarantee budget
+    //   coverage including hostels and unclassified properties (0-star).
+    //   If LiteAPI ignores the starRating param the budget fetch returns
+    //   the same set as primary; dedup-by-hotelId below is a no-op cost.
+    //
+    // Both calls share the 12s timeout race so a slow LiteAPI doesn't
+    // block the search indefinitely.
+    const fetchTimeout = new Promise<HotelOffer[]>((_, reject) =>
+      setTimeout(() => reject(new Error('LiteAPI timeout')), timeoutMs),
+    );
+    const [primaryResult, budgetResult] = await Promise.all([
+      Promise.race([
+        liteapiGetHotels({
+          cityName: resolvedCity,
+          countryCode: resolvedCountry,
+          checkIn: checkin,
+          checkOut: checkout,
+          occupancy,
+          currency: 'GBP',
+          guestNationality: 'GB',
+          limit: 150,
+        }),
+        fetchTimeout,
+      ]).catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+        console.warn(`[liteapi:primary] ${cityName} failed:`, message);
+        return [] as HotelOffer[];
       }),
-      new Promise<HotelOffer[]>((_, reject) =>
-        setTimeout(() => reject(new Error('LiteAPI timeout')), timeoutMs),
-      ),
+      Promise.race([
+        liteapiGetHotels({
+          cityName: resolvedCity,
+          countryCode: resolvedCountry,
+          checkIn: checkin,
+          checkOut: checkout,
+          occupancy,
+          currency: 'GBP',
+          guestNationality: 'GB',
+          limit: 50,
+          starRatings: [0, 1, 2, 3],
+        }),
+        fetchTimeout,
+      ]).catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+        console.warn(`[liteapi:budget] ${cityName} failed:`, message);
+        return [] as HotelOffer[];
+      }),
     ]);
-    console.log(`[liteapi] ${cityName} (${resolvedCountry}) ${checkin}→${checkout}: ${result.length} offers in ${Date.now() - t0}ms`);
-    return result;
+    // Merge + dedupe by hotelId. Primary wins on duplicates so its
+    // (potentially negotiated) rate is preserved.
+    const seenIds = new Set<string>();
+    const merged: HotelOffer[] = [];
+    for (const h of [...primaryResult, ...budgetResult]) {
+      if (!h.hotelId || seenIds.has(h.hotelId)) continue;
+      seenIds.add(h.hotelId);
+      merged.push(h);
+    }
+    console.log(`[liteapi] ${cityName} (${resolvedCountry}) ${checkin}→${checkout}: primary=${primaryResult.length} + budget=${budgetResult.length} → merged=${merged.length} in ${Date.now() - t0}ms`);
+    return merged;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.warn(`[liteapi] ${cityName} (${resolvedCountry}) fetch failed after ${Date.now() - t0}ms:`, message);
@@ -1051,7 +1094,10 @@ export async function GET(req: NextRequest) {
   // a 50-hotel slice so live rates come back inside the 12s budget.
   // v19 — back to 200 hotels but with chunked rates fetch (4×50 in parallel)
   // so we don't blow the timeout. Invalidates v18's 50-hotel cached pages.
-  const kvKey = `hotels:v19:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
+  // v20 — added budget-tier supplemental fetch (0-3★, limit 50) to fix the
+  // big-city 4★-skew where students/hostel travellers were seeing "from £80"
+  // for Paris when £35 hostels existed. Invalidates v19 4★-skewed pages.
+  const kvKey = `hotels:v20:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
 
   // Group occupancy bypass: large groups (>4 guests) always get fresh prices
   // because cached availability/room blocks may not hold for that many people.
