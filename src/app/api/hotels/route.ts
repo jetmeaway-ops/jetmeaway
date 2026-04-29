@@ -418,11 +418,10 @@ async function fetchLiteApiHotels(
         occupancy,
         currency: 'GBP',
         guestNationality: 'GB',
-        // Bumped 50→200 (2026-04-29) — large cities (Paris, London) have
-        // thousands of hotels in LiteAPI inventory, and a 50-hotel slice
-        // was missing well-known properties like Motel One Paris-Porte
-        // de Versailles. 200 trades latency/cost for coverage.
-        limit: 200,
+        // 200 hotelIds blew the 12s /hotels/rates timeout in prod and
+        // returned 0 Paris results. Reverted to 50 same-day; proper
+        // coverage fix is direct hotel-by-name lookup (option B).
+        limit: 50,
       }),
       new Promise<HotelOffer[]>((_, reject) =>
         setTimeout(() => reject(new Error('LiteAPI timeout')), timeoutMs),
@@ -1045,10 +1044,10 @@ export async function GET(req: NextRequest) {
   // treats the borough's Google Place ID as a metro pointer. Bumping the cache
   // version invalidates any cached "Croydon → Docklands+Hammersmith" responses.
   // v15 — added alt-spelling aliases (Marrakesh→Marrakech, Lisboa→Lisbon, etc.)
-  // v17 — bumped 2026-04-29 to invalidate v16 entries that were captured
-  // under the 50-hotel /data/hotels slice; v17+ pulls 200 so big cities
-  // surface properties like Motel One Paris-Porte de Versailles.
-  const kvKey = `hotels:v17:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
+  // v18 — bumped 2026-04-29 to invalidate v17 "0 results" entries
+  // captured during the 200-hotel timeout incident. v18 reverts to
+  // a 50-hotel slice so live rates come back inside the 12s budget.
+  const kvKey = `hotels:v18:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
 
   // Group occupancy bypass: large groups (>4 guests) always get fresh prices
   // because cached availability/room blocks may not hold for that many people.
