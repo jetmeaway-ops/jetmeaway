@@ -6,32 +6,35 @@ export const runtime = 'edge';
 /**
  * Bug monitor — receives Vercel log-drain (or any error webhook) events,
  * filters for actual errors, asks Claude for a 2-sentence root-cause +
- * fix summary, then SMS-pings the owner via Twilio.
+ * fix summary, then emails the owner via Resend.
  *
- * HARDENING (2026-04-29):
+ * Hardening:
  *  - Auth: requires `x-bug-monitor-secret` header matching env var.
  *    Without this, anyone could hit the endpoint and burn through our
- *    Anthropic + Twilio credit.
+ *    Anthropic credit.
  *  - Rate limit: same error fingerprint suppressed for 5 min so a burst
- *    of identical errors doesn't flood the phone with SMS.
- *  - Prompt cache: system prompt is stable, so we tag it with
- *    cache_control to cut input-token cost on repeated invocations.
- *  - Current model: claude-sonnet-4-5 (was the retired
- *    claude-3-5-sonnet-20241022 in the original .js draft).
- *  - TypeScript + typed event shape.
- *  - Soft-fail: if Twilio env vars are missing we still analyse the
- *    error and return the summary, just skip the SMS leg.
+ *    of identical errors doesn't flood the inbox.
+ *  - Prompt cache: system prompt is stable, tagged with cache_control
+ *    so input-token cost drops on repeated invocations.
+ *  - Current model: claude-sonnet-4-5.
+ *  - Soft-fail: if Resend env var is missing we still analyse the error
+ *    and return the summary — caller can still see it in the response.
+ *
+ * Email path (was Twilio SMS — owner switched to email-only 2026-04-29
+ * for cheaper, longer, more triageable alerts).
  *
  * Required env vars on Vercel:
  *  - ANTHROPIC_API_KEY
- *  - BUG_MONITOR_SECRET (any random string; set the same value in
- *    whatever's posting to this endpoint)
- *  - TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_PHONE_FROM /
- *    TWILIO_PHONE_TO (optional — SMS leg skipped if any are missing)
+ *  - BUG_MONITOR_SECRET — any random string. Must be sent by the caller
+ *    in the x-bug-monitor-secret header.
+ *  - RESEND_API_KEY — already configured for contact / deal-alerts /
+ *    booking emails. Email leg skipped if missing.
  */
 
 const CLAUDE_MODEL = 'claude-sonnet-4-5';
 const SMS_DEDUPE_TTL = 60 * 5; // 5 min — same error fingerprint suppressed
+const ALERT_FROM = 'JetMeAway Bug Monitor <noreply@jetmeaway.co.uk>';
+const ALERT_TO = 'waqar@jetmeaway.co.uk';
 
 interface BugEvent {
   level?: string;
@@ -41,7 +44,7 @@ interface BugEvent {
   [k: string]: unknown;
 }
 
-/** Stable hash for SMS de-dup. Same error text → same key → no spam. */
+/** Stable hash for email de-dup. Same error text → same key → no spam. */
 function fingerprint(text: string): string {
   let hash = 0;
   for (let i = 0; i < text.length; i++) {
@@ -49,6 +52,22 @@ function fingerprint(text: string): string {
     hash |= 0;
   }
   return `bug:dedupe:${Math.abs(hash)}`;
+}
+
+/** Trim a long summary to a length safe for an email subject line. */
+function truncateForSubject(s: string, max = 60): string {
+  const cleaned = s.replace(/\s+/g, ' ').trim();
+  return cleaned.length <= max ? cleaned : cleaned.slice(0, max - 1) + '…';
+}
+
+/** Escape HTML so error text doesn't break the email layout. */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 export async function POST(req: NextRequest) {
@@ -80,7 +99,7 @@ export async function POST(req: NextRequest) {
       .join('\n')
       .slice(0, 2000);
 
-    // Rate-limit: same error fingerprint, only 1 SMS per 5 min.
+    // Rate-limit: same error fingerprint, only 1 email per 5 min.
     const dedupeKey = fingerprint(errorText);
     try {
       const cached = await kv.get(dedupeKey);
@@ -132,52 +151,67 @@ export async function POST(req: NextRequest) {
     const claudeData = await claudeRes.json();
     const summary: string = claudeData?.content?.[0]?.text || 'Could not analyse error.';
 
-    const sid = process.env.TWILIO_ACCOUNT_SID;
-    const token = process.env.TWILIO_AUTH_TOKEN;
-    const from = process.env.TWILIO_PHONE_FROM;
-    const to = process.env.TWILIO_PHONE_TO;
-
-    // Soft-fail when Twilio env is incomplete — still return the analysis
-    // so the caller (or a Vercel function-log retention layer) can capture
-    // it even without SMS.
-    if (!sid || !token || !from || !to) {
-      console.warn('[bug-monitor] Twilio env missing — analysed but SMS skipped');
+    const RESEND_KEY = process.env.RESEND_API_KEY;
+    // Soft-fail when Resend env is missing — still return the analysis
+    // so the caller can capture it from the response body.
+    if (!RESEND_KEY) {
+      console.warn('[bug-monitor] RESEND_API_KEY missing — analysed but email skipped');
       try { await kv.set(dedupeKey, '1', { ex: SMS_DEDUPE_TTL }); } catch {}
       return NextResponse.json({
         ok: true,
-        message: 'Analysed but SMS skipped (Twilio not configured)',
+        message: 'Analysed but email skipped (Resend not configured)',
         summary,
       });
     }
 
-    const smsBody = 'JetMeAway Bug: ' + summary;
-    const twilioRes = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: 'Basic ' + btoa(sid + ':' + token),
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({ From: from, To: to, Body: smsBody }).toString(),
-      },
-    );
+    const subject = '🐛 JetMeAway Bug — ' + truncateForSubject(summary);
+    const html = `
+      <div style="font-family:system-ui,sans-serif;max-width:640px;color:#1A1D2B;">
+        <h2 style="color:#dc2626;margin:0 0 8px;">JetMeAway production error</h2>
+        <p style="color:#5C6378;margin:0 0 24px;font-size:.85rem;">Auto-detected by /api/bug-monitor · ${new Date().toUTCString()}</p>
 
-    if (!twilioRes.ok) {
-      const errText = await twilioRes.text();
-      console.error('[bug-monitor] Twilio API error', twilioRes.status, errText.slice(0, 200));
+        <h3 style="margin:24px 0 8px;font-size:.95rem;">Claude analysis</h3>
+        <div style="background:#F8FAFC;border:1px solid #E8ECF4;border-radius:12px;padding:16px;line-height:1.5;">
+          ${escapeHtml(summary).replace(/\n/g, '<br>')}
+        </div>
+
+        <h3 style="margin:24px 0 8px;font-size:.95rem;">Raw error</h3>
+        <pre style="background:#0F1119;color:#F8FAFC;border-radius:12px;padding:16px;font-size:.78rem;line-height:1.5;overflow-x:auto;white-space:pre-wrap;word-break:break-word;">${escapeHtml(errorText)}</pre>
+
+        <p style="color:#8E95A9;margin-top:24px;font-size:.78rem;">
+          Dedupe key: <code>${dedupeKey}</code> · suppressed for 5 minutes after this email.
+        </p>
+      </div>
+    `;
+
+    const resendRes = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${RESEND_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: ALERT_FROM,
+        to: [ALERT_TO],
+        subject,
+        html,
+      }),
+    });
+
+    if (!resendRes.ok) {
+      const errText = await resendRes.text();
+      console.error('[bug-monitor] Resend API error', resendRes.status, errText.slice(0, 200));
       return NextResponse.json(
-        { ok: false, error: 'Twilio API failed', status: twilioRes.status, summary },
+        { ok: false, error: 'Resend API failed', status: resendRes.status, summary },
         { status: 502 },
       );
     }
 
-    // Only set the dedupe key after both Claude + Twilio succeeded —
-    // means a transient downstream failure won't suppress retries of
-    // the same error.
+    // Only set the dedupe key after both Claude + Resend succeeded —
+    // means a transient downstream failure won't suppress retries.
     try { await kv.set(dedupeKey, '1', { ex: SMS_DEDUPE_TTL }); } catch {}
 
-    return NextResponse.json({ ok: true, message: 'Bug reported via SMS', summary });
+    return NextResponse.json({ ok: true, message: 'Bug reported via email', summary });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
     console.error('[bug-monitor] handler error:', msg);
