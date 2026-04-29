@@ -826,6 +826,12 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
                     }
 
                     setSearching(true);
+                    // tierHint is extracted from a brand-validation reject so
+                    // the city-fallback search can be filtered to "same tier"
+                    // alternatives. Without this, a user searching a 5-star
+                    // hotel that we don't carry would fall through to a
+                    // generic city search dominated by 3-4 star results.
+                    let tierHint: number | null = null;
                     try {
                       // Pass the autocomplete row's name as expectedName so
                       // the server-side resolver can validate that LiteAPI's
@@ -842,6 +848,12 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
                         const qs = buildStayQuery();
                         window.location.assign(`/hotels/${encodeURIComponent(data.hotelId)}${qs ? '?' + qs : ''}`);
                         return;
+                      }
+                      // 404 with tierHint — server's "we rejected the
+                      // proximity-best because brand didn't match, but here's
+                      // its star tier so you can show same-tier alternatives".
+                      if (typeof data?.tierHint === 'number' && data.tierHint > 0 && data.tierHint <= 5) {
+                        tierHint = data.tierHint;
                       }
                     } catch { /* fall through to city fallback */ }
                     // Resolver returned 404 (no LiteAPI match, OR brand
@@ -861,9 +873,26 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
                       segments.length >= 3 ? segments[1] :
                       segments.length === 2 ? segments[0] :
                       (p.description || '').trim();
-                    onChange(cityFromDescription || p.name);
-                    onPlaceSelect(null);
-                    setSearching(false);
+                    const fallbackCity = cityFromDescription || p.name;
+
+                    // Auto-fire the city search by navigating with full
+                    // search params. Avoids the "user has to click Search
+                    // again" papercut. Includes stars=tierHint when we
+                    // got a hint from the rejected proximity-best, so
+                    // results filter to "same tier" alternatives — a
+                    // 5-star searcher gets 5-star alternatives, not the
+                    // city's mid-tier inventory dump.
+                    const sp = stayParams || {};
+                    const fb = new URLSearchParams();
+                    fb.set('city', fallbackCity);
+                    if (sp.checkin) fb.set('checkin', sp.checkin);
+                    if (sp.checkout) fb.set('checkout', sp.checkout);
+                    if (sp.adults) fb.set('adults', String(sp.adults));
+                    if (sp.children) fb.set('children', String(sp.children));
+                    if (sp.rooms) fb.set('rooms', String(sp.rooms));
+                    if (sp.childrenAges?.length) fb.set('childrenAges', sp.childrenAges.join(','));
+                    if (tierHint && tierHint > 0) fb.set('stars', String(tierHint));
+                    window.location.assign(`/hotels?${fb.toString()}`);
                     return;
                   }
 

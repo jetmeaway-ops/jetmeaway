@@ -48,11 +48,18 @@ export async function GET(req: NextRequest) {
     }
   } catch { /* KV read fail — continue */ }
 
-  const hotelId = await resolvePlaceIdToHotelId(placeId, expectedName || undefined);
-  if (!hotelId) {
-    return NextResponse.json({ ok: false, error: 'No hotel mapped to placeId' }, { status: 404 });
+  const result = await resolvePlaceIdToHotelId(placeId, expectedName || undefined);
+  if (!result.hotelId) {
+    // Reject with a tierHint when we have one — lets the client filter the
+    // fallback city search to "same tier" alternatives instead of dumping
+    // the user into a generic Paris-wide search where 5-star searchers see
+    // hostels and budget travellers see luxury.
+    return NextResponse.json(
+      { ok: false, error: 'No hotel mapped to placeId', tierHint: result.tierHint ?? null },
+      { status: 404 },
+    );
   }
 
-  try { await kv.set(cacheKey, hotelId, { ex: KV_TTL }); } catch {}
-  return NextResponse.json({ ok: true, hotelId });
+  try { await kv.set(cacheKey, result.hotelId, { ex: KV_TTL }); } catch {}
+  return NextResponse.json({ ok: true, hotelId: result.hotelId });
 }

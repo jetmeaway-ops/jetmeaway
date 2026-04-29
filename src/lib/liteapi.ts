@@ -267,43 +267,61 @@ function nameTokensMatch(expected: string, resolved: string): boolean {
  * Novotel next door (lp27336c) because Novotel is closer to the centroid
  * of the Place. The validation rejects that.
  *
- * Returns null when LiteAPI can't map the placeId, OR when the resolved
- * hotel's name doesn't share a brand signature with `expectedName`.
+ * Returns:
+ *   - { hotelId: '...' } on a successful brand-validated match
+ *   - { hotelId: null } when LiteAPI has no candidates at all
+ *   - { hotelId: null, tierHint: N } when candidates existed but none
+ *     passed brand validation. tierHint = star rating of the proximity-
+ *     best candidate, used by the client to filter the fallback city
+ *     search to "same tier" alternatives. (Even though the proximity
+ *     match was the WRONG brand, it's a close-by hotel of similar tier
+ *     to what the user clicked, so it's a decent proxy for what the
+ *     intended hotel's tier was.)
  */
+export interface PlaceResolveResult {
+  hotelId: string | null;
+  tierHint?: number;
+}
 export async function resolvePlaceIdToHotelId(
   placeId: string,
   expectedName?: string,
-): Promise<string | null> {
-  if (!placeId) return null;
+): Promise<PlaceResolveResult> {
+  if (!placeId) return { hotelId: null };
   try {
     // Pull up to 5 candidates so we have alternatives if LiteAPI's first
-    // (proximity-best) result doesn't match the expected name.
-    const data = await liteFetch<{ data: Array<{ id: string; name?: string }> }>(
+    // (proximity-best) result doesn't match the expected name. Ask for
+    // the starRating field too so we can hand the rejected proximity-best's
+    // tier back to the client as a fallback hint.
+    const data = await liteFetch<{
+      data: Array<{ id: string; name?: string; starRating?: number; stars?: number }>
+    }>(
       `/data/hotels?placeId=${encodeURIComponent(placeId)}&limit=5`,
       { method: 'GET' },
       8_000,
     );
     const candidates = data.data || [];
-    if (candidates.length === 0) return null;
+    if (candidates.length === 0) return { hotelId: null };
 
     if (expectedName) {
       const match = candidates.find((c) => c.name && nameTokensMatch(expectedName, c.name));
       if (match) {
         console.log(`[liteapi:resolvePlaceId] expected="${expectedName}" → ${match.id} (${match.name})`);
-        return match.id;
+        return { hotelId: match.id };
       }
-      // No candidate matched the brand — better to fail than redirect to
-      // a wrong hotel. Caller falls back to city search.
-      console.warn(`[liteapi:resolvePlaceId] REJECT: expected="${expectedName}" but candidates were ${candidates.map((c) => c.name).filter(Boolean).join(' | ')}`);
-      return null;
+      // No candidate matched the brand — return tierHint from the
+      // proximity-best candidate so the caller can filter the fallback
+      // city search to "same tier" hotels.
+      const tierHint = candidates[0]?.starRating ?? candidates[0]?.stars;
+      console.warn(`[liteapi:resolvePlaceId] REJECT: expected="${expectedName}" but candidates were ${candidates.map((c) => c.name).filter(Boolean).join(' | ')} (tierHint=${tierHint})`);
+      return { hotelId: null, tierHint: typeof tierHint === 'number' ? tierHint : undefined };
     }
 
     // No expected name supplied — accept the first candidate (legacy behaviour).
-    return candidates[0]?.id || null;
+    return { hotelId: candidates[0]?.id || null };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'placeId resolution failed';
     console.warn('[liteapi:resolvePlaceId]', message);
-    return null;
+    return { hotelId: null };
   }
 }
 
