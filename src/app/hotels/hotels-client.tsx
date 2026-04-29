@@ -743,7 +743,7 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
                 Global Search
               </li>
               {apiResults.slice(0, 12).map(p => (
-                <li key={`${p.isLiteApiHotel ? 'h' : 'p'}:${p.id}`} onMouseDown={async () => {
+                <li key={p.isLiteApiHotel ? `hotel-${p.id}` : `place-${p.id}`} onMouseDown={async () => {
                   // Curated neighbourhoods come with a pre-formatted `query`
                   // string ("Paddington, London, UK") — feed that back to the
                   // search so LiteAPI resolves the right area. Everything else
