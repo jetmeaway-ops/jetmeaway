@@ -603,6 +603,10 @@ type PlaceResult = {
   lat?: number;
   lng?: number;
   query?: string;
+  // True when `id` is already a LiteAPI hotelId (came from /data/hotels?name=…)
+  // — the client can navigate straight to /hotels/[id] without the placeId
+  // resolver step.
+  isLiteApiHotel?: boolean;
 };
 
 /**
@@ -628,10 +632,20 @@ const LANDMARK_ALIASES: Array<{
   },
 ];
 
-function DestinationPicker({ value, onChange, onPlaceSelect }: {
+type StayParams = {
+  checkin?: string;
+  checkout?: string;
+  adults?: number;
+  children?: number;
+  rooms?: number;
+  childrenAges?: number[];
+};
+
+function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
   value: string;
   onChange: (v: string) => void;
   onPlaceSelect: (place: PlaceResult | null) => void;
+  stayParams?: StayParams;
 }) {
   const [open, setOpen] = useState(false);
   const [apiResults, setApiResults] = useState<PlaceResult[]>([]);
@@ -689,7 +703,7 @@ function DestinationPicker({ value, onChange, onPlaceSelect }: {
   return (
     <div ref={ref} className="relative">
       <div className="relative">
-        <input type="text" placeholder="City, area or airport" value={value} autoComplete="off"
+        <input type="text" placeholder="City, area, airport or hotel name" value={value} autoComplete="off"
           onChange={e => handleInput(e.target.value)}
           onFocus={() => setOpen(true)}
           className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-orange-400 focus:bg-white transition-all placeholder:text-[#B0B8CC] pr-10" />
@@ -729,12 +743,62 @@ function DestinationPicker({ value, onChange, onPlaceSelect }: {
                 Global Search
               </li>
               {apiResults.slice(0, 12).map(p => (
-                <li key={p.id} onMouseDown={() => {
+                <li key={p.isLiteApiHotel ? `hotel-${p.id}` : `place-${p.id}`} onMouseDown={async () => {
                   // Curated neighbourhoods come with a pre-formatted `query`
                   // string ("Paddington, London, UK") — feed that back to the
                   // search so LiteAPI resolves the right area. Everything else
                   // just uses the displayName.
                   if (debounceRef.current) clearTimeout(debounceRef.current);
+
+                  // Hotel-type results bypass the city search entirely
+                  // and navigate straight to /hotels/[hotelId].
+                  //
+                  //   • isLiteApiHotel=true → `id` is already a LiteAPI
+                  //     hotelId from /data/hotels?name=… — navigate directly.
+                  //   • Otherwise → `id` is a Google Place ID from
+                  //     /data/places — resolve via /api/hotels/resolve-place
+                  //     first. Falls back to a city-name search when LiteAPI
+                  //     can't map the place.
+                  if (p.type === 'hotel' || p.type === 'lodging') {
+                    setOpen(false);
+                    setApiResults([]);
+                    onChange(p.name);
+
+                    const buildStayQuery = () => {
+                      const sp = stayParams || {};
+                      const qp = new URLSearchParams();
+                      if (sp.checkin) qp.set('checkin', sp.checkin);
+                      if (sp.checkout) qp.set('checkout', sp.checkout);
+                      if (sp.adults) qp.set('adults', String(sp.adults));
+                      if (sp.children) qp.set('children', String(sp.children));
+                      if (sp.rooms) qp.set('rooms', String(sp.rooms));
+                      if (sp.childrenAges?.length) qp.set('childrenAges', sp.childrenAges.join(','));
+                      return qp.toString();
+                    };
+
+                    if (p.isLiteApiHotel) {
+                      const qs = buildStayQuery();
+                      window.location.assign(`/hotels/${encodeURIComponent(p.id)}${qs ? '?' + qs : ''}`);
+                      return;
+                    }
+
+                    setSearching(true);
+                    try {
+                      const res = await fetch(`/api/hotels/resolve-place?placeId=${encodeURIComponent(p.id)}`);
+                      const data = await res.json();
+                      if (res.ok && data?.ok && data.hotelId) {
+                        const qs = buildStayQuery();
+                        window.location.assign(`/hotels/${encodeURIComponent(data.hotelId)}${qs ? '?' + qs : ''}`);
+                        return;
+                      }
+                    } catch { /* fall through to city fallback */ }
+                    const cityFromDescription = (p.description || '').split(',')[0]?.trim();
+                    onChange(cityFromDescription || p.name);
+                    onPlaceSelect(null);
+                    setSearching(false);
+                    return;
+                  }
+
                   onChange(p.query || p.name);
                   onPlaceSelect(p);
                   setOpen(false);
@@ -2074,7 +2138,12 @@ function HotelsContent() {
           {/* Destination */}
           <div className="mb-3">
             <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Destination</label>
-            <DestinationPicker value={destination} onChange={setDestination} onPlaceSelect={(p) => setSelectedPlaceId(p?.id || null)} />
+            <DestinationPicker
+              value={destination}
+              onChange={setDestination}
+              onPlaceSelect={(p) => setSelectedPlaceId(p?.id || null)}
+              stayParams={{ checkin, checkout, adults, children: childCount, rooms, childrenAges }}
+            />
           </div>
 
           {/* Dates + Guests */}
