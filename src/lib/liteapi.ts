@@ -219,22 +219,87 @@ export async function searchHotelsByName(query: string, limit = 5): Promise<Hote
   }
 }
 
+/** Reduce a hotel/chain name to its identifying tokens — strip generic
+ *  words like "hotel"/"the"/"and"/"by", drop short tokens (<= 2 chars),
+ *  lowercase + alphanumeric. Used to fuzzy-match an expected name
+ *  against the name LiteAPI returned.
+ *
+ *  "Hotel Motel One Paris-Porte Dorée" → ["motel","one","paris","porte","dorée"]
+ *  "Novotel Paris Porte De Versailles" → ["novotel","paris","porte","versailles"]
+ *  These have token overlap on "paris", "porte" — but the brand identifier
+ *  ("motel one" vs "novotel") differs. nameTokensMatch() requires the
+ *  FIRST distinctive (non-generic, length>=4) token of each to match. */
+const GENERIC_HOTEL_WORDS = new Set([
+  'hotel', 'hotels', 'the', 'and', 'by', 'a', 'an', 'of', 'at', 'on', 'in',
+  '&', 'spa', 'resort', 'inn', 'house', 'apartment', 'apartments', 'suites',
+]);
+function nameTokens(s: string): string[] {
+  return s
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9 ]+/g, ' ')
+    .split(/\s+/)
+    .filter((t) => t.length >= 3 && !GENERIC_HOTEL_WORDS.has(t));
+}
+
+/** True if the resolved-name's tokens contain the expected name's *brand*
+ *  tokens. Brand = the first 1-2 distinctive tokens (e.g. "motel one"). */
+function nameTokensMatch(expected: string, resolved: string): boolean {
+  const expTokens = nameTokens(expected);
+  const resTokens = new Set(nameTokens(resolved));
+  if (expTokens.length === 0 || resTokens.size === 0) return true; // can't judge → allow
+  // Take the first 2 distinctive tokens of the expected name as the brand
+  // signature. For "Motel One Paris Porte de Versailles" → ["motel","one"].
+  // For just "The Savoy" → ["savoy"]. Both must appear in resolved.
+  const brand = expTokens.slice(0, Math.min(2, expTokens.length));
+  return brand.every((t) => resTokens.has(t));
+}
+
 /**
  * Resolve a Google Place ID returned by /data/places (type=hotel) into the
  * LiteAPI hotelId we can pass to /data/hotel for details and /hotels/rates
- * for live pricing. Returns null when LiteAPI can't map the placeId — caller
- * should fall back to a city-name search using the place's description.
+ * for live pricing.
+ *
+ * 2026-04-29: now also accepts an optional `expectedName` and validates
+ * the resolved hotel's name against it. LiteAPI's `/data/hotels?placeId=`
+ * does proximity matching, not exact name matching — for example, the
+ * Place ID for "Motel One Paris Porte de Versailles" was returning the
+ * Novotel next door (lp27336c) because Novotel is closer to the centroid
+ * of the Place. The validation rejects that.
+ *
+ * Returns null when LiteAPI can't map the placeId, OR when the resolved
+ * hotel's name doesn't share a brand signature with `expectedName`.
  */
-export async function resolvePlaceIdToHotelId(placeId: string): Promise<string | null> {
+export async function resolvePlaceIdToHotelId(
+  placeId: string,
+  expectedName?: string,
+): Promise<string | null> {
   if (!placeId) return null;
   try {
-    const data = await liteFetch<{ data: Array<{ id: string }> }>(
-      `/data/hotels?placeId=${encodeURIComponent(placeId)}&limit=1`,
+    // Pull up to 5 candidates so we have alternatives if LiteAPI's first
+    // (proximity-best) result doesn't match the expected name.
+    const data = await liteFetch<{ data: Array<{ id: string; name?: string }> }>(
+      `/data/hotels?placeId=${encodeURIComponent(placeId)}&limit=5`,
       { method: 'GET' },
       8_000,
     );
-    const id = data.data?.[0]?.id;
-    return id || null;
+    const candidates = data.data || [];
+    if (candidates.length === 0) return null;
+
+    if (expectedName) {
+      const match = candidates.find((c) => c.name && nameTokensMatch(expectedName, c.name));
+      if (match) {
+        console.log(`[liteapi:resolvePlaceId] expected="${expectedName}" → ${match.id} (${match.name})`);
+        return match.id;
+      }
+      // No candidate matched the brand — better to fail than redirect to
+      // a wrong hotel. Caller falls back to city search.
+      console.warn(`[liteapi:resolvePlaceId] REJECT: expected="${expectedName}" but candidates were ${candidates.map((c) => c.name).filter(Boolean).join(' | ')}`);
+      return null;
+    }
+
+    // No expected name supplied — accept the first candidate (legacy behaviour).
+    return candidates[0]?.id || null;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'placeId resolution failed';
     console.warn('[liteapi:resolvePlaceId]', message);

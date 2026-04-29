@@ -821,7 +821,16 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
 
                     setSearching(true);
                     try {
-                      const res = await fetch(`/api/hotels/resolve-place?placeId=${encodeURIComponent(p.id)}`);
+                      // Pass the autocomplete row's name as expectedName so
+                      // the server-side resolver can validate that LiteAPI's
+                      // proximity-based Place ID match actually corresponds
+                      // to the hotel the user clicked. Without this, "Motel
+                      // One Paris Porte de Versailles" was redirecting to
+                      // the Novotel next door (lp27336c) because LiteAPI's
+                      // resolver returns the geographically-closest hotel
+                      // rather than the brand-matching one.
+                      const expected = encodeURIComponent(p.name);
+                      const res = await fetch(`/api/hotels/resolve-place?placeId=${encodeURIComponent(p.id)}&expectedName=${expected}`);
                       const data = await res.json();
                       if (res.ok && data?.ok && data.hotelId) {
                         const qs = buildStayQuery();
