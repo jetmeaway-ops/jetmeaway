@@ -127,26 +127,94 @@ export interface HotelByName {
   longitude?: number;
 }
 
+/** Tiny lookup of common cities → ISO country codes used to scope a
+ *  hotel-name search. Not exhaustive — just the cities most likely to
+ *  appear inside a "<chain> <city>" query (e.g. "Motel One Paris").
+ *  When no city token matches we fall through to a name-only call. */
+const NAME_SEARCH_CITY_TO_CC: Record<string, string> = {
+  london: 'GB', edinburgh: 'GB', manchester: 'GB', glasgow: 'GB', liverpool: 'GB', birmingham: 'GB', bristol: 'GB',
+  leeds: 'GB', belfast: 'GB', cardiff: 'GB', horley: 'GB', crawley: 'GB', luton: 'GB',
+  paris: 'FR', nice: 'FR', lyon: 'FR', marseille: 'FR',
+  rome: 'IT', venice: 'IT', florence: 'IT', milan: 'IT', naples: 'IT',
+  madrid: 'ES', barcelona: 'ES', seville: 'ES', valencia: 'ES', malaga: 'ES', ibiza: 'ES',
+  lisbon: 'PT', porto: 'PT',
+  berlin: 'DE', munich: 'DE', hamburg: 'DE', frankfurt: 'DE', cologne: 'DE',
+  amsterdam: 'NL', brussels: 'BE', vienna: 'AT', prague: 'CZ', budapest: 'HU',
+  zurich: 'CH', geneva: 'CH',
+  athens: 'GR', istanbul: 'TR', dubai: 'AE', doha: 'QA', muscat: 'OM',
+  marrakech: 'MA', cairo: 'EG',
+  'new york': 'US', 'los angeles': 'US', miami: 'US', 'las vegas': 'US', orlando: 'US', chicago: 'US',
+  toronto: 'CA', sydney: 'AU', melbourne: 'AU',
+  bangkok: 'TH', singapore: 'SG', tokyo: 'JP', mumbai: 'IN', delhi: 'IN',
+  baku: 'AZ', islamabad: 'PK', lahore: 'PK', karachi: 'PK',
+};
+
+/** Inspect the query for a known city token. Used to scope a hotel-name
+ *  search to the right country (LiteAPI's /data/hotels?name= alone is
+ *  unscoped and frequently returns 0 — adding `countryCode` makes it
+ *  return real matches). */
+function detectCountryCodeFromQuery(query: string): string | null {
+  const lower = query.toLowerCase();
+  for (const [city, cc] of Object.entries(NAME_SEARCH_CITY_TO_CC)) {
+    if (lower.includes(city)) return cc;
+  }
+  return null;
+}
+
 /**
  * Search LiteAPI's hotel index by free-text name (e.g. "Motel One Paris").
- * Used to power hotel-name autocomplete alongside /data/places — places only
- * reliably surfaces cities/airports, so hotel matches need their own call.
+ * Used to power hotel-name autocomplete alongside /data/places.
+ *
+ * Two-phase strategy:
+ *   1. If we can detect a country from a city token in the query,
+ *      call with both `&name=` and `&countryCode=` — far more likely to
+ *      return matches because LiteAPI's name search is heavily scoped
+ *      by country.
+ *   2. Always fall back (or fall through) to name-only.
+ *
+ * Empirical: name-only frequently returns [] even when LiteAPI clearly
+ * has the property indexed (proven by /data/places + Place ID resolver
+ * still finding it). The country-scoped variant is the workaround.
  *
  * Returns up to `limit` hotels with their LiteAPI hotelIds ready to navigate
  * to (no placeId resolver hop needed).
  */
 export async function searchHotelsByName(query: string, limit = 5): Promise<HotelByName[]> {
   if (!query || query.length < 3) return [];
+
+  const cc = detectCountryCodeFromQuery(query);
+
+  // Phase 1: country-scoped, if we detected a known city in the query.
+  if (cc) {
+    try {
+      const scoped = await liteFetch<{ data: HotelByName[] }>(
+        `/data/hotels?name=${encodeURIComponent(query)}&countryCode=${cc}&limit=${limit}`,
+        { method: 'GET' },
+        8_000,
+      );
+      const rows = scoped.data || [];
+      console.log(`[liteapi:searchHotelsByName] q="${query}" cc=${cc} hits=${rows.length}`);
+      if (rows.length > 0) return rows;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'hotel name search failed';
+      console.warn('[liteapi:searchHotelsByName] cc-scoped failed:', message);
+      // fall through to name-only
+    }
+  }
+
+  // Phase 2: name-only (legacy behaviour).
   try {
     const data = await liteFetch<{ data: HotelByName[] }>(
       `/data/hotels?name=${encodeURIComponent(query)}&limit=${limit}`,
       { method: 'GET' },
       8_000,
     );
-    return data.data || [];
+    const rows = data.data || [];
+    console.log(`[liteapi:searchHotelsByName] q="${query}" cc=none hits=${rows.length}`);
+    return rows;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'hotel name search failed';
-    console.warn('[liteapi:searchHotelsByName]', message);
+    console.warn('[liteapi:searchHotelsByName] name-only failed:', message);
     return [];
   }
 }
