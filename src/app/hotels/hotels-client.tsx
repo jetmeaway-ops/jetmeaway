@@ -651,6 +651,7 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
   const [apiResults, setApiResults] = useState<PlaceResult[]>([]);
   const [searching, setSearching] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
@@ -703,9 +704,20 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
   return (
     <div ref={ref} className="relative">
       <div className="relative">
-        <input type="text" placeholder="City, area, airport or hotel name" value={value} autoComplete="off"
+        <input ref={inputRef} type="text" placeholder="City, area, airport or hotel name" value={value} autoComplete="off"
           onChange={e => handleInput(e.target.value)}
-          onFocus={() => setOpen(true)}
+          // Sticky search re-entry pattern (after hotel pick + browser back):
+          //   • setOpen(true) re-opens the dropdown
+          //   • re-fetch on every focus when the value looks like a real
+          //     query — guarantees a fresh response (KV-cached, so cheap)
+          //     and avoids relying on possibly-stale apiResults from BFCache
+          //   • select() highlights existing text so the first keystroke
+          //     wipes it cleanly for a fresh search
+          onFocus={(e) => {
+            setOpen(true);
+            if (value.length >= 2) fetchPlaces(value);
+            e.currentTarget.select();
+          }}
           className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-orange-400 focus:bg-white transition-all placeholder:text-[#B0B8CC] pr-10" />
         {open && searching && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -760,9 +772,16 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
                   //     first. Falls back to a city-name search when LiteAPI
                   //     can't map the place.
                   if (p.type === 'hotel' || p.type === 'lodging') {
+                    // Keep the chosen hotel name in the input (sticky) so
+                    // the user has context when they return from the detail
+                    // page. The select-on-focus + re-fetch-on-focus handlers
+                    // on the input element make this fully editable on
+                    // re-entry — first keystroke wipes it, focus alone
+                    // re-runs the search so the dropdown re-opens populated.
                     setOpen(false);
                     setApiResults([]);
                     onChange(p.name);
+                    inputRef.current?.blur();
 
                     const buildStayQuery = () => {
                       const sp = stayParams || {};
