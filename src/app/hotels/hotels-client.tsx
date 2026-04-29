@@ -1232,7 +1232,12 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
                 )}
               </p>
             )}
-            {nights > 0 && <p className="text-[.72rem] text-[#5C6378] font-semibold">{nights} night{nights !== 1 ? 's' : ''} · {adults} guest{adults !== 1 ? 's' : ''}</p>}
+            {nights > 0 && (
+              <p className="text-[.72rem] text-[#5C6378] font-semibold">
+                {nights} night{nights !== 1 ? 's' : ''} · {adults} adult{adults !== 1 ? 's' : ''}
+                {children > 0 && `, ${children} ${children === 1 ? 'child' : 'children'}`}
+              </p>
+            )}
             {/* Scout voice: emerald solid for positive, slate outline for
                 neutral — stated, not scolded. No red. */}
             {h.bookable && typeof displayRefundable === 'boolean' && (
