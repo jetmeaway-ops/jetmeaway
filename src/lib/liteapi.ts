@@ -934,6 +934,13 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       HRK: 0.113,   // Croatian Kuna (legacy — replaced by EUR but some rows still use)
     };
 
+    // Track whether we had to FX-convert this offer. Used below to relax
+    // the star-tier sanity floor — markets that return native currency
+    // (Marrakech in MAD, Cairo in EGP, Bangkok in THB, etc) tend to have
+    // legitimately cheaper hotels than the GBP-denominated wholesale
+    // markets (US/UK/EU). The standard floor (4★ ≥ £35) is calibrated
+    // for the latter and was hiding real 3-4★ inventory in cheap markets.
+    let fxConverted = false;
     if (finalCurrency && finalCurrency !== 'GBP') {
       const fx = FX_TO_GBP[finalCurrency.toUpperCase()];
       if (fx && fx > 0) {
@@ -944,6 +951,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
         if (negotiatedRaw != null) negotiatedRaw = negotiatedRaw * fx;
         finalPrice = finalPrice * fx;
         finalCurrency = 'GBP';
+        fxConverted = true;
         console.log(`[liteapi:fx] hotel=${entry.hotelId} ${before.toFixed(2)} → £${finalPrice.toFixed(2)} (rate=${fx})`);
       } else {
         console.warn(`[liteapi:drop] hotel=${entry.hotelId} unknown currency=${finalCurrency} — no FX rate available, dropping`);
@@ -957,10 +965,12 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     // looks like a scam — visitors don't trust prices that good. Drop
     // any offer whose per-night GBP price is below the realistic floor
     // for its star tier:
-    //   5★ ≥ £45    4★ ≥ £35    3★ ≥ £20    2★ ≥ £12    unrated/1★ ≥ £8
-    // These floors are deliberately low so we don't hide genuine budget
-    // hotels in cheap markets (Hanoi, Marrakech, Sofia) — they only kill
-    // the obviously-broken sandbox rows.
+    //   GBP markets:    5★ ≥ £45  4★ ≥ £35  3★ ≥ £20  2★ ≥ £12  1★ ≥ £8
+    //   FX-converted:   5★ ≥ £25  4★ ≥ £18  3★ ≥ £10  2★ ≥ £6   1★ ≥ £4
+    // The halved floor for FX-converted markets stops legitimate 3-4★
+    // hotels in Marrakech / Cairo / Bangkok / Hanoi from being dropped
+    // (they routinely come in at £25-35/night for a 4★ — well below the
+    // standard floor but a real, bookable price).
     const stars = entry.hotel?.starRating
       ?? entry.hotel?.stars
       ?? (entry.hotel as { rating?: number } | undefined)?.rating
@@ -969,14 +979,15 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       ?? hotelDirectory.get(entry.hotelId)?.rating
       ?? 0;
     const perNightForGuard = nights > 0 ? finalPrice / nights : finalPrice;
+    const floorMul = fxConverted ? 0.5 : 1.0;
     let floorGBP: number;
-    if (stars >= 5) floorGBP = 45;
-    else if (stars >= 4) floorGBP = 35;
-    else if (stars >= 3) floorGBP = 20;
-    else if (stars >= 2) floorGBP = 12;
-    else floorGBP = 8;
+    if (stars >= 5) floorGBP = 45 * floorMul;
+    else if (stars >= 4) floorGBP = 35 * floorMul;
+    else if (stars >= 3) floorGBP = 20 * floorMul;
+    else if (stars >= 2) floorGBP = 12 * floorMul;
+    else floorGBP = 8 * floorMul;
     if (finalPrice > 0 && perNightForGuard < floorGBP) {
-      console.warn(`[liteapi:drop] hotel=${entry.hotelId} stars=${stars} perNight=£${perNightForGuard.toFixed(2)} (floor=£${floorGBP}) — dropped as data anomaly`);
+      console.warn(`[liteapi:drop] hotel=${entry.hotelId} stars=${stars} perNight=£${perNightForGuard.toFixed(2)} (floor=£${floorGBP}, fx=${fxConverted}) — dropped as data anomaly`);
       continue;
     }
 

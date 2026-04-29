@@ -173,7 +173,12 @@ export default function HotelCheckoutPage() {
           body: JSON.stringify({ ref }),
         });
         const data = await res.json();
-        if (!data.success) throw new Error(data.error || 'Prebook failed');
+        if (!data.success) {
+          // Server returns `message` (human-readable) when price drift
+          // is rejected (>5% or >£5). Fall back to `error` (machine code)
+          // for everything else.
+          throw new Error(data.message || data.error || 'Prebook failed');
+        }
 
         setPrebookResult({
           prebookId: data.prebookId,

@@ -52,6 +52,33 @@ export async function POST(req: NextRequest) {
 
     const result = await prebookWithPaymentSdk(record.offerId);
 
+    // Price-drift guard. LiteAPI's prebook can return a different price
+    // than what the user saw on the search results card (inventory shifts,
+    // FX repricing, supplier-side update between search and click-to-book).
+    // Threshold: 5% drift OR > £5 absolute = reject the prebook with a
+    // clear error so the client can show a "price changed" banner and
+    // force the user to re-search. Smaller drifts (< 5%) pass through;
+    // the LiteAPI Payment SDK form shows the up-to-date price before the
+    // customer enters card details, so they still see the new figure
+    // before paying.
+    const searchPrice = Number(record.totalPrice) || 0;
+    const newPrice = Number(result.price) || 0;
+    if (searchPrice > 0 && newPrice > 0) {
+      const driftAbs = Math.abs(newPrice - searchPrice);
+      const driftPct = driftAbs / searchPrice;
+      if (driftPct > 0.05 || driftAbs > 5) {
+        console.warn(`[hotels/prebook] price drift rejected: search=£${searchPrice.toFixed(2)} new=£${newPrice.toFixed(2)} drift=${(driftPct * 100).toFixed(1)}% (£${driftAbs.toFixed(2)})`);
+        return NextResponse.json({
+          success: false,
+          error: 'price_changed',
+          message: `The price has changed since your search (was £${searchPrice.toFixed(2)}, now £${newPrice.toFixed(2)}). Please search again to see the latest rate.`,
+          searchPrice,
+          newPrice,
+          driftPercent: Math.round(driftPct * 1000) / 10,
+        }, { status: 409 });
+      }
+    }
+
     // Store prebookId and transactionId on the KV record for the book step
     // Update totalPrice + currency to match the actual prebook price (may differ from search)
     // 4h TTL — customer may take time to enter payment details
