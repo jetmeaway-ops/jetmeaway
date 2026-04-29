@@ -706,11 +706,17 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
       <div className="relative">
         <input ref={inputRef} type="text" placeholder="City, area, airport or hotel name" value={value} autoComplete="off"
           onChange={e => handleInput(e.target.value)}
-          // Select existing text on focus so any leftover query (e.g. a
-          // hotel name from a previous pick) is wiped on the first keystroke
-          // — fixes "have to delete before searching again" bug after a
-          // hotel-detail navigation + browser back.
-          onFocus={(e) => { setOpen(true); e.currentTarget.select(); }}
+          // Sticky search re-entry pattern (after hotel pick + browser back):
+          //   • setOpen(true) re-opens the dropdown
+          //   • re-fetch when the value still looks like a real query so the
+          //     dropdown populates without the user having to retype
+          //   • select() highlights existing text so the first keystroke
+          //     wipes it cleanly for a fresh search
+          onFocus={(e) => {
+            setOpen(true);
+            if (value.length >= 2 && apiResults.length === 0) fetchPlaces(value);
+            e.currentTarget.select();
+          }}
           className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-orange-400 focus:bg-white transition-all placeholder:text-[#B0B8CC] pr-10" />
         {open && searching && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -765,13 +771,15 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
                   //     first. Falls back to a city-name search when LiteAPI
                   //     can't map the place.
                   if (p.type === 'hotel' || p.type === 'lodging') {
-                    // Clear UI state and blur the input so when the user
-                    // returns from the hotel detail page (browser back or
-                    // BFCache restore) the search box is a clean slate
-                    // instead of holding the previous hotel name.
+                    // Keep the chosen hotel name in the input (sticky) so
+                    // the user has context when they return from the detail
+                    // page. The select-on-focus + re-fetch-on-focus handlers
+                    // on the input element make this fully editable on
+                    // re-entry — first keystroke wipes it, focus alone
+                    // re-runs the search so the dropdown re-opens populated.
                     setOpen(false);
                     setApiResults([]);
-                    onChange('');
+                    onChange(p.name);
                     inputRef.current?.blur();
 
                     const buildStayQuery = () => {
