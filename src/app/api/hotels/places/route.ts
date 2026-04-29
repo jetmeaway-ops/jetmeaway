@@ -1,14 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPlaces } from '@/lib/liteapi';
+import { getPlaces, searchHotelsByName } from '@/lib/liteapi';
 import { findNeighbourhoods, formatNeighbourhoodQuery } from '@/lib/neighbourhoods';
 
 export const runtime = 'edge';
 
+type PlaceRow = {
+  id: string;
+  name: string;
+  description: string;
+  type: string;
+  lat?: number;
+  lng?: number;
+  query?: string;
+  isLiteApiHotel?: boolean;
+};
+
 /**
  * GET /api/hotels/places?q=paris
  *
- * Autocomplete endpoint backed by LiteAPI /data/places.
- * Returns cities, neighbourhoods, airports, and hotels matching the query.
+ * Autocomplete endpoint. Fires two LiteAPI calls in parallel:
+ *   1. /data/places — cities, neighbourhoods, airports
+ *   2. /data/hotels?name=… — specific hotel matches by name
+ *
+ * Hotels from #2 carry `isLiteApiHotel: true` and their `id` is already
+ * a LiteAPI hotelId, so the client can navigate straight to /hotels/[id]
+ * without the placeId resolver hop.
  *
  * Curated neighbourhoods (src/lib/neighbourhoods.ts) are merged in so typing
  * a parent city ("London") still surfaces sub-areas (Victoria, Paddington,
@@ -20,34 +36,45 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ places: [] });
   }
 
-  // LiteAPI first — their data wins on dedupe so we don't shadow a real result.
-  let places: Array<{ id: string; name: string; description: string; type: string; lat?: number; lng?: number }> = [];
-  try {
-    places = await getPlaces(q);
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Places lookup failed';
-    console.error('[hotels/places]', message);
-    // Fall through — curated list is a useful fallback even when LiteAPI fails.
-  }
+  const [placesResult, hotelsResult] = await Promise.all([
+    getPlaces(q).catch((err: unknown) => {
+      console.error('[hotels/places]', err instanceof Error ? err.message : err);
+      return [] as Awaited<ReturnType<typeof getPlaces>>;
+    }),
+    searchHotelsByName(q, 4).catch((err: unknown) => {
+      console.error('[hotels/places:byName]', err instanceof Error ? err.message : err);
+      return [] as Awaited<ReturnType<typeof searchHotelsByName>>;
+    }),
+  ]);
+
+  const places: PlaceRow[] = placesResult;
+
+  const hotelRows: PlaceRow[] = hotelsResult.map((h) => ({
+    id: h.id,
+    name: h.name,
+    description: [h.city, h.country].filter(Boolean).join(', '),
+    type: 'hotel',
+    isLiteApiHotel: true,
+  }));
 
   // Curated neighbourhoods — dedupe against LiteAPI results by display name.
   const existingNames = new Set(
     places.map((p) => `${p.name.toLowerCase()}|${(p.description || '').toLowerCase()}`),
   );
-  const curated = findNeighbourhoods(q, 8)
+  const curated: PlaceRow[] = findNeighbourhoods(q, 8)
     .map((n) => ({
       id: `neighbourhood:${n.parent}:${n.name}`,
       name: n.name,
       description: `${n.parent}, ${n.country}${n.blurb ? ' — ' + n.blurb : ''}`,
-      type: 'neighborhood',
+      type: 'neighborhood' as const,
       lat: n.lat,
       lng: n.lng,
-      query: formatNeighbourhoodQuery(n), // what to feed back to hotel search
+      query: formatNeighbourhoodQuery(n),
     }))
     .filter((c) => !existingNames.has(`${c.name.toLowerCase()}|${c.description.toLowerCase().split(' — ')[0]}`));
 
-  // Merge: LiteAPI first (usually has the most specific hit), then curated.
+  // Order: hotel-name matches first (most specific), then places, then curated.
   // Cap at 15 so the dropdown stays scannable.
-  const merged = [...places, ...curated].slice(0, 15);
+  const merged = [...hotelRows, ...places, ...curated].slice(0, 15);
   return NextResponse.json({ places: merged });
 }

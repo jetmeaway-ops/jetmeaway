@@ -114,6 +114,43 @@ export async function getPlaces(query: string): Promise<Place[]> {
   }));
 }
 
+export interface HotelByName {
+  id: string;
+  name: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  countryCode?: string;
+  starRating?: number;
+  stars?: number;
+  latitude?: number;
+  longitude?: number;
+}
+
+/**
+ * Search LiteAPI's hotel index by free-text name (e.g. "Motel One Paris").
+ * Used to power hotel-name autocomplete alongside /data/places — places only
+ * reliably surfaces cities/airports, so hotel matches need their own call.
+ *
+ * Returns up to `limit` hotels with their LiteAPI hotelIds ready to navigate
+ * to (no placeId resolver hop needed).
+ */
+export async function searchHotelsByName(query: string, limit = 5): Promise<HotelByName[]> {
+  if (!query || query.length < 3) return [];
+  try {
+    const data = await liteFetch<{ data: HotelByName[] }>(
+      `/data/hotels?name=${encodeURIComponent(query)}&limit=${limit}`,
+      { method: 'GET' },
+      8_000,
+    );
+    return data.data || [];
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'hotel name search failed';
+    console.warn('[liteapi:searchHotelsByName]', message);
+    return [];
+  }
+}
+
 /**
  * Resolve a Google Place ID returned by /data/places (type=hotel) into the
  * LiteAPI hotelId we can pass to /data/hotel for details and /hotels/rates
