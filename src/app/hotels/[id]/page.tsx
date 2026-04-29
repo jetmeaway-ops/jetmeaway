@@ -979,24 +979,25 @@ export default function HotelDetailPage() {
 
               {hotel.reviews && hotel.reviews.list.length > 0 ? (
                 (() => {
-                  // Build a Booking.com search link for this property so
-                  // customers can verify the reviews at source. LiteAPI
-                  // reviews are sourced from Booking.com via data partnership
-                  // — linking out honours that origin and closes the "can I
-                  // trust these?" loop in one click. Affiliate aid=318615
-                  // preserved so review click-throughs still earn commission.
-                  const reviewsLiveUrl = `https://www.booking.com/searchresults.html?aid=318615&ss=${encodeURIComponent(`${hotel.name}${hotel.city ? ` ${hotel.city}` : ''}`)}&checkin=${encodeURIComponent(checkin || '')}&checkout=${encodeURIComponent(checkout || '')}&group_adults=${adults}&group_children=${children}&no_rooms=${rooms}&selected_currency=${currency || 'GBP'}`;
+                  // Reviews stay ON our site — no click-through to Booking.com.
+                  // Earlier versions linked every review card + a "Read all on
+                  // Booking.com" CTA to a Booking.com search results page (with
+                  // our affiliate aid=318615 preserved). That was a net loss:
+                  // Booking.com's affiliate cut (~3-4%) is materially smaller
+                  // than the LiteAPI direct commission we earn when the
+                  // customer books on our own site (~5-15%), AND the trust hit
+                  // of suddenly being on a competitor's domain mid-decision is
+                  // real. The reviews themselves are still presented as
+                  // verified — the count + "via Booking.com" attribution at
+                  // the footer of the section preserves the social-proof
+                  // origin without sending traffic away. (2026-04-29)
                   return (
                 <>
                 <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {hotel.reviews.list.slice(0, 5).map((r, i) => (
                     <li key={`${r.name}-${r.date || ''}-${i}`}>
-                    <a
-                      href={reviewsLiveUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={`Read this review and all ${hotel.reviews!.count.toLocaleString()} reviews on Booking.com`}
-                      className="block rounded-xl bg-[#FAFBFC] ring-1 ring-[#E8ECF4] p-4 transition-all hover:ring-[#0066FF]/50 hover:bg-white hover:shadow-[0_4px_16px_rgba(0,102,255,0.08)] cursor-pointer"
+                    <div
+                      className="block rounded-xl bg-[#FAFBFC] ring-1 ring-[#E8ECF4] p-4"
                     >
                       <div className="flex items-start justify-between gap-3 mb-2">
                         <div className="min-w-0">
@@ -1051,7 +1052,7 @@ export default function HotelDetailPage() {
                           </p>
                         </div>
                       )}
-                    </a>
+                    </div>
                     </li>
                   ))}
                 </ul>
@@ -1073,20 +1074,16 @@ export default function HotelDetailPage() {
                     </p>
                   )}
                 </div>
-                {/* See-all CTA — the prominent live-verification link.
-                    Opens the Booking.com search result for this property
-                    so the customer can read the full review list on the
-                    source they trust. aid=318615 = our affiliate; even
-                    review click-throughs earn if the user books there. */}
-                <a
-                  href={reviewsLiveUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0066FF] text-white text-[.82rem] font-bold hover:bg-[#0052d6] transition-colors"
-                >
-                  <i className="fa-solid fa-arrow-up-right-from-square text-[.76rem]" aria-hidden />
-                  Read all {hotel.reviews.count.toLocaleString()} reviews on Booking.com
-                </a>
+                {/* Verified-source attribution — static, no link-out.
+                    Earlier versions had a "Read all on Booking.com" CTA
+                    here (with our aid=318615) — removed 2026-04-29 to stop
+                    leaking traffic to a competitor mid-decision. The
+                    "via Booking.com" line preserves the social-proof
+                    origin without sending users away. */}
+                <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 ring-1 ring-emerald-200 text-emerald-800 text-[.72rem] font-bold">
+                  <i className="fa-solid fa-shield-halved text-[.7rem]" aria-hidden />
+                  {hotel.reviews.count.toLocaleString()} verified reviews via Booking.com
+                </div>
                 </>
                   );
                 })()
