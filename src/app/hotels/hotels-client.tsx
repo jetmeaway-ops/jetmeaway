@@ -838,7 +838,23 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
                         return;
                       }
                     } catch { /* fall through to city fallback */ }
-                    const cityFromDescription = (p.description || '').split(',')[0]?.trim();
+                    // Resolver returned 404 (no LiteAPI match, OR brand
+                    // validation rejected it). Fall back to a city search.
+                    //
+                    // Description format from Google Places is consistently
+                    // "<street>, <city>, <country>" — so segment[1] is the
+                    // city. Earlier code took segment[0] which is the street
+                    // ("Rue du 4 Septembre" instead of "Issy-les-Moulineaux"),
+                    // landing the user on a 0-result search.
+                    //
+                    // Extra-safety: if the segments don't fit that shape,
+                    // walk from the end skipping the last (country) and pick
+                    // the second-to-last (almost always the city).
+                    const segments = (p.description || '').split(',').map((s) => s.trim()).filter(Boolean);
+                    const cityFromDescription =
+                      segments.length >= 3 ? segments[1] :
+                      segments.length === 2 ? segments[0] :
+                      (p.description || '').trim();
                     onChange(cityFromDescription || p.name);
                     onPlaceSelect(null);
                     setSearching(false);
