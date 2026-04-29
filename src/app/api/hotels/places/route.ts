@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { kv } from '@vercel/kv';
 import { getPlaces, searchHotelsByName } from '@/lib/liteapi';
 import { findNeighbourhoods, formatNeighbourhoodQuery } from '@/lib/neighbourhoods';
 
 export const runtime = 'edge';
+
+// 5 minutes — long enough to absorb LiteAPI throttling on identical
+// repeat queries within a session, short enough that hotel-name results
+// stay reasonably fresh.
+const KV_TTL = 5 * 60;
 
 type PlaceRow = {
   id: string;
@@ -29,12 +35,25 @@ type PlaceRow = {
  * Curated neighbourhoods (src/lib/neighbourhoods.ts) are merged in so typing
  * a parent city ("London") still surfaces sub-areas (Victoria, Paddington,
  * Westminster...) even when LiteAPI's geocoder doesn't volunteer them.
+ *
+ * Merged response is KV-cached for 5 minutes keyed on the lower-cased query.
+ * LiteAPI's /data/hotels?name= has been observed to return empty on rapid
+ * repeat calls; the cache absorbs that so the second identical search shows
+ * the same hotel row instead of a partial result.
  */
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get('q')?.trim() || '';
   if (q.length < 2) {
     return NextResponse.json({ places: [] });
   }
+
+  const cacheKey = `places:v1:${q.toLowerCase()}`;
+  try {
+    const cached = await kv.get<PlaceRow[]>(cacheKey);
+    if (cached && Array.isArray(cached)) {
+      return NextResponse.json({ places: cached, cached: true });
+    }
+  } catch { /* KV read fail — continue to live fetch */ }
 
   const [placesResult, hotelsResult] = await Promise.all([
     getPlaces(q).catch((err: unknown) => {
@@ -76,5 +95,13 @@ export async function GET(req: NextRequest) {
   // Order: hotel-name matches first (most specific), then places, then curated.
   // Cap at 15 so the dropdown stays scannable.
   const merged = [...hotelRows, ...places, ...curated].slice(0, 15);
+
+  // Only cache when we actually got *something* from LiteAPI — caching an
+  // empty response (e.g. transient LiteAPI failure on the very first query)
+  // would freeze a broken state for 5 minutes.
+  if (placesResult.length > 0 || hotelsResult.length > 0) {
+    try { await kv.set(cacheKey, merged, { ex: KV_TTL }); } catch {}
+  }
+
   return NextResponse.json({ places: merged });
 }
