@@ -689,7 +689,7 @@ function DestinationPicker({ value, onChange, onPlaceSelect }: {
   return (
     <div ref={ref} className="relative">
       <div className="relative">
-        <input type="text" placeholder="Any city or town worldwide" value={value} autoComplete="off"
+        <input type="text" placeholder="City, area or airport" value={value} autoComplete="off"
           onChange={e => handleInput(e.target.value)}
           onFocus={() => setOpen(true)}
           className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-orange-400 focus:bg-white transition-all placeholder:text-[#B0B8CC] pr-10" />
