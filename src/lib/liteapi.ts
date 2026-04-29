@@ -98,7 +98,9 @@ export async function getPlaces(query: string): Promise<Place[]> {
   }>(
     // Include neighborhood + sublocality so typed queries like "Paddington" or
     // "Shoreditch" surface the correct London-adjacent area, not just cities.
-    `/data/places?textQuery=${encodeURIComponent(query)}&type=locality,neighborhood,sublocality,airport,hotel`,
+    // `hotel` is deliberately excluded — /api/hotels ignores placeId and
+    // resolves by city name, so picking a hotel result returned no rates.
+    `/data/places?textQuery=${encodeURIComponent(query)}&type=locality,neighborhood,sublocality,airport`,
     { method: 'GET' },
     8_000, // fast timeout — autocomplete should be snappy
   );
