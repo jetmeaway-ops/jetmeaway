@@ -2,7 +2,7 @@
   "expo": {
     "name": "JetMeAway",
     "slug": "jetmeaway",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "scheme": "jetmeaway",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -16,9 +16,12 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "uk.co.jetmeaway.app",
+      "buildNumber": "5",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "JetMeAway uses your location to suggest the nearest airport and map the neighbourhood around your hotel. Location is never shared or sold.",
-        "ITSAppUsesNonExemptEncryption": false
+        "NSUserNotificationsUsageDescription": "JetMeAway sends deal alerts when hotel and flight prices drop on routes you've shown interest in. You can turn this off any time in Settings.",
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": ["remote-notification"]
       }
     },
     "android": {
@@ -27,7 +30,7 @@
         "backgroundColor": "#1458B5"
       },
       "package": "uk.co.jetmeaway.app",
-      "versionCode": 14,
+      "versionCode": 15,
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
@@ -43,6 +46,13 @@
         "expo-location",
         {
           "locationWhenInUsePermission": "JetMeAway uses your location to suggest the nearest airport and map the neighbourhood around your hotel. Location is never shared or sold."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#0066FF",
+          "defaultChannel": "default"
         }
       ],
       "@react-native-community/datetimepicker",

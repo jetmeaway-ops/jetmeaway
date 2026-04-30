@@ -4,30 +4,44 @@ import {
   BackHandler,
   Linking,
   Platform,
+  Share,
   StyleSheet,
+  Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
-import { WebView, WebViewNavigation } from 'react-native-webview';
+import { WebView, WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
 import * as WebBrowser from 'expo-web-browser';
+import * as Location from 'expo-location';
+import * as Haptics from 'expo-haptics';
 
 import { Colors } from './src/constants/colors';
+import { registerForPushNotifications, syncPushTokenToBackend } from './src/services/push';
+import { saveBooking, parseBookingMessage } from './src/services/offline-bookings';
+import { INJECTED_BRIDGE, parseMessage } from './src/services/webview-bridge';
+import { MyTripsModal } from './src/screens/MyTripsModal';
 
 const HOME_URL = 'https://jetmeaway.co.uk/';
 const INTERNAL_HOST = 'jetmeaway.co.uk';
 
 /**
- * JetMeAway mobile shell — a full-screen WebView over the production site.
+ * JetMeAway mobile shell — full-screen WebView over the production site,
+ * augmented with native capabilities (push, offline bookings, share, location,
+ * haptics) so it clears App Store Guideline 4.2 ("Minimum Functionality").
  *
- * Rationale (2026-04-24): the prior native RN screens had ~1/20th of the
- * site's functionality (no checkout, no account, no hotel detail, no admin).
- * Maintaining two codebases was causing the "ugly / non-functional" complaint.
- * We now render the live site; every web deploy ships to the app instantly.
+ * The WebView still drives the entire UX. The native side adds:
+ *   - Push opt-in + token capture on first launch
+ *   - Local AsyncStorage of booking confirmations for offline access
+ *   - Native share sheet (iOS UIActivityViewController, Android Intent)
+ *   - Location permission + lat/lng resolve for the hotels destination prefill
+ *   - Haptic feedback on key web events
+ *   - Floating "My Trips" button → MyTripsModal
  *
- * External domains (affiliate links, Stripe checkout on partner domains, etc.)
- * open in the system browser so the user doesn't get trapped inside the app.
+ * Web triggers these by calling `window.JetMeAwayNative.<method>(...)`. See
+ * src/services/webview-bridge.ts for the JavaScript that gets injected.
  */
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -40,12 +54,20 @@ export default function App() {
 
   const webviewRef = useRef<WebView>(null);
   const [canGoBack, setCanGoBack] = useState(false);
-  // Only the first navigation shows the full-screen spinner. Subsequent
-  // SPA route changes inside the WebView are silent — otherwise the
-  // overlay flashes on every search submit and competes with the site's
-  // own loading UI.
   const [hasFirstLoaded, setHasFirstLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [tripsVisible, setTripsVisible] = useState(false);
+
+  // Push opt-in on first launch — fire-and-forget. We don't block the UI on it.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const token = await registerForPushNotifications();
+      if (cancelled || !token) return;
+      await syncPushTokenToBackend(token);
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // Android hardware back → WebView back when possible
   useEffect(() => {
@@ -75,14 +97,98 @@ export default function App() {
       if (u.hostname === INTERNAL_HOST || u.hostname === `www.${INTERNAL_HOST}`) {
         return true;
       }
-      // Allow in-app Stripe checkout redirects back (same origin)
       if (u.protocol === 'about:' || u.protocol === 'data:') return true;
-      // External — open in system browser, block in-WebView navigation
       WebBrowser.openBrowserAsync(req.url).catch(() => Linking.openURL(req.url));
       return false;
     } catch {
       return true;
     }
+  }, []);
+
+  /**
+   * Resolve a pending bridge call by injecting a script that calls back into
+   * the web's __JMA_RESOLVE__ function.
+   */
+  const resolveBridge = useCallback((id: string, value: unknown) => {
+    if (!webviewRef.current || !id) return;
+    const json = JSON.stringify(value).replace(/'/g, "\\'");
+    webviewRef.current.injectJavaScript(`window.__JMA_RESOLVE__ && window.__JMA_RESOLVE__('${id}', ${json}); true;`);
+  }, []);
+
+  const rejectBridge = useCallback((id: string, reason: string) => {
+    if (!webviewRef.current || !id) return;
+    const safe = reason.replace(/'/g, "\\'").slice(0, 200);
+    webviewRef.current.injectJavaScript(`window.__JMA_REJECT__ && window.__JMA_REJECT__('${id}', '${safe}'); true;`);
+  }, []);
+
+  const handleMessage = useCallback(async (event: WebViewMessageEvent) => {
+    const msg = parseMessage(event.nativeEvent.data);
+    if (!msg) return;
+    const id = msg.id ?? '';
+
+    try {
+      if (msg.type === 'share') {
+        const p = (msg.payload ?? {}) as { title?: string; text?: string; url?: string };
+        await Share.share({
+          title: typeof p.title === 'string' ? p.title : 'JetMeAway',
+          message: [p.text, p.url].filter(Boolean).join(' — ') || 'JetMeAway',
+          url: typeof p.url === 'string' ? p.url : undefined,
+        });
+        resolveBridge(id, { ok: true });
+        return;
+      }
+
+      if (msg.type === 'saveBooking') {
+        const booking = parseBookingMessage(msg.payload);
+        if (!booking) {
+          rejectBridge(id, 'Invalid booking payload');
+          return;
+        }
+        await saveBooking(booking);
+        resolveBridge(id, { ok: true, savedAt: Date.now() });
+        return;
+      }
+
+      if (msg.type === 'requestLocation') {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          rejectBridge(id, 'Permission denied');
+          return;
+        }
+        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        resolveBridge(id, { lat: pos.coords.latitude, lng: pos.coords.longitude });
+        return;
+      }
+
+      if (msg.type === 'haptic') {
+        const style = (msg.payload as { style?: string })?.style ?? 'light';
+        const style2impact: Record<string, Haptics.ImpactFeedbackStyle> = {
+          light: Haptics.ImpactFeedbackStyle.Light,
+          medium: Haptics.ImpactFeedbackStyle.Medium,
+          heavy: Haptics.ImpactFeedbackStyle.Heavy,
+        };
+        if (style === 'success') {
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } else {
+          await Haptics.impactAsync(style2impact[style] ?? Haptics.ImpactFeedbackStyle.Light);
+        }
+        resolveBridge(id, { ok: true });
+        return;
+      }
+    } catch (err) {
+      rejectBridge(id, err instanceof Error ? err.message : 'Native call failed');
+    }
+  }, [resolveBridge, rejectBridge]);
+
+  const openTrips = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    setTripsVisible(true);
+  }, []);
+
+  const navigateInWebview = useCallback((url: string) => {
+    if (!webviewRef.current) return;
+    const safe = url.replace(/'/g, "\\'");
+    webviewRef.current.injectJavaScript(`window.location.href = '${safe}'; true;`);
   }, []);
 
   if (!fontsLoaded) return null;
@@ -96,6 +202,9 @@ export default function App() {
           source={{ uri: HOME_URL }}
           onNavigationStateChange={onNavigationStateChange}
           onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
+          onMessage={handleMessage}
+          injectedJavaScriptBeforeContentLoaded={INJECTED_BRIDGE}
+          injectedJavaScript={INJECTED_BRIDGE}
           onLoadStart={() => {
             if (!hasFirstLoaded) setIsLoading(true);
           }}
@@ -105,15 +214,7 @@ export default function App() {
           }}
           startInLoadingState
           allowsBackForwardNavigationGestures
-          // pullToRefreshEnabled removed: scrolling fast to the top of a
-          // search results page was triggering a full reload, wiping the
-          // user's form state and search results. The site has its own
-          // refresh affordances (logo tap, in-page Search button).
           pullToRefreshEnabled={false}
-          // bounces=false (iOS) + overScrollMode="never" (Android): without
-          // these, the rubber-band overscroll at top/bottom of search pages
-          // was being interpreted as a pull-to-refresh gesture and resetting
-          // the page even after pullToRefreshEnabled was off.
           bounces={false}
           overScrollMode="never"
           javaScriptEnabled
@@ -122,7 +223,7 @@ export default function App() {
           thirdPartyCookiesEnabled
           originWhitelist={['https://*', 'http://*']}
           setSupportMultipleWindows={false}
-          applicationNameForUserAgent="JetMeAway/1.0 Mobile"
+          applicationNameForUserAgent="JetMeAway/1.0.5 Mobile"
           style={styles.webview}
         />
         {isLoading && !hasFirstLoaded ? (
@@ -130,6 +231,20 @@ export default function App() {
             <ActivityIndicator size="large" color={Colors.primary} />
           </View>
         ) : null}
+        <TouchableOpacity
+          style={styles.tripsFab}
+          onPress={openTrips}
+          accessibilityRole="button"
+          accessibilityLabel="Open My Trips"
+        >
+          <Text style={styles.tripsFabIcon}>✈</Text>
+          <Text style={styles.tripsFabText}>Trips</Text>
+        </TouchableOpacity>
+        <MyTripsModal
+          visible={tripsVisible}
+          onClose={() => setTripsVisible(false)}
+          onOpenBooking={navigateInWebview}
+        />
       </SafeAreaView>
     </SafeAreaProvider>
   );
@@ -149,4 +264,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'transparent',
   },
+  tripsFab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 16,
+    backgroundColor: Colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  tripsFabIcon: { color: Colors.white, fontSize: 14, fontFamily: 'Poppins_900Black' },
+  tripsFabText: { color: Colors.white, fontSize: 13, fontWeight: '800', fontFamily: 'Poppins_800ExtraBold' },
 });
