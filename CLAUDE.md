@@ -78,6 +78,16 @@ JetMeAway (jetmeaway.co.uk) is a travel comparison engine built with Next.js 16,
 - Radii: `rounded-xl` / `rounded-2xl` / `rounded-3xl`
 - Z-index: header `z-[100]`, category bar `z-[101]`, mobile menu `z-[200]`
 
+## Core Architecture Rules
+
+These are non-negotiable. Read before writing or refactoring any infrastructure-touching code.
+
+- **Vercel Edge Runtime**: All pages and API routes run on Edge. Do not introduce Node-only APIs (`fs`, `child_process`, native modules, Buffer-heavy work). Every new route must declare `export const runtime = 'edge'` or inherit it.
+- **Vercel KV is load-bearing**: KV stores deal-alert subscribers, recent search history, the unified bookings store, and the bug inbox. It backs at most 3 active searches at a time per session — do not expand that footprint without an explicit owner decision. Treat KV writes as a hot path; batch where possible.
+- **Privacy Shield**: Never log, persist, or transmit PII (names, emails, phone, payment data, passport details) outside the booking pipeline. No PII in URL params, no PII in analytics events, no PII in error reports / bug-monitor payloads. Sanitise before `reportBug()` and before any third-party call.
+- **Stripe is for Duffel (flights) only**: Stripe is the MoR payment rail exclusively for Duffel flight bookings. LiteAPI hotels use LiteAPI's direct payment system — do NOT route LiteAPI bookings through Stripe. Webbeds is not active. Never log raw card data, never persist PaymentIntent secrets to KV, all 3DS2 flows stay client-side, refunds only via the admin route.
+- **NEVER change the database / KV variable structure without double-checking the current codebase first.** Key names, value shapes, and stored field names in Vercel KV (e.g. `bookings:all`, `pending-booking:*`, subscriber records) are referenced from many call sites including the Twilio IVR booking lookup, admin pages, and webhook handlers. Before renaming a key, changing a field, or altering a stored shape: grep the entire repo for every read/write site, list them, and confirm the migration path. A silent shape change has broken booking lookup before — do not repeat.
+
 ## Important Notes
 
 - This is a comparison engine only — bookings happen on partner sites
