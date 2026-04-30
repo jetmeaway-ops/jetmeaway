@@ -1,0 +1,40 @@
+# Auto-Triage — every 6h, pulls oldest open KV bug + opens a draft PR.
+#
+# Required repo secrets:
+#   ADMIN_SECRET        — same value as Vercel; reads /api/admin/bugs
+#   ANTHROPIC_API_KEY   — Sonnet 4.5 calls (~£1-5 / mo expected)
+#   RESEND_API_KEY      — optional; owner email on each draft PR
+#
+# Auto-fix PRs are ALWAYS opened as draft. No auto-merge wired.
+name: auto-triage
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Run auto-triage
+        env:
+          BASE: https://jetmeaway.co.uk
+          ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/auto-triage.mjs

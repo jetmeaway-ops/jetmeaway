@@ -1,0 +1,33 @@
+# Resolve the KV inbox bug when an auto-fix/* PR is merged.
+# Extracts the bug id from the PR title (`auto-fix(bug:<id>): …`) and POSTs
+# to /api/admin/bugs with the merged PR URL as the resolution note.
+name: auto-fix-pr-merged
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  resolve:
+    if: github.event.pull_request.merged == true && startsWith(github.head_ref, 'auto-fix/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Mark bug resolved
+        env:
+          BASE: https://jetmeaway.co.uk
+          ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          BUG_ID=$(echo "$PR_TITLE" | sed -n 's/^auto-fix(bug:\([^)]*\)).*/\1/p')
+          if [ -z "$BUG_ID" ]; then
+            echo "No bug id parsed from PR title — nothing to resolve."
+            exit 0
+          fi
+          echo "Resolving $BUG_ID via $PR_URL"
+          curl -fsS -X POST "$BASE/api/admin/bugs" \
+            -H "Authorization: Bearer $ADMIN_SECRET" \
+            -H 'Content-Type: application/json' \
+            -d "{\"id\":\"$BUG_ID\",\"resolvedBy\":\"auto-triage\",\"note\":\"Auto-fix merged: $PR_URL\"}"

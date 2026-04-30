@@ -1,0 +1,25 @@
+# Targeted Monkey on auto-fix/* PRs — runs a 20-search monkey against the
+# preview deployment if available, else against prod. Result feeds back into
+# the inbox so the loop is self-checking.
+name: auto-fix-pr-monkey
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  monkey:
+    if: startsWith(github.head_ref, 'auto-fix/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Monkey re-run (20 searches against prod)
+        env:
+          BASE: https://jetmeaway.co.uk
+          COUNT: '20'
+          BUG_MONITOR_SECRET: ${{ secrets.BUG_MONITOR_SECRET }}
+        run: node scripts/monkey-search.mjs
