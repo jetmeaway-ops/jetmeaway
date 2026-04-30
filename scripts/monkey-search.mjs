@@ -134,6 +134,48 @@ async function runOne(i) {
   return { i, s, status, ms, errs, count: Array.isArray(body?.hotels) ? body.hotels.length : null };
 }
 
+/**
+ * Push a failed run into the KV Bug Inbox via /api/bug-monitor. Each
+ * fingerprint is the failing-assertion text + city, so identical
+ * regressions collapse into one inbox entry with an incrementing count.
+ *
+ * No-ops when BUG_MONITOR_SECRET is unset (e.g. local dev) so the script
+ * is still useful without a network round-trip.
+ */
+async function reportFailureToInbox(r) {
+  const secret = process.env.BUG_MONITOR_SECRET;
+  if (!secret) return;
+  const message = `monkey-search failure: ${r.s.city} a${r.s.adults}c${r.s.children}r${r.s.rooms} :: ${r.errs.join(' | ')}`;
+  const payload = [
+    {
+      level: 'error',
+      message,
+      context: {
+        source: 'monkey-search.mjs',
+        city: r.s.city,
+        checkin: r.s.checkin,
+        checkout: r.s.checkout,
+        adults: r.s.adults,
+        children: r.s.children,
+        rooms: r.s.rooms,
+        status: r.status,
+        ms: r.ms,
+        errors: r.errs,
+      },
+      ts: new Date().toISOString(),
+    },
+  ];
+  try {
+    await fetch(`${BASE}/api/bug-monitor`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-bug-monitor-secret': secret },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    /* best-effort — don't let inbox push break the suite exit code */
+  }
+}
+
 async function main() {
   console.log(`Monkey search — ${COUNT} runs against ${BASE}\n`);
   const results = [];
@@ -158,6 +200,9 @@ async function main() {
     for (const f of failed) {
       console.log(`  #${f.i} ${f.s.city} ${f.s.checkin} a${f.s.adults}c${f.s.children}: ${f.errs.join('; ')}`);
     }
+    // Push every failure to the bug inbox so the cron run is self-reporting.
+    // Sequential so we don't get rate-limit-rejected by /api/bug-monitor.
+    for (const f of failed) await reportFailureToInbox(f);
     process.exit(1);
   }
 }

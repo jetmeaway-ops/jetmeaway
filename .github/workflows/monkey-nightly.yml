@@ -1,0 +1,37 @@
+# Nightly Monkey Test — runs scripts/monkey-search.mjs against prod every
+# day at 03:00 UTC (off-peak for UK customers). Failures fingerprint into
+# the KV Bug Inbox via /api/bug-monitor; non-zero exit fails the workflow
+# so GitHub also surfaces the regression in the Actions tab.
+#
+# Required repo secret:
+#   BUG_MONITOR_SECRET  — same value as the Vercel env var.
+#
+# Manual trigger (handy for ad-hoc verification):
+#   gh workflow run monkey-nightly.yml
+name: monkey-nightly
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      count:
+        description: 'Number of randomised searches'
+        required: false
+        default: '50'
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run monkey suite
+        env:
+          BASE: https://jetmeaway.co.uk
+          COUNT: ${{ github.event.inputs.count || '50' }}
+          BUG_MONITOR_SECRET: ${{ secrets.BUG_MONITOR_SECRET }}
+        run: node scripts/monkey-search.mjs
