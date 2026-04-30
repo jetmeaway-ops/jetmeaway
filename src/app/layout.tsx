@@ -61,15 +61,15 @@ export const metadata = {
     description: 'Compare flights, hotels, car hire and package holidays from trusted providers. Find the cheapest deals for your next trip.',
     url: 'https://jetmeaway.co.uk',
     siteName: 'JetMeAway',
-    images: [{ url: 'https://jetmeaway.co.uk/jetmeaway-logo.png', width: 512, height: 512, alt: 'JetMeAway Logo' }],
     type: 'website',
     locale: 'en_GB',
+    // images: handled by src/app/opengraph-image.tsx (1200x630 dynamic).
   },
   twitter: {
-    card: 'summary',
+    card: 'summary_large_image',
     title: 'JetMeAway | UK Travel Comparison',
     description: 'Compare flights, hotels, car hire and holidays from trusted providers.',
-    images: ['https://jetmeaway.co.uk/jetmeaway-logo.png'],
+    // images: inherited from openGraph (Next auto-wires).
   },
   metadataBase: new URL('https://jetmeaway.co.uk'),
   appleWebApp: {
