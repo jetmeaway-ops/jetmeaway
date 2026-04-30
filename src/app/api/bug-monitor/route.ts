@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
+import { recordBug } from '@/lib/bug-inbox';
 
 export const runtime = 'edge';
 
@@ -99,15 +100,36 @@ export async function POST(req: NextRequest) {
       .join('\n')
       .slice(0, 2000);
 
-    // Rate-limit: same error fingerprint, only 1 email per 5 min.
+    // Always record into the persistent KV bug inbox first — even on
+    // duplicates, so the `count` increments and the owner / Claude can
+    // see how many times an error has fired since first occurrence.
+    const firstMessage = errors[0]?.message || errorText.slice(0, 200);
+    const firstContext = (errors[0] && typeof errors[0] === 'object'
+      ? (errors[0] as Record<string, unknown>).context
+      : null) as Record<string, unknown> | null;
+    let inboxId: string | null = null;
+    try {
+      inboxId = await recordBug({
+        message: firstMessage,
+        errorText,
+        context: firstContext ?? null,
+      });
+    } catch (e) {
+      console.error('[bug-monitor] recordBug failed', e);
+    }
+
+    // Rate-limit EMAIL ONLY: same error fingerprint, max 1 email per 5 min.
+    // Inbox count above already incremented; only the Resend send + Claude
+    // analysis are suppressed by this gate.
     const dedupeKey = fingerprint(errorText);
     try {
       const cached = await kv.get(dedupeKey);
       if (cached) {
         return NextResponse.json({
           ok: true,
-          message: 'Suppressed (recent duplicate)',
+          message: 'Suppressed email (recent duplicate); inbox updated',
           dedupeKey,
+          inboxId,
         });
       }
     } catch { /* KV miss → proceed */ }
@@ -150,6 +172,14 @@ export async function POST(req: NextRequest) {
 
     const claudeData = await claudeRes.json();
     const summary: string = claudeData?.content?.[0]?.text || 'Could not analyse error.';
+
+    // Re-record with the Claude summary attached so /api/admin/bugs has it
+    // without a separate analysis fetch.
+    try {
+      await recordBug({ message: firstMessage, errorText, summary, context: firstContext ?? null });
+    } catch (e) {
+      console.error('[bug-monitor] recordBug(summary) failed', e);
+    }
 
     const RESEND_KEY = process.env.RESEND_API_KEY;
     // Soft-fail when Resend env is missing — still return the analysis

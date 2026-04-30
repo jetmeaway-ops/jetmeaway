@@ -3,6 +3,7 @@ import { kv } from '@vercel/kv';
 import { getHotels as liteapiGetHotels, type HotelOffer } from '@/lib/liteapi';
 import { dedupeKey } from '@/lib/giata';
 import { reportBug } from '@/lib/report-bug';
+import { HotelSearchSchema, zodErrorToMessage } from '@/lib/hotel-schemas';
 
 // Stays on edge for low-latency search. DOTW's node-only transport
 // (MD5 + gzip) is proxied through `/api/hotels/dotw-search` (nodejs runtime).
@@ -947,20 +948,29 @@ const CURATED: Record<string, CuratedHotel[]> = {
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const city = searchParams.get('city');
-  const checkin = searchParams.get('checkin');
-  const checkout = searchParams.get('checkout');
-  const adults = searchParams.get('adults') || '2';
-  const childrenParam = searchParams.get('children') || '0';
-  const childrenAgesParam = searchParams.get('childrenAges') || '';
-  const roomsParam = searchParams.get('rooms') || '1';
-  const starsParam = searchParams.get('stars') || '0';
-  const placeId = searchParams.get('placeId') || '';
-  const mode = searchParams.get('mode') || '';
 
-  if (!city || !checkin || !checkout) {
-    return NextResponse.json({ error: 'Missing required parameters (city, checkin, checkout)' }, { status: 400 });
+  // Zod-validate at the edge. Rejects malformed dates, garbage stars values,
+  // checkout-before-checkin, etc., before we burn an upstream LiteAPI quota.
+  const raw: Record<string, string> = {};
+  for (const [k, v] of searchParams.entries()) raw[k] = v;
+  const parsed = HotelSearchSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: zodErrorToMessage(parsed.error) },
+      { status: 400 },
+    );
   }
+
+  const city = parsed.data.city;
+  const checkin = parsed.data.checkin;
+  const checkout = parsed.data.checkout;
+  const adults = parsed.data.adults || '2';
+  const childrenParam = parsed.data.children || '0';
+  const childrenAgesParam = parsed.data.childrenAges || '';
+  const roomsParam = parsed.data.rooms || '1';
+  const starsParam = parsed.data.stars || '0';
+  const placeId = parsed.data.placeId || '';
+  const mode = parsed.data.mode || '';
 
   /* ── Date-strip mode (D−3 … D+3 cheapest per check-in, Hotellook cache only) ──
      Used by <DateMatrixStrip /> on the hotel results page. Keeps the stay-

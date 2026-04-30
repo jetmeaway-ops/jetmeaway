@@ -10,6 +10,12 @@ import {
 import { upsertBooking, type Booking, type Supplier } from '@/lib/bookings';
 import { notifyBookingConfirmed, notifyBookingDeclined } from '@/lib/notifications';
 import { reportBug } from '@/lib/report-bug';
+import { BookSchema, zodErrorToMessage } from '@/lib/hotel-schemas';
+import {
+  verifyBookingBoundary,
+  verifyOccupancyShape,
+  violationsToMessage,
+} from '@/lib/booking-boundary';
 import type { PendingBooking } from '../start-booking/route';
 import type { PendingGuest } from '../pending/[ref]/guest/route';
 
@@ -154,10 +160,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { ref } = body || {};
-  if (!ref || typeof ref !== 'string') {
-    return NextResponse.json({ success: false, error: 'ref is required' }, { status: 400 });
+  const parsed = BookSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ success: false, error: zodErrorToMessage(parsed.error) }, { status: 400 });
   }
+  const { ref } = parsed.data;
 
   const record = await kv.get<PendingBooking & { guest?: PendingGuest }>(`pending-booking:${ref}`);
   if (!record) {
@@ -206,11 +213,11 @@ export async function POST(req: NextRequest) {
   }
 
   /* ───────────────────────── LiteAPI (existing) ───────────────────── */
-  const { prebookId, transactionId } = body;
-  if (!prebookId || typeof prebookId !== 'string') {
+  const { prebookId, transactionId } = parsed.data;
+  if (!prebookId) {
     return NextResponse.json({ success: false, error: 'prebookId is required' }, { status: 400 });
   }
-  if (!transactionId || typeof transactionId !== 'string') {
+  if (!transactionId) {
     return NextResponse.json({ success: false, error: 'transactionId is required' }, { status: 400 });
   }
   // Verify transactionId matches what was stored during prebook
@@ -219,6 +226,27 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Boundary check — confirm occupancy on the persisted record is still
+    // sane and matches what the customer searched for. Hard-reject before
+    // we charge LiteAPI's prebooked transaction; we'd rather a customer
+    // re-search than discover the room sleeps the wrong number on arrival.
+    const occupancyIssues = verifyOccupancyShape(record);
+    if (occupancyIssues.length > 0) {
+      const msg = violationsToMessage(occupancyIssues);
+      console.error('[hotels/book] occupancy boundary REJECTED:', msg);
+      reportBug('Hotel BOOKING occupancy mismatch (rejected)', {
+        ref,
+        violations: occupancyIssues,
+      });
+      try {
+        await kv.set(`pending-booking:${ref}`, { ...record, state: 'failed', error: msg }, { ex: 24 * 60 * 60 });
+      } catch { /* noop */ }
+      return NextResponse.json(
+        { success: false, error: 'occupancy_mismatch', message: msg, violations: occupancyIssues },
+        { status: 409 },
+      );
+    }
+
     const booking = await bookWithTransactionId({
       prebookId,
       transactionId,
@@ -234,6 +262,38 @@ export async function POST(req: NextRequest) {
       // `remarks`. Null/undefined when the guest left the box empty.
       specialRequests: record.specialRequests ?? null,
     });
+
+    // Post-book boundary check — verify the supplier's echo of dates/price
+    // matches what we quoted. Soft check (the booking is already confirmed
+    // upstream so we can't reject), but we alert the owner so any drift is
+    // caught before the next booking goes through.
+    const supplierViolations = verifyBookingBoundary({
+      expected: {
+        adults: record.adults,
+        children: record.children ?? 0,
+        childAges: record.childAges,
+        rooms: record.rooms,
+        checkIn: record.checkIn,
+        checkOut: record.checkOut,
+        totalPrice: record.totalPrice,
+        currency: record.currency,
+      },
+      actual: {
+        checkIn: booking.checkIn,
+        checkOut: booking.checkOut,
+        totalPrice: booking.totalPrice,
+        currency: booking.currency,
+      },
+    });
+    if (supplierViolations.length > 0) {
+      const msg = violationsToMessage(supplierViolations);
+      console.warn('[hotels/book] supplier boundary drift after confirm:', msg);
+      reportBug('Hotel booking supplier drift after confirm', {
+        ref,
+        bookingId: booking.bookingId,
+        violations: supplierViolations,
+      });
+    }
 
     const updated = {
       ...record,

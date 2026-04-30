@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import { prebookWithPaymentSdk } from '@/lib/liteapi';
 import { reportBug } from '@/lib/report-bug';
+import { PrebookSchema, zodErrorToMessage } from '@/lib/hotel-schemas';
+import {
+  verifyBookingBoundary,
+  verifyOccupancyShape,
+  violationsToMessage,
+} from '@/lib/booking-boundary';
 import type { PendingBooking } from '../start-booking/route';
 
 // Node runtime — LiteAPI prebook can take 15-25s, Edge times out too early
@@ -27,13 +33,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { ref } = body || {};
-  if (!ref || typeof ref !== 'string') {
+  const parsed = PrebookSchema.safeParse(body);
+  if (!parsed.success) {
     return NextResponse.json(
-      { success: false, error: 'ref is required' },
+      { success: false, error: zodErrorToMessage(parsed.error) },
       { status: 400 },
     );
   }
+  const { ref } = parsed.data;
 
   try {
     const record = await kv.get<PendingBooking>(`pending-booking:${ref}`);
@@ -51,7 +58,52 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Boundary check #1 — sanity-test the persisted occupancy BEFORE we
+    // hit LiteAPI. Catches metadata drops (children=2 in search → 0 on
+    // record) that would otherwise surface as the wrong room being booked.
+    const occupancyIssues = verifyOccupancyShape(record);
+    if (occupancyIssues.length > 0) {
+      const msg = violationsToMessage(occupancyIssues);
+      console.warn('[hotels/prebook] occupancy boundary violation:', msg);
+      reportBug('Hotel prebook occupancy mismatch', {
+        ref,
+        violations: occupancyIssues,
+      });
+      return NextResponse.json(
+        { success: false, error: 'occupancy_mismatch', message: msg, violations: occupancyIssues },
+        { status: 409 },
+      );
+    }
+
     const result = await prebookWithPaymentSdk(record.offerId);
+
+    // Boundary check #2 — supplier echo. Soft check (warn + alert, don't
+    // block) because the LiteAPI Payment SDK form shows the customer the
+    // current dates/price before they enter card details, so a date drift
+    // here is visible to them too. We still log it so we know if drifts
+    // become frequent.
+    const supplierViolations = verifyBookingBoundary({
+      expected: {
+        adults: record.adults,
+        children: record.children ?? 0,
+        childAges: record.childAges,
+        rooms: record.rooms,
+        checkIn: record.checkIn,
+        checkOut: record.checkOut,
+        totalPrice: record.totalPrice,
+        currency: record.currency,
+      },
+      actual: {
+        checkIn: result.checkin,
+        checkOut: result.checkout,
+        totalPrice: result.price,
+        currency: result.currency,
+      },
+    });
+    if (supplierViolations.length > 0) {
+      console.warn('[hotels/prebook] supplier boundary drift:', violationsToMessage(supplierViolations));
+      reportBug('Hotel prebook supplier drift', { ref, violations: supplierViolations });
+    }
 
     // Price-drift guard. LiteAPI's prebook can return a different price
     // than what the user saw on the search results card (inventory shifts,
