@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import MidArticleCta from '@/components/blog/MidArticleCta';
+import DownloadPdfCard from '@/components/blog/DownloadPdfCard';
 import { getAllPostSlugs, getPostBySlug, formatPostDate } from '@/lib/blog';
 import type { Metadata } from 'next';
 
@@ -114,6 +115,9 @@ const mdxComponents = {
   code: (props: any) => (
     <code className="bg-[#F1F3F7] text-[#0066FF] px-1.5 py-0.5 rounded text-[.92em] font-mono" {...props} />
   ),
+  // Lead-magnet PDF download card — usable as `<DownloadPdfCard slug="..." city="..." />`
+  // anywhere inside MDX. See src/components/blog/DownloadPdfCard.tsx.
+  DownloadPdfCard,
 };
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
