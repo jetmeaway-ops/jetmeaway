@@ -10,15 +10,37 @@ import {
 } from 'react-native';
 import { Colors } from '../constants/colors';
 import { listBookings, type SavedBooking } from '../services/offline-bookings';
+import { fetchLiveSession } from '../services/auth';
+
+const ACCOUNT_API = 'https://jetmeaway.co.uk/api/account/me';
+
+type RemoteBooking = {
+  id: string;
+  type: 'flight' | 'hotel' | 'package';
+  title?: string;
+  destination?: string;
+  checkIn?: string;
+  checkOut?: string;
+  guests?: number;
+  totalPence?: number;
+  status?: string;
+  paymentStatus?: string;
+  supplierRef?: string;
+  createdAt?: number;
+};
 
 /**
- * My Trips offline viewer — list of locally-stored booking confirmations,
- * available without an internet connection. The headline native feature for
- * the App Store Guideline 4.2 case.
+ * My Trips viewer — merges:
+ *   1. Locally-saved bookings (AsyncStorage, available offline) — survives
+ *      airplane mode at the airport.
+ *   2. Remote bookings from /api/account/me — full account history when
+ *      signed in. Fetched in parallel with the local list and merged by
+ *      booking id (local wins for fields the remote doesn't carry, like
+ *      hotel phone or full address).
  *
- * Triggered from a small floating button in the bottom-right of the WebView,
- * or programmatically from the web side via window.JetMeAwayNative.openMyTrips()
- * (not yet wired — placeholder for a future iteration).
+ * Logged-out users see only the local list. Logged-in users see the union.
+ * The native side never blocks on the network — local renders first, remote
+ * patches in when it arrives.
  */
 
 export function MyTripsModal({
@@ -32,21 +54,60 @@ export function MyTripsModal({
 }) {
   const [bookings, setBookings] = useState<SavedBooking[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [signedIn, setSignedIn] = useState<boolean>(false);
 
   useEffect(() => {
     if (!visible) return;
     let cancelled = false;
     setLoaded(false);
-    listBookings()
-      .then((rows) => {
-        if (!cancelled) {
-          setBookings(rows);
-          setLoaded(true);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setLoaded(true);
-      });
+
+    // Local first — paints fast, works offline.
+    listBookings().then((local) => {
+      if (cancelled) return;
+      setBookings(local);
+      setLoaded(true);
+    }).catch(() => { if (!cancelled) setLoaded(true); });
+
+    // Remote second — patches in when it arrives. Only attempts when there's
+    // a chance of being signed in (cookie sent automatically with credentials).
+    (async () => {
+      try {
+        const email = await fetchLiveSession();
+        if (cancelled) return;
+        setSignedIn(!!email);
+        if (!email) return;
+
+        const res = await fetch(ACCOUNT_API, { credentials: 'include' });
+        if (!res.ok) return;
+        const data: { bookings?: RemoteBooking[] } = await res.json().catch(() => ({}));
+        if (!Array.isArray(data?.bookings) || cancelled) return;
+
+        const remote: SavedBooking[] = data.bookings.map((b) => ({
+          id: b.id,
+          type: b.type,
+          title: b.title || b.destination || b.id,
+          subtitle: typeof b.guests === 'number' ? `${b.guests} guest${b.guests === 1 ? '' : 's'}` : undefined,
+          startDate: b.checkIn,
+          endDate: b.checkOut,
+          address: b.destination,
+          total: typeof b.totalPence === 'number' ? `£${(b.totalPence / 100).toFixed(2)}` : undefined,
+          url: `https://jetmeaway.co.uk/account/bookings#${b.id}`,
+          savedAt: b.createdAt ?? Date.now(),
+        }));
+
+        // Merge by id — local wins for fields it carries that remote doesn't
+        // (hotel phone, address). Remote wins when local is absent.
+        setBookings((prev) => {
+          const byId = new Map<string, SavedBooking>();
+          for (const r of remote) byId.set(r.id, r);
+          for (const l of prev) byId.set(l.id, { ...byId.get(l.id), ...l });
+          return Array.from(byId.values()).sort((a, b) => (b.savedAt ?? 0) - (a.savedAt ?? 0));
+        });
+      } catch {
+        // Network failure — local list is still showing, no UI disruption.
+      }
+    })();
+
     return () => { cancelled = true; };
   }, [visible]);
 
@@ -81,8 +142,9 @@ export function MyTripsModal({
               <View style={styles.emptyWrap}>
                 <Text style={styles.emptyTitle}>No saved trips yet</Text>
                 <Text style={styles.empty}>
-                  When you complete a booking, it appears here automatically and stays available even
-                  without a signal — perfect for showing the receptionist on arrival.
+                  {signedIn
+                    ? 'When you complete a booking, it appears here automatically and stays available even without a signal — perfect for showing the receptionist on arrival.'
+                    : 'Sign in to see your full booking history. Until then, completed bookings are saved on this device only and will appear here automatically.'}
                 </Text>
               </View>
             ) : (
