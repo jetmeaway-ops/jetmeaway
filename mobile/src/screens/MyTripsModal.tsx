@@ -11,6 +11,12 @@ import {
 import { Colors } from '../constants/colors';
 import { listBookings, type SavedBooking } from '../services/offline-bookings';
 import { fetchLiveSession } from '../services/auth';
+import {
+  authenticate as bioAuthenticate,
+  getBiometricCapability,
+  isBiometricEnabled,
+  setBiometricEnabled,
+} from '../services/biometric';
 
 const ACCOUNT_API = 'https://jetmeaway.co.uk/api/account/me';
 
@@ -55,11 +61,44 @@ export function MyTripsModal({
   const [bookings, setBookings] = useState<SavedBooking[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [signedIn, setSignedIn] = useState<boolean>(false);
+  const [biometricSupported, setBiometricSupported] = useState(false);
+  const [biometricOn, setBiometricOn] = useState(false);
+  const [authPassed, setAuthPassed] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
     let cancelled = false;
     setLoaded(false);
+    setAuthPassed(false);
+
+    // Biometric gate — runs in parallel with the local fetch. If enabled,
+    // we render the unlock state until auth succeeds. Local data still
+    // hydrates underneath so unlock is instant.
+    (async () => {
+      try {
+        const [cap, enabled] = await Promise.all([getBiometricCapability(), isBiometricEnabled()]);
+        if (cancelled) return;
+        setBiometricSupported(cap.available);
+        setBiometricOn(enabled);
+        if (enabled && cap.available) {
+          const ok = await bioAuthenticate('Unlock JetMeAway My Trips');
+          if (cancelled) return;
+          setAuthPassed(ok);
+          if (!ok) {
+            // Auth failed/cancelled — close the modal so we don't leak
+            // booking data on a shared device.
+            setTimeout(() => onClose(), 0);
+            return;
+          }
+        } else {
+          setAuthPassed(true);
+        }
+      } catch {
+        // Anything goes wrong — fall back to "unlocked" so we don't trap
+        // legitimate users behind a broken biometric API.
+        if (!cancelled) setAuthPassed(true);
+      }
+    })();
 
     // Local first — paints fast, works offline.
     listBookings().then((local) => {
@@ -135,8 +174,41 @@ export function MyTripsModal({
             Your saved booking confirmations — accessible offline.
           </Text>
 
+          {biometricSupported && (
+            <TouchableOpacity
+              style={styles.bioRow}
+              onPress={async () => {
+                const next = !biometricOn;
+                if (next) {
+                  // Confirm with a successful auth before turning ON, so we
+                  // don't lock the user out of their own bookings.
+                  const ok = await bioAuthenticate('Enable Face ID / Touch ID lock');
+                  if (!ok) return;
+                }
+                await setBiometricEnabled(next);
+                setBiometricOn(next);
+              }}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: biometricOn }}
+            >
+              <Text style={styles.bioLabel}>
+                {biometricOn ? 'Locked with Face ID / Touch ID' : 'Lock with Face ID / Touch ID'}
+              </Text>
+              <View style={[styles.bioPill, biometricOn ? styles.bioPillOn : styles.bioPillOff]}>
+                <Text style={[styles.bioPillText, biometricOn ? styles.bioPillTextOn : styles.bioPillTextOff]}>
+                  {biometricOn ? 'ON' : 'OFF'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          )}
+
           <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
-            {!loaded ? (
+            {biometricOn && !authPassed ? (
+              <View style={styles.emptyWrap}>
+                <Text style={styles.emptyTitle}>Locked</Text>
+                <Text style={styles.empty}>Authenticate with Face ID / Touch ID to view your trips.</Text>
+              </View>
+            ) : !loaded ? (
               <Text style={styles.empty}>Loading…</Text>
             ) : bookings.length === 0 ? (
               <View style={styles.emptyWrap}>
@@ -252,4 +324,23 @@ const styles = StyleSheet.create({
   },
   callText: { color: Colors.white, fontSize: 12, fontWeight: '800', fontFamily: 'Poppins_800ExtraBold' },
   cardTotal: { fontSize: 14, color: Colors.dark, fontWeight: '800', fontFamily: 'Poppins_800ExtraBold' },
+  bioRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  bioLabel: { fontSize: 13, color: Colors.dark, fontWeight: '700', fontFamily: 'Poppins_700Bold' },
+  bioPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+  bioPillOn: { backgroundColor: Colors.primary },
+  bioPillOff: { backgroundColor: '#E2E8F0' },
+  bioPillText: { fontSize: 10, fontWeight: '900', letterSpacing: 1.5, fontFamily: 'Poppins_900Black' },
+  bioPillTextOn: { color: Colors.white },
+  bioPillTextOff: { color: Colors.body },
 });

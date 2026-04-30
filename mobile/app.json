@@ -18,6 +18,11 @@
       "bundleIdentifier": "uk.co.jetmeaway.app",
       "buildNumber": "5",
       "usesAppleSignIn": true,
+      "associatedDomains": [
+        "applinks:jetmeaway.co.uk",
+        "applinks:www.jetmeaway.co.uk",
+        "webcredentials:jetmeaway.co.uk"
+      ],
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "JetMeAway uses your location to suggest the nearest airport and map the neighbourhood around your hotel. Location is never shared or sold.",
         "NSUserNotificationsUsageDescription": "JetMeAway sends deal alerts when hotel and flight prices drop on routes you've shown interest in. You can turn this off any time in Settings.",
@@ -37,6 +42,17 @@
         "ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            { "scheme": "https", "host": "jetmeaway.co.uk" },
+            { "scheme": "https", "host": "www.jetmeaway.co.uk" }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
       ]
     },
     "web": {},

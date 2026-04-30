@@ -3,6 +3,11 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import * as AuthSession from 'expo-auth-session';
 import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { syncPushTokenToBackend } from './push';
+
+const PUSH_TOKEN_KEY = 'jma:push:token';
+const PUSH_TOKEN_SYNCED_KEY = 'jma:push:tokenSynced';
 
 /**
  * Native sign-in service — Apple + Google + session.
@@ -58,9 +63,27 @@ async function postIdToken(provider: 'apple' | 'google', idToken: string): Promi
       return { ok: false, error: typeof data?.error === 'string' ? data.error : 'Sign-in failed' };
     }
     await SecureStore.setItemAsync(SECURE_EMAIL_KEY, data.email);
+    // Re-sync the push token so the backend can bind it to the new email.
+    // /api/push-token reads the session cookie and SADDs into push:by-email
+    // on every call. Resetting the synced flag forces a re-POST even if the
+    // token itself hasn't changed.
+    await rebindPushToEmail();
     return { ok: true, email: data.email };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Network error' };
+  }
+}
+
+async function rebindPushToEmail(): Promise<void> {
+  try {
+    const token = await AsyncStorage.getItem(PUSH_TOKEN_KEY);
+    if (!token) return;
+    // Forget the previously-synced flag so syncPushTokenToBackend re-POSTs.
+    await AsyncStorage.removeItem(PUSH_TOKEN_SYNCED_KEY);
+    await syncPushTokenToBackend(token);
+  } catch {
+    // Non-fatal — the alert fan-out just won't include this device until
+    // the next launch's syncPushTokenToBackend call picks up the session.
   }
 }
 
@@ -184,6 +207,11 @@ export async function signOut(): Promise<{ ok: boolean }> {
     // its own, and we always clear the local cache below.
   }
   await SecureStore.deleteItemAsync(SECURE_EMAIL_KEY);
+  // Re-register the push token with no session cookie attached so the
+  // backend drops the (token → email) binding for this device. Without
+  // this, the previous user's saved-search alerts would keep arriving on
+  // a shared device after sign-out.
+  await rebindPushToEmail();
   return { ok: true };
 }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import { requireAdmin } from '@/lib/admin-auth';
+import { readSessionEmail } from '@/lib/session';
 
 export const runtime = 'edge';
 
@@ -26,6 +27,11 @@ type TokenRecord = {
   platform: 'ios' | 'android' | 'web';
   appVersion: string;
   registeredAt: number;
+  /** Email of the signed-in user at the moment of registration. Updated
+   *  on every re-register call (mobile re-calls this route after sign-in
+   *  + sign-out so the binding is always fresh). Empty string when the
+   *  device is registered anonymously. */
+  email?: string;
 };
 
 export async function POST(req: NextRequest) {
@@ -42,11 +48,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid platform' }, { status: 400 });
     }
 
+    // Bind the token to the signed-in user when a session cookie is present.
+    // Mobile re-calls this route after every sign-in / sign-out so the
+    // (token → email) link stays fresh — no stale bindings to clean up.
+    const sessionEmail = await readSessionEmail(req.headers.get('cookie'));
+
+    // If the previous record had a different email, drop the token from the
+    // old user's set so a sign-in handover doesn't accidentally cross-fan.
+    let priorEmail: string | undefined;
+    try {
+      const prior = await kv.get<TokenRecord>(`push:token:${token}`);
+      priorEmail = prior?.email && prior.email !== sessionEmail ? prior.email : undefined;
+    } catch { /* silent */ }
+    if (priorEmail) {
+      try { await kv.srem(`push:by-email:${priorEmail}`, token); } catch { /* silent */ }
+    }
+
     const record: TokenRecord = {
       token,
       platform: platform as TokenRecord['platform'],
       appVersion,
       registeredAt: Date.now(),
+      email: sessionEmail || undefined,
     };
 
     // Per-token detail under a stable key — overwrites on re-registration.
@@ -62,7 +85,13 @@ export async function POST(req: NextRequest) {
       await kv.sadd(`push:by-platform:${platform}`, token);
     } catch { /* silent */ }
 
-    return NextResponse.json({ success: true });
+    // Per-email partition. Used by /api/cron/check-saved-searches to target
+    // the saved-search owner's devices specifically (not all devices).
+    if (sessionEmail) {
+      try { await kv.sadd(`push:by-email:${sessionEmail}`, token); } catch { /* silent */ }
+    }
+
+    return NextResponse.json({ success: true, linkedToEmail: !!sessionEmail });
   } catch (err) {
     console.error('[push-token] error', err);
     return NextResponse.json({ error: 'Could not register token' }, { status: 500 });

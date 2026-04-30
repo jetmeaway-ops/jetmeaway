@@ -27,6 +27,23 @@ import { signInWithApple, signInWithGoogle, signOut } from './src/services/auth'
 
 const HOME_URL = 'https://jetmeaway.co.uk/';
 const INTERNAL_HOST = 'jetmeaway.co.uk';
+const INTERNAL_HOSTS = new Set([INTERNAL_HOST, `www.${INTERNAL_HOST}`]);
+
+/**
+ * If the app was launched via a universal/app link to jetmeaway.co.uk,
+ * return the path-and-query so the WebView can navigate there instead of
+ * starting at HOME_URL. Returns null for plain app launches.
+ */
+function pathFromInboundUrl(url: string | null): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    if (!INTERNAL_HOSTS.has(u.hostname)) return null;
+    return `${u.pathname}${u.search}${u.hash}` || '/';
+  } catch {
+    return null;
+  }
+}
 
 /**
  * JetMeAway mobile shell — full-screen WebView over the production site,
@@ -58,6 +75,7 @@ export default function App() {
   const [hasFirstLoaded, setHasFirstLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [tripsVisible, setTripsVisible] = useState(false);
+  const [initialUrl, setInitialUrl] = useState<string>(HOME_URL);
 
   // Push opt-in on first launch — fire-and-forget. We don't block the UI on it.
   useEffect(() => {
@@ -68,6 +86,31 @@ export default function App() {
       await syncPushTokenToBackend(token);
     })();
     return () => { cancelled = true; };
+  }, []);
+
+  // Universal/app links — if the OS launched us with a jetmeaway.co.uk URL,
+  // navigate the WebView there. Magic-link emails, push-notification taps,
+  // and links shared from other apps all flow through this path.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const launchUrl = await Linking.getInitialURL();
+        if (cancelled) return;
+        const path = pathFromInboundUrl(launchUrl);
+        if (path) setInitialUrl(`https://${INTERNAL_HOST}${path}`);
+      } catch { /* fall back to HOME_URL */ }
+    })();
+    const sub = Linking.addEventListener('url', (event) => {
+      const path = pathFromInboundUrl(event.url);
+      if (!path || !webviewRef.current) return;
+      const safe = path.replace(/'/g, "\\'");
+      webviewRef.current.injectJavaScript(`window.location.href = 'https://${INTERNAL_HOST}${safe}'; true;`);
+    });
+    return () => {
+      cancelled = true;
+      sub.remove();
+    };
   }, []);
 
   // Android hardware back → WebView back when possible
@@ -226,7 +269,7 @@ export default function App() {
       <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
         <WebView
           ref={webviewRef}
-          source={{ uri: HOME_URL }}
+          source={{ uri: initialUrl }}
           onNavigationStateChange={onNavigationStateChange}
           onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
           onMessage={handleMessage}

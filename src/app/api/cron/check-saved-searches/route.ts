@@ -59,15 +59,13 @@ async function listSavedSearchKeys(): Promise<string[]> {
 }
 
 async function tokensForEmail(email: string): Promise<string[]> {
-  // We don't (yet) link push tokens to user emails — push tokens are stored
-  // device-level via /api/push-token. For Phase 2 the safest fan-out is "push
-  // to ALL registered tokens" (so signed-in users on multiple devices and
-  // logged-out users with the app installed both get the alert). Phase 3:
-  // bind push tokens to email at sign-in time so we can target precisely.
-  void email;
+  // Phase 3: tokens are bound to email at /api/push-token registration time
+  // (whenever the mobile re-registers post-signin, the route reads the
+  // session cookie and SADDs the token into push:by-email:<email>). The
+  // saved-search owner's devices — and only those devices — get the push.
   try {
-    const all = await kv.smembers('push:tokens');
-    return Array.isArray(all) ? all.filter((t): t is string => typeof t === 'string') : [];
+    const tokens = await kv.smembers(`push:by-email:${email}`);
+    return Array.isArray(tokens) ? tokens.filter((t): t is string => typeof t === 'string') : [];
   } catch {
     return [];
   }
