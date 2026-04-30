@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
+import { googlePlacesNearby, type GoogleNearbyPlace } from '@/lib/google-places';
 
 export const runtime = 'edge';
 
@@ -37,6 +38,43 @@ const FSQ_CATEGORY_MAP: Record<string, { category: string; type: string }> = {
   '19046': { category: 'daily', type: 'bus_stop' },
   '15014': { category: 'daily', type: 'hospital' },
   '15019': { category: 'daily', type: 'clinic' },
+};
+
+// ── Google Places (New) primary type → Scout category/type ──────────────────
+// See https://developers.google.com/maps/documentation/places/web-service/place-types
+const GOOGLE_TYPE_MAP: Record<string, { category: string; type: string }> = {
+  // wellness
+  gym: { category: 'wellness', type: 'gym' },
+  yoga_studio: { category: 'wellness', type: 'yoga' },
+  spa: { category: 'wellness', type: 'spa' },
+  fitness_center: { category: 'wellness', type: 'fitness_centre' },
+  swimming_pool: { category: 'wellness', type: 'swimming_pool' },
+  // family
+  park: { category: 'family', type: 'park' },
+  playground: { category: 'family', type: 'playground' },
+  zoo: { category: 'family', type: 'zoo' },
+  aquarium: { category: 'family', type: 'aquarium' },
+  museum: { category: 'family', type: 'museum' },
+  movie_theater: { category: 'family', type: 'cinema' },
+  amusement_park: { category: 'family', type: 'theme_park' },
+  library: { category: 'family', type: 'library' },
+  // food
+  cafe: { category: 'food', type: 'cafe' },
+  restaurant: { category: 'food', type: 'restaurant' },
+  supermarket: { category: 'food', type: 'supermarket' },
+  bakery: { category: 'food', type: 'bakery' },
+  pub: { category: 'food', type: 'pub' },
+  convenience_store: { category: 'food', type: 'convenience' },
+  // daily
+  pharmacy: { category: 'daily', type: 'pharmacy' },
+  bank: { category: 'daily', type: 'bank' },
+  atm: { category: 'daily', type: 'atm' },
+  post_office: { category: 'daily', type: 'post_office' },
+  train_station: { category: 'daily', type: 'station' },
+  subway_station: { category: 'daily', type: 'subway' },
+  bus_station: { category: 'daily', type: 'bus_stop' },
+  hospital: { category: 'daily', type: 'hospital' },
+  doctor: { category: 'daily', type: 'clinic' },
 };
 
 // ── Overpass fallback tag mappings ────────────────────────────────────────────
@@ -112,7 +150,7 @@ type ScoutResponse = {
   };
   cached: boolean;
   fallback: boolean;
-  source?: 'foursquare' | 'overpass';
+  source?: 'foursquare' | 'foursquare+google' | 'google' | 'overpass';
 };
 
 const CORS = {
@@ -192,6 +230,41 @@ async function fetchFoursquare(lat: number, lng: number, radius: number): Promis
   } catch {
     return null;
   }
+}
+
+// ── Google Places (New) Nearby Search ────────────────────────────────────────
+// Maps Google primary types → Scout's category/type taxonomy. Used as a
+// gap-filler when Foursquare returns < 15 places, or as the primary source
+// when FOURSQUARE_API_KEY is missing entirely.
+async function fetchGoogle(lat: number, lng: number, radius: number): Promise<ScoutPlace[] | null> {
+  const includedTypes = Object.keys(GOOGLE_TYPE_MAP);
+  let raw: GoogleNearbyPlace[];
+  try {
+    raw = await googlePlacesNearby(lat, lng, radius, includedTypes);
+  } catch {
+    return null;
+  }
+  if (raw.length === 0) return null;
+
+  const places: ScoutPlace[] = [];
+  for (const p of raw) {
+    let info: { category: string; type: string } | null = null;
+    for (const t of p.types) {
+      if (GOOGLE_TYPE_MAP[t]) { info = GOOGLE_TYPE_MAP[t]; break; }
+    }
+    if (!info) continue;
+
+    const dist = haversine(lat, lng, p.lat, p.lng);
+    places.push({
+      name: p.name,
+      type: info.type,
+      lat: p.lat,
+      lng: p.lng,
+      distance_m: Math.round(dist),
+      walk_min: Math.max(1, Math.round(dist / 80)),
+    });
+  }
+  return places.length > 0 ? places : null;
 }
 
 // ── Overpass API (fallback) ───────────────────────────────────────────────────
@@ -318,14 +391,42 @@ export async function POST(req: NextRequest) {
       // KV unavailable — proceed without cache
     }
 
-    // ── Step 2: Try Foursquare first, fall back to Overpass ──
+    // ── Step 2: Source ladder ──
+    // Foursquare primary → Google gap-filler (when Foursquare thin or absent)
+    // → Overpass as last resort. Google adds high-fidelity coverage in places
+    // Foursquare misses (small UK boroughs, non-Western markets). The shared
+    // bucketPlaces dedupes by (category, name) so merging is safe.
+    const FOURSQUARE_THIN_THRESHOLD = 15;
     let places: ScoutPlace[] | null = null;
-    let source: 'foursquare' | 'overpass' = 'foursquare';
+    let source: ScoutResponse['source'] = 'foursquare';
 
-    places = await fetchFoursquare(lat, lng, radius);
-    if (!places) {
-      source = 'overpass';
-      places = await fetchOverpass(lat, lng, radius);
+    const fsq = await fetchFoursquare(lat, lng, radius);
+
+    if (fsq && fsq.length >= FOURSQUARE_THIN_THRESHOLD) {
+      // Foursquare is dense enough on its own — skip Google to save cost.
+      places = fsq;
+      source = 'foursquare';
+    } else if (fsq && fsq.length > 0) {
+      // Foursquare thin — top up with Google.
+      const google = await fetchGoogle(lat, lng, radius);
+      if (google && google.length > 0) {
+        places = [...fsq, ...google];
+        source = 'foursquare+google';
+      } else {
+        places = fsq;
+        source = 'foursquare';
+      }
+    } else {
+      // No Foursquare (key missing or returned null) — try Google as primary.
+      const google = await fetchGoogle(lat, lng, radius);
+      if (google && google.length > 0) {
+        places = google;
+        source = 'google';
+      } else {
+        // Last resort: free OSM data via Overpass.
+        places = await fetchOverpass(lat, lng, radius);
+        source = 'overpass';
+      }
     }
 
     if (!places) {

@@ -22,7 +22,16 @@ export type GooglePlacePrediction = {
   types: string[];        // e.g. ["locality","political"]
 };
 
-const ENDPOINT = 'https://places.googleapis.com/v1/places:autocomplete';
+export type GoogleNearbyPlace = {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  types: string[];
+};
+
+const AUTOCOMPLETE_ENDPOINT = 'https://places.googleapis.com/v1/places:autocomplete';
+const NEARBY_ENDPOINT = 'https://places.googleapis.com/v1/places:searchNearby';
 
 /**
  * Fetch city-level autocomplete suggestions from Google.
@@ -38,7 +47,7 @@ export async function googlePlacesAutocomplete(
   if (!query || query.trim().length < 2) return [];
 
   try {
-    const res = await fetch(ENDPOINT, {
+    const res = await fetch(AUTOCOMPLETE_ENDPOINT, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -92,6 +101,84 @@ export async function googlePlacesAutocomplete(
     return out;
   } catch (err) {
     console.error('[google-places]', err instanceof Error ? err.message : err);
+    return [];
+  }
+}
+
+/**
+ * Nearby Search — POIs within `radiusM` metres of (lat, lng), filtered by
+ * Google's primary place types. Used by Scout as a high-fidelity gap-filler
+ * after Foursquare. Field mask is kept minimal to stay on the cheaper SKU
+ * (~$32 per 1k requests as of 2026-04). Returns [] on any error / missing key.
+ *
+ * `includedTypes` are Google's "primary type" tokens — see
+ * https://developers.google.com/maps/documentation/places/web-service/place-types
+ */
+export async function googlePlacesNearby(
+  lat: number,
+  lng: number,
+  radiusM: number,
+  includedTypes: string[],
+  signal?: AbortSignal,
+): Promise<GoogleNearbyPlace[]> {
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+  if (!apiKey) return [];
+  if (!isFinite(lat) || !isFinite(lng)) return [];
+  if (includedTypes.length === 0) return [];
+
+  try {
+    const res = await fetch(NEARBY_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.location,places.types',
+      },
+      body: JSON.stringify({
+        includedTypes,
+        maxResultCount: 20,
+        // Google caps the searchNearby radius at 50,000m; clamp defensively.
+        locationRestriction: {
+          circle: {
+            center: { latitude: lat, longitude: lng },
+            radius: Math.min(Math.max(radiusM, 1), 50_000),
+          },
+        },
+      }),
+      signal,
+    });
+
+    if (!res.ok) {
+      console.error('[google-places:nearby] HTTP', res.status, await res.text().catch(() => ''));
+      return [];
+    }
+
+    const data = await res.json() as {
+      places?: Array<{
+        id?: string;
+        displayName?: { text?: string };
+        location?: { latitude?: number; longitude?: number };
+        types?: string[];
+      }>;
+    };
+
+    const out: GoogleNearbyPlace[] = [];
+    for (const p of data.places ?? []) {
+      const name = p.displayName?.text;
+      const pLat = p.location?.latitude;
+      const pLng = p.location?.longitude;
+      if (!p.id || !name || !isFinite(pLat ?? NaN) || !isFinite(pLng ?? NaN)) continue;
+      out.push({
+        id: p.id,
+        name,
+        lat: pLat as number,
+        lng: pLng as number,
+        types: p.types ?? [],
+      });
+    }
+    return out;
+  } catch (err) {
+    console.error('[google-places:nearby]', err instanceof Error ? err.message : err);
     return [];
   }
 }
