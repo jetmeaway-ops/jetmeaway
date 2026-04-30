@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import { getPlaces, searchHotelsByName } from '@/lib/liteapi';
 import { findNeighbourhoods, formatNeighbourhoodQuery } from '@/lib/neighbourhoods';
+import { googlePlacesAutocomplete } from '@/lib/google-places';
 
 export const runtime = 'edge';
 
@@ -76,9 +77,36 @@ export async function GET(req: NextRequest) {
     isLiteApiHotel: true,
   }));
 
+  // Google Places fallback — only fires when LiteAPI's coverage looks thin.
+  // LiteAPI is patchy on small UK boroughs and lesser-known towns; Google
+  // fills those gaps. Server-side only, KV-cached at the route level so we
+  // pay once per (query, 5-min window) regardless of how many users search.
+  let googleRows: PlaceRow[] = [];
+  if (places.length < 3) {
+    try {
+      const gp = await googlePlacesAutocomplete(q);
+      const seen = new Set(places.map((p) => p.name.toLowerCase()));
+      googleRows = gp
+        .filter((g) => !seen.has(g.mainText.toLowerCase()))
+        .slice(0, 5)
+        .map((g) => ({
+          id: `google:${g.placeId}`,
+          name: g.mainText,
+          description: g.secondaryText,
+          type: 'city' as const,
+          // Pass the human-readable "City, Country" string back as the search
+          // query so the hotels page falls through to LiteAPI's name-based
+          // city resolver — Google's placeId can't be resolved against LiteAPI.
+          query: g.fullText,
+        }));
+    } catch (err) {
+      console.error('[hotels/places:google]', err instanceof Error ? err.message : err);
+    }
+  }
+
   // Curated neighbourhoods — dedupe against LiteAPI results by display name.
   const existingNames = new Set(
-    places.map((p) => `${p.name.toLowerCase()}|${(p.description || '').toLowerCase()}`),
+    [...places, ...googleRows].map((p) => `${p.name.toLowerCase()}|${(p.description || '').toLowerCase()}`),
   );
   const curated: PlaceRow[] = findNeighbourhoods(q, 8)
     .map((n) => ({
@@ -100,7 +128,9 @@ export async function GET(req: NextRequest) {
   // common-case intent for autocomplete; hotels-by-name are the long-tail
   // case and stay accessible just below the city.
   // Cap at 15 so the dropdown stays scannable.
-  const merged = [...places, ...hotelRows, ...curated].slice(0, 15);
+  // Order: LiteAPI places first (fastest to resolve into hotelIds), then
+  // hotel-name matches, Google fallbacks, then curated neighbourhoods.
+  const merged = [...places, ...hotelRows, ...googleRows, ...curated].slice(0, 15);
 
   // Only cache when we actually got *something* from LiteAPI — caching an
   // empty response (e.g. transient LiteAPI failure on the very first query)
