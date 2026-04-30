@@ -17,6 +17,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "uk.co.jetmeaway.app",
       "buildNumber": "5",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "JetMeAway uses your location to suggest the nearest airport and map the neighbourhood around your hotel. Location is never shared or sold.",
         "NSUserNotificationsUsageDescription": "JetMeAway sends deal alerts when hotel and flight prices drop on routes you've shown interest in. You can turn this off any time in Settings.",
@@ -55,6 +56,8 @@
           "defaultChannel": "default"
         }
       ],
+      "expo-apple-authentication",
+      "expo-secure-store",
       "@react-native-community/datetimepicker",
       "expo-font",
       "expo-web-browser"
@@ -62,6 +65,11 @@
     "extra": {
       "eas": {
         "projectId": "faf61588-3700-4917-acbe-bc9a3569fc33"
+      },
+      "googleAuth": {
+        "iosClientId": "REPLACE_WITH_GOOGLE_OAUTH_IOS_CLIENT_ID",
+        "androidClientId": "REPLACE_WITH_GOOGLE_OAUTH_ANDROID_CLIENT_ID",
+        "webClientId": "REPLACE_WITH_GOOGLE_OAUTH_WEB_CLIENT_ID"
       }
     },
     "owner": "jetmeaway"

@@ -59,6 +59,15 @@ export const INJECTED_BRIDGE = `
     saveBooking: function (payload) { return callNative('saveBooking', payload); },
     requestLocation: function () { return callNative('requestLocation'); },
     haptic: function (style) { return callNative('haptic', { style: style || 'light' }); },
+    // ── Account / sign-in ─────────────────────────────────────────────
+    // signInWithApple() / signInWithGoogle() trigger the native flow,
+    // POST the resulting ID token to /api/account/social-signin, set the
+    // session cookie (shared with this WebView via sharedCookiesEnabled),
+    // and resolve to { ok, email }. Web pages don't call the cookie API
+    // directly — they trust that a 200 from /api/account/me means signed in.
+    signInWithApple: function () { return callNative('signInWithApple'); },
+    signInWithGoogle: function () { return callNative('signInWithGoogle'); },
+    signOut: function () { return callNative('signOut'); },
     appVersion: '1.0.5',
   };
 
@@ -73,18 +82,37 @@ export const INJECTED_BRIDGE = `
 true;
 `;
 
+export type NativeMessageType =
+  | 'share'
+  | 'saveBooking'
+  | 'requestLocation'
+  | 'haptic'
+  | 'signInWithApple'
+  | 'signInWithGoogle'
+  | 'signOut';
+
 export type NativeMessage = {
   id?: string;
-  type: 'share' | 'saveBooking' | 'requestLocation' | 'haptic';
+  type: NativeMessageType;
   payload?: unknown;
 };
+
+const VALID_TYPES: ReadonlySet<NativeMessageType> = new Set([
+  'share',
+  'saveBooking',
+  'requestLocation',
+  'haptic',
+  'signInWithApple',
+  'signInWithGoogle',
+  'signOut',
+]);
 
 export function parseMessage(raw: string): NativeMessage | null {
   try {
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') return null;
     const t = (parsed as Record<string, unknown>).type;
-    if (t !== 'share' && t !== 'saveBooking' && t !== 'requestLocation' && t !== 'haptic') return null;
+    if (typeof t !== 'string' || !VALID_TYPES.has(t as NativeMessageType)) return null;
     return parsed as NativeMessage;
   } catch {
     return null;

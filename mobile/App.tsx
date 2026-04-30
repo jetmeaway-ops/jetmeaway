@@ -23,6 +23,7 @@ import { registerForPushNotifications, syncPushTokenToBackend } from './src/serv
 import { saveBooking, parseBookingMessage } from './src/services/offline-bookings';
 import { INJECTED_BRIDGE, parseMessage } from './src/services/webview-bridge';
 import { MyTripsModal } from './src/screens/MyTripsModal';
+import { signInWithApple, signInWithGoogle, signOut } from './src/services/auth';
 
 const HOME_URL = 'https://jetmeaway.co.uk/';
 const INTERNAL_HOST = 'jetmeaway.co.uk';
@@ -172,6 +173,32 @@ export default function App() {
         } else {
           await Haptics.impactAsync(style2impact[style] ?? Haptics.ImpactFeedbackStyle.Light);
         }
+        resolveBridge(id, { ok: true });
+        return;
+      }
+
+      if (msg.type === 'signInWithApple') {
+        const result = await signInWithApple();
+        if (result.ok) {
+          resolveBridge(id, { ok: true, email: result.email });
+        } else {
+          rejectBridge(id, result.error);
+        }
+        return;
+      }
+
+      if (msg.type === 'signInWithGoogle') {
+        const result = await signInWithGoogle();
+        if (result.ok) {
+          resolveBridge(id, { ok: true, email: result.email });
+        } else {
+          rejectBridge(id, result.error);
+        }
+        return;
+      }
+
+      if (msg.type === 'signOut') {
+        await signOut();
         resolveBridge(id, { ok: true });
         return;
       }
