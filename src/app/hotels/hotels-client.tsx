@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import DateRangePicker from '@/components/DateRangePicker';
 import DateMatrixStrip, { type MatrixOption } from '@/components/DateMatrixStrip';
+import SaveSearchButton from '@/components/SaveSearchButton';
 import { redirectUrl } from '@/lib/redirect';
 import { chooseDefaultTab } from '@/lib/silentScout';
 import { vibeTagsForSearchedCity } from '@/data/destinations';
@@ -2565,6 +2566,37 @@ function HotelsContent() {
               />
             );
           })()}
+
+          {/* Save-search bar — sits above the Sort+View toolbar so the
+              account-bound action ("notify me on price drop") is visually
+              separate from the read-only display controls below it. Only
+              renders when there are results to save against. */}
+          {hotels!.length > 0 && (
+            <section className="max-w-[1000px] mx-auto px-5 pb-3">
+              <SaveSearchButton
+                type="hotel"
+                label={`Hotels in ${searchedDest || destination} · ${checkin} → ${checkout} · ${adults + childCount} guest${adults + childCount === 1 ? '' : 's'}`}
+                criteria={{
+                  destination: searchedDest || destination,
+                  placeId: selectedPlaceId ?? undefined,
+                  checkin,
+                  checkout,
+                  adults,
+                  children: childCount,
+                  rooms,
+                  minStars,
+                }}
+                url={typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/hotels'}
+                savedPricePence={(() => {
+                  const prices = hotels!
+                    .map((h) => (typeof h.totalPrice === 'number' ? h.totalPrice : null))
+                    .filter((n): n is number => n !== null);
+                  return prices.length > 0 ? Math.round(Math.min(...prices) * 100) : undefined;
+                })()}
+                currency="GBP"
+              />
+            </section>
+          )}
 
           {/* Sort + View toolbar */}
           {hotels!.length > 0 && (

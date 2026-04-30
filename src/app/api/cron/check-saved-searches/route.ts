@@ -26,6 +26,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import { sendExpoPushToTokens } from '@/lib/push-send';
+import { fetchCurrentPricePence } from '@/lib/cron-price-fetch';
 import type { SavedSearch } from '@/app/api/account/saved-searches/route';
 
 export const runtime = 'edge';
@@ -73,23 +74,14 @@ async function tokensForEmail(email: string): Promise<string[]> {
 }
 
 /**
- * Fetch the current best price for a saved search. Returns the price in
- * pence, or null if the upstream call failed / no result. Implementation is
- * deliberately minimal — Phase 3 will swap in real LiteAPI / Travelpayouts
- * calls; for now this returns null for everything except a documented
- * `criteria.testPricePence` hook used by the cron smoke test.
- *
- * NOT a no-op despite returning null: the surrounding loop still updates
- * `lastCheckedAt` so we don't re-query the same search every minute when
- * the cron is triggered manually for testing.
+ * Fetch the current best price for a saved search. Delegates to
+ * `src/lib/cron-price-fetch.ts` which talks to LiteAPI for hotels and
+ * Duffel for flights. Returns null on any upstream failure — caller still
+ * updates `lastCheckedAt` so we don't hammer the same search every cron
+ * tick when an upstream is flaky.
  */
 async function fetchCurrentPrice(search: SavedSearch): Promise<number | null> {
-  if (typeof search.criteria.testPricePence === 'number') {
-    return search.criteria.testPricePence;
-  }
-  // TODO Phase 3: real LiteAPI/Travelpayouts price lookup keyed on type +
-  // criteria. For now we report no fresh price → no notification fires.
-  return null;
+  return fetchCurrentPricePence(search);
 }
 
 export async function GET(req: NextRequest) {

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import DateRangePicker from '@/components/DateRangePicker';
 import DateMatrixStrip, { type MatrixOption, type ScoutTip } from '@/components/DateMatrixStrip';
 import { redirectUrl } from '@/lib/redirect';
+import SaveSearchButton from '@/components/SaveSearchButton';
 import { saveSticky, loadSticky, type StickyFlights } from '@/lib/sticky-search';
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -2068,10 +2069,34 @@ function FlightsContent() {
 
                 {/* ─── Results ─── */}
                 <div>
-                  <div className="hidden md:flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
                     <h3 className="font-poppins font-black text-[.9rem] text-[#1A1D2B]">
                       {visibleFlights.length} of {flights.length} flights
                     </h3>
+                    <SaveSearchButton
+                      type="flight"
+                      label={`${originCity || originCode} → ${destCity || destCode} · ${depDate}${tripType === 'return' && retDate ? ` → ${retDate}` : ''} · ${adults + children + infants} passenger${adults + children + infants === 1 ? '' : 's'}`}
+                      criteria={{
+                        origin: originCode,
+                        destination: destCode,
+                        depDate,
+                        retDate: tripType === 'return' ? retDate : undefined,
+                        adults,
+                        children,
+                        infants,
+                        cabinClass,
+                        tripType,
+                      }}
+                      url={typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/flights'}
+                      savedPricePence={(() => {
+                        const prices = visibleFlights
+                          .map((f) => (typeof f.price === 'number' ? f.price : null))
+                          .filter((n): n is number => n !== null);
+                        return prices.length > 0 ? Math.round(Math.min(...prices) * 100) : undefined;
+                      })()}
+                      currency="GBP"
+                      className="text-[.74rem] py-1.5 px-3"
+                    />
                   </div>
 
                   {visibleFlights.length === 0 ? (
