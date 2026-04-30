@@ -1125,7 +1125,10 @@ export async function GET(req: NextRequest) {
   // v20 — added budget-tier supplemental fetch (0-3★, limit 50) to fix the
   // big-city 4★-skew where students/hostel travellers were seeing "from £80"
   // for Paris when £35 hostels existed. Invalidates v19 4★-skewed pages.
-  const kvKey = `hotels:v20:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
+  // v21 — added children + rooms to the response echo so the Monkey Test
+  // Suite (and any future client) can do strict-equality assertions on
+  // occupancy round-trip. Old v20 cache entries lack those fields.
+  const kvKey = `hotels:v21:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
 
   // Group occupancy bypass: large groups (>4 guests) always get fresh prices
   // because cached availability/room blocks may not hold for that many people.
@@ -1331,7 +1334,7 @@ export async function GET(req: NextRequest) {
       const apiHotels = (await mergeApis()).filter(passesStars).filter(passesGeo);
       const hotels = [...apiHotels, ...curatedHotels.filter(passesStars)];
 
-      const result = { hotels, city: match.charAt(0).toUpperCase() + match.slice(1), checkin, checkout, adults: adultsNum, liteapiCount: apiHotels.length };
+      const result = { hotels, city: match.charAt(0).toUpperCase() + match.slice(1), checkin, checkout, adults: adultsNum, children: childrenNum, rooms: roomsNum, liteapiCount: apiHotels.length };
       try { await kv.set(kvKey, result, { ex: KV_TTL }); } catch { /* KV write fail */ }
       return NextResponse.json(result);
     }
@@ -1339,12 +1342,12 @@ export async function GET(req: NextRequest) {
     // No curated match — still try APIs as a last resort
     const apiHotels = (await mergeApis()).filter(passesStars).filter(passesGeo);
     if (apiHotels.length > 0) {
-      const result = { hotels: apiHotels, city, checkin, checkout, adults: adultsNum, liteapiCount: apiHotels.length };
+      const result = { hotels: apiHotels, city, checkin, checkout, adults: adultsNum, children: childrenNum, rooms: roomsNum, liteapiCount: apiHotels.length };
       try { await kv.set(kvKey, result, { ex: KV_TTL }); } catch {}
       return NextResponse.json(result);
     }
 
-    return NextResponse.json({ hotels: [], city, checkin, checkout, adults: adultsNum, message: 'No hotels found for this destination' });
+    return NextResponse.json({ hotels: [], city, checkin, checkout, adults: adultsNum, children: childrenNum, rooms: roomsNum, message: 'No hotels found for this destination' });
   }
 
   const coords = CITY_COORDS[cityKey];
@@ -1369,6 +1372,8 @@ export async function GET(req: NextRequest) {
     checkin,
     checkout,
     adults: adultsNum,
+    children: childrenNum,
+    rooms: roomsNum,
     liteapiCount: apiHotels.length,
   };
 

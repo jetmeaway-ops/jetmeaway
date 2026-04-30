@@ -85,13 +85,21 @@ function assertResponse(s, status, body) {
   if (body.checkout && body.checkout !== s.checkout) {
     errs.push(`checkout mutated: sent ${s.checkout}, got ${body.checkout}`);
   }
-  if (s.children > 0) {
-    // The route currently doesn't echo children — flag it so we know if/when
-    // it starts dropping data semantically (e.g. by routing to an adults-only
-    // search internally). For now this is a soft check via metadata sniff.
-    if (body.children !== undefined && Number(body.children) !== s.children) {
-      errs.push(`children dropped: sent ${s.children}, got ${body.children}`);
-    }
+  // Strict equality on children + rooms — the route now echoes both fields
+  // (added in the same change as this assertion). LiteAPI clamps children
+  // to 0-4 and rooms to 1-5; mirror those clamps when comparing so a
+  // randomised input outside the range doesn't false-positive.
+  const expectedChildren = Math.max(0, Math.min(4, s.children));
+  if (body.children === undefined) {
+    errs.push(`children not echoed (expected ${expectedChildren})`);
+  } else if (Number(body.children) !== expectedChildren) {
+    errs.push(`children mismatch: sent ${s.children} (clamped ${expectedChildren}), got ${body.children}`);
+  }
+  const expectedRooms = Math.max(1, Math.min(5, s.rooms));
+  if (body.rooms === undefined) {
+    errs.push(`rooms not echoed (expected ${expectedRooms})`);
+  } else if (Number(body.rooms) !== expectedRooms) {
+    errs.push(`rooms mismatch: sent ${s.rooms} (clamped ${expectedRooms}), got ${body.rooms}`);
   }
   if (Array.isArray(body.hotels) && body.hotels.length > 0) {
     const h = body.hotels[0];
