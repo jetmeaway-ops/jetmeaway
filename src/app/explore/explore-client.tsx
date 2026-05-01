@@ -361,6 +361,13 @@ function ExploreContent() {
         JSON.stringify({ v: 1, t: Date.now(), d: { dest: destination, date: travelDate } }),
       );
     } catch { /* ignore */ }
+    // Scroll the live results into view after the next paint so users see
+    // something happen — without this, results render below the fold and
+    // it looks like the button did nothing.
+    requestAnimationFrame(() => {
+      const el = document.getElementById('explore-results');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   };
 
   const destKey = searchedDest.toLowerCase();
@@ -427,7 +434,7 @@ function ExploreContent() {
       {searched && (
         <>
           {/* Live Viator Tours */}
-          <section className="max-w-[1000px] mx-auto px-5 pt-8 pb-6">
+          <section id="explore-results" className="max-w-[1000px] mx-auto px-5 pt-8 pb-6">
             <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-1">
               Top tours & activities in {searchedDest}
             </h2>

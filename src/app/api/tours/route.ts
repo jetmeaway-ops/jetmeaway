@@ -86,6 +86,7 @@ function cleanProduct(p: ViatorProduct) {
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const destination = searchParams.get('destination');
+  const activity = searchParams.get('activity') || '';
   const currency = searchParams.get('currency') || 'GBP';
 
   if (!destination) {
@@ -95,7 +96,10 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const cacheKey = `tours:${destination.toLowerCase()}:${currency}`;
+  // Bias Viator's freetext search by the chosen activity (e.g. "Barcelona Wellness & Spa")
+  // so dropdown selections actually narrow the result set.
+  const searchTerm = activity ? `${destination} ${activity}` : destination;
+  const cacheKey = `tours:${destination.toLowerCase()}:${activity.toLowerCase()}:${currency}`;
 
   // Try KV cache
   try {
@@ -131,7 +135,7 @@ export async function GET(request: NextRequest) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          searchTerm: destination,
+          searchTerm,
           searchTypes: [
             {
               searchType: 'PRODUCTS',
