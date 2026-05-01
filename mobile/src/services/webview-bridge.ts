@@ -60,11 +60,12 @@ export const INJECTED_BRIDGE = `
     requestLocation: function () { return callNative('requestLocation'); },
     haptic: function (style) { return callNative('haptic', { style: style || 'light' }); },
     // ── Account / sign-in ─────────────────────────────────────────────
-    // signInWithApple() / signInWithGoogle() trigger the native flow,
-    // POST the resulting ID token to /api/account/social-signin, set the
-    // session cookie (shared with this WebView via sharedCookiesEnabled),
-    // and resolve to { ok, email }. Web pages don't call the cookie API
-    // directly — they trust that a 200 from /api/account/me means signed in.
+    // signInWithApple() / signInWithGoogle() trigger the native flow and
+    // resolve to { ok: true, idToken, provider }. The web side then POSTs
+    // the token to /api/account/social-signin from inside the WebView so
+    // the session cookie lands in WKHTTPCookieStore directly. (Posting
+    // from React Native instead would land the cookie in NSHTTPCookieStorage
+    // and the WebView would still look signed-out on the next nav.)
     signInWithApple: function () { return callNative('signInWithApple'); },
     signInWithGoogle: function () { return callNative('signInWithGoogle'); },
     signOut: function () { return callNative('signOut'); },

@@ -223,7 +223,13 @@ export default function App() {
       if (msg.type === 'signInWithApple') {
         const result = await signInWithApple();
         if (result.ok) {
-          resolveBridge(id, { ok: true, email: result.email });
+          // Hand the raw ID token to the WebView. The web side POSTs to
+          // /api/account/social-signin from inside the WKWebView so the
+          // session cookie lands in WKHTTPCookieStore directly — fixes the
+          // "signed in but page says signed-out" race we hit when posting
+          // from React Native (cookie went to NSHTTPCookieStorage and didn't
+          // sync to WKHTTPCookieStore before the redirect fired).
+          resolveBridge(id, { ok: true, idToken: result.idToken, provider: 'apple' });
         } else {
           rejectBridge(id, result.error);
         }
@@ -233,7 +239,7 @@ export default function App() {
       if (msg.type === 'signInWithGoogle') {
         const result = await signInWithGoogle();
         if (result.ok) {
-          resolveBridge(id, { ok: true, email: result.email });
+          resolveBridge(id, { ok: true, idToken: result.idToken, provider: 'google' });
         } else {
           rejectBridge(id, result.error);
         }

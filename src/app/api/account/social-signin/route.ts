@@ -20,7 +20,16 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
+import { kv } from '@vercel/kv';
 import { createSessionToken, sessionCookieHeader, normaliseEmail } from '@/lib/session';
+
+// Apple drops the `email` claim from the ID token on every sign-in AFTER
+// the first for a given Apple ID. To keep "Sign in with Apple" working on
+// repeat use, we cache the (sub → email) mapping in KV the first time we
+// see it, and fall back to that on later sign-ins. Sub is the stable Apple
+// user identifier, scoped to our team — safe to use as the lookup key.
+const APPLE_SUB_KEY = (sub: string) => `auth:apple:sub:${sub}`;
+const APPLE_SUB_TTL = 60 * 60 * 24 * 365 * 5; // 5 years
 
 export const runtime = 'edge';
 
@@ -105,14 +114,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Token verification failed' }, { status: 401 });
     }
 
-    // Extract + validate email. Apple sometimes ships the email only on the
-    // FIRST sign-in for a given Apple ID — subsequent sign-ins drop it from
-    // the token. To handle that, the client must persist the email it saw
-    // first time round and re-send it (we ignore client-supplied emails when
-    // the token already carries one). For Phase 1 we just require an email
-    // in the token and tell users to sign out + back in if they hit the
-    // edge case. Phase 2: store first-seen email per `sub`.
-    const email = normaliseEmail(typeof payload.email === 'string' ? payload.email : null);
+    // Extract + validate email. Apple drops the `email` claim from the ID
+    // token on every sign-in after the first for a given Apple ID. We
+    // recover by caching (sub → email) in KV the first time we see it.
+    let email = normaliseEmail(typeof payload.email === 'string' ? payload.email : null);
+    const sub = typeof payload.sub === 'string' ? payload.sub : null;
+    if (provider === 'apple' && sub) {
+      if (email) {
+        try { await kv.set(APPLE_SUB_KEY(sub), email, { ex: APPLE_SUB_TTL }); } catch {}
+      } else {
+        try {
+          const cached = await kv.get<string>(APPLE_SUB_KEY(sub));
+          if (cached) email = normaliseEmail(cached);
+        } catch {}
+      }
+    }
     if (!email) {
       return NextResponse.json({
         success: false,

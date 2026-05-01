@@ -19,9 +19,18 @@
  */
 import { useEffect, useState } from 'react';
 
+type NativeSignInResult = {
+  ok: boolean;
+  idToken?: string;
+  provider?: 'apple' | 'google';
+  /** Legacy field — pre-2026-05-01 builds returned { ok, email } directly. */
+  email?: string;
+  error?: string;
+};
+
 type NativeBridge = {
-  signInWithApple: () => Promise<{ ok: boolean; email?: string; error?: string }>;
-  signInWithGoogle: () => Promise<{ ok: boolean; email?: string; error?: string }>;
+  signInWithApple: () => Promise<NativeSignInResult>;
+  signInWithGoogle: () => Promise<NativeSignInResult>;
 };
 
 declare global {
@@ -60,16 +69,34 @@ export default function SignInForm() {
       const res = provider === 'apple'
         ? await bridge.signInWithApple()
         : await bridge.signInWithGoogle();
-      if (res.ok) {
-        window.location.assign('/account/bookings');
+
+      if (!res.ok) {
+        if (res.error === 'cancelled') { setSocialBusy(null); return; }
+        setLocalError(res.error || 'Sign-in failed. Please try again.');
         return;
       }
-      if (res.error === 'cancelled') {
-        // User cancelled — silent, no error UI.
-        setSocialBusy(null);
-        return;
+
+      // New native flow returns { idToken, provider }. We POST from the
+      // WebView itself so the session cookie lands in WKHTTPCookieStore
+      // (rather than NSHTTPCookieStorage where RN's fetch would put it),
+      // which means the redirect below sees a signed-in /account/bookings
+      // on first nav. Older builds still return { email } directly — for
+      // those we just trust the cookie was set and redirect.
+      if (res.idToken) {
+        const apiRes = await fetch('/api/account/social-signin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ provider: res.provider || provider, idToken: res.idToken }),
+        });
+        const data = await apiRes.json().catch(() => ({}));
+        if (!apiRes.ok || !data?.success) {
+          setLocalError(data?.error || 'Could not complete sign-in. Please try again.');
+          return;
+        }
       }
-      setLocalError(res.error || 'Sign-in failed. Please try again.');
+
+      window.location.assign('/account/bookings');
     } catch (err: unknown) {
       setLocalError(err instanceof Error ? err.message : 'Unexpected error during sign-in.');
     } finally {

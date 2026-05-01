@@ -28,7 +28,6 @@ const PUSH_TOKEN_SYNCED_KEY = 'jma:push:tokenSynced';
  * only a UX hint and is cleared on signOut.
  */
 
-const SIGNIN_ENDPOINT = 'https://jetmeaway.co.uk/api/account/social-signin';
 const SIGNOUT_ENDPOINT = 'https://jetmeaway.co.uk/api/account/signout';
 const ME_ENDPOINT = 'https://jetmeaway.co.uk/api/account/me';
 
@@ -48,31 +47,26 @@ function getGoogleConfig() {
   return extra.googleAuth ?? {};
 }
 
-export type SignInResult = { ok: true; email: string } | { ok: false; error: string };
-
-async function postIdToken(provider: 'apple' | 'google', idToken: string): Promise<SignInResult> {
-  try {
-    const res = await fetch(SIGNIN_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ provider, idToken }),
-      credentials: 'include',
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || !data?.success || typeof data.email !== 'string') {
-      return { ok: false, error: typeof data?.error === 'string' ? data.error : 'Sign-in failed' };
-    }
-    await SecureStore.setItemAsync(SECURE_EMAIL_KEY, data.email);
-    // Re-sync the push token so the backend can bind it to the new email.
-    // /api/push-token reads the session cookie and SADDs into push:by-email
-    // on every call. Resetting the synced flag forces a re-POST even if the
-    // token itself hasn't changed.
-    await rebindPushToEmail();
-    return { ok: true, email: data.email };
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Network error' };
-  }
-}
+/**
+ * Sign-in flow (post-2026-05-01 refactor):
+ *
+ *   We used to POST the ID token from React Native to /api/account/social-signin
+ *   here in `auth.ts`. The Set-Cookie landed in NSHTTPCookieStorage, but
+ *   WKWebView reads from WKHTTPCookieStore — sharedCookiesEnabled syncs them
+ *   eventually, but NOT before our `window.location.assign('/account/bookings')`
+ *   fired, so the destination page rendered signed-out even though the user
+ *   was actually authed (visible on the next manual navigation).
+ *
+ *   Now we just return the raw ID token to the WebView and let the web side
+ *   do the POST itself — the cookie lands in WKHTTPCookieStore directly, the
+ *   redirect works first try.
+ *
+ *   We still cache the email locally for the native UI (My Trips offline list)
+ *   AFTER the WebView confirms success via /api/account/me on next launch.
+ */
+export type SignInResult =
+  | { ok: true; idToken: string }
+  | { ok: false; error: string };
 
 async function rebindPushToEmail(): Promise<void> {
   try {
@@ -110,7 +104,7 @@ export async function signInWithApple(): Promise<SignInResult> {
     if (!idToken) {
       return { ok: false, error: 'Apple did not return an identity token.' };
     }
-    return postIdToken('apple', idToken);
+    return { ok: true, idToken };
   } catch (err: unknown) {
     const code = (err as { code?: string })?.code;
     if (code === 'ERR_REQUEST_CANCELED' || code === 'ERR_CANCELED') {
@@ -184,7 +178,7 @@ export async function signInWithGoogle(): Promise<SignInResult> {
     if (!idToken) {
       return { ok: false, error: 'Google did not return an ID token.' };
     }
-    return postIdToken('google', idToken);
+    return { ok: true, idToken };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Google sign-in failed' };
   }
