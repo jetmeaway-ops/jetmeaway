@@ -8,7 +8,7 @@ export const runtime = 'edge';
 
 export const metadata = {
   title: 'Explore Activities & Tours | JetMeAway',
-  description: 'Compare activities, tours and experiences from GetYourGuide, Viator and Klook. Find things to do worldwide.',
+  description: 'Compare activities, tours and experiences from GetYourGuide and Viator. Find things to do worldwide.',
 };
 
 export default function ExplorePage() {
@@ -24,7 +24,7 @@ export default function ExplorePage() {
           <h1 className="font-poppins text-[2.4rem] md:text-[3.6rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
             Things To <em className="italic bg-gradient-to-br from-teal-500 to-emerald-600 bg-clip-text text-transparent">Do</em>
           </h1>
-          <p className="text-[1rem] text-[#5C6378] font-semibold max-w-[520px] mx-auto">Compare activities, tours & experiences from 3 trusted providers.</p>
+          <p className="text-[1rem] text-[#5C6378] font-semibold max-w-[520px] mx-auto">Compare activities, tours & experiences from 2 trusted providers.</p>
         </div>
 
         <LazyExploreContent />

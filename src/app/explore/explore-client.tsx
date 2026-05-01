@@ -26,10 +26,6 @@ function buildViatorUrl(dest: string): string {
   return `https://www.viator.com/searchResults/all?text=${encodeURIComponent(dest)}&pid=P00293856&mcid=42383&medium=link`;
 }
 
-function buildKlookUrl(dest: string): string {
-  return `https://klook.tpk.lu/CByEYa65?city=${encodeURIComponent(dest)}`;
-}
-
 type Provider = {
   name: string;
   logo: string;
@@ -56,14 +52,6 @@ const PROVIDERS: Provider[] = [
     color: 'border-l-green-500',
     getUrl: buildViatorUrl,
   },
-  {
-    name: 'Klook',
-    logo: '🎟',
-    tagline: 'Best for Asia, growing in Europe',
-    points: ['Exclusive deals', 'Instant e-tickets', 'Best price guarantee'],
-    color: 'border-l-orange-500',
-    getUrl: buildKlookUrl,
-  },
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -77,13 +65,13 @@ const CURATED: Record<string, { name: string; type: string; from: number; provid
     { name: 'Park Guell Skip-the-Line Entry', type: 'Attractions', from: 13, provider: 'GetYourGuide' },
     { name: 'Gothic Quarter Walking Tour', type: 'Tours', from: 18, provider: 'Viator' },
     { name: 'Montserrat Half-Day Trip', type: 'Day Trips', from: 45, provider: 'GetYourGuide' },
-    { name: 'Sailing Cruise with Drinks', type: 'Adventure', from: 55, provider: 'Klook' },
+    { name: 'Sailing Cruise with Drinks', type: 'Adventure', from: 55, provider: 'GetYourGuide' },
   ],
   'dubai': [
     { name: 'Desert Safari with BBQ Dinner', type: 'Adventure', from: 35, provider: 'GetYourGuide' },
     { name: 'Burj Khalifa: At the Top Tickets', type: 'Attractions', from: 40, provider: 'Viator' },
     { name: 'Abu Dhabi Full-Day Tour', type: 'Day Trips', from: 55, provider: 'Viator' },
-    { name: 'Dubai Marina Yacht Cruise', type: 'Adventure', from: 25, provider: 'Klook' },
+    { name: 'Dubai Marina Yacht Cruise', type: 'Adventure', from: 25, provider: 'Viator' },
     { name: 'Old Dubai Walking Tour', type: 'Tours', from: 22, provider: 'GetYourGuide' },
     { name: 'Aquaventure Waterpark', type: 'Family', from: 65, provider: 'GetYourGuide' },
   ],
@@ -481,7 +469,7 @@ function ExploreContent() {
                 <p className="text-[.82rem] text-[#5C6378] font-semibold">
                   No live Viator inventory matched <strong className="text-[#1A1D2B]">{searchedDest}</strong>
                   {activity ? <> for <strong className="text-[#1A1D2B]">{activity}</strong></> : null}.
-                  Try a different city or scroll down to compare on GetYourGuide and Klook.
+                  Try a different city or scroll down to compare on GetYourGuide and Viator.
                 </p>
               </div>
             )}

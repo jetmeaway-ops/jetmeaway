@@ -50,7 +50,7 @@ export const ESIM_FAQS: Faq[] = [
 ];
 
 export const EXPLORE_FAQS: Faq[] = [
-  { q: 'Which activity providers does JetMeAway compare?', a: 'We compare tours and experiences from 3 trusted providers: GetYourGuide, Viator and Klook — covering attractions, day trips, food tours and transfers worldwide.' },
+  { q: 'Which activity providers does JetMeAway compare?', a: 'We compare tours and experiences from 2 trusted providers: GetYourGuide and Viator — covering attractions, day trips, food tours and transfers worldwide.' },
   { q: 'Can I cancel an activity booking?', a: 'Most activities offer free cancellation up to 24 hours before the start time. Individual cancellation policies are shown on the provider\'s booking page before you pay.' },
   { q: 'Are tickets on JetMeAway the same price as the attraction\'s own site?', a: 'Yes — prices match the provider\'s site. JetMeAway earns a referral commission from the provider, not a mark-up paid by you.' },
 ];
