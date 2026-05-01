@@ -32,7 +32,7 @@ const SIGNIN_ENDPOINT = 'https://jetmeaway.co.uk/api/account/social-signin';
 const SIGNOUT_ENDPOINT = 'https://jetmeaway.co.uk/api/account/signout';
 const ME_ENDPOINT = 'https://jetmeaway.co.uk/api/account/me';
 
-const SECURE_EMAIL_KEY = 'jma:auth:email';
+const SECURE_EMAIL_KEY = 'jma_auth_email';
 
 // Google client IDs come from app.json `extra.googleAuth.*`. iOS uses the iOS
 // client ID, Android uses the Android client ID — they MUST be the same OAuth

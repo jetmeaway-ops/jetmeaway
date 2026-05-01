@@ -11,7 +11,7 @@ import * as SecureStore from 'expo-secure-store';
  * which matters because the value gates access to the booking history.
  */
 
-const BIOMETRIC_ENABLED_KEY = 'jma:biometric:enabled';
+const BIOMETRIC_ENABLED_KEY = 'jma_biometric_enabled';
 
 export type BiometricCapability = {
   available: boolean;        // device has hardware AND is enrolled
