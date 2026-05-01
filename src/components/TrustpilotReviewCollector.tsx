@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /**
  * Trustpilot "Review Collector" widget — lets visitors leave a public
@@ -27,8 +27,17 @@ declare global {
 
 export default function TrustpilotReviewCollector() {
   const ref = useRef<HTMLDivElement | null>(null);
+  const [inNativeApp, setInNativeApp] = useState(false);
 
   useEffect(() => {
+    // Skip the embedded Trustpilot widget in the native app — tapping it
+    // pops a full-screen widget.trustpilot.com overlay because the WebView
+    // externalises non-jetmeaway domains. The badge in RotatingReviews
+    // still surfaces the "4.1" trust signal as plain text.
+    if (typeof window !== 'undefined' && (window as any).JetMeAwayNative) {
+      setInNativeApp(true);
+      return;
+    }
     // If the Trustpilot loader has already executed by the time this
     // component mounts, manually re-init so it picks up our widget div.
     // Without this, client-side navigation between pages can leave the
@@ -37,6 +46,8 @@ export default function TrustpilotReviewCollector() {
       window.Trustpilot.loadFromElement(ref.current, true);
     }
   }, []);
+
+  if (inNativeApp) return null;
 
   return (
     <div
