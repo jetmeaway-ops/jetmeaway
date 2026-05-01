@@ -15,18 +15,8 @@ export default function ScoutChat() {
   const [messages, setMessages] = useState<Msg[]>([GREETING]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [inNativeApp, setInNativeApp] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    // Hide Scout inside the JetMeAway mobile app — the native Trips FAB
-    // is the load-bearing native affordance, and Scout's bottom-right
-    // bubble was covering hotel-detail "Secure this rate" CTAs.
-    if (typeof window !== 'undefined' && (window as any).JetMeAwayNative) {
-      setInNativeApp(true);
-    }
-  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -37,8 +27,6 @@ export default function ScoutChat() {
   useEffect(() => {
     if (open) inputRef.current?.focus();
   }, [open]);
-
-  if (inNativeApp) return null;
 
   async function send() {
     const trimmed = input.trim();
@@ -83,7 +71,7 @@ export default function ScoutChat() {
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? 'Close Scout' : 'Open Scout'}
-        className="fixed bottom-5 right-5 z-[300] group flex items-center gap-2.5 transition-all"
+        className="fixed bottom-5 left-5 z-[300] group flex items-center gap-2.5 transition-all"
       >
         {/* Name tag — visible when closed, hides on open */}
         {!open && (
@@ -92,7 +80,7 @@ export default function ScoutChat() {
           </span>
         )}
         {/* Avatar circle */}
-        <span className="relative w-12 h-12 rounded-full bg-gradient-to-br from-[#0066FF] to-[#4F46E5] shadow-[0_8px_22px_rgba(0,102,255,0.45)] flex items-center justify-center text-white text-[1.05rem] ring-2 ring-white group-hover:scale-105 transition-transform">
+        <span className="relative w-9 h-9 rounded-full bg-gradient-to-br from-[#0066FF] to-[#4F46E5] shadow-[0_6px_16px_rgba(0,102,255,0.4)] flex items-center justify-center text-white text-[.85rem] ring-2 ring-white group-hover:scale-105 transition-transform">
           {open ? (
             <i className="fa-solid fa-xmark"></i>
           ) : (
@@ -109,7 +97,7 @@ export default function ScoutChat() {
 
       {/* Chat panel */}
       {open && (
-        <div className="fixed bottom-24 right-5 z-[299] w-[calc(100vw-40px)] max-w-[380px] h-[520px] max-h-[calc(100vh-120px)] bg-white rounded-3xl shadow-[0_32px_64px_-15px_rgba(0,0,0,0.25)] border border-[#E8ECF4] flex flex-col overflow-hidden">
+        <div className="fixed bottom-24 left-5 z-[299] w-[calc(100vw-40px)] max-w-[380px] h-[520px] max-h-[calc(100vh-120px)] bg-white rounded-3xl shadow-[0_32px_64px_-15px_rgba(0,0,0,0.25)] border border-[#E8ECF4] flex flex-col overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-br from-[#0066FF] to-[#4F46E5] text-white px-5 py-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-lg">

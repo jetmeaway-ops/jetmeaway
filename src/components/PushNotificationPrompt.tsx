@@ -18,6 +18,10 @@ export default function PushNotificationPrompt() {
   const [subscribed, setSubscribed] = useState(false);
 
   useEffect(() => {
+    // Don't show inside the native app — iOS/Android already has its own
+    // expo-notifications opt-in flow, and this web prompt was covering the
+    // bottom CTA bar in TestFlight.
+    if ((window as any).JetMeAwayNative) return;
     // Don't show if no SW support or already dismissed
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
     if (localStorage.getItem('jma-push-dismissed')) return;

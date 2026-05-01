@@ -79,6 +79,18 @@ export default function Header() {
                 fetchPriority="high"
               />
             </Link>
+            <Link
+              href="/account"
+              className={`flex items-center gap-1 px-2 md:px-2.5 py-2 rounded-xl text-[.68rem] md:text-[.72rem] font-extrabold uppercase tracking-[1.2px] transition-all ${
+                isActive('/account')
+                  ? 'bg-[#FAF3E6] border border-[#E8D8A8] text-[#8a6d00]'
+                  : 'text-slate-500 hover:text-[#0066FF] hover:bg-blue-50'
+              }`}
+              aria-label="My Trips"
+            >
+              <i className="fa-solid fa-suitcase-rolling text-[.85rem] leading-none" />
+              <span>Trips</span>
+            </Link>
           </div>
 
           {/* CENTER: Desktop main nav */}

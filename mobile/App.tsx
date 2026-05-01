@@ -301,15 +301,6 @@ export default function App() {
             <ActivityIndicator size="large" color={Colors.primary} />
           </View>
         ) : null}
-        <TouchableOpacity
-          style={styles.tripsFab}
-          onPress={openTrips}
-          accessibilityRole="button"
-          accessibilityLabel="Open My Trips"
-        >
-          <Text style={styles.tripsFabIcon}>✈</Text>
-          <Text style={styles.tripsFabText}>Trips</Text>
-        </TouchableOpacity>
         <MyTripsModal
           visible={tripsVisible}
           onClose={() => setTripsVisible(false)}
