@@ -15,8 +15,18 @@ export default function ScoutChat() {
   const [messages, setMessages] = useState<Msg[]>([GREETING]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [inNativeApp, setInNativeApp] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    // Hide Scout inside the JetMeAway mobile app — the native Trips FAB
+    // sits in the same bottom-right corner, and Scout chat is a browser
+    // affordance. Detect via the bridge object the WebView injects.
+    if (typeof window !== 'undefined' && (window as any).JetMeAwayNative) {
+      setInNativeApp(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -27,6 +37,8 @@ export default function ScoutChat() {
   useEffect(() => {
     if (open) inputRef.current?.focus();
   }, [open]);
+
+  if (inNativeApp) return null;
 
   async function send() {
     const trimmed = input.trim();
