@@ -83,9 +83,9 @@
         "projectId": "faf61588-3700-4917-acbe-bc9a3569fc33"
       },
       "googleAuth": {
-        "iosClientId": "REPLACE_WITH_GOOGLE_OAUTH_IOS_CLIENT_ID",
-        "androidClientId": "REPLACE_WITH_GOOGLE_OAUTH_ANDROID_CLIENT_ID",
-        "webClientId": "REPLACE_WITH_GOOGLE_OAUTH_WEB_CLIENT_ID"
+        "iosClientId": "24845514965-u0lsphq80d7p92ba7mui30kp3cgm7cr6.apps.googleusercontent.com",
+        "androidClientId": "24845514965-ie41mnpu907ne6aktgrvr4e9d18cdpuh.apps.googleusercontent.com",
+        "webClientId": "24845514965-58go8v35r6nf47c75fu79rsd0b4j6g0g.apps.googleusercontent.com"
       }
     },
     "owner": "jetmeaway"
