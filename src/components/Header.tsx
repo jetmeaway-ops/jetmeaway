@@ -21,6 +21,7 @@ const NAV = [
  *  Flights & eSIM live here now — they're lower-priority than the
  *  hotel-driven booking flow but still need to be one click away. */
 const DISCOVER_ITEMS = [
+  { href: '/explore', label: 'Activities', icon: '🎟️' },
   { href: '/cars', label: 'Car Hire', icon: '🚗' },
   { href: '/esim', label: 'eSIM', icon: '📱' },
   { href: '/destinations', label: 'Destinations', icon: '🧭' },
