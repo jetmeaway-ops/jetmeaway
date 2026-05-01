@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
   tripsFab: {
     position: 'absolute',
     bottom: 24,
-    right: 16,
+    left: 16,
     backgroundColor: Colors.primary,
     paddingVertical: 10,
     paddingHorizontal: 16,
