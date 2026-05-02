@@ -2,6 +2,7 @@ import { kv } from '@vercel/kv';
 import { bookWithTransactionId, completeBooking } from '@/lib/liteapi';
 import { sendSms, hotelBookingMessage } from '@/lib/twilio';
 import { upsertBooking, type Booking } from '@/lib/bookings';
+import { scoutSalutation } from '@/lib/scout-greeting';
 import type { PendingBooking } from '@/app/api/hotels/start-booking/route';
 import type { PendingGuest } from '@/app/api/hotels/pending/[ref]/guest/route';
 import ConversionPixel from '@/components/ConversionPixel';
@@ -148,6 +149,20 @@ async function sendHotelConfirmationEmail(booking: StoredBooking) {
 
   const currency = (booking.currency || 'GBP') === 'GBP' ? '&pound;' : `${booking.currency} `;
 
+  // Scout greeting block — culturally appropriate salutation for the
+  // destination, plus the warm "your X escape is officially on the map"
+  // copy approved by owner 2026-05-02. Falls back to "Hello, {firstName}!"
+  // when we have no destination-specific greeting.
+  const firstName = (booking.guest?.firstName || '').trim();
+  const salutation = scoutSalutation(booking.city || '', firstName);
+  const friendlyCheckIn = (() => {
+    if (!booking.checkIn) return '';
+    const d = new Date(booking.checkIn);
+    if (isNaN(d.getTime())) return booking.checkIn;
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' });
+  })();
+  const escapeCity = booking.city || 'next';
+
   const html = `
 <!DOCTYPE html>
 <html>
@@ -157,6 +172,12 @@ async function sendHotelConfirmationEmail(booking: StoredBooking) {
     <div style="text-align:center;margin-bottom:32px;">
       <img src="https://jetmeaway.co.uk/jetmeaway-logo.png" alt="JetMeAway" width="160" style="display:inline-block;height:auto;max-width:160px;border:0;" />
       <p style="font-size:13px;color:#8E95A9;margin:8px 0 0;">Your travel scout</p>
+    </div>
+
+    <div style="background:#fff;border:1px solid #E8ECF4;border-radius:16px;padding:24px;margin-bottom:16px;">
+      <p style="font-size:11px;font-weight:800;color:#0066FF;text-transform:uppercase;letter-spacing:2.5px;margin:0 0 12px;">From your Personal Scout</p>
+      <h1 style="font-size:22px;font-weight:900;color:#0a1628;margin:0 0 12px;line-height:1.25;">${salutation}</h1>
+      <p style="font-size:15px;line-height:1.55;color:#374151;margin:0;">Your <strong>${escapeCity}</strong> escape is officially on the map. Your Personal Scout has secured the best rates at <strong>${booking.hotelName}</strong>. We're getting everything ready for your arrival${friendlyCheckIn ? ` on <strong>${friendlyCheckIn}</strong>` : ''}.</p>
     </div>
 
     <div style="background:linear-gradient(135deg,#059669,#10B981);border-radius:16px;padding:24px;text-align:center;margin-bottom:24px;">
@@ -674,6 +695,7 @@ export default async function SuccessPage({
         checkIn: fmtDate(b.checkIn),
         checkOut: fmtDate(b.checkOut),
         city: b.city || '',
+        firstName: b.guest?.firstName || null,
       }));
     } catch (e) { console.error('[/success] SMS error:', e); }
   }

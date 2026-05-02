@@ -110,7 +110,9 @@ export function scoutBookingMessage(params: {
 }
 
 /**
- * Hotel booking confirmation SMS.
+ * Hotel booking confirmation SMS — Scout-voice with destination-aware greeting.
+ * SMS budget keeps it terse: greeting + escape line + ref + email-CTA, all
+ * inside ~160 chars where possible.
  */
 export function hotelBookingMessage(params: {
   bookingRef: string;
@@ -118,12 +120,16 @@ export function hotelBookingMessage(params: {
   checkIn: string;  // e.g. "Tue 15 Apr"
   checkOut: string; // e.g. "Fri 18 Apr"
   city: string;
+  firstName?: string | null;
 }): string {
-  const { bookingRef, hotelName, checkIn, checkOut, city } = params;
+  const { bookingRef, hotelName, checkIn, checkOut, city, firstName } = params;
+  // Lazy-import to avoid a cycle (twilio.ts is loaded by lots of routes).
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { scoutSalutation } = require('./scout-greeting') as typeof import('./scout-greeting');
+  const opener = scoutSalutation(city, firstName ?? null);
   return (
-    `Your hotel is booked! ${hotelName}, ${city}. ` +
-    `Check-in: ${checkIn}, Check-out: ${checkOut}. ` +
-    `Ref: ${bookingRef}. ` +
-    `Check your email for full details. - JetMeAway jetmeaway.co.uk`
+    `${opener} Your ${city} escape is on the map — ${hotelName}, ` +
+    `${checkIn} to ${checkOut}. Ref: ${bookingRef}. ` +
+    `Full details in your email. — JetMeAway jetmeaway.co.uk`
   );
 }
