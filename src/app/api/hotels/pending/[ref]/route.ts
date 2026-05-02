@@ -37,6 +37,15 @@ export async function GET(
         checkOut: record.checkOut,
         city: record.city,
         adults: record.adults,
+        // Occupancy fields were previously stripped — the checkout page then
+        // showed "X guests" without breaking out adults vs kids, AND the
+        // monkey-audit (Stage 2) flagged it as a regression risk because the
+        // boundary check at prebook/book reads from KV directly, not from
+        // this response, leaving the display silently out-of-sync. Echoing
+        // the full occupancy keeps the UI honest end-to-end.
+        children: record.children ?? 0,
+        ...(Array.isArray(record.childAges) ? { childAges: record.childAges } : {}),
+        rooms: record.rooms ?? 1,
         nights: record.nights,
         thumbnail: record.thumbnail,
         refundable: typeof record.refundable === 'boolean' ? record.refundable : null,

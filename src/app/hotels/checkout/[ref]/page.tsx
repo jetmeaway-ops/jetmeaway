@@ -23,6 +23,13 @@ interface PendingSummary {
   checkOut: string;
   city: string;
   adults: number;
+  /** Optional — set whenever the search included kids. The /api/hotels/pending/[ref]
+   *  GET route now echoes these from the KV record so the checkout summary can
+   *  surface them honestly (was showing only "N guests" — looked like a 2-adult
+   *  booking even when kids were on file). */
+  children?: number;
+  childAges?: number[];
+  rooms?: number;
   nights: number;
   thumbnail: string | null;
   localFees?: number;
@@ -849,7 +856,22 @@ export default function HotelCheckoutPage() {
           <div className="text-[.78rem] text-[#5C6378] font-semibold space-y-1 mb-4">
             <div>Check-in: <strong className="text-[#1A1D2B]">{booking.checkIn}</strong></div>
             <div>Check-out: <strong className="text-[#1A1D2B]">{booking.checkOut}</strong></div>
-            <div>{booking.nights} night{booking.nights !== 1 ? 's' : ''} · {booking.adults} guest{booking.adults !== 1 ? 's' : ''}</div>
+            <div>
+              {booking.nights} night{booking.nights !== 1 ? 's' : ''} ·{' '}
+              {booking.adults} adult{booking.adults !== 1 ? 's' : ''}
+              {(booking.children ?? 0) > 0 && (
+                <>
+                  {' · '}
+                  {booking.children} child{booking.children !== 1 ? 'ren' : ''}
+                  {Array.isArray(booking.childAges) && booking.childAges.length > 0 && (
+                    <span className="text-[#8E95A9]"> (ages {booking.childAges.join(', ')})</span>
+                  )}
+                </>
+              )}
+              {(booking.rooms ?? 1) > 1 && (
+                <> · {booking.rooms} room{booking.rooms !== 1 ? 's' : ''}</>
+              )}
+            </div>
           </div>
 
           {/* Stay schedule — surfaces arrival/departure times before payment
