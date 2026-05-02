@@ -32,6 +32,16 @@ const BUNDLE_ID = 'uk.co.jetmeaway.app';
 const APP_PATHS = [
   '/account/*',
   '/account/bookings*',
+  // Magic-link sign-in. The link in the auth email is /api/account/verify?token=…
+  // — without this entry iOS does NOT recognise it as a universal link and
+  // opens it in Safari. The cookie then lands in Safari's store, the app's
+  // WebView still shows signed-out. Specific path only — we deliberately do
+  // NOT match all of /api/* to avoid universal-link prompts on unrelated
+  // API calls users might tap from other contexts.
+  '/api/account/verify*',
+  // Same reason for the Apple/Google social-signin endpoint, in case the
+  // future flow ever links a customer to it from email.
+  '/api/account/social-signin*',
   '/blog/*',
   '/hotels/*',
   '/flights/*',
