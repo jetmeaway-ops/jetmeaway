@@ -278,13 +278,37 @@ function LoadingState({ dest }: { dest: string }) {
    AFFILIATE LINK BUILDERS
    ═══════════════════════════════════════════════════════════════════════════ */
 
-function buildExpediaUrl(dest: string, from: string, depDate: string, retDate: string, adults: number) {
+function buildExpediaUrl(
+  dest: string,
+  from: string,
+  depDate: string,
+  retDate: string,
+  adults: number,
+  children: number = 0,
+  childrenAges: number[] = [],
+) {
   // Expedia's /go/package/search/ endpoint returns HTTP 502 when FromAirport is
   // the display string "London Heathrow (LHR)"; it must be the bare IATA code.
   // Extract the code from the "(LHR)" suffix, else fall back to the raw input.
   const iataMatch = from.match(/\(([A-Z]{3})\)/);
   const fromIata = iataMatch ? iataMatch[1] : from;
-  return `https://www.expedia.co.uk/go/package/search/FlightHotel/${depDate}/${retDate}?FromAirport=${encodeURIComponent(fromIata)}&Destination=${encodeURIComponent(dest)}&NumRoom=1&NumAdult=${adults}&affcid=clbU3QK`;
+  let url = `https://www.expedia.co.uk/go/package/search/FlightHotel/${depDate}/${retDate}?FromAirport=${encodeURIComponent(fromIata)}&Destination=${encodeURIComponent(dest)}&NumRoom=1&NumAdult=${adults}`;
+  // Children: NumChild=N + childAges=X,Y (Expedia packages schema). Without
+  // these the deep link silently drops kids and the user lands on an
+  // adults-only search — which is what the customer reported on 2026-05-01.
+  // Ages default to 8 if missing (mid-range child age, valid for hotels).
+  const childCount = Math.max(0, children | 0);
+  if (childCount > 0) {
+    url += `&NumChild=${childCount}`;
+    const ages: number[] = [];
+    for (let i = 0; i < childCount; i++) {
+      const a = childrenAges[i];
+      ages.push(typeof a === 'number' && a >= 0 && a <= 17 ? a : 8);
+    }
+    url += `&childAges=${ages.join(',')}`;
+  }
+  url += `&affcid=clbU3QK`;
+  return url;
 }
 
 /* Trip.com uses city-level codes, not airport IATA codes */
@@ -312,14 +336,34 @@ const TRIP_CITY_CODE: Record<string, string> = {
   'TAS': 'TAS', 'ALA': 'ALA', 'NQZ': 'NQZ', 'FRU': 'FRU', 'DYU': 'DYU',
 };
 
-function buildTripUrl(dest: string, fromAirport: string, depDate: string, retDate: string, adults: number) {
+function buildTripUrl(
+  dest: string,
+  fromAirport: string,
+  depDate: string,
+  retDate: string,
+  adults: number,
+  children: number = 0,
+  childrenAges: number[] = [],
+) {
   const destIata = DEST_IATA[dest.toLowerCase()] || '';
   const destCity = TRIP_CITY_CODE[destIata] || destIata;
   const fromMatch = fromAirport.match(/\(([A-Z]{3})\)/);
   const fromIata = fromMatch ? fromMatch[1] : '';
   const fromCity = TRIP_CITY_CODE[fromIata] || fromIata || 'LON';
   const destName = dest.charAt(0).toUpperCase() + dest.slice(1).toLowerCase();
-  return `https://www.trip.com/packages/list?adult=${adults}&child=0&infants=0&aCityCode=${destCity}&dCityCode=${fromCity}&tripWay=round-trip&classType=ys&dDate=${depDate}&rDate=${retDate}&room=1&sourceFrom=IBUdefault&destinationName=${encodeURIComponent(destName)}&isOversea=true&locale=en-GB&curr=GBP&Allianceid=8023009&SID=303363796&trip_sub3=D15021113`;
+  // Was hardcoded `&child=0` — dropped every kid the user selected. Now
+  // forwards the count + per-child ages (Trip.com hotel format reuses
+  // age1, age2, …; same convention works on the packages endpoint). Ages
+  // default to 8 when absent.
+  const childCount = Math.max(0, children | 0);
+  const ageParams: string[] = [];
+  for (let i = 0; i < childCount; i++) {
+    const a = childrenAges[i];
+    const safe = typeof a === 'number' && a >= 0 && a <= 17 ? a : 8;
+    ageParams.push(`age${i + 1}=${safe}`);
+  }
+  const ageQuery = ageParams.length > 0 ? `&${ageParams.join('&')}` : '';
+  return `https://www.trip.com/packages/list?adult=${adults}&child=${childCount}&infants=0${ageQuery}&aCityCode=${destCity}&dCityCode=${fromCity}&tripWay=round-trip&classType=ys&dDate=${depDate}&rDate=${retDate}&room=1&sourceFrom=IBUdefault&destinationName=${encodeURIComponent(destName)}&isOversea=true&locale=en-GB&curr=GBP&Allianceid=8023009&SID=303363796&trip_sub3=D15021113`;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -765,7 +809,7 @@ function PackagesContent() {
                       <h3 className="font-poppins font-black text-[1.2rem] text-[#1A1D2B] mb-1">Expedia Packages</h3>
                       <p className="text-[.82rem] text-[#5C6378] font-semibold">Flight + Hotel bundles with price guarantee</p>
                     </div>
-                    <a href={redirectUrl(buildExpediaUrl(searchedDest, searchedFrom, depDate, effectiveReturn, adults), 'Expedia', searchedDest, 'packages')}
+                    <a href={redirectUrl(buildExpediaUrl(searchedDest, searchedFrom, depDate, effectiveReturn, adults, children, childrenAges), 'Expedia', searchedDest, 'packages')}
                       className="flex-shrink-0 px-6 py-3 rounded-xl font-poppins font-black text-[.85rem] text-white bg-[#1B2B65] hover:bg-[#142050] transition-all shadow-md">
                       Search Expedia Packages →
                     </a>
@@ -794,7 +838,7 @@ function PackagesContent() {
                       <h3 className="font-poppins font-black text-[1.2rem] text-[#1A1D2B] mb-1">Trip.com Packages</h3>
                       <p className="text-[.82rem] text-[#5C6378] font-semibold">Flight + Hotel deals from a global travel leader</p>
                     </div>
-                    <a href={redirectUrl(buildTripUrl(searchedDest, searchedFrom, depDate, effectiveReturn, adults), 'Trip.com', searchedDest, 'packages')}
+                    <a href={redirectUrl(buildTripUrl(searchedDest, searchedFrom, depDate, effectiveReturn, adults, children, childrenAges), 'Trip.com', searchedDest, 'packages')}
                       className="flex-shrink-0 px-6 py-3 rounded-xl font-poppins font-black text-[.85rem] text-white bg-[#287DFA] hover:bg-[#1A6AE0] transition-all shadow-md">
                       Search Trip.com Packages →
                     </a>
