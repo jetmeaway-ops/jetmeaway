@@ -415,6 +415,12 @@ export default function HotelDetailPage() {
     setSelectedRate(rate);
     setStartingBooking(true);
     try {
+      // childrenAges is the URL param (`5,7`); childAges is the API field name.
+      // Forward both — without childAges the booking-boundary check at prebook
+      // time throws "Child ages array (0) does not match children count (N)".
+      const parsedChildAges = childrenAges
+        ? childrenAges.split(',').map((s) => Number(s.trim())).filter((n) => Number.isFinite(n))
+        : [];
       const res = await fetch('/api/hotels/start-booking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -429,6 +435,7 @@ export default function HotelDetailPage() {
           checkOut: checkout,
           adults: parseInt(adults),
           children: parseInt(children),
+          ...(parsedChildAges.length > 0 ? { childAges: parsedChildAges } : {}),
           rooms: parseInt(rooms),
           totalPrice: rate.totalPrice,
           currency,
@@ -457,6 +464,10 @@ export default function HotelDetailPage() {
     if (!offerId || !hotel) return;
     setStartingBooking(true);
     try {
+      // Forward child ages — see handleSelectRate above for the why.
+      const parsedChildAges = childrenAges
+        ? childrenAges.split(',').map((s) => Number(s.trim())).filter((n) => Number.isFinite(n))
+        : [];
       const res = await fetch('/api/hotels/start-booking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -471,6 +482,7 @@ export default function HotelDetailPage() {
           checkOut: checkout,
           adults: parseInt(adults),
           children: parseInt(children),
+          ...(parsedChildAges.length > 0 ? { childAges: parsedChildAges } : {}),
           rooms: parseInt(rooms),
           totalPrice: parseFloat(price),
           currency,
