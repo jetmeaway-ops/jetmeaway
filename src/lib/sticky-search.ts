@@ -81,6 +81,12 @@ export type StickyHotels = {
   checkout?: string;
   adults?: number;
   children?: number;
+  /** Per-child ages. Length must match `children`. Storing the count
+   *  without the ages caused a class of "Child ages array (0) does not
+   *  match children count (2)" failures at prebook — when sticky was
+   *  restored on a later visit, children=2 was rehydrated but the ages
+   *  array was lost, leaking through to start-booking. */
+  childrenAges?: number[];
   rooms?: number;
 };
 

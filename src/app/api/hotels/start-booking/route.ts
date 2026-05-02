@@ -156,10 +156,31 @@ export async function POST(req: NextRequest) {
       adults,
       nights: computedNights,
       rooms: Number.isFinite(rooms) && rooms > 0 ? Math.min(5, Math.round(rooms)) : 1,
+      // Defensive occupancy normalisation — guarantees `childAges.length === children`
+      // BEFORE the record reaches KV. Stops the "Child ages array (0) does
+      // not match children count (2)" class of failure dead at the boundary
+      // even when upstream state drift (sticky search losing ages,
+      // redirects dropping the URL param) feeds us a count without ages.
+      // Defaults missing ages to 5 (LiteAPI accepts 0–17, 5 is neutral).
+      // Warns to logs so we can still chase upstream regressions.
       children: Number.isFinite(children) && children > 0 ? Math.min(10, Math.round(children)) : 0,
-      ...(Array.isArray(childAges) && childAges.length > 0
-        ? { childAges: childAges.slice(0, 10).map((n) => Math.max(0, Math.min(17, Number(n) || 0))) }
-        : {}),
+      ...(() => {
+        const childCount = Number.isFinite(children) && children > 0 ? Math.min(10, Math.round(children)) : 0;
+        if (childCount === 0) return {};
+        const incoming = Array.isArray(childAges) ? childAges : [];
+        const cleaned = incoming
+          .slice(0, 10)
+          .map((n) => Math.max(0, Math.min(17, Number(n) || 0)));
+        if (cleaned.length !== childCount) {
+          console.warn(
+            `[start-booking] childAges length drift — count=${childCount} got=${cleaned.length} ` +
+            `padding to age 5 (offerId=${typeof offerId === 'string' ? offerId.slice(0, 32) : 'unknown'})`,
+          );
+        }
+        const padded: number[] = [];
+        for (let i = 0; i < childCount; i++) padded.push(cleaned[i] ?? 5);
+        return { childAges: padded };
+      })(),
       thumbnail,
       ...(Number.isFinite(lat) ? { lat } : {}),
       ...(Number.isFinite(lng) ? { lng } : {}),

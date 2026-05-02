@@ -1875,6 +1875,23 @@ function HotelsContent() {
     if (c) setChildCount(Math.min(5, Math.max(0, parseInt(c))));
     else if (typeof sticky?.children === 'number') setChildCount(Math.min(5, Math.max(0, sticky.children)));
 
+    // childrenAges — restore alongside the count so we never end up with
+    // count=2 + ages=[] (the "Child ages array (0) does not match children
+    // count (2)" class of failure). URL wins; sticky fallback; final length
+    // is clamped to whatever childCount we just set.
+    const ageStr = p.get('childrenAges') || '';
+    const targetCount = c ? Math.min(5, Math.max(0, parseInt(c))) : (typeof sticky?.children === 'number' ? Math.min(5, Math.max(0, sticky.children)) : 0);
+    let agesFromSrc: number[] = [];
+    if (ageStr) {
+      agesFromSrc = ageStr.split(',').map((s) => Number(s.trim())).filter((n) => Number.isFinite(n) && n >= 0 && n <= 17);
+    } else if (Array.isArray(sticky?.childrenAges) && sticky!.childrenAges!.length > 0) {
+      agesFromSrc = sticky!.childrenAges!.slice(0, 5).map((n) => Number(n)).filter((n) => Number.isFinite(n) && n >= 0 && n <= 17);
+    }
+    // Pad to match count (default age 5 — same as picker default), truncate excess.
+    const ages: number[] = [];
+    for (let i = 0; i < targetCount; i++) ages.push(agesFromSrc[i] ?? 5);
+    setChildrenAges(ages);
+
     if (r) setRooms(Math.min(5, Math.max(1, parseInt(r))));
     else if (sticky?.rooms) setRooms(Math.min(5, Math.max(1, sticky.rooms)));
 
@@ -1926,6 +1943,9 @@ function HotelsContent() {
     }, 50);
 
     // Persist this search so the next visit pre-fills the form.
+    // childrenAges saved alongside count — without it, restoring sticky
+    // gave childCount=2 + ages=[] which leaked through to start-booking
+    // and tripped verifyOccupancyShape at prebook.
     saveSticky<StickyHotels>('hotels', {
       destination,
       placeId: selectedPlaceId || undefined,
@@ -1933,6 +1953,7 @@ function HotelsContent() {
       checkout,
       adults,
       children: childCount,
+      childrenAges: childCount > 0 ? childrenAges.slice(0, childCount) : [],
       rooms,
     });
 
