@@ -134,11 +134,39 @@ export default function App() {
    * Intercept loads to external domains — open them in the system browser
    * instead of inside the WebView. Keeps the app clean and lets affiliate
    * sites run their own Stripe / auth flows without breaking.
+   *
+   * EXCEPTION (added 2026-05-02): /checkout/* and /hotels/checkout/* are
+   * also opened in Safari View Controller even though they're on our own
+   * domain. Reason: Stripe Elements (Duffel flights) and LiteAPI's Payment
+   * SDK (hotels) both create third-party iframes that render BLANK in
+   * WKWebView regardless of sharedCookiesEnabled / thirdPartyCookiesEnabled.
+   * Safari View Controller renders them perfectly. Customers were silently
+   * blocked at the Pay step — multiple bookings lost on 2026-05-01/02.
+   *
+   * After SVC closes (post-payment or user-cancelled), we nudge the WebView
+   * to /account/bookings so they don't return to the now-stale checkout.
    */
   const onShouldStartLoadWithRequest = useCallback((req: { url: string }) => {
     try {
       const u = new URL(req.url);
       if (u.hostname === INTERNAL_HOST || u.hostname === `www.${INTERNAL_HOST}`) {
+        const isCheckout =
+          u.pathname.startsWith('/checkout/') ||
+          u.pathname.startsWith('/hotels/checkout/');
+        if (isCheckout) {
+          WebBrowser.openBrowserAsync(req.url)
+            .then(() => {
+              // After SVC closes, send the WebView to /account/bookings so
+              // the user lands on a useful page rather than the stale
+              // checkout they just paid on (or cancelled out of).
+              if (!webviewRef.current) return;
+              webviewRef.current.injectJavaScript(
+                `window.location.href = 'https://${INTERNAL_HOST}/account/bookings'; true;`,
+              );
+            })
+            .catch(() => Linking.openURL(req.url));
+          return false;
+        }
         return true;
       }
       if (u.protocol === 'about:' || u.protocol === 'data:') return true;
