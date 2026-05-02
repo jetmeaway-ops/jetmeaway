@@ -284,31 +284,23 @@ function buildExpediaUrl(
   depDate: string,
   retDate: string,
   adults: number,
-  children: number = 0,
-  childrenAges: number[] = [],
+  // children + childrenAges accepted but NOT forwarded — Expedia's
+  // /go/package/search/FlightHotel/ endpoint silently breaks when
+  // unrecognised params (NumChild, childAges, children=N_X_Y) are
+  // appended, returning a generic search instead of the intended
+  // pre-filled one. Until the correct schema is verified live, kids
+  // are dropped on this redirect — same behaviour as before today.
+  // (Hotels-only Expedia endpoint accepts `children=N_age1_age2`,
+  // but FlightHotel does not.)
+  _children: number = 0,
+  _childrenAges: number[] = [],
 ) {
   // Expedia's /go/package/search/ endpoint returns HTTP 502 when FromAirport is
   // the display string "London Heathrow (LHR)"; it must be the bare IATA code.
   // Extract the code from the "(LHR)" suffix, else fall back to the raw input.
   const iataMatch = from.match(/\(([A-Z]{3})\)/);
   const fromIata = iataMatch ? iataMatch[1] : from;
-  let url = `https://www.expedia.co.uk/go/package/search/FlightHotel/${depDate}/${retDate}?FromAirport=${encodeURIComponent(fromIata)}&Destination=${encodeURIComponent(dest)}&NumRoom=1&NumAdult=${adults}`;
-  // Children: NumChild=N + childAges=X,Y (Expedia packages schema). Without
-  // these the deep link silently drops kids and the user lands on an
-  // adults-only search — which is what the customer reported on 2026-05-01.
-  // Ages default to 8 if missing (mid-range child age, valid for hotels).
-  const childCount = Math.max(0, children | 0);
-  if (childCount > 0) {
-    url += `&NumChild=${childCount}`;
-    const ages: number[] = [];
-    for (let i = 0; i < childCount; i++) {
-      const a = childrenAges[i];
-      ages.push(typeof a === 'number' && a >= 0 && a <= 17 ? a : 8);
-    }
-    url += `&childAges=${ages.join(',')}`;
-  }
-  url += `&affcid=clbU3QK`;
-  return url;
+  return `https://www.expedia.co.uk/go/package/search/FlightHotel/${depDate}/${retDate}?FromAirport=${encodeURIComponent(fromIata)}&Destination=${encodeURIComponent(dest)}&NumRoom=1&NumAdult=${adults}&affcid=clbU3QK`;
 }
 
 /* Trip.com uses city-level codes, not airport IATA codes */
