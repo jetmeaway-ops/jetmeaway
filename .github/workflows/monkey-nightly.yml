@@ -46,3 +46,28 @@ jobs:
           COUNT: '10'
           BUG_MONITOR_SECRET: ${{ secrets.BUG_MONITOR_SECRET }}
         run: node scripts/monkey-audit.mjs
+
+      # Stage 4 — supplier health probe. Calls /api/admin/supplier-health
+      # which proxies a tiny auth-required call to LiteAPI / Duffel /
+      # Travelpayouts. Detects supplier outages independently of our own
+      # routes (those can pass while a supplier is down, when results
+      # come from KV cache).
+      - name: Run supplier-health probe (Stage 4)
+        if: always()
+        env:
+          BASE: https://jetmeaway.co.uk
+          BUG_MONITOR_SECRET: ${{ secrets.BUG_MONITOR_SECRET }}
+        run: node scripts/supplier-health.mjs
+
+      # Stage 5 — a11y audit. JSDom + axe-core static scan against every
+      # public route. Needs node_modules so we install first; cached by
+      # actions/setup-node when the lockfile hash matches.
+      - name: Install deps for a11y scan
+        if: always()
+        run: npm ci --no-audit --no-fund
+      - name: Run a11y audit (Stage 5)
+        if: always()
+        env:
+          BASE: https://jetmeaway.co.uk
+          BUG_MONITOR_SECRET: ${{ secrets.BUG_MONITOR_SECRET }}
+        run: node scripts/a11y-audit.mjs

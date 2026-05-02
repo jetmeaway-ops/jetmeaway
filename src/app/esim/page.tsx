@@ -345,8 +345,8 @@ export default function ESIMPage() {
             />
           </div>
           <div className="mb-4">
-            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Trip Duration {startDate && endDate ? '(auto-calculated)' : ''}</label>
-            <select value={duration} onChange={e => setDuration(e.target.value)}
+            <label htmlFor="esim-trip-duration" className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Trip Duration {startDate && endDate ? '(auto-calculated)' : ''}</label>
+            <select id="esim-trip-duration" value={duration} onChange={e => setDuration(e.target.value)}
               className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-indigo-500 focus:bg-white transition-all">
               <option value="3">3 days (city break)</option>
               <option value="7">7 days (one week)</option>

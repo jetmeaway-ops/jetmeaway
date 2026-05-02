@@ -115,10 +115,12 @@ export default function Header() {
             })}
 
             {/* Discover dropdown (hover on desktop, focus-within for keyboard).
-                aria-expanded is intentionally omitted — the panel opens purely
-                from CSS :hover/:focus-within state, so we cannot truthfully
-                report the boolean. aria-haspopup signals the relationship,
-                aria-controls points screen readers at the panel id. */}
+                Pure CSS reveal — no aria-expanded (we can't truthfully report a
+                boolean we don't track). Treated as a plain navigation list of
+                links, NOT a WAI-ARIA menu, so no role=menu / role=menuitem /
+                aria-haspopup — those would require arrow-key handling we don't
+                have. Screen readers announce it as "list of links" which is
+                exactly what it is. */}
             <div className="relative group">
               <button
                 type="button"
@@ -127,7 +129,6 @@ export default function Header() {
                     ? 'bg-[#0066FF] text-white shadow-[0_4px_12px_rgba(0,102,255,0.3)]'
                     : 'text-slate-400 group-hover:text-[#0066FF] group-hover:bg-blue-50'
                 }`}
-                aria-haspopup="menu"
                 aria-controls="discover-menu"
               >
                 <span className="text-sm leading-none" aria-hidden="true">🧭</span>
@@ -135,7 +136,7 @@ export default function Header() {
                 <span className="text-[.6rem] opacity-60" aria-hidden="true">▾</span>
               </button>
               {/* Dropdown panel. pt-1 creates a hover-bridge so the mouse can move from button → panel without leaving the group hover zone. */}
-              <div id="discover-menu" role="menu" className="absolute top-full right-0 pt-1 invisible opacity-0 translate-y-1 group-hover:visible group-hover:opacity-100 group-hover:translate-y-0 focus-within:visible focus-within:opacity-100 focus-within:translate-y-0 transition-all duration-150 min-w-[180px]">
+              <div id="discover-menu" className="absolute top-full right-0 pt-1 invisible opacity-0 translate-y-1 group-hover:visible group-hover:opacity-100 group-hover:translate-y-0 focus-within:visible focus-within:opacity-100 focus-within:translate-y-0 transition-all duration-150 min-w-[180px]">
                 <div className="bg-white border border-[#E8ECF4] rounded-2xl shadow-[0_24px_48px_-12px_rgba(0,0,0,0.18)] p-2">
                   {DISCOVER_ITEMS.map(item => (
                     <Link

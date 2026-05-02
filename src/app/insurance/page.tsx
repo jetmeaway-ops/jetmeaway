@@ -155,8 +155,8 @@ export default function InsurancePage() {
           </div>
 
           <div className="mb-3">
-            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Destination Region</label>
-            <select value={destination} onChange={e => setDestination(e.target.value)}
+            <label htmlFor="ins-destination" className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Destination Region</label>
+            <select id="ins-destination" value={destination} onChange={e => setDestination(e.target.value)}
               className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-green-500 focus:bg-white transition-all">
               <option value="">Select destination...</option>
               <option value="europe">Europe</option>
@@ -180,8 +180,8 @@ export default function InsurancePage() {
               />
             </div>
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Travellers</label>
-              <select value={travellers} onChange={e => setTravellers(e.target.value)}
+              <label htmlFor="ins-travellers" className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Travellers</label>
+              <select id="ins-travellers" value={travellers} onChange={e => setTravellers(e.target.value)}
                 className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-green-500 focus:bg-white transition-all">
                 <option value="1">1 traveller</option>
                 <option value="2">2 travellers</option>

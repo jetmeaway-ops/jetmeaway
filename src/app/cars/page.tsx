@@ -612,20 +612,20 @@ function CarsContent() {
               />
             </div>
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Driver Age</label>
-              <input type="number" min={18} max={99} value={driverAge} onChange={e => setDriverAge(e.target.value)}
+              <label htmlFor="cars-driver-age" className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Driver Age</label>
+              <input id="cars-driver-age" type="number" min={18} max={99} value={driverAge} onChange={e => setDriverAge(e.target.value)}
                 className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-emerald-500 focus:bg-white transition-all" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Pickup Time</label>
-              <input type="time" value={pickupTime} onChange={e => setPickupTime(e.target.value)}
+              <label htmlFor="cars-pickup-time" className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Pickup Time</label>
+              <input id="cars-pickup-time" type="time" value={pickupTime} onChange={e => setPickupTime(e.target.value)}
                 className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-emerald-500 focus:bg-white transition-all" />
             </div>
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Return Time</label>
-              <input type="time" value={dropoffTime} onChange={e => setDropoffTime(e.target.value)}
+              <label htmlFor="cars-dropoff-time" className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Return Time</label>
+              <input id="cars-dropoff-time" type="time" value={dropoffTime} onChange={e => setDropoffTime(e.target.value)}
                 className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-emerald-500 focus:bg-white transition-all" />
             </div>
           </div>
