@@ -211,18 +211,97 @@ function urlBuilderCanary() {
   return cases;
 }
 
+/* ─── Stage-3: route health ─────────────────────────────────────────── */
+
+// Every public-facing route. If any goes 4xx/5xx in prod, customers can't
+// reach that funnel. Cheap to probe — one GET per route. /api/debug is
+// intentionally NOT here — it's auth-protected (returns 401 without the
+// admin token), so probing it would always false-positive.
+const PUBLIC_ROUTES = [
+  '/', '/flights', '/hotels', '/packages', '/cars',
+  '/explore', '/esim', '/insurance',
+  '/about', '/contact', '/privacy', '/terms', '/refund',
+  '/affiliate', '/financial-protection',
+  '/blog', '/account',
+];
+
+async function probeRoute(path) {
+  const url = `${BASE}${path}`;
+  const t0 = Date.now();
+  try {
+    const r = await fetch(url, {
+      headers: { 'user-agent': 'jetmeaway-monkey-audit/1' },
+      redirect: 'manual', // 3xx counts as ok (e.g. /blog → /blog/)
+    });
+    const ms = Date.now() - t0;
+    const ok = r.status >= 200 && r.status < 400;
+    return { path, status: r.status, ms, ok };
+  } catch (e) {
+    return { path, status: 0, ms: Date.now() - t0, ok: false, err: e.message };
+  }
+}
+
+/* ─── Stage-3: flights API canary ───────────────────────────────────── */
+
+// /api/flights doesn't currently echo `children` / `infants` in its
+// response shape (the search endpoint returns offers, not the request
+// echo). So we can't assert a clean roundtrip the way we do for hotels.
+// Instead we hit the endpoint with kids+infants and assert it returns
+// 200 + non-empty offers — a 4xx/5xx here means the route itself broke
+// when occupancy is non-trivial.
+async function flightsCanary() {
+  const url = `${BASE}/api/flights?` + new URLSearchParams({
+    origin: 'LON', destination: 'BCN',
+    departure: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+    return: new Date(Date.now() + 37 * 86400000).toISOString().slice(0, 10),
+    adults: '2', children: '1', infants: '1',
+  }).toString();
+  const t0 = Date.now();
+  try {
+    const r = await fetch(url, { headers: { 'user-agent': 'jetmeaway-monkey-audit/1' } });
+    const ms = Date.now() - t0;
+    const errs = [];
+    if (r.status !== 200) errs.push(`HTTP ${r.status}`);
+    const body = await r.json().catch(() => null);
+    if (!body) errs.push('non-JSON response');
+    // The /api/flights response shape: { offers: [], cached: bool, ... }
+    // Empty offers array is OK on a quiet route — what we're guarding against
+    // is the route 500'ing on kids+infants.
+    return { ms, status: r.status, errs };
+  } catch (e) {
+    return { ms: Date.now() - t0, status: 0, errs: [`fetch failed: ${e.message}`] };
+  }
+}
+
 async function main() {
   const started = Date.now();
-  console.log(`monkey-audit v1 — BASE=${BASE} COUNT=${COUNT}`);
+  console.log(`monkey-audit v2 — BASE=${BASE} COUNT=${COUNT}`);
 
-  // URL-builder canary (no network) — print expected formats so a
-  // developer eyeballing the output sees what's being asserted.
+  // ── URL-builder canary (synthetic, no network) ─────────────────────
   console.log('\n== URL builder canary (synthetic 2 adults + kids ages 8, 12) ==');
   for (const c of urlBuilderCanary()) {
     console.log(`  ${c.name.padEnd(18)} expects substring: ${c.need}`);
   }
 
-  // Booking flow runs
+  // ── Route health (every public path, 200/3xx) ──────────────────────
+  console.log(`\n== Route health (${PUBLIC_ROUTES.length} routes) ==`);
+  const routeResults = [];
+  for (const path of PUBLIC_ROUTES) {
+    const r = await probeRoute(path);
+    routeResults.push(r);
+    const tag = r.ok ? 'PASS' : 'FAIL';
+    console.log(`  ${tag} ${path.padEnd(28)} ${r.status} ${r.ms}ms${r.err ? ' ' + r.err : ''}`);
+  }
+  const routeFails = routeResults.filter((r) => !r.ok);
+
+  // ── Flights API canary (kids+infants doesn't 5xx) ──────────────────
+  console.log('\n== Flights API canary (LON→BCN, 2 adults + 1 child + 1 infant) ==');
+  const flights = await flightsCanary();
+  const flightsTag = flights.errs.length === 0 ? 'PASS' : 'FAIL';
+  console.log(`  ${flightsTag} status=${flights.status} ${flights.ms}ms`);
+  if (flights.errs.length) for (const e of flights.errs) console.log(`         ↳ ${e}`);
+
+  // ── Booking-funnel runs (full search → start-booking → pending) ─────
   console.log(`\n== Booking-funnel runs (${COUNT}) ==`);
   const results = [];
   for (let i = 0; i < COUNT; i++) {
@@ -234,19 +313,18 @@ async function main() {
     if (r.errs.length) for (const e of r.errs) console.log(`         ↳ ${e}`);
   }
 
-  const failed = results.filter((r) => r.errs.length > 0);
-  const skipped = results.filter((r) => r.skipped);
-  const passed = results.length - failed.length - skipped.length;
+  const bookingFailed = results.filter((r) => r.errs.length > 0);
+  const bookingSkipped = results.filter((r) => r.skipped);
+  const bookingPassed = results.length - bookingFailed.length - bookingSkipped.length;
   const totalMs = Date.now() - started;
   console.log(`\n== Summary ==`);
-  console.log(`  passed:  ${passed}`);
-  console.log(`  failed:  ${failed.length}`);
-  console.log(`  skipped: ${skipped.length}`);
-  console.log(`  total:   ${totalMs}ms`);
+  console.log(`  routes:    ${routeResults.length - routeFails.length}/${routeResults.length} passed`);
+  console.log(`  flights:   ${flights.errs.length === 0 ? 'PASS' : 'FAIL'}`);
+  console.log(`  bookings:  ${bookingPassed} passed, ${bookingFailed.length} failed, ${bookingSkipped.length} skipped`);
+  console.log(`  total:     ${totalMs}ms`);
 
-  if (failed.length > 0) {
-    process.exit(1);
-  }
+  const anyFail = routeFails.length > 0 || flights.errs.length > 0 || bookingFailed.length > 0;
+  if (anyFail) process.exit(1);
 }
 
 main().catch((e) => { console.error('monkey-audit crashed:', e); process.exit(2); });

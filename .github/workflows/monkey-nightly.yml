@@ -29,9 +29,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Run monkey suite
+      - name: Run search monkey (Stage 1 — fuzz hotel search)
         env:
           BASE: https://jetmeaway.co.uk
           COUNT: ${{ github.event.inputs.count || '50' }}
           BUG_MONITOR_SECRET: ${{ secrets.BUG_MONITOR_SECRET }}
         run: node scripts/monkey-search.mjs
+
+      # Stage 2 — booking-funnel + URL-builder + route-health probe.
+      # Lower COUNT because each run writes to KV (4h TTL); 10 daily is
+      # enough signal without polluting the prod store.
+      - name: Run audit monkey (Stage 2 — booking funnel + routes)
+        if: always()  # run even if Stage 1 failed — they cover different ground
+        env:
+          BASE: https://jetmeaway.co.uk
+          COUNT: '10'
+          BUG_MONITOR_SECRET: ${{ secrets.BUG_MONITOR_SECRET }}
+        run: node scripts/monkey-audit.mjs
