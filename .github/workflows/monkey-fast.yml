@@ -1,0 +1,40 @@
+# Fast Monkey — runs every 5 minutes against prod. Ten randomised hotel
+# searches per tick, with proximity canaries (Coulsdon, Hove, Watford…)
+# baked in. Failures fingerprint into the KV Bug Inbox via
+# /api/bug-monitor; non-zero exit fails the workflow so GitHub Actions
+# surfaces the regression in the runs tab.
+#
+# This is the "no customer is the first one to find a regression" tier.
+# Heavy-weight checks (booking funnel, supplier health, a11y) stay on
+# the nightly cron — those would be expensive at 5-min cadence.
+#
+# Cost: ~15s per run × 288 runs/day = ~72 min/day GitHub Actions time.
+# Free tier is 2,000 min/mo so we use ~36% of free runtime, leaving
+# headroom for the rest of the workflows.
+name: monkey-fast
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    concurrency:
+      # If a previous run is still going (rare — should finish in <60s),
+      # cancel it. Better to skip than queue overlapping runs.
+      group: monkey-fast
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run monkey-search (10 randomised searches)
+        env:
+          BASE: https://jetmeaway.co.uk
+          COUNT: '10'
+          BUG_MONITOR_SECRET: ${{ secrets.BUG_MONITOR_SECRET }}
+        run: node scripts/monkey-search.mjs
