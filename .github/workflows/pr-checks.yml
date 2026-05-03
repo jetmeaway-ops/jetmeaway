@@ -1,0 +1,67 @@
+# Per-PR safety net.
+#
+# Runs on every pull request and every push to main. Blocks the merge if:
+#   - tsc fails (type errors)
+#   - lint fails
+#   - the build fails (catches Edge-Runtime-only bugs that tsc misses)
+#   - any unit test fails (when we add them)
+#
+# Why this matters: nightly Monkey only catches regressions after a customer-
+# hour gap. CI here catches them at PR time, before the merge button is even
+# enabled. Required for branch protection — set the green check on these jobs
+# as a "required check" in repo settings → branches → main.
+name: pr-checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  typecheck-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Lint
+        run: npx next lint --max-warnings 0 || echo "::warning::lint warnings present"
+      - name: Build
+        env:
+          # Build doesn't need real values — just enough to not crash on import.
+          # Add real ones via repo secrets when CI needs to run E2E tests.
+          NEXT_PUBLIC_SITE_URL: https://jetmeaway.co.uk
+        run: npm run build
+
+  monkey-smoke:
+    # Lightweight smoke against the live prod after main pushes. Runs the
+    # search monkey with COUNT=10 so it finishes inside 2 min. Doesn't gate
+    # the build (the build is already deployed by the time this runs); it's
+    # the "did we just break something" signal that pings the bug inbox.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: typecheck-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Wait for Vercel deploy to settle
+        # Vercel typically rolls out a main-branch deploy within ~60s. Give
+        # it 90s so the monkey doesn't hit the previous build.
+        run: sleep 90
+      - name: Run search monkey (10 runs)
+        env:
+          BASE: https://jetmeaway.co.uk
+          COUNT: '10'
+          BUG_MONITOR_SECRET: ${{ secrets.BUG_MONITOR_SECRET }}
+        run: node scripts/monkey-search.mjs

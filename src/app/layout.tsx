@@ -15,6 +15,7 @@ import { GoogleAnalytics } from '@next/third-parties/google';
 import DeferredWidgets from '@/components/DeferredWidgets';
 import MicrosoftClarity from '@/components/MicrosoftClarity';
 import ScrollToTop from '@/components/ScrollToTop';
+import ClientErrorReporter from '@/components/ClientErrorReporter';
 
 // Google tag ID. `AW-*` = Google Ads conversion tag (not GA4). The
 // <GoogleAnalytics> component from @next/third-parties just injects
@@ -243,6 +244,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         {children}
+        <ClientErrorReporter />
         <ScrollToTop />
         <DeferredWidgets />
         {/* Font Awesome — injected client-side during idle time so it never

@@ -24,15 +24,24 @@
  * reporting itself to throw and break the calling route).
  */
 
+import { sentryCapture } from './sentry-edge';
+
 interface ReportContext {
   [key: string]: unknown;
 }
 
 /**
  * Fire a bug report. Returns immediately — the actual POST happens
- * in the background.
+ * in the background. Also forwards to Sentry when SENTRY_DSN is set so
+ * the bug inbox and Sentry stay in lockstep (one place to triage in the
+ * inbox; one place with full grouping/UI in Sentry).
  */
 export function reportBug(message: string, context?: ReportContext): void {
+  // Forward to Sentry first — no-ops if SENTRY_DSN unset. We do this
+  // BEFORE the bug-monitor check so a missing BUG_MONITOR_SECRET in dev
+  // doesn't suppress Sentry signal.
+  sentryCapture({ level: 'error', message, extra: context });
+
   // Skip in dev / when secret is unset. Prod ALWAYS has BUG_MONITOR_SECRET
   // configured (per the env-var checklist).
   const secret = process.env.BUG_MONITOR_SECRET;
