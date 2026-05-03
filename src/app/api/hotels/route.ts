@@ -5,6 +5,10 @@ import { dedupeKey } from '@/lib/giata';
 import { reportBug } from '@/lib/report-bug';
 import { HotelSearchSchema, zodErrorToMessage } from '@/lib/hotel-schemas';
 import { googlePlaceDetails } from '@/lib/google-places';
+import { decodeFromParams, aggregate, type Room } from '@/lib/occupancy';
+
+/** LiteAPI hard cap on children per booking; mirrors picker UX cap. */
+const MAX_CHILDREN_TOTAL = 8;
 
 // Stays on edge for low-latency search. DOTW's node-only transport
 // (MD5 + gzip) is proxied through `/api/hotels/dotw-search` (nodejs runtime).
@@ -515,6 +519,12 @@ async function fetchLiteApiHotels(
   // Caller is responsible for passing the centroid the visitor really
   // meant — we pass it straight to LiteAPI.
   centroid?: { lat: number; lng: number; radiusKm?: number },
+  // Optional per-room occupancy. When supplied this OVERRIDES the
+  // adults/children/rooms-derived even-split logic below — gives us
+  // exact control over which kid is in which room (the customer chose
+  // it explicitly via the per-room picker). Fallback path remains for
+  // legacy URLs that only pass flat adults/children/rooms.
+  perRoom?: Room[],
 ): Promise<HotelOffer[]> {
   if (!process.env.LITE_API_KEY) {
     console.warn('[liteapi] LITE_API_KEY not set — skipping hotel search');
@@ -540,27 +550,36 @@ async function fetchLiteApiHotels(
   const resolvedCountry = countryCode;
   const cityName = resolvedCity;
 
-  // Build occupancy: one entry per room. Split adults across rooms (min 1 per
-  // room). Put all children in the first room — LiteAPI allows uneven splits.
-  const safeAdults = Math.max(1, adults);
-  const safeRooms = Math.max(1, Math.min(5, rooms));
-  const safeChildren = Math.max(0, childrenCount);
-  const adultsPerRoom: number[] = [];
-  let remaining = safeAdults;
-  for (let i = 0; i < safeRooms; i++) {
-    const a = i === safeRooms - 1 ? remaining : Math.max(1, Math.floor(safeAdults / safeRooms));
-    adultsPerRoom.push(a);
-    remaining -= a;
+  // Occupancy: prefer the explicit per-room shape from the picker,
+  // fall back to deriving from flat counts for legacy URLs.
+  let occupancy: Array<{ adults: number; children: number[] }>;
+  let safeRooms: number;
+  if (perRoom && perRoom.length > 0) {
+    safeRooms = Math.max(1, Math.min(5, perRoom.length));
+    occupancy = perRoom.slice(0, safeRooms).map((r) => ({
+      adults: Math.max(1, Math.min(4, r.adults)),
+      children: r.childAges.slice(0, 4).map((a) => Math.max(0, Math.min(17, a))),
+    }));
+  } else {
+    const safeAdults = Math.max(1, adults);
+    safeRooms = Math.max(1, Math.min(5, rooms));
+    const safeChildren = Math.max(0, childrenCount);
+    const adultsPerRoom: number[] = [];
+    let remaining = safeAdults;
+    for (let i = 0; i < safeRooms; i++) {
+      const a = i === safeRooms - 1 ? remaining : Math.max(1, Math.floor(safeAdults / safeRooms));
+      adultsPerRoom.push(a);
+      remaining -= a;
+    }
+    const childAges = childAgesParam.length > 0
+      ? childAgesParam.slice(0, safeChildren)
+      : Array.from({ length: safeChildren }, () => 8);
+    while (childAges.length < safeChildren) childAges.push(8);
+    occupancy = adultsPerRoom.map((a, idx) => ({
+      adults: a,
+      children: idx === 0 ? childAges : [],
+    }));
   }
-  // Children are represented as an array of ages — LiteAPI expects integers.
-  const childAges = childAgesParam.length > 0
-    ? childAgesParam.slice(0, safeChildren)
-    : Array.from({ length: safeChildren }, () => 8);
-  while (childAges.length < safeChildren) childAges.push(8);
-  const occupancy = adultsPerRoom.map((a, idx) => ({
-    adults: a,
-    children: idx === 0 ? childAges : [],
-  }));
 
   const t0 = Date.now();
   try {
@@ -1401,12 +1420,22 @@ export async function GET(req: NextRequest) {
   if (cityKey !== rawCityKey) {
     console.log(`[hotels] rewriting "${rawCityKey}" → "${cityKey}" (airport→city alias)`);
   }
-  const adultsNum = parseInt(adults);
-  const childrenNum = Math.max(0, Math.min(4, parseInt(childrenParam) || 0));
-  const childAges = childrenAgesParam
-    ? childrenAgesParam.split(',').map(a => Math.max(0, Math.min(17, parseInt(a) || 0)))
-    : [];
-  const roomsNum = Math.max(1, Math.min(5, parseInt(roomsParam) || 1));
+  // Resolve per-room occupancy. New `occ=` param wins; legacy
+  // adults/children/rooms/childrenAges is the fallback. Both code paths
+  // ultimately produce the same Room[] shape, so downstream code only
+  // has to handle one schema.
+  const roomsArr = decodeFromParams({
+    occ: parsed.data.occ,
+    adults: adults,
+    children: childrenParam,
+    rooms: roomsParam,
+    childrenAges: childrenAgesParam,
+  });
+  const aggregated = aggregate(roomsArr);
+  const adultsNum = aggregated.adults;
+  const childrenNum = Math.min(MAX_CHILDREN_TOTAL, aggregated.children);
+  const childAges = aggregated.childAges;
+  const roomsNum = aggregated.rooms;
   const minStars = Math.max(0, Math.min(5, parseInt(starsParam) || 0));
   // Cache key v11 — added placeId support for precise location searches
   // Cache key includes rawCityKey too so an aliased "coulsdon → london"
@@ -1435,12 +1464,13 @@ export async function GET(req: NextRequest) {
   // v21 — added children + rooms to the response echo so the Monkey Test
   // Suite (and any future client) can do strict-equality assertions on
   // occupancy round-trip. Old v20 cache entries lack those fields.
-  // v26 — every airport-name variant now mapped (e.g. "Gatwick Airport",
-  // "London Gatwick", "LGW" all resolve to Gatwick coords). v25 only
-  // covered the canonical "gatwick" key — the autocomplete-supplied
-  // form was missing the coord lookup and falling through to metro
-  // hotels. Stress test caught it on prod 2026-05-03.
-  const kvKey = `hotels:v26:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
+  // v27 — per-room occupancy (Room[] from the new picker) is now part
+  // of the cache key when the new `occ=` param is supplied. Two
+  // requests with the same totals but different per-room splits now
+  // get distinct cache slots, so a 2A/2K/1R booking and a 1A+1K /
+  // 1A+1K split return different inventory + pricing.
+  const occCacheSuffix = parsed.data.occ ? `:occ=${parsed.data.occ}` : '';
+  const kvKey = `hotels:v27:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}${occCacheSuffix}`;
 
   // Group occupancy bypass: large groups (>4 guests) always get fresh prices
   // because cached availability/room blocks may not hold for that many people.
@@ -1555,7 +1585,7 @@ export async function GET(req: NextRequest) {
   // Kick off LiteAPI + RateHawk + DOTW in parallel (triple API racing).
   // DOTW uses mocked fixtures when DOTW_USERNAME is unset — still gives us a
   // Giata-tagged result set to exercise the de-dupe path in dev.
-  const liteApiPromise = fetchLiteApiHotels(cityKey, checkin, checkout, adultsNum, childrenNum, roomsNum, childAges, 12000, placeId || undefined, liteApiCentroid);
+  const liteApiPromise = fetchLiteApiHotels(cityKey, checkin, checkout, adultsNum, childrenNum, roomsNum, childAges, 12000, placeId || undefined, liteApiCentroid, roomsArr);
   const rateHawkPromise = fetchRateHawkHotels(cityKey, checkin, checkout, adultsNum, roomsNum);
   // Absolute-origin proxy to the nodejs DOTW sub-route — Vercel requires
   // absolute URLs for edge → node internal fetches.
