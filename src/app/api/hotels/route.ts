@@ -438,9 +438,24 @@ async function fetchLiteApiHotels(
     //   the primary fetch missed.
     //
     // Bandwidth: each LiteAPI rates fetch chunks into 50-hotel batches in
-    // parallel (see liteapi.ts getHotels). With limit=500 + 50, that's
-    // ~11 parallel /hotels/rates calls. Wall-clock time stays close to
-    // the slowest single chunk (~3-5s); doesn't blow the 12s timeout.
+    // parallel. With limit=500 the rates call has to compute availability
+    // for 500 hotels × N rooms × M occupants — when N >= 3 (multi-room
+    // bookings) on big-city inventory (Paris, Istanbul, Dubai, Bangkok)
+    // this routinely blew Vercel's 30s function timeout, returning a
+    // platform-level FUNCTION_INVOCATION_TIMEOUT (HTML 504/500). Stress
+    // test 2026-05-03 caught this on 6A/0K/3R for those four cities.
+    //
+    // Mitigation: scale limit by safeRooms so multi-room queries stay
+    // tractable. 1 room → 500. 2 rooms → 250. 3+ rooms → 150. The budget
+    // tier is also scaled (it duplicates the primary at high limits, so
+    // we'd be paying twice). When a centroid is set (lat/lng search) we
+    // already filter to 15km — limit=500 there is overkill anyway.
+    const primaryLimit =
+      safeRooms <= 1 ? 500 :
+      safeRooms === 2 ? 250 :
+      150;
+    const budgetLimit = Math.min(50, Math.floor(primaryLimit / 4));
+
     const fetchTimeout = new Promise<HotelOffer[]>((_, reject) =>
       setTimeout(() => reject(new Error('LiteAPI timeout')), timeoutMs),
     );
@@ -463,7 +478,7 @@ async function fetchLiteApiHotels(
           occupancy,
           currency: 'GBP',
           guestNationality: 'GB',
-          limit: 500,
+          limit: primaryLimit,
         }),
         fetchTimeout,
       ]).catch((err: unknown) => {
@@ -486,7 +501,7 @@ async function fetchLiteApiHotels(
           occupancy,
           currency: 'GBP',
           guestNationality: 'GB',
-          limit: 50,
+          limit: budgetLimit,
           starRatings: [0, 1, 2, 3],
         }),
         fetchTimeout,
