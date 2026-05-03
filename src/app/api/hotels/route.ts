@@ -9,6 +9,12 @@ import { googlePlaceDetails } from '@/lib/google-places';
 // Stays on edge for low-latency search. DOTW's node-only transport
 // (MD5 + gzip) is proxied through `/api/hotels/dotw-search` (nodejs runtime).
 export const runtime = 'edge';
+// Hard ceiling on Edge function execution. Default Vercel kill is ~25s
+// which we hit on Dubai 1A+1K-infant (LiteAPI rates fetch was slow on
+// 2026-05-03 stress test). With maxDuration=60 the per-supplier 12s
+// fetchTimeouts have headroom, AND the top-level try/catch can run its
+// reportBug + soft 200 response before Vercel kills us.
+export const maxDuration = 60;
 
 const KV_TTL = 43200; // 12 hours
 

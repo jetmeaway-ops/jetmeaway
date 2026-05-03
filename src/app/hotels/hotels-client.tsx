@@ -412,6 +412,7 @@ function buildTripcomUrl(
   resolvedCityId?: number | null,
   children: number = 0,
   childrenAges: number[] = [],
+  rooms: number = 1,
 ): string {
   // Trip.com hotel URL contract (verified live 2026-04-19):
   //   - `uk.trip.com/hotels/list` is the UK-localised endpoint (GBP + en-GB).
@@ -434,13 +435,18 @@ function buildTripcomUrl(
   const keyword = encodeURIComponent(dest);
   const cityId = resolvedCityId ?? tripCityIdFor(dest);
   const childCount = Math.max(0, children | 0);
+  // Trip.com `crn` = number of rooms. Was hard-coded to 1 — multi-room
+  // searches were silently downgraded to a 1-room search at the redirect
+  // and customers with 9A/4R were sent to a 9A/1R Trip.com result.
+  // Cap at 5 to match the picker's max + Trip.com's UX limit.
+  const safeRooms = Math.max(1, Math.min(5, rooms | 0));
   const base = [
     `city=${cityId ?? -1}`,
     `cityName=${keyword}`,
     `checkin=${cinSlash}`,
     `checkout=${coutSlash}`,
     `adult=${adults}`,
-    'crn=1',
+    `crn=${safeRooms}`,
     `children=${childCount}`,
     'barCurr=GBP',
     'curr=GBP',
@@ -477,6 +483,7 @@ function buildExpediaUrl(
   adults: number,
   children: number = 0,
   childrenAges: number[] = [],
+  rooms: number = 1,
 ): string {
   // Expedia Hotel-Search children format (verified live 2026-04-19):
   //   &children=<count>_<age1>_<age2>...
@@ -496,6 +503,10 @@ function buildExpediaUrl(
     }
     u += `&children=${childCount}_${ages.join('_')}`;
   }
+  // Expedia `rooms=N` — was missing entirely; multi-room searches landed
+  // on a 1-room Expedia result. Cap at 8 (Expedia's hard max).
+  const safeRooms = Math.max(1, Math.min(8, rooms | 0));
+  if (safeRooms > 1) u += `&rooms=${safeRooms}`;
   u += `&affcid=clbU3QK`;
   return u;
 }
@@ -503,12 +514,12 @@ function buildExpediaUrl(
 type Provider = {
   name: string;
   logo: string;
-  getUrl: (dest: string, cin: string, cout: string, adults: number, children: number, childrenAges: number[]) => string;
+  getUrl: (dest: string, cin: string, cout: string, adults: number, children: number, childrenAges: number[], rooms: number) => string;
 };
 
 const PROVIDERS: Provider[] = [
-  { name: 'Trip.com', logo: '🗺', getUrl: (d, ci, co, a, c, ages) => buildTripcomUrl(d, ci, co, a, null, c, ages) },
-  { name: 'Expedia', logo: '🌍', getUrl: (d, ci, co, a, c, ages) => buildExpediaUrl(d, ci, co, a, c, ages) },
+  { name: 'Trip.com', logo: '🗺', getUrl: (d, ci, co, a, c, ages, rooms) => buildTripcomUrl(d, ci, co, a, null, c, ages, rooms) },
+  { name: 'Expedia', logo: '🌍', getUrl: (d, ci, co, a, c, ages, rooms) => buildExpediaUrl(d, ci, co, a, c, ages, rooms) },
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -1075,7 +1086,7 @@ function StarFilter({ value, onChange }: { value: number; onChange: (v: number) 
    BOOK DIRECT (LiteAPI) — creates a pending booking then redirects to checkout
    ═══════════════════════════════════════════════════════════════════════════ */
 
-function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, childrenAges, checkin, checkout, searchedDest, tripCityId, buildDetailHref, setScoutHotel, priceView, cityCentre, airports, isCompared, compareFull, onToggleCompare, isActive, onHover }: {
+function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, childrenAges, rooms, checkin, checkout, searchedDest, tripCityId, buildDetailHref, setScoutHotel, priceView, cityCentre, airports, isCompared, compareFull, onToggleCompare, isActive, onHover }: {
   hotel: HotelResult;
   index: number;
   isCheapest: boolean;
@@ -1083,6 +1094,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
   adults: number;
   children: number;
   childrenAges: number[];
+  rooms: number;
   checkin: string;
   checkout: string;
   searchedDest: string;
@@ -1137,8 +1149,8 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
     'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=640&h=480&fit=crop&fm=webp&q=75',
   ];
   const photoUrl = h.thumbnail || HOTEL_PHOTOS[index % HOTEL_PHOTOS.length];
-  const tripUrl = buildTripcomUrl(searchedDest, checkin, checkout, adults, tripCityId, children, childrenAges);
-  const expediaUrl = buildExpediaUrl(searchedDest, checkin, checkout, adults, children, childrenAges);
+  const tripUrl = buildTripcomUrl(searchedDest, checkin, checkout, adults, tripCityId, children, childrenAges, rooms);
+  const expediaUrl = buildExpediaUrl(searchedDest, checkin, checkout, adults, children, childrenAges, rooms);
   const detailHref = buildDetailHref(h);
 
   // Build a modified hotel object with the selected board's offerId for BookDirect
@@ -2745,6 +2757,7 @@ function HotelsContent() {
                     adults={adults}
                     children={childCount}
                     childrenAges={childrenAges}
+                    rooms={rooms}
                     checkin={checkin}
                     checkout={checkout}
                     searchedDest={searchedDest}
