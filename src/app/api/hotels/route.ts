@@ -47,78 +47,115 @@ async function safeKvSet(key: string, value: unknown): Promise<void> {
  * Square / St James (central London, 25km from LHR) — wrong destination.
  * Stress test 2026-05-03 caught this.
  */
-const AIRPORT_COORDS: Record<string, { lat: number; lng: number; radiusKm?: number }> = {
-  // UK
-  'gatwick': { lat: 51.1537, lng: -0.1821, radiusKm: 12 },
-  'heathrow': { lat: 51.4700, lng: -0.4543, radiusKm: 12 },
-  'stansted': { lat: 51.8860, lng: 0.2389, radiusKm: 12 },
-  'luton': { lat: 51.8747, lng: -0.3683, radiusKm: 12 },
-  'london city': { lat: 51.5048, lng: 0.0495, radiusKm: 8 },
-  'london city airport': { lat: 51.5048, lng: 0.0495, radiusKm: 8 },
-  'manchester airport': { lat: 53.3537, lng: -2.2750, radiusKm: 10 },
-  'birmingham airport': { lat: 52.4539, lng: -1.7480, radiusKm: 10 },
-  'edinburgh airport': { lat: 55.9500, lng: -3.3725, radiusKm: 10 },
-  'glasgow airport': { lat: 55.8722, lng: -4.4333, radiusKm: 10 },
+const AIRPORT_COORDS_RAW: Array<{ keys: string[]; lat: number; lng: number; radiusKm?: number }> = [
+  // UK — every form a customer might type or autocomplete might fill in.
+  { keys: ['gatwick', 'gatwick airport', 'london gatwick', 'london gatwick airport', 'lgw'], lat: 51.1537, lng: -0.1821, radiusKm: 12 },
+  { keys: ['heathrow', 'heathrow airport', 'london heathrow', 'london heathrow airport', 'lhr'], lat: 51.4700, lng: -0.4543, radiusKm: 12 },
+  { keys: ['stansted', 'stansted airport', 'london stansted', 'london stansted airport', 'stn'], lat: 51.8860, lng: 0.2389, radiusKm: 12 },
+  { keys: ['luton airport', 'london luton', 'london luton airport', 'ltn'], lat: 51.8747, lng: -0.3683, radiusKm: 12 },
+  { keys: ['london city', 'london city airport', 'lcy'], lat: 51.5048, lng: 0.0495, radiusKm: 8 },
+  { keys: ['manchester airport', 'man'], lat: 53.3537, lng: -2.2750, radiusKm: 10 },
+  { keys: ['birmingham airport', 'bhx'], lat: 52.4539, lng: -1.7480, radiusKm: 10 },
+  { keys: ['edinburgh airport', 'edi'], lat: 55.9500, lng: -3.3725, radiusKm: 10 },
+  { keys: ['glasgow airport', 'gla'], lat: 55.8722, lng: -4.4333, radiusKm: 10 },
+  { keys: ['bristol airport', 'brs'], lat: 51.3827, lng: -2.7191, radiusKm: 10 },
+  { keys: ['liverpool airport', 'lpl'], lat: 53.3336, lng: -2.8497, radiusKm: 10 },
+  { keys: ['newcastle airport', 'ncl'], lat: 55.0375, lng: -1.6917, radiusKm: 10 },
   // EU
-  'cdg': { lat: 49.0097, lng: 2.5479, radiusKm: 12 },
-  'charles de gaulle': { lat: 49.0097, lng: 2.5479, radiusKm: 12 },
-  'orly': { lat: 48.7233, lng: 2.3794, radiusKm: 10 },
-  'fco': { lat: 41.8003, lng: 12.2389, radiusKm: 12 },
-  'fiumicino': { lat: 41.8003, lng: 12.2389, radiusKm: 12 },
-  'mxp': { lat: 45.6306, lng: 8.7281, radiusKm: 12 },
-  'malpensa': { lat: 45.6306, lng: 8.7281, radiusKm: 12 },
-  'bcn': { lat: 41.2974, lng: 2.0833, radiusKm: 10 },
-  'mad': { lat: 40.4983, lng: -3.5676, radiusKm: 10 },
-  'barajas': { lat: 40.4983, lng: -3.5676, radiusKm: 10 },
-  'ams': { lat: 52.3086, lng: 4.7639, radiusKm: 10 },
-  'schiphol': { lat: 52.3086, lng: 4.7639, radiusKm: 10 },
-  'fra': { lat: 50.0379, lng: 8.5622, radiusKm: 10 },
-  'muc': { lat: 48.3538, lng: 11.7861, radiusKm: 10 },
-  'zrh': { lat: 47.4647, lng: 8.5492, radiusKm: 10 },
+  { keys: ['cdg', 'paris cdg', 'charles de gaulle', 'paris charles de gaulle', 'roissy'], lat: 49.0097, lng: 2.5479, radiusKm: 12 },
+  { keys: ['orly', 'paris orly', 'ory'], lat: 48.7233, lng: 2.3794, radiusKm: 10 },
+  { keys: ['fco', 'fiumicino', 'rome fiumicino', 'rome airport'], lat: 41.8003, lng: 12.2389, radiusKm: 12 },
+  { keys: ['mxp', 'malpensa', 'milan malpensa'], lat: 45.6306, lng: 8.7281, radiusKm: 12 },
+  { keys: ['lin', 'linate', 'milan linate'], lat: 45.4451, lng: 9.2767, radiusKm: 8 },
+  { keys: ['bcn', 'el prat', 'barcelona airport'], lat: 41.2974, lng: 2.0833, radiusKm: 10 },
+  { keys: ['mad', 'barajas', 'madrid airport', 'madrid barajas'], lat: 40.4983, lng: -3.5676, radiusKm: 10 },
+  { keys: ['ams', 'schiphol', 'amsterdam airport'], lat: 52.3086, lng: 4.7639, radiusKm: 10 },
+  { keys: ['fra', 'frankfurt airport'], lat: 50.0379, lng: 8.5622, radiusKm: 10 },
+  { keys: ['muc', 'munich airport'], lat: 48.3538, lng: 11.7861, radiusKm: 10 },
+  { keys: ['zrh', 'zurich airport'], lat: 47.4647, lng: 8.5492, radiusKm: 10 },
+  { keys: ['gva', 'geneva airport'], lat: 46.2381, lng: 6.1090, radiusKm: 10 },
+  { keys: ['vie', 'vienna airport'], lat: 48.1103, lng: 16.5697, radiusKm: 10 },
+  { keys: ['lis', 'lisbon airport', 'humberto delgado'], lat: 38.7813, lng: -9.1359, radiusKm: 10 },
+  { keys: ['ath', 'athens airport'], lat: 37.9364, lng: 23.9445, radiusKm: 10 },
+  { keys: ['ist', 'istanbul airport', 'new istanbul airport'], lat: 41.2753, lng: 28.7519, radiusKm: 15 },
+  { keys: ['saw', 'sabiha', 'sabiha gokcen'], lat: 40.8983, lng: 29.3092, radiusKm: 12 },
   // US
-  'jfk': { lat: 40.6413, lng: -73.7781, radiusKm: 10 },
-  'lga': { lat: 40.7769, lng: -73.8740, radiusKm: 8 },
-  'ewr': { lat: 40.6895, lng: -74.1745, radiusKm: 10 },
-  'newark': { lat: 40.6895, lng: -74.1745, radiusKm: 10 },
-  'lax': { lat: 33.9416, lng: -118.4085, radiusKm: 10 },
-  'mco': { lat: 28.4312, lng: -81.3081, radiusKm: 12 },
-  'mia': { lat: 25.7959, lng: -80.2870, radiusKm: 10 },
-  'ord': { lat: 41.9742, lng: -87.9073, radiusKm: 12 },
-  "o'hare": { lat: 41.9742, lng: -87.9073, radiusKm: 12 },
-  'sfo': { lat: 37.6213, lng: -122.3790, radiusKm: 12 },
-  'las': { lat: 36.0840, lng: -115.1537, radiusKm: 10 },
+  { keys: ['jfk', 'new york jfk', 'jfk airport'], lat: 40.6413, lng: -73.7781, radiusKm: 10 },
+  { keys: ['lga', 'laguardia'], lat: 40.7769, lng: -73.8740, radiusKm: 8 },
+  { keys: ['ewr', 'newark', 'newark airport'], lat: 40.6895, lng: -74.1745, radiusKm: 10 },
+  { keys: ['lax', 'los angeles airport'], lat: 33.9416, lng: -118.4085, radiusKm: 10 },
+  { keys: ['mco', 'orlando airport'], lat: 28.4312, lng: -81.3081, radiusKm: 12 },
+  { keys: ['mia', 'miami airport'], lat: 25.7959, lng: -80.2870, radiusKm: 10 },
+  { keys: ['ord', "o'hare", 'chicago ohare', 'chicago o’hare'], lat: 41.9742, lng: -87.9073, radiusKm: 12 },
+  { keys: ['sfo', 'san francisco airport'], lat: 37.6213, lng: -122.3790, radiusKm: 12 },
+  { keys: ['las', 'mccarran', 'harry reid', 'las vegas airport'], lat: 36.0840, lng: -115.1537, radiusKm: 10 },
   // Asia / ME
-  'dxb': { lat: 25.2532, lng: 55.3657, radiusKm: 12 },
-  'doh': { lat: 25.2611, lng: 51.5651, radiusKm: 12 },
-  'sin': { lat: 1.3644, lng: 103.9915, radiusKm: 12 },
-  'changi': { lat: 1.3644, lng: 103.9915, radiusKm: 12 },
-  'hnd': { lat: 35.5494, lng: 139.7798, radiusKm: 12 },
-  'haneda': { lat: 35.5494, lng: 139.7798, radiusKm: 12 },
-  'narita': { lat: 35.7720, lng: 140.3929, radiusKm: 15 },
-  'bkk': { lat: 13.6900, lng: 100.7501, radiusKm: 15 },
-  'suvarnabhumi': { lat: 13.6900, lng: 100.7501, radiusKm: 15 },
-  'ist': { lat: 41.2753, lng: 28.7519, radiusKm: 15 },
-  'sabiha': { lat: 40.8983, lng: 29.3092, radiusKm: 12 },
-  'dub': { lat: 53.4264, lng: -6.2499, radiusKm: 10 },
-  'dublin airport': { lat: 53.4264, lng: -6.2499, radiusKm: 10 },
-};
+  { keys: ['dxb', 'dubai airport', 'dubai international'], lat: 25.2532, lng: 55.3657, radiusKm: 12 },
+  { keys: ['auh', 'abu dhabi airport'], lat: 24.4330, lng: 54.6511, radiusKm: 12 },
+  { keys: ['doh', 'doha airport', 'hamad international'], lat: 25.2611, lng: 51.5651, radiusKm: 12 },
+  { keys: ['sin', 'changi', 'singapore airport'], lat: 1.3644, lng: 103.9915, radiusKm: 12 },
+  { keys: ['hnd', 'haneda', 'tokyo haneda'], lat: 35.5494, lng: 139.7798, radiusKm: 12 },
+  { keys: ['nrt', 'narita', 'tokyo narita'], lat: 35.7720, lng: 140.3929, radiusKm: 15 },
+  { keys: ['bkk', 'suvarnabhumi', 'bangkok airport'], lat: 13.6900, lng: 100.7501, radiusKm: 15 },
+  { keys: ['hkg', 'hong kong airport'], lat: 22.3080, lng: 113.9185, radiusKm: 12 },
+  { keys: ['kul', 'kuala lumpur airport'], lat: 2.7456, lng: 101.7099, radiusKm: 15 },
+  { keys: ['icn', 'incheon', 'seoul incheon'], lat: 37.4602, lng: 126.4407, radiusKm: 12 },
+  // Ireland
+  { keys: ['dub', 'dublin airport'], lat: 53.4264, lng: -6.2499, radiusKm: 10 },
+];
+
+const AIRPORT_COORDS: Record<string, { lat: number; lng: number; radiusKm?: number }> = {};
+for (const row of AIRPORT_COORDS_RAW) {
+  for (const k of row.keys) {
+    AIRPORT_COORDS[k.toLowerCase()] = { lat: row.lat, lng: row.lng, radiusKm: row.radiusKm };
+  }
+}
 
 /** Airport / landmark name → nearest city LiteAPI actually has hotels for.
  *  LiteAPI's /data/hotels treats these as airport types and returns 0 rows
  *  when sent as cityName. Rewrite happens BEFORE resolveCountryCode so we
  *  also bypass the stale `geocode:cc:gatwick → GB` Nominatim KV cache. */
 const AIRPORT_TO_CITY: Record<string, string> = {
-  // UK airports
+  // UK airports — every form a customer might type. The geo filter
+  // centres on AIRPORT_COORDS so the upstream cityName is just to get
+  // LiteAPI to return any inventory at all (then filter narrows).
   'gatwick': 'horley',
+  'gatwick airport': 'horley',
+  'london gatwick': 'horley',
+  'london gatwick airport': 'horley',
+  'lgw': 'horley',
   'heathrow': 'london',
+  'heathrow airport': 'london',
+  'london heathrow': 'london',
+  'london heathrow airport': 'london',
+  'lhr': 'london',
   'stansted': 'london',
+  'stansted airport': 'london',
+  'london stansted': 'london',
+  'london stansted airport': 'london',
+  'stn': 'london',
   'luton': 'luton',
+  'luton airport': 'luton',
+  'london luton': 'luton',
+  'london luton airport': 'luton',
+  'ltn': 'luton',
   'london city': 'london',
   'london city airport': 'london',
+  'lcy': 'london',
   'manchester airport': 'manchester',
+  'man': 'manchester',
   'birmingham airport': 'birmingham',
+  'bhx': 'birmingham',
   'edinburgh airport': 'edinburgh',
+  'edi': 'edinburgh',
   'glasgow airport': 'glasgow',
+  'gla': 'glasgow',
+  'bristol airport': 'bristol',
+  'brs': 'bristol',
+  'liverpool airport': 'liverpool',
+  'lpl': 'liverpool',
+  'newcastle airport': 'newcastle',
+  'ncl': 'newcastle',
   // London outer-suburbs that LiteAPI's /data/hotels has no city entry for.
   // We alias to "london" so /data/hotels returns Greater-London inventory
   // rather than 0 results. Croydon/Wembley/Greenwich/Docklands etc are
@@ -134,29 +171,46 @@ const AIRPORT_TO_CITY: Record<string, string> = {
   'whyteleafe': 'london',
   'warlingham': 'london',
   // EU
-  'cdg': 'paris', 'charles de gaulle': 'paris', 'orly': 'paris',
-  'fco': 'rome', 'fiumicino': 'rome',
-  'mxp': 'milan', 'malpensa': 'milan',
-  'bcn': 'barcelona',
-  'mad': 'madrid', 'barajas': 'madrid',
-  'ams': 'amsterdam', 'schiphol': 'amsterdam',
-  'fra': 'frankfurt',
-  'muc': 'munich',
-  'zrh': 'zurich',
+  'cdg': 'paris', 'paris cdg': 'paris', 'charles de gaulle': 'paris', 'paris charles de gaulle': 'paris', 'roissy': 'paris',
+  'orly': 'paris', 'paris orly': 'paris', 'ory': 'paris',
+  'fco': 'rome', 'fiumicino': 'rome', 'rome fiumicino': 'rome', 'rome airport': 'rome',
+  'mxp': 'milan', 'malpensa': 'milan', 'milan malpensa': 'milan',
+  'lin': 'milan', 'linate': 'milan', 'milan linate': 'milan',
+  'bcn': 'barcelona', 'el prat': 'barcelona', 'barcelona airport': 'barcelona',
+  'mad': 'madrid', 'barajas': 'madrid', 'madrid airport': 'madrid', 'madrid barajas': 'madrid',
+  'ams': 'amsterdam', 'schiphol': 'amsterdam', 'amsterdam airport': 'amsterdam',
+  'fra': 'frankfurt', 'frankfurt airport': 'frankfurt',
+  'muc': 'munich', 'munich airport': 'munich',
+  'zrh': 'zurich', 'zurich airport': 'zurich',
+  'gva': 'geneva', 'geneva airport': 'geneva',
+  'vie': 'vienna', 'vienna airport': 'vienna',
+  'lis': 'lisbon', 'lisbon airport': 'lisbon', 'humberto delgado': 'lisbon',
+  'ath': 'athens', 'athens airport': 'athens',
+  'istanbul airport': 'istanbul', 'new istanbul airport': 'istanbul',
+  'saw': 'istanbul', 'sabiha': 'istanbul', 'sabiha gokcen': 'istanbul',
   // US
-  'jfk': 'new york', 'lga': 'new york', 'ewr': 'new york', 'newark': 'new york',
-  'lax': 'los angeles',
-  'mco': 'orlando',
-  'mia': 'miami',
-  'ord': 'chicago', "o'hare": 'chicago',
-  'sfo': 'san francisco',
-  'las': 'las vegas', 'mccarran': 'las vegas', 'harry reid': 'las vegas',
+  'jfk': 'new york', 'new york jfk': 'new york', 'jfk airport': 'new york',
+  'lga': 'new york', 'laguardia': 'new york',
+  'ewr': 'new york', 'newark': 'new york', 'newark airport': 'new york',
+  'lax': 'los angeles', 'los angeles airport': 'los angeles',
+  'mco': 'orlando', 'orlando airport': 'orlando',
+  'mia': 'miami', 'miami airport': 'miami',
+  'ord': 'chicago', "o'hare": 'chicago', 'chicago ohare': 'chicago', 'chicago o’hare': 'chicago',
+  'sfo': 'san francisco', 'san francisco airport': 'san francisco',
+  'las': 'las vegas', 'mccarran': 'las vegas', 'harry reid': 'las vegas', 'las vegas airport': 'las vegas',
   // Asia / ME
-  'dxb': 'dubai',
-  'doh': 'doha',
-  'sin': 'singapore', 'changi': 'singapore',
-  'hnd': 'tokyo', 'haneda': 'tokyo', 'narita': 'tokyo',
-  'bkk': 'bangkok', 'suvarnabhumi': 'bangkok',
+  'dxb': 'dubai', 'dubai airport': 'dubai', 'dubai international': 'dubai',
+  'auh': 'abu dhabi', 'abu dhabi airport': 'abu dhabi',
+  'doh': 'doha', 'doha airport': 'doha', 'hamad international': 'doha',
+  'sin': 'singapore', 'changi': 'singapore', 'singapore airport': 'singapore',
+  'hnd': 'tokyo', 'haneda': 'tokyo', 'tokyo haneda': 'tokyo',
+  'nrt': 'tokyo', 'narita': 'tokyo', 'tokyo narita': 'tokyo',
+  'bkk': 'bangkok', 'suvarnabhumi': 'bangkok', 'bangkok airport': 'bangkok',
+  'hkg': 'hong kong', 'hong kong airport': 'hong kong',
+  'kul': 'kuala lumpur', 'kuala lumpur airport': 'kuala lumpur',
+  'icn': 'seoul', 'incheon': 'seoul', 'seoul incheon': 'seoul',
+  // Ireland
+  'dub': 'dublin', 'dublin airport': 'dublin',
   // Common alt-spellings — LiteAPI uses ONE canonical spelling per city,
   // so visitors typing the English variant get 0 results. Map English/local
   // alt → the spelling LiteAPI actually has indexed (verified by hitting
@@ -1381,11 +1435,12 @@ export async function GET(req: NextRequest) {
   // v21 — added children + rooms to the response echo so the Monkey Test
   // Suite (and any future client) can do strict-equality assertions on
   // occupancy round-trip. Old v20 cache entries lack those fields.
-  // v25 — airport searches (Heathrow, Gatwick, JFK …) now centre on
-  // AIRPORT_COORDS, not the metro centroid. Previously aliased airports
-  // returned central-metro hotels (Heathrow → Trafalgar Square). v24
-  // entries are stamped against the wrong centroid, must invalidate.
-  const kvKey = `hotels:v25:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
+  // v26 — every airport-name variant now mapped (e.g. "Gatwick Airport",
+  // "London Gatwick", "LGW" all resolve to Gatwick coords). v25 only
+  // covered the canonical "gatwick" key — the autocomplete-supplied
+  // form was missing the coord lookup and falling through to metro
+  // hotels. Stress test caught it on prod 2026-05-03.
+  const kvKey = `hotels:v26:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
 
   // Group occupancy bypass: large groups (>4 guests) always get fresh prices
   // because cached availability/room blocks may not hold for that many people.
