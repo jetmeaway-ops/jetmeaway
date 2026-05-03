@@ -87,6 +87,11 @@ export type StickyHotels = {
    *  restored on a later visit, children=2 was rehydrated but the ages
    *  array was lost, leaking through to start-booking. */
   childrenAges?: number[];
+  /** Per-room occupancy in the new `occ=` URL format (e.g.
+   *  "2-6/1-8/1-15"). Set when the visitor used the new picker; absent
+   *  for legacy sticky entries. The flat fields above are still
+   *  populated alongside so older code paths keep working. */
+  occ?: string;
   rooms?: number;
 };
 

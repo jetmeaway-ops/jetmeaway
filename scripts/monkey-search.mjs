@@ -86,6 +86,9 @@ function randomSearch() {
   const canaryKeys = Object.keys(PROXIMITY_CANARIES);
   const useCanary = Math.random() < 0.25;
   const city = useCanary ? pick(canaryKeys) : pick(CITIES);
+  // 30% of runs go through the new `occ=` URL parser to stress-test
+  // the per-room ingestion path alongside the legacy flat shape.
+  const occMode = Math.random() < 0.3 ? 'flat-occ' : 'legacy';
   return {
     city,
     checkin: ci.toISOString().slice(0, 10),
@@ -94,6 +97,7 @@ function randomSearch() {
     children,
     childrenAges,
     rooms,
+    occMode,
   };
 }
 
@@ -107,6 +111,24 @@ function buildUrl(s) {
     rooms: String(s.rooms),
   });
   if (s.childrenAges) p.set('childrenAges', s.childrenAges);
+  // 30% of runs additionally exercise the new per-room `occ=` shape.
+  // Encode trivially as everyone-in-room-1 (back-compat path) so the
+  // server's per-room ingestion is hit but totals still match the
+  // assertion logic above.
+  if (s.occMode === 'flat-occ') {
+    const ages = (s.childrenAges || '').split(',').filter(Boolean).join('-');
+    const segments = [];
+    let remaining = s.adults;
+    for (let i = 0; i < s.rooms; i++) {
+      const a =
+        i === s.rooms - 1
+          ? Math.max(1, remaining)
+          : Math.max(1, Math.floor(s.adults / s.rooms));
+      remaining -= a;
+      segments.push(i === 0 && ages ? `${a}-${ages}` : `${a}`);
+    }
+    p.set('occ', segments.join('/'));
+  }
   return `${BASE}/api/hotels?${p.toString()}`;
 }
 

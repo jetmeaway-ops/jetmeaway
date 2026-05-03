@@ -537,6 +537,45 @@ function buildExpediaUrl(
   return u;
 }
 
+/**
+ * Per-room Expedia URL — used when the search has explicit per-room
+ * occupancy (the new picker). Expedia's deeplink is loose about the
+ * shape: `&adults=2,1,1&children=1_6,0,1_15` works (CSV per room,
+ * children format `count_age_age` per room with `0` for empty rooms).
+ * If the supplied roomsArr is just one room this is identical to the
+ * single-room buildExpediaUrl above — keep both for safe fallback.
+ */
+function buildExpediaUrlPerRoom(
+  dest: string,
+  cin: string,
+  cout: string,
+  roomsArr: import('@/lib/occupancy').Room[],
+): string {
+  if (!roomsArr || roomsArr.length === 0) {
+    return buildExpediaUrl(dest, cin, cout, 2, 0, [], 1);
+  }
+  const adultsCsv = roomsArr.map((r) => Math.max(1, Math.min(4, r.adults))).join(',');
+  const childrenCsv = roomsArr
+    .map((r) => {
+      if (!r.childAges || r.childAges.length === 0) return '0';
+      const ages = r.childAges.map((a) =>
+        typeof a === 'number' && a >= 0 && a <= 17 ? a : 8,
+      );
+      return `${ages.length}_${ages.join('_')}`;
+    })
+    .join(',');
+  const safeRooms = Math.max(1, Math.min(8, roomsArr.length));
+  let u = `https://www.expedia.co.uk/Hotel-Search?destination=${encodeURIComponent(dest)}&startDate=${cin}&endDate=${cout}&adults=${adultsCsv}`;
+  // Only emit &children= when at least one room has kids — saves URL bytes
+  // for the common 2A+0K case and matches Expedia's own format.
+  if (roomsArr.some((r) => r.childAges.length > 0)) {
+    u += `&children=${childrenCsv}`;
+  }
+  if (safeRooms > 1) u += `&rooms=${safeRooms}`;
+  u += `&affcid=clbU3QK`;
+  return u;
+}
+
 type Provider = {
   name: string;
   logo: string;
@@ -1259,7 +1298,7 @@ function StarFilter({ value, onChange }: { value: number; onChange: (v: number) 
    BOOK DIRECT (LiteAPI) — creates a pending booking then redirects to checkout
    ═══════════════════════════════════════════════════════════════════════════ */
 
-function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, childrenAges, rooms, checkin, checkout, searchedDest, tripCityId, buildDetailHref, setScoutHotel, priceView, cityCentre, airports, isCompared, compareFull, onToggleCompare, isActive, onHover }: {
+function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, childrenAges, rooms, roomsArr, checkin, checkout, searchedDest, tripCityId, buildDetailHref, setScoutHotel, priceView, cityCentre, airports, isCompared, compareFull, onToggleCompare, isActive, onHover }: {
   hotel: HotelResult;
   index: number;
   isCheapest: boolean;
@@ -1268,6 +1307,10 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
   children: number;
   childrenAges: number[];
   rooms: number;
+  /** Per-room occupancy passed into the card so redirect builders can
+   *  emit the per-room shape on Expedia. Optional (undefined when the
+   *  card is rendered from a legacy URL with no `occ=`). */
+  roomsArr?: import('@/lib/occupancy').Room[];
   checkin: string;
   checkout: string;
   searchedDest: string;
@@ -1329,7 +1372,11 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
   ];
   const photoUrl = h.thumbnail || HOTEL_PHOTOS[index % HOTEL_PHOTOS.length];
   const tripUrl = buildTripcomUrl(searchedDest, checkin, checkout, adults, tripCityId, children, childrenAges, rooms);
-  const expediaUrl = buildExpediaUrl(searchedDest, checkin, checkout, adults, children, childrenAges, rooms);
+  // Per-room Expedia URL when we have an explicit roomsArr; falls back
+  // to the flat builder when the customer only used the legacy params.
+  const expediaUrl = roomsArr && roomsArr.length > 0
+    ? buildExpediaUrlPerRoom(searchedDest, checkin, checkout, roomsArr)
+    : buildExpediaUrl(searchedDest, checkin, checkout, adults, children, childrenAges, rooms);
   const detailHref = buildDetailHref(h);
 
   // Build a modified hotel object with the selected board's offerId for BookDirect
@@ -2113,7 +2160,7 @@ function HotelsContent() {
     // picker's source-of-truth `roomsArr` is reconstructed here so the
     // dropdown opens to the right state.
     import('@/lib/occupancy').then(({ decodeFromParams }) => {
-      const occParam = p.get('occ');
+      const occParam = p.get('occ') ?? sticky?.occ;
       const ra = decodeFromParams({
         occ: occParam,
         adults: a ?? (sticky?.adults != null ? String(sticky.adults) : null),
@@ -2182,6 +2229,12 @@ function HotelsContent() {
     // childrenAges saved alongside count — without it, restoring sticky
     // gave childCount=2 + ages=[] which leaked through to start-booking
     // and tripped verifyOccupancyShape at prebook.
+    // Persist sticky search. Include both the flat shape (legacy
+    // back-compat — old code paths still read it) AND the new `occ`
+    // string so the per-room split survives a reload.
+    const occForSticky = await import('@/lib/occupancy').then((m) =>
+      m.encodeOccupancy(roomsArr),
+    );
     saveSticky<StickyHotels>('hotels', {
       destination,
       placeId: selectedPlaceId || undefined,
@@ -2191,6 +2244,7 @@ function HotelsContent() {
       children: childCount,
       childrenAges: childCount > 0 ? childrenAges.slice(0, childCount) : [],
       rooms,
+      ...(occForSticky ? { occ: occForSticky } : {}),
     });
 
     // Prefetch Trip.com cityId in the background so "Trip.com →" buttons
@@ -2987,6 +3041,7 @@ function HotelsContent() {
                     children={childCount}
                     childrenAges={childrenAges}
                     rooms={rooms}
+                    roomsArr={roomsArr}
                     checkin={checkin}
                     checkout={checkout}
                     searchedDest={searchedDest}
