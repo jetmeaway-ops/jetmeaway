@@ -1237,11 +1237,14 @@ export async function GET(req: NextRequest) {
   // v21 — added children + rooms to the response echo so the Monkey Test
   // Suite (and any future client) can do strict-equality assertions on
   // occupancy round-trip. Old v20 cache entries lack those fields.
-  // v22 — added strict aliased-search geo filter (no auto-expand for
-  // coulsdon→london style aliases) + curated hotels run through geoFilter
-  // (was passesStars-only; the centroid stamp let London curated leak into
-  // Coulsdon results). Invalidates v21 entries that contained the leak.
-  const kvKey = `hotels:v22:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
+  // v23 — aliased-search filter rewritten: instead of hard-rejecting hotels
+  // outside the radius (which gave 0 results for Coulsdon since LiteAPI has
+  // no inventory <15km of the centroid), sort by distance ASC and take the
+  // closest 50. Visitors get South-London hotels first, central London
+  // appears further down for those willing to commute, and far-flung North
+  // London / outer-zone outliers fall off entirely. Invalidates v22 entries
+  // (which were too aggressively empty).
+  const kvKey = `hotels:v23:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
 
   // Group occupancy bypass: large groups (>4 guests) always get fresh prices
   // because cached availability/room blocks may not hold for that many people.
@@ -1376,33 +1379,49 @@ export async function GET(req: NextRequest) {
    * cities with plenty of inventory.
    */
   const MIN_RESULTS_FOR_STRICT = 5;
-  const insideRadius = <T extends { lat?: number; lng?: number; latitude?: number; longitude?: number }>(
+  const isAliasedSearch = rawCityKey !== cityKey;
+  const distanceFor = <T extends { lat?: number; lng?: number; latitude?: number; longitude?: number }>(
     h: T,
-    r: number,
-  ) => {
-    if (!cityCentre) return true;
+  ): number | null => {
+    if (!cityCentre) return null;
     const lat = h.lat ?? h.latitude;
     const lng = h.lng ?? h.longitude;
-    if (typeof lat !== 'number' || typeof lng !== 'number') return true;
-    return distanceKm(cityCentre, { lat, lng }) <= r;
+    if (typeof lat !== 'number' || typeof lng !== 'number') return null;
+    return distanceKm(cityCentre, { lat, lng });
   };
-  const isAliasedSearch = rawCityKey !== cityKey;
   const geoFilter = <T extends { lat?: number; lng?: number; latitude?: number; longitude?: number }>(
     items: T[],
   ): T[] => {
     if (!cityCentre || items.length === 0) return items;
-    // For ALIASED searches (e.g. coulsdon→london) we MUST stay strict — the
-    // upstream is over-fetching by definition, and any auto-expand would
-    // re-fill the very leak we're trying to prevent (Coulsdon search → all
-    // of central London because the London centroid is 21km away). For
-    // direct searches (the visitor really did mean "London") we allow up
-    // to a 3× radius expansion so sparse inventory cities still return
-    // something rather than zero.
+    // ALIASED searches (e.g. coulsdon→london) need the nearest-first
+    // behaviour, NOT a hard reject. The original Coulsdon bug was that
+    // Maida Vale + Wembley + Highbury appeared FIRST while genuine
+    // South-London hotels were buried. We fix that by sorting by
+    // distance ASC and taking the closest ~50, so Sutton/Croydon hotels
+    // float to the top, central London still appears further down for
+    // the visitor who's willing to commute, and pure North-London
+    // outliers fall off the end. Hard reject was making prod show 0
+    // hotels for Coulsdon (worse UX than the original bug).
     if (isAliasedSearch) {
-      return items.filter((h) => insideRadius(h, radiusKm));
+      const NEAREST_N = 50;
+      // Items without coords always pass — we can't judge them and the
+      // upstream surfaced them for a reason (e.g. curated deep-link
+      // hotels with no lat/lng).
+      const withCoords: Array<{ item: T; km: number }> = [];
+      const withoutCoords: T[] = [];
+      for (const h of items) {
+        const km = distanceFor(h);
+        if (km === null) withoutCoords.push(h);
+        else withCoords.push({ item: h, km });
+      }
+      withCoords.sort((a, b) => a.km - b.km);
+      return [...withCoords.slice(0, NEAREST_N).map((x) => x.item), ...withoutCoords];
     }
     for (const r of [radiusKm, radiusKm * 2, radiusKm * 3]) {
-      const subset = items.filter((h) => insideRadius(h, r));
+      const subset = items.filter((h) => {
+        const km = distanceFor(h);
+        return km === null || km <= r;
+      });
       if (subset.length >= MIN_RESULTS_FOR_STRICT) {
         if (r !== radiusKm) {
           console.log(`[hotels:geo] expanded radius for ${rawCityKey}: ${radiusKm}km→${r}km (${subset.length} hotels)`);
@@ -1410,7 +1429,17 @@ export async function GET(req: NextRequest) {
         return subset;
       }
     }
-    return items.filter((h) => insideRadius(h, radiusKm));
+    return items.filter((h) => {
+      const km = distanceFor(h);
+      return km === null || km <= radiusKm;
+    });
+  };
+  const insideRadius = <T extends { lat?: number; lng?: number; latitude?: number; longitude?: number }>(
+    h: T,
+    r: number,
+  ) => {
+    const km = distanceFor(h);
+    return km === null || km <= r;
   };
   // Backwards-compat: callers using `.filter(passesGeo)` get the strict pass.
   const passesGeo = <T extends { lat?: number; lng?: number; latitude?: number; longitude?: number }>(h: T) =>
