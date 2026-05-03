@@ -1413,11 +1413,10 @@ export default function CheckoutPage() {
     if (status === 'succeeded') {
       setPaymentIntentId(piId);
       setStep('processing');
-      // handlePaymentSuccess reads paymentIntentId from state — defer one
-      // tick so the setState above has flushed before the order POST fires.
-      setTimeout(() => {
-        handlePaymentSuccess();
-      }, 0);
+      // Pass piId EXPLICITLY — relying on state would race against React
+      // 19's batched flush and handlePaymentSuccess can early-return
+      // against a stale `null`. The override arg makes it deterministic.
+      handlePaymentSuccess(piId);
     } else {
       // failed | requires_payment_method | requires_action — same outcome
       // from the customer's perspective: re-enter card and retry. Drop the
@@ -1643,8 +1642,25 @@ export default function CheckoutPage() {
   };
 
   // ── Step 2b: Payment succeeded → create order ──
-  const handlePaymentSuccess = async () => {
-    if (!offer || !paymentIntentId) return;
+  // Accepts an explicit paymentIntentId override because the 3DS-return
+  // useEffect calls this in the same tick as setPaymentIntentId() — React
+  // 19 hasn't necessarily flushed the state update yet, so reading from
+  // the closure here can give us a stale `null`. Always prefer the arg
+  // when supplied; fall back to state for the in-page Stripe-form path
+  // where state is already set when StripeCardForm.onSucceeded fires.
+  const handlePaymentSuccess = async (overridePiId?: string) => {
+    const effectivePiId = overridePiId || paymentIntentId;
+    if (!offer || !effectivePiId) {
+      // Don't silently leave the user on a spinner — surface the failure
+      // and put them somewhere they can act. Card was likely already
+      // charged so route them to support context, not a fresh form.
+      setOrderError(
+        'We couldn\'t finalise your booking after payment. Your card may have been charged — please contact support@jetmeaway.co.uk with this page URL.',
+      );
+      setStep('payment');
+      setOrderLoading(false);
+      return;
+    }
 
     setStep('processing');
     setOrderLoading(true);
@@ -1671,7 +1687,7 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           offerId: offer.id,
           passengers: duffelPassengers,
-          paymentIntentId,
+          paymentIntentId: effectivePiId,
           services: serviceBookingPayload,
           destination: offer.destinationCity || offer.destination,
           departureDate: offer.departureAt,
@@ -1712,20 +1728,27 @@ export default function CheckoutPage() {
           });
         }
         setOrderError(data.error || 'Booking failed. Please contact support.');
-        // If the failure was passenger-field validation (most common: an
-        // invalid phone_number / DOB / name format), the server has already
-        // refunded the Stripe charge — the same PaymentIntent CANNOT be
-        // confirmed again, so we cannot drop the user back on the Stripe form.
-        // Send them to the passengers step where the field-error mapping
-        // above is now visible; on Continue we mint a fresh PaymentIntent.
-        // For all other errors keep them on payment so they at least see the
-        // "your card was charged, contact support" notice next to the form.
+        // ANY post-payment Duffel failure means the server has already fired
+        // a refund (success or pending) on the PaymentIntent. The same PI
+        // CANNOT be re-confirmed, AND the Duffel idempotency-key is keyed
+        // on offerId:PI.id — retrying with the same PI returns the cached
+        // failure forever. So we ALWAYS clear PI state and route the user
+        // back where they can act:
+        //   - invalidFields → passengers step (field highlights mapped above)
+        //   - everything else → payment step but with a fresh form (the
+        //     Stripe Element won't render until handleContinueToPayment
+        //     mints a new PI), and the orderError banner explaining the
+        //     "card may have been charged, contact support" path.
+        setPaymentClientSecret(null);
+        setPaymentIntentId(null);
         if (Array.isArray(data.invalidFields) && data.invalidFields.length > 0) {
-          setPaymentClientSecret(null);
-          setPaymentIntentId(null);
           setStep('passengers');
         } else {
-          setStep('payment');
+          // Bounce to passengers too — without a clientSecret the payment
+          // step shows nothing, which looks like the page is broken. Better
+          // UX: passengers step + visible error banner + Continue mints a
+          // fresh PI for retry.
+          setStep('passengers');
         }
         return;
       }

@@ -134,6 +134,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Offer no longer available — refunded' }, { status: 410 });
   }
 
+  // Currency drift guard. PI was created in (offer.currency || 'GBP') at
+  // search time; Duffel's re-quote could come back in a different
+  // currency on multi-currency tenants. Booking with mismatched
+  // currencies → Duffel 422 AFTER the customer is charged, then refund
+  // fires. Catch it earlier and refund cleanly with a clear message.
+  const piCurrency = (pi.currency || 'gbp').toLowerCase();
+  const refreshedCurrency = (refreshed.currency || 'GBP').toLowerCase();
+  if (piCurrency !== refreshedCurrency) {
+    await refundAndFail(
+      stripe,
+      pi.id,
+      pendingBooking,
+      `Currency drift ${piCurrency.toUpperCase()} vs ${refreshedCurrency.toUpperCase()}`,
+    );
+    return NextResponse.json(
+      { error: 'Pricing has changed — your card has been refunded. Please re-search.' },
+      { status: 409 },
+    );
+  }
+
   // Validate every client-requested service still exists on the fresh offer.
   // Server-side stale guard, complements the client one.
   const refreshedWithServices =

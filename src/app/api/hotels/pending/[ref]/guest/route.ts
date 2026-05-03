@@ -32,15 +32,27 @@ export async function POST(
 
   try {
     const body = await req.json();
-    const { title, firstName, lastName, email, phone, nationality, specialRequests } = body || {};
+    const { title, firstName, lastName, email, phone, nationality, specialRequests, priceChangeAccepted } = body || {};
+
+    const record = await kv.get<PendingBooking & { guest?: PendingGuest; priceChangeAccepted?: boolean }>(`pending-booking:${ref}`);
+    if (!record) {
+      return NextResponse.json({ success: false, error: 'Booking not found or expired' }, { status: 404 });
+    }
+
+    // Lightweight PATCH-style call: client can accept a price change without
+    // re-submitting the whole guest form. When ONLY priceChangeAccepted is
+    // present we update that flag and bail without requiring guest fields.
+    // Previously this body was rejected by the firstName/lastName/email
+    // validator → silent .catch in the client → acceptance never persisted
+    // → user re-prompted on every refresh.
+    if (priceChangeAccepted === true && !firstName && !lastName && !email) {
+      const patched = { ...record, priceChangeAccepted: true };
+      await kv.set(`pending-booking:${ref}`, patched, { ex: 4 * 60 * 60 });
+      return NextResponse.json({ success: true, mode: 'price-change-accepted' });
+    }
 
     if (!firstName || !lastName || !email) {
       return NextResponse.json({ success: false, error: 'firstName, lastName and email are required' }, { status: 400 });
-    }
-
-    const record = await kv.get<PendingBooking & { guest?: PendingGuest }>(`pending-booking:${ref}`);
-    if (!record) {
-      return NextResponse.json({ success: false, error: 'Booking not found or expired' }, { status: 404 });
     }
 
     // Whitelist titles so a malformed client can't write junk into KV.
@@ -67,6 +79,7 @@ export async function POST(
         nationality: String(nationality || 'GB').toUpperCase(),
       } as PendingGuest,
       ...(safeSpecialRequests ? { specialRequests: safeSpecialRequests } : {}),
+      ...(priceChangeAccepted === true ? { priceChangeAccepted: true } : {}),
     };
 
     // Preserve remaining TTL — 4h to cover slow checkouts

@@ -392,11 +392,23 @@ async function bookDotw(
       ? record.childAges.slice(0, safeChildren)
       : [];
     while (ages.length < safeChildren) ages.push(8);
+    // Distribute adults across rooms. Clamp rooms to ≤ adults so we don't
+    // pad-up to "1 adult per room" beyond what the customer paid for —
+    // that previously caused 2 adults / 3 rooms → [1,1,1] = 3 adults
+    // priced for a 2-adult booking, which DOTW then rejected with a
+    // post-charge price-drift refund. This clamp must happen BEFORE
+    // adultsPerRoom is built. Customer's `record.rooms` is also stored
+    // in the pending booking so the success page still shows their
+    // original choice; only the supplier call is normalised.
+    const effectiveRooms = Math.min(safeRooms, safeAdults);
     const adultsPerRoom: number[] = [];
     {
       let remaining = safeAdults;
-      for (let i = 0; i < safeRooms; i++) {
-        const a = i === safeRooms - 1 ? remaining : Math.max(1, Math.floor(safeAdults / safeRooms));
+      for (let i = 0; i < effectiveRooms; i++) {
+        const a =
+          i === effectiveRooms - 1
+            ? remaining
+            : Math.max(1, Math.floor(safeAdults / effectiveRooms));
         adultsPerRoom.push(a);
         remaining -= a;
       }

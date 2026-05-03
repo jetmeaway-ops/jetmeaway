@@ -76,6 +76,12 @@ export async function getBalance(): Promise<DuffelBalance | null> {
 /**
  * Re-fetch the offer to detect price drift between search → checkout.
  * Returns the current total in GBP (as a number).
+ *
+ * Retry policy: a single 5xx from Duffel was triggering an unwarranted
+ * refund on a perfectly bookable offer (book/route.ts treats null as
+ * "offer expired"). We retry once on transient errors (5xx + network)
+ * with a 500ms backoff before giving up. 4xx (e.g. 404 = expired offer,
+ * 410 = gone) is final — no point retrying.
  */
 export async function refreshOfferTotal(offerId: string): Promise<{
   total: number;
@@ -83,26 +89,45 @@ export async function refreshOfferTotal(offerId: string): Promise<{
 } | null> {
   if (!DUFFEL_KEY) return null;
 
-  try {
-    const res = await fetch(duffelUrl(`/air/offers/${offerId}`), {
-      headers: {
-        Authorization: `Bearer ${DUFFEL_KEY}`,
-        'Duffel-Version': DUFFEL_VERSION,
-        Accept: 'application/json',
-      },
-      cache: 'no-store',
-    });
-    if (!res.ok) return null;
-    const json = await res.json();
-    const offer = json.data;
-    return {
-      total: parseFloat(offer.total_amount || '0'),
-      currency: offer.total_currency || 'GBP',
-    };
-  } catch (err) {
-    console.error('Duffel offer refresh error', err);
-    return null;
+  const fetchOnce = async (): Promise<{ ok: boolean; transient: boolean; data?: { total: number; currency: string } }> => {
+    try {
+      const res = await fetch(duffelUrl(`/air/offers/${offerId}`), {
+        headers: {
+          Authorization: `Bearer ${DUFFEL_KEY}`,
+          'Duffel-Version': DUFFEL_VERSION,
+          Accept: 'application/json',
+        },
+        cache: 'no-store',
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const offer = json.data;
+        return {
+          ok: true,
+          transient: false,
+          data: {
+            total: parseFloat(offer.total_amount || '0'),
+            currency: offer.total_currency || 'GBP',
+          },
+        };
+      }
+      // 5xx is transient (Duffel infra blip); 4xx is final (expired/gone).
+      return { ok: false, transient: res.status >= 500 };
+    } catch (err) {
+      // Network error — treat as transient (one more shot before giving up).
+      console.error('Duffel offer refresh error', err);
+      return { ok: false, transient: true };
+    }
+  };
+
+  let result = await fetchOnce();
+  if (result.ok) return result.data!;
+  if (result.transient) {
+    await new Promise((r) => setTimeout(r, 500));
+    result = await fetchOnce();
+    if (result.ok) return result.data!;
   }
+  return null;
 }
 
 /**

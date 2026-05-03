@@ -363,6 +363,11 @@ export default function HotelCheckoutPage() {
             currency: (booking.currency || 'gbp').toLowerCase(),
             offerId: `dotw:${ref}`,
             sessionId: ref,
+            // Tag the PI as a hotel booking so Stripe metadata + the
+            // customer's card-statement description are accurate (was
+            // defaulting to "JetMeAway flight booking" otherwise).
+            source: 'jetmeaway_hotels',
+            description: `JetMeAway hotel booking — ${booking.hotelName || 'stay'} (${ref})`,
           }),
         });
         const piData = await piRes.json();

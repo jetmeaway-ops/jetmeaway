@@ -89,21 +89,33 @@ function InnerForm({ onSucceeded, onError, disabled, amountLabel, returnUrl }: P
 
       if (error) {
         onError(error.message || 'Your card was declined. Please try a different card.');
+        // Re-enable on error so the customer can fix their card and retry.
+        setSubmitting(false);
         return;
       }
 
       if (paymentIntent && paymentIntent.status === 'succeeded') {
         onSucceeded();
-      } else if (paymentIntent) {
+        // DELIBERATELY do NOT setSubmitting(false) here. Parent transitions
+        // to step='processing' which unmounts this form; if we re-enabled
+        // the Pay button there'd be a window where a frantic customer can
+        // double-tap and trigger "PaymentIntent already succeeded" toasts.
+        return;
+      }
+      if (paymentIntent) {
         onError(`Payment status: ${paymentIntent.status}. Please try again.`);
+        setSubmitting(false);
       } else {
         onError('Payment could not be confirmed. Please try again.');
+        setSubmitting(false);
       }
     } catch (err: any) {
       onError(err?.message || 'Payment failed. Please try again.');
-    } finally {
       setSubmitting(false);
     }
+    // No `finally` block — the success branch deliberately leaves
+    // `submitting=true` so the button stays disabled while the parent
+    // unmounts us. Each error branch resets submitting itself.
   };
 
   return (

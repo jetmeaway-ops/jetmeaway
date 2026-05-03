@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { amount, currency, offerId, sessionId, serviceIds, servicesSubtotalPence } =
+    const { amount, currency, offerId, sessionId, serviceIds, servicesSubtotalPence, source, description } =
       await req.json();
 
     if (!amount || !currency || !offerId) {
@@ -35,6 +35,21 @@ export async function POST(req: NextRequest) {
     }
 
     const stripe = new Stripe(STRIPE_KEY);
+
+    // The same /api/stripe/payment-intent route serves BOTH flights and
+    // hotels (DOTW supplier path). Without a caller-supplied label, every
+    // hotel booking landed in Stripe metadata as `source: jetmeaway_flights`,
+    // which broke revenue reporting and put "JetMeAway flight booking" on
+    // the customer's card statement for a hotel night. Accept caller
+    // overrides; default to flights for backward compat.
+    const sourceLabel =
+      typeof source === 'string' && source.length > 0
+        ? source.slice(0, 80)
+        : 'jetmeaway_flights';
+    const descriptionText =
+      typeof description === 'string' && description.length > 0
+        ? description.slice(0, 140)
+        : `JetMeAway flight booking (offer ${offerId})`;
 
     // Stripe metadata:
     //   - values must be strings, max 500 chars per value, max 50 keys
@@ -47,7 +62,7 @@ export async function POST(req: NextRequest) {
     const metadata: Record<string, string> = {
       offerId,
       sessionId: sessionId || '',
-      source: 'jetmeaway_flights',
+      source: sourceLabel,
       serviceIds: serviceIdsJoined,
       serviceCount: String(serviceIdsArr.length),
       servicesSubtotalPence: String(Math.round(Number(servicesSubtotalPence || 0))),
@@ -58,7 +73,7 @@ export async function POST(req: NextRequest) {
       currency: String(currency).toLowerCase(),
       automatic_payment_methods: { enabled: true },
       metadata,
-      description: `JetMeAway flight booking (offer ${offerId})`,
+      description: descriptionText,
     });
 
     return NextResponse.json({
