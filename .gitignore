@@ -66,3 +66,4 @@ scripts/broadcast-contacts*.json
 # Contains private notes, customer phone numbers, partner deal terms.
 # NEVER commit. Live source of truth lives in ~/.claude/ (also gitignored above).
 jetmeaway-memory/
+.playwright-mcp/
