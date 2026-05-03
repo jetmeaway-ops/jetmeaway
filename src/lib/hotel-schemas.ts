@@ -27,6 +27,13 @@ export const HotelSearchSchema = z
     // entry in the coords table (Coulsdon, Hove, etc).
     lat: z.string().regex(/^-?\d+(\.\d+)?$/).optional(),
     lng: z.string().regex(/^-?\d+(\.\d+)?$/).optional(),
+    // Per-room occupancy (new shape, takes precedence over flat
+    // adults/children/rooms when both are supplied):
+    //   occ=2-6/1-8/1-15
+    //     • slash-separated per room
+    //     • dash-separated within: adults, then each child's age
+    // Decoder lives in @/lib/occupancy.
+    occ: z.string().max(120).regex(/^[\d\-/]+$/).optional(),
     mode: z.enum(['datestrip', 'deal', '']).optional(),
     basePrice: z.string().regex(/^\d+(\.\d+)?$/).optional(),
   })
