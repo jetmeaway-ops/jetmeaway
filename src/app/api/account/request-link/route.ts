@@ -80,7 +80,8 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'JetMeAway <noreply@jetmeaway.co.uk>',
+        from: 'JetMeAway <account@jetmeaway.co.uk>',
+        reply_to: 'contact@jetmeaway.co.uk',
         to: [email],
         subject: 'Your JetMeAway sign-in link',
         html,
