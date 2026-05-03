@@ -4,6 +4,7 @@ import { getHotels as liteapiGetHotels, type HotelOffer } from '@/lib/liteapi';
 import { dedupeKey } from '@/lib/giata';
 import { reportBug } from '@/lib/report-bug';
 import { HotelSearchSchema, zodErrorToMessage } from '@/lib/hotel-schemas';
+import { googlePlaceDetails } from '@/lib/google-places';
 
 // Stays on edge for low-latency search. DOTW's node-only transport
 // (MD5 + gzip) is proxied through `/api/hotels/dotw-search` (nodejs runtime).
@@ -583,6 +584,49 @@ const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
   'shoreditch': { lat: 51.5236, lng: -0.0796 },
   'canary wharf': { lat: 51.5054, lng: -0.0235 },
   'docklands': { lat: 51.5004, lng: -0.0235 },
+  // South-London suburbs (Croydon-borough towns + neighbours) — flagged
+  // 2026-05-03 when a Coulsdon search returned hotels from Maida Vale,
+  // Greenwich, Wembley, Highbury, Ealing, Kensington, ExCel. LiteAPI treats
+  // these town-level Google Place IDs as Greater-London pointers, so without
+  // a coords entry the geo filter returns true for everything.
+  'coulsdon': { lat: 51.3193, lng: -0.1393 },
+  'purley': { lat: 51.3370, lng: -0.1106 },
+  'sutton': { lat: 51.3618, lng: -0.1945 },
+  'bromley': { lat: 51.4039, lng: 0.0149 },
+  'kingston upon thames': { lat: 51.4123, lng: -0.3007 },
+  'kingston': { lat: 51.4123, lng: -0.3007 },
+  'richmond': { lat: 51.4613, lng: -0.3037 },
+  'twickenham': { lat: 51.4467, lng: -0.3320 },
+  'harrow': { lat: 51.5793, lng: -0.3346 },
+  'ealing': { lat: 51.5130, lng: -0.3027 },
+  'wimbledon': { lat: 51.4214, lng: -0.2064 },
+  'clapham': { lat: 51.4625, lng: -0.1380 },
+  'brixton': { lat: 51.4626, lng: -0.1147 },
+  'hackney': { lat: 51.5450, lng: -0.0553 },
+  'islington': { lat: 51.5362, lng: -0.1033 },
+  'camden': { lat: 51.5390, lng: -0.1426 },
+  'paddington': { lat: 51.5154, lng: -0.1755 },
+  'westminster': { lat: 51.4975, lng: -0.1357 },
+  'chelsea': { lat: 51.4875, lng: -0.1687 },
+  // UK home-counties towns LiteAPI also tends to mishandle similarly.
+  'watford': { lat: 51.6565, lng: -0.3903 },
+  'slough': { lat: 51.5105, lng: -0.5950 },
+  'reading': { lat: 51.4543, lng: -0.9781 },
+  'guildford': { lat: 51.2362, lng: -0.5704 },
+  'brighton': { lat: 50.8225, lng: -0.1372 },
+  'hove': { lat: 50.8285, lng: -0.1671 },
+  // Larger UK regional cities
+  'oxford': { lat: 51.7520, lng: -1.2577 },
+  'cambridge': { lat: 52.2053, lng: 0.1218 },
+  'bristol': { lat: 51.4545, lng: -2.5879 },
+  'leeds': { lat: 53.8008, lng: -1.5491 },
+  'sheffield': { lat: 53.3811, lng: -1.4701 },
+  'nottingham': { lat: 52.9548, lng: -1.1581 },
+  'newcastle': { lat: 54.9783, lng: -1.6178 },
+  'cardiff': { lat: 51.4816, lng: -3.1791 },
+  'belfast': { lat: 54.5973, lng: -5.9301 },
+  'york': { lat: 53.9590, lng: -1.0815 },
+  'bath': { lat: 51.3811, lng: -2.3590 },
 };
 
 // Radius (km) within which a hotel must lie of the searched city centre
@@ -603,6 +647,53 @@ const CITY_RADIUS_KM: Record<string, number> = {
   'shoreditch': 8,
   'canary wharf': 8,
   'docklands': 8,
+  // South-London suburbs / Croydon-borough towns — wide enough to catch
+  // genuine local stays since LiteAPI inventory in pure-residential pockets
+  // (Coulsdon, Purley) is sparse; a 5-mile radius would return 0.
+  // 2026-05-03: was 8km, bumped to 15km after a Coulsdon search showed
+  // London-Zone-1 hotels (Maida Vale, Greenwich, ExCel) — wrong direction
+  // entirely. 15km still excludes North London + Canary Wharf but pulls in
+  // Sutton/Croydon-town/Banstead/Caterham which is what a Coulsdon visitor
+  // would actually drive to.
+  'coulsdon': 15,
+  'purley': 15,
+  'sutton': 15,
+  'bromley': 15,
+  'kingston upon thames': 15,
+  'kingston': 15,
+  'richmond': 15,
+  'twickenham': 15,
+  'harrow': 15,
+  'ealing': 15,
+  'wimbledon': 12,
+  'clapham': 6,
+  'brixton': 6,
+  'hackney': 6,
+  'islington': 6,
+  'camden': 6,
+  'paddington': 6,
+  'westminster': 6,
+  'chelsea': 6,
+  // Home-counties towns — give a bit more room since hotel inventory is
+  // sparser and a 5-mile radius would reject genuine matches.
+  'watford': 10,
+  'slough': 10,
+  'reading': 10,
+  'guildford': 10,
+  'brighton': 10,
+  'hove': 10,
+  // UK regional cities — full metro, keep wide.
+  'oxford': 12,
+  'cambridge': 12,
+  'bristol': 15,
+  'leeds': 15,
+  'sheffield': 15,
+  'nottingham': 15,
+  'newcastle': 15,
+  'cardiff': 15,
+  'belfast': 15,
+  'york': 10,
+  'bath': 8,
   // Full-metro searches — keep wide
   'london': 25,
   'new york': 25,
@@ -970,6 +1061,17 @@ export async function GET(req: NextRequest) {
   const roomsParam = parsed.data.rooms || '1';
   const starsParam = parsed.data.stars || '0';
   const placeId = parsed.data.placeId || '';
+  // Optional WGS84 centroid forwarded from the autocomplete pick — used as
+  // the geo-filter centre when CITY_COORDS doesn't have an entry for this
+  // searched city. Lets us cover obscure UK suburbs without growing the
+  // manual coords table forever (Coulsdon, Hove, Reigate, Banstead, …).
+  const latParam = parsed.data.lat ? Number(parsed.data.lat) : null;
+  const lngParam = parsed.data.lng ? Number(parsed.data.lng) : null;
+  const autocompleteCentre =
+    typeof latParam === 'number' && Number.isFinite(latParam) &&
+    typeof lngParam === 'number' && Number.isFinite(lngParam)
+      ? { lat: latParam, lng: lngParam }
+      : null;
   const mode = parsed.data.mode || '';
 
   /* ── Date-strip mode (D−3 … D+3 cheapest per check-in, Hotellook cache only) ──
@@ -1109,7 +1211,14 @@ export async function GET(req: NextRequest) {
   const roomsNum = Math.max(1, Math.min(5, parseInt(roomsParam) || 1));
   const minStars = Math.max(0, Math.min(5, parseInt(starsParam) || 0));
   // Cache key v11 — added placeId support for precise location searches
-  const cacheCity = placeId || cityKey;
+  // Cache key includes rawCityKey too so an aliased "coulsdon → london"
+  // search has its own cache slot — otherwise Coulsdon and a true London
+  // search would share results and the geo-filter pass at read time would
+  // see the wrong baseline (only the items already filtered for whichever
+  // ran first). 2026-05-03 fix: previously cacheCity = cityKey alone meant
+  // Coulsdon shared London's KV entry and never benefitted from its narrower
+  // 8km radius until the cache expired.
+  const cacheCity = placeId || (rawCityKey !== cityKey ? `${cityKey}@${rawCityKey}` : cityKey);
   // v12 — quarantined DOTW/RateHawk rows (details endpoint can't resolve them yet)
   // and fixed doubled `dotw_`/`rh_` id prefix from supplier adapters.
   // v13 — added geo-proximity post-filter (passesGeo). London-borough searches
@@ -1128,7 +1237,11 @@ export async function GET(req: NextRequest) {
   // v21 — added children + rooms to the response echo so the Monkey Test
   // Suite (and any future client) can do strict-equality assertions on
   // occupancy round-trip. Old v20 cache entries lack those fields.
-  const kvKey = `hotels:v21:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
+  // v22 — added strict aliased-search geo filter (no auto-expand for
+  // coulsdon→london style aliases) + curated hotels run through geoFilter
+  // (was passesStars-only; the centroid stamp let London curated leak into
+  // Coulsdon results). Invalidates v21 entries that contained the leak.
+  const kvKey = `hotels:v22:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
 
   // Group occupancy bypass: large groups (>4 guests) always get fresh prices
   // because cached availability/room blocks may not hold for that many people.
@@ -1213,15 +1326,95 @@ export async function GET(req: NextRequest) {
   // 2026-04-27: real bug — searching Croydon was returning Docklands,
   // Hammersmith, Greenwich, Canary Wharf hotels mixed with the actual
   // Croydon ones because LiteAPI treats borough place IDs as metro pointers.
-  const cityCentre = CITY_COORDS[cityKey];
-  const radiusKm = CITY_RADIUS_KM[cityKey] ?? DEFAULT_RADIUS_KM;
-  const passesGeo = <T extends { lat?: number; lng?: number; latitude?: number; longitude?: number }>(h: T) => {
-    if (!cityCentre) return true; // unknown city — trust upstream
+  // Prefer autocomplete-supplied coords (Google Places picked the exact spot
+  // the visitor meant), fall back to the manual CITY_COORDS table keyed on
+  // the ORIGINAL search term (rawCityKey) so an alias like Coulsdon→London
+  // still gets filtered to Coulsdon proximity, then on the alias fallback,
+  // and finally a Google Place Details lookup when the search came from a
+  // Google placeId. The Place Details lookup covers small towns the manual
+  // table doesn't list (Hove, Reigate, Banstead, …) without requiring a
+  // code change every time a customer searches a new suburb. Cached in KV
+  // per placeId for 30 days — coords are stable.
+  let resolvedCentre =
+    autocompleteCentre ??
+    CITY_COORDS[rawCityKey] ??
+    CITY_COORDS[cityKey] ??
+    null;
+  if (!resolvedCentre && placeId.startsWith('google:')) {
+    const rawId = placeId.slice('google:'.length);
+    const detailsKey = `place-coords:${rawId}`;
+    try {
+      const cached = await kv.get<{ lat: number; lng: number }>(detailsKey);
+      if (cached && typeof cached.lat === 'number' && typeof cached.lng === 'number') {
+        resolvedCentre = cached;
+      } else {
+        const fresh = await googlePlaceDetails(rawId);
+        if (fresh) {
+          resolvedCentre = fresh;
+          // 30-day TTL — place coords don't drift.
+          await kv.set(detailsKey, fresh, { ex: 60 * 60 * 24 * 30 });
+        }
+      }
+    } catch (err) {
+      console.error('[hotels:place-details]', err instanceof Error ? err.message : err);
+    }
+  }
+  const cityCentre = resolvedCentre;
+  // Same precedence as the centroid lookup — rawCityKey first so an aliased
+  // "coulsdon → london" search still uses the strict 8km Coulsdon radius
+  // rather than London's wide 25km.
+  const radiusKm =
+    CITY_RADIUS_KM[rawCityKey] ??
+    CITY_RADIUS_KM[cityKey] ??
+    (autocompleteCentre || resolvedCentre ? 10 : DEFAULT_RADIUS_KM);
+  /**
+   * Geo proximity filter with graceful expansion.
+   * `geoFilter(hotels)` runs the strict radius first; if fewer than 5 hotels
+   * pass, it retries at 2× the radius and at 3× the radius before giving up
+   * and returning the strict subset. Avoids the "0 hotels in Coulsdon" UX
+   * for genuinely sparse suburbs without giving up the proximity guard for
+   * cities with plenty of inventory.
+   */
+  const MIN_RESULTS_FOR_STRICT = 5;
+  const insideRadius = <T extends { lat?: number; lng?: number; latitude?: number; longitude?: number }>(
+    h: T,
+    r: number,
+  ) => {
+    if (!cityCentre) return true;
     const lat = h.lat ?? h.latitude;
     const lng = h.lng ?? h.longitude;
-    if (typeof lat !== 'number' || typeof lng !== 'number') return true; // missing coords — keep
-    return distanceKm(cityCentre, { lat, lng }) <= radiusKm;
+    if (typeof lat !== 'number' || typeof lng !== 'number') return true;
+    return distanceKm(cityCentre, { lat, lng }) <= r;
   };
+  const isAliasedSearch = rawCityKey !== cityKey;
+  const geoFilter = <T extends { lat?: number; lng?: number; latitude?: number; longitude?: number }>(
+    items: T[],
+  ): T[] => {
+    if (!cityCentre || items.length === 0) return items;
+    // For ALIASED searches (e.g. coulsdon→london) we MUST stay strict — the
+    // upstream is over-fetching by definition, and any auto-expand would
+    // re-fill the very leak we're trying to prevent (Coulsdon search → all
+    // of central London because the London centroid is 21km away). For
+    // direct searches (the visitor really did mean "London") we allow up
+    // to a 3× radius expansion so sparse inventory cities still return
+    // something rather than zero.
+    if (isAliasedSearch) {
+      return items.filter((h) => insideRadius(h, radiusKm));
+    }
+    for (const r of [radiusKm, radiusKm * 2, radiusKm * 3]) {
+      const subset = items.filter((h) => insideRadius(h, r));
+      if (subset.length >= MIN_RESULTS_FOR_STRICT) {
+        if (r !== radiusKm) {
+          console.log(`[hotels:geo] expanded radius for ${rawCityKey}: ${radiusKm}km→${r}km (${subset.length} hotels)`);
+        }
+        return subset;
+      }
+    }
+    return items.filter((h) => insideRadius(h, radiusKm));
+  };
+  // Backwards-compat: callers using `.filter(passesGeo)` get the strict pass.
+  const passesGeo = <T extends { lat?: number; lng?: number; latitude?: number; longitude?: number }>(h: T) =>
+    insideRadius(h, radiusKm);
 
   // Normalise RateHawk results the same way as LiteAPI
   const normaliseRateHawk = (offers: HotelOffer[]) =>
@@ -1331,8 +1524,12 @@ export async function GET(req: NextRequest) {
         bookable: false,
         ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
       }));
-      const apiHotels = (await mergeApis()).filter(passesStars).filter(passesGeo);
-      const hotels = [...apiHotels, ...curatedHotels.filter(passesStars)];
+      const apiHotels = geoFilter((await mergeApis()).filter(passesStars));
+      // Apply geoFilter to curated too — otherwise an aliased "coulsdon→london"
+      // search would bypass proximity for the curated set (every curated hotel
+      // is stamped with the city centroid, so they all sit at the same point;
+      // without this filter, all-of-London curated leaks into Coulsdon results).
+      const hotels = [...apiHotels, ...geoFilter(curatedHotels.filter(passesStars))];
 
       const result = { hotels, city: match.charAt(0).toUpperCase() + match.slice(1), checkin, checkout, adults: adultsNum, children: childrenNum, rooms: roomsNum, liteapiCount: apiHotels.length };
       try { await kv.set(kvKey, result, { ex: KV_TTL }); } catch { /* KV write fail */ }
@@ -1340,7 +1537,7 @@ export async function GET(req: NextRequest) {
     }
 
     // No curated match — still try APIs as a last resort
-    const apiHotels = (await mergeApis()).filter(passesStars).filter(passesGeo);
+    const apiHotels = geoFilter((await mergeApis()).filter(passesStars));
     if (apiHotels.length > 0) {
       const result = { hotels: apiHotels, city, checkin, checkout, adults: adultsNum, children: childrenNum, rooms: roomsNum, liteapiCount: apiHotels.length };
       try { await kv.set(kvKey, result, { ex: KV_TTL }); } catch {}
@@ -1362,9 +1559,12 @@ export async function GET(req: NextRequest) {
     bookable: false,
     ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
   }));
-  const apiHotels = (await mergeApis()).filter(passesStars).filter(passesGeo);
-  // Bookable API hotels first, curated deep-link hotels after
-  const hotels = [...apiHotels, ...curatedHotels.filter(passesStars)];
+  const apiHotels = geoFilter((await mergeApis()).filter(passesStars));
+  // Bookable API hotels first, curated deep-link hotels after. Curated also
+  // runs through geoFilter — otherwise an aliased "coulsdon→london" search
+  // would leak the entire curated London set (each stamped at the London
+  // centroid) into a 15km-Coulsdon-radius response.
+  const hotels = [...apiHotels, ...geoFilter(curatedHotels.filter(passesStars))];
 
   const result = {
     hotels,

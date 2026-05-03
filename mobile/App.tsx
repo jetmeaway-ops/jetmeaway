@@ -143,8 +143,14 @@ export default function App() {
    * Safari View Controller renders them perfectly. Customers were silently
    * blocked at the Pay step — multiple bookings lost on 2026-05-01/02.
    *
-   * After SVC closes (post-payment or user-cancelled), we nudge the WebView
-   * to /account/bookings so they don't return to the now-stale checkout.
+   * UPDATE (2026-05-03): we used to redirect the WebView to /account/bookings
+   * once the SVC closed, but that broke decline-and-retry — a customer with
+   * a failed/declined card would close the SVC to try again and land on
+   * /account/bookings, losing their search and booking context. Now we leave
+   * the WebView on whichever page launched the SVC, so retry is one tap away
+   * (re-tapping Pay re-opens the SVC). On successful purchases the SVC's
+   * own /success page is what the user reads — no need to also force the
+   * WebView elsewhere.
    */
   const onShouldStartLoadWithRequest = useCallback((req: { url: string }) => {
     try {
@@ -154,17 +160,9 @@ export default function App() {
           u.pathname.startsWith('/checkout/') ||
           u.pathname.startsWith('/hotels/checkout/');
         if (isCheckout) {
-          WebBrowser.openBrowserAsync(req.url)
-            .then(() => {
-              // After SVC closes, send the WebView to /account/bookings so
-              // the user lands on a useful page rather than the stale
-              // checkout they just paid on (or cancelled out of).
-              if (!webviewRef.current) return;
-              webviewRef.current.injectJavaScript(
-                `window.location.href = 'https://${INTERNAL_HOST}/account/bookings'; true;`,
-              );
-            })
-            .catch(() => Linking.openURL(req.url));
+          WebBrowser.openBrowserAsync(req.url).catch(() =>
+            Linking.openURL(req.url),
+          );
           return false;
         }
         return true;

@@ -21,6 +21,12 @@ export const HotelSearchSchema = z
     rooms: z.string().regex(/^\d+$/).optional(),
     stars: z.string().regex(/^\d+$/).optional(),
     placeId: z.string().max(120).optional(),
+    // Optional WGS84 lat/lng forwarded from the autocomplete pick. When
+    // present we use these as the geo-filter centroid instead of looking
+    // up CITY_COORDS — this lets small UK towns work without a manual
+    // entry in the coords table (Coulsdon, Hove, etc).
+    lat: z.string().regex(/^-?\d+(\.\d+)?$/).optional(),
+    lng: z.string().regex(/^-?\d+(\.\d+)?$/).optional(),
     mode: z.enum(['datestrip', 'deal', '']).optional(),
     basePrice: z.string().regex(/^\d+(\.\d+)?$/).optional(),
   })

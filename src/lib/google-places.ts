@@ -105,6 +105,49 @@ export async function googlePlacesAutocomplete(
   }
 }
 
+const DETAILS_ENDPOINT = 'https://places.googleapis.com/v1/places';
+
+/**
+ * Place Details — return WGS84 lat/lng for a Google placeId. Used by
+ * /api/hotels when the searched city has no CITY_COORDS entry so the
+ * geo-proximity filter can still trim LiteAPI's broad regional results
+ * back to actual proximity. Returns null on any error / missing key.
+ *
+ * Field mask is `id,location` only — keeps us on the cheapest SKU.
+ * Caller is responsible for caching (the route layer KV-caches results).
+ */
+export async function googlePlaceDetails(
+  placeId: string,
+  signal?: AbortSignal,
+): Promise<{ lat: number; lng: number } | null> {
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+  if (!apiKey) return null;
+  if (!placeId) return null;
+
+  try {
+    const res = await fetch(`${DETAILS_ENDPOINT}/${encodeURIComponent(placeId)}`, {
+      method: 'GET',
+      headers: {
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': 'id,location',
+      },
+      signal,
+    });
+    if (!res.ok) {
+      console.error('[google-places:details] HTTP', res.status, await res.text().catch(() => ''));
+      return null;
+    }
+    const data = await res.json() as { location?: { latitude?: number; longitude?: number } };
+    const lat = data.location?.latitude;
+    const lng = data.location?.longitude;
+    if (typeof lat !== 'number' || typeof lng !== 'number') return null;
+    return { lat, lng };
+  } catch (err) {
+    console.error('[google-places:details]', err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
 /**
  * Nearby Search — POIs within `radiusM` metres of (lat, lng), filtered by
  * Google's primary place types. Used by Scout as a high-fidelity gap-filler

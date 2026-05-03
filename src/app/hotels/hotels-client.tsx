@@ -1726,6 +1726,13 @@ function Stars({ count }: { count: number }) {
 function HotelsContent() {
   const [destination, setDestination] = useState('');
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
+  // Optional WGS84 coords from the autocomplete pick — forwarded to the
+  // /api/hotels search so the geo-proximity filter can trim LiteAPI's
+  // Greater-London results back to the actual searched town. Only set when
+  // the picker provides them (curated neighbourhoods, future Google Place
+  // Details). Without this small UK suburbs (Coulsdon etc) used to leak
+  // hotels from across the metro.
+  const [selectedPlaceCoords, setSelectedPlaceCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [checkin, setCheckin] = useState('');
   const [checkout, setCheckout] = useState('');
   const [adults, setAdults] = useState(2);
@@ -1984,6 +1991,10 @@ function HotelsContent() {
       });
       if (selectedPlaceId) {
         params.set('placeId', selectedPlaceId);
+      }
+      if (selectedPlaceCoords) {
+        params.set('lat', String(selectedPlaceCoords.lat));
+        params.set('lng', String(selectedPlaceCoords.lng));
       }
       if (childrenAges.length > 0) {
         params.set('childrenAges', childrenAges.join(','));
@@ -2265,7 +2276,14 @@ function HotelsContent() {
             <DestinationPicker
               value={destination}
               onChange={setDestination}
-              onPlaceSelect={(p) => setSelectedPlaceId(p?.id || null)}
+              onPlaceSelect={(p) => {
+                setSelectedPlaceId(p?.id || null);
+                setSelectedPlaceCoords(
+                  p && typeof p.lat === 'number' && typeof p.lng === 'number'
+                    ? { lat: p.lat, lng: p.lng }
+                    : null,
+                );
+              }}
               stayParams={{ checkin, checkout, adults, children: childCount, rooms, childrenAges }}
             />
           </div>

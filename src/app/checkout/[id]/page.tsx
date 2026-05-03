@@ -1384,6 +1384,59 @@ export default function CheckoutPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  /**
+   * 3DS return-URL handler.
+   *
+   * When Stripe needs a 3DS challenge it redirects the browser to the
+   * `return_url` we passed (this same checkout page) with a query string
+   * like `?payment_intent=pi_xxx&payment_intent_client_secret=xxx&redirect_status=succeeded|failed`.
+   * Without this effect the page just remounts in its initial state and the
+   * customer sees a fresh form with NO sign of why their bank push got
+   * declined — which looks like the app is "doing nothing" after a bank-side
+   * decline.
+   *
+   * Behaviour:
+   *  - redirect_status=succeeded → silently kick off the order (handlePaymentSuccess
+   *    expects paymentIntentId; we hydrate it from the URL and jump to processing).
+   *  - redirect_status=failed / requires_payment_method → surface a clear
+   *    "your bank declined the payment, please try a different card" error
+   *    and reset the form so the user can re-enter details.
+   *  - We strip the query params after handling so a refresh doesn't replay.
+   */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const sp = new URLSearchParams(window.location.search);
+    const status = sp.get('redirect_status');
+    const piId = sp.get('payment_intent');
+    if (!status || !piId) return;
+
+    if (status === 'succeeded') {
+      setPaymentIntentId(piId);
+      setStep('processing');
+      // handlePaymentSuccess reads paymentIntentId from state — defer one
+      // tick so the setState above has flushed before the order POST fires.
+      setTimeout(() => {
+        handlePaymentSuccess();
+      }, 0);
+    } else {
+      // failed | requires_payment_method | requires_action — same outcome
+      // from the customer's perspective: re-enter card and retry. Drop the
+      // dead PaymentIntent and bounce back to passengers; pressing Continue
+      // will mint a fresh one and remount the Stripe form clean.
+      setPaymentError(
+        'Your bank declined the payment. Please try a different card or payment method.',
+      );
+      setPaymentClientSecret(null);
+      setPaymentIntentId(null);
+      setStep('passengers');
+    }
+
+    // Strip params so a hard refresh doesn't loop on the same status.
+    const cleanUrl = window.location.pathname + window.location.hash;
+    window.history.replaceState({}, '', cleanUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── Phase 2a: selected services derived state ──
   const availableBaggageServices = offer?.availableServices?.baggage || [];
   const selectedServices = availableBaggageServices.filter((s) => selectedServiceIds.has(s.id));
@@ -1659,7 +1712,21 @@ export default function CheckoutPage() {
           });
         }
         setOrderError(data.error || 'Booking failed. Please contact support.');
-        setStep('payment'); // allow retry / show refund notice
+        // If the failure was passenger-field validation (most common: an
+        // invalid phone_number / DOB / name format), the server has already
+        // refunded the Stripe charge — the same PaymentIntent CANNOT be
+        // confirmed again, so we cannot drop the user back on the Stripe form.
+        // Send them to the passengers step where the field-error mapping
+        // above is now visible; on Continue we mint a fresh PaymentIntent.
+        // For all other errors keep them on payment so they at least see the
+        // "your card was charged, contact support" notice next to the form.
+        if (Array.isArray(data.invalidFields) && data.invalidFields.length > 0) {
+          setPaymentClientSecret(null);
+          setPaymentIntentId(null);
+          setStep('passengers');
+        } else {
+          setStep('payment');
+        }
         return;
       }
 

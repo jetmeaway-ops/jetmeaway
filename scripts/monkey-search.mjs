@@ -35,6 +35,39 @@ const CITIES = [
   'sydney', 'toronto', 'mumbai', 'cairo', 'marrakech',
 ];
 
+/**
+ * Proximity canaries — small towns where LiteAPI is known to return
+ * Greater-region hotels (Coulsdon → all of London, Hove → all of Brighton+
+ * Worthing, etc). The monkey randomly picks one each run; if returned
+ * hotels with lat/lng land >RADIUS_KM from the centroid the run fails.
+ *
+ * Reference centroids match src/app/api/hotels/route.ts CITY_COORDS.
+ */
+const PROXIMITY_CANARIES = {
+  'coulsdon':  { lat: 51.3193, lng: -0.1393, radiusKm: 12 },
+  'purley':    { lat: 51.3370, lng: -0.1106, radiusKm: 12 },
+  'sutton':    { lat: 51.3618, lng: -0.1945, radiusKm: 12 },
+  'bromley':   { lat: 51.4039, lng:  0.0149, radiusKm: 12 },
+  'kingston':  { lat: 51.4123, lng: -0.3007, radiusKm: 12 },
+  'richmond':  { lat: 51.4613, lng: -0.3037, radiusKm: 12 },
+  'twickenham':{ lat: 51.4467, lng: -0.3320, radiusKm: 12 },
+  'wimbledon': { lat: 51.4214, lng: -0.2064, radiusKm: 12 },
+  'hove':      { lat: 50.8285, lng: -0.1671, radiusKm: 12 },
+  'watford':   { lat: 51.6565, lng: -0.3903, radiusKm: 14 },
+  'slough':    { lat: 51.5105, lng: -0.5950, radiusKm: 14 },
+};
+
+function haversineKm(a, b) {
+  const R = 6371;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const x = Math.sin(dLat / 2) ** 2 + Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+  return 2 * R * Math.asin(Math.sqrt(x));
+}
+
 function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 
@@ -47,8 +80,14 @@ function randomSearch() {
   const children = Math.random() < 0.3 ? randInt(1, 3) : 0;
   const rooms = Math.random() < 0.2 ? randInt(2, 3) : 1;
   const childrenAges = Array.from({ length: children }, () => randInt(2, 16)).join(',');
+  // 25% of runs target a proximity canary suburb so the geo-filter regression
+  // gets exercised regularly. The rest hit the broader CITIES pool for
+  // shape/echo coverage.
+  const canaryKeys = Object.keys(PROXIMITY_CANARIES);
+  const useCanary = Math.random() < 0.25;
+  const city = useCanary ? pick(canaryKeys) : pick(CITIES);
   return {
-    city: pick(CITIES),
+    city,
     checkin: ci.toISOString().slice(0, 10),
     checkout: co.toISOString().slice(0, 10),
     adults,
@@ -109,6 +148,29 @@ function assertResponse(s, status, body) {
       if (!h.name) errs.push('hotel[0].name missing');
       const hasPrice = h.pricePerNight != null || h.totalPrice != null || h.price != null;
       if (!hasPrice) errs.push('hotel[0] has no price field');
+    }
+  }
+
+  // Proximity assertion — only when the search city is a known canary.
+  // Sample the first 10 hotels with coords; if any sit outside the radius
+  // it means the geo filter let through a Greater-region match (the exact
+  // bug Coulsdon hit on 2026-05-03). Hotels missing lat/lng are skipped
+  // because the API filter skips them too — we'd false-positive.
+  const canary = PROXIMITY_CANARIES[s.city];
+  if (canary && Array.isArray(body.hotels) && body.hotels.length > 0) {
+    const sample = body.hotels.slice(0, 10);
+    const offenders = [];
+    for (const h of sample) {
+      const lat = h.lat ?? h.latitude;
+      const lng = h.lng ?? h.longitude;
+      if (typeof lat !== 'number' || typeof lng !== 'number') continue;
+      const km = haversineKm(canary, { lat, lng });
+      if (km > canary.radiusKm) {
+        offenders.push(`${h.name || h.id} ${km.toFixed(1)}km`);
+      }
+    }
+    if (offenders.length > 0) {
+      errs.push(`proximity drift (>${canary.radiusKm}km from ${s.city}): ${offenders.slice(0, 3).join(', ')}`);
     }
   }
   return errs;
