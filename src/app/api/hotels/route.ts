@@ -1060,6 +1060,14 @@ const CURATED: Record<string, CuratedHotel[]> = {
 };
 
 export async function GET(req: NextRequest) {
+  // Top-level try/catch — any unhandled throw inside the search pipeline
+  // (LiteAPI client, RateHawk, DOTW, normalisation, KV…) used to produce
+  // a default Next.js 500 HTML page. That broke any client that expected
+  // JSON (the front-end search UI included). The Dubai 6A/0K/3R search
+  // hit this path 2026-05-03 — a downstream supplier threw, the customer
+  // saw a generic error overlay instead of "no hotels found".
+  // Catch here, log to bug inbox, return a soft empty-results response.
+  try {
   const { searchParams } = new URL(req.url);
 
   // Zod-validate at the edge. Rejects malformed dates, garbage stars values,
@@ -1647,4 +1655,29 @@ export async function GET(req: NextRequest) {
   try { await kv.set(kvKey, result, { ex: KV_TTL }); } catch { /* KV write fail */ }
 
   return NextResponse.json(result);
+  } catch (err: unknown) {
+    // Top-level safety net. Anything that wasn't caught by the per-supplier
+    // try/catches lands here. Sanitise the URL we report (no PII in our
+    // logs even though hotel search is non-personal — defence in depth).
+    const message = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? err.stack?.slice(0, 1500) : undefined;
+    let cityForReport: string | null = null;
+    try {
+      cityForReport = new URL(req.url).searchParams.get('city');
+    } catch { /* never throw from the catch path */ }
+    console.error('[hotels:GET] unhandled', message, stack);
+    reportBug('hotels search threw unhandled', {
+      message,
+      stack,
+      city: cityForReport,
+    });
+    return NextResponse.json(
+      {
+        hotels: [],
+        message: 'Search temporarily unavailable. Please try again in a moment.',
+        error: 'internal',
+      },
+      { status: 200 }, // 200 + empty so the UI shows "no hotels" gracefully
+    );
+  }
 }
