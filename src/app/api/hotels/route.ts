@@ -18,6 +18,27 @@ export const maxDuration = 60;
 
 const KV_TTL = 43200; // 12 hours
 
+/**
+ * Race a KV write against a 5s timer. A slow KV write on a large
+ * (5-10MB) hotels-search payload was tipping Dubai 6A/3R searches past
+ * the Vercel function kill window. The cache is best-effort — if the
+ * write doesn't make it inside 5s we just don't cache, and the next
+ * request goes back to LiteAPI. Way better than dropping the response.
+ */
+async function safeKvSet(key: string, value: unknown): Promise<void> {
+  const timeout = new Promise<void>((_, reject) =>
+    setTimeout(() => reject(new Error('kv-write-timeout')), 5000),
+  );
+  try {
+    await Promise.race([
+      kv.set(key, value, { ex: KV_TTL }) as unknown as Promise<void>,
+      timeout,
+    ]);
+  } catch {
+    /* swallow — best-effort */
+  }
+}
+
 /** Airport / landmark name → nearest city LiteAPI actually has hotels for.
  *  LiteAPI's /data/hotels treats these as airport types and returns 0 rows
  *  when sent as cityName. Rewrite happens BEFORE resolveCountryCode so we
@@ -452,15 +473,19 @@ async function fetchLiteApiHotels(
     // test 2026-05-03 caught this on 6A/0K/3R for those four cities.
     //
     // Mitigation: scale limit by safeRooms so multi-room queries stay
-    // tractable. 1 room → 500. 2 rooms → 250. 3+ rooms → 150. The budget
-    // tier is also scaled (it duplicates the primary at high limits, so
-    // we'd be paying twice). When a centroid is set (lat/lng search) we
-    // already filter to 15km — limit=500 there is overkill anyway.
+    // tractable. 1 room → 500. 2 rooms → 200. 3 rooms → 80. 4+ rooms → 60.
+    // 2026-05-03 update: even limit=150 was timing out for Dubai 6A/3R
+    // (LiteAPI rates compute is non-linear in rooms × hotels for some
+    // tenants — Dubai property records carry more amenity data than
+    // average). Tightened further. The budget tier is fully skipped at
+    // ≥3 rooms — it duplicates the primary set at high limits and the
+    // doubling of upstream load was not worth the marginal coverage.
     const primaryLimit =
       safeRooms <= 1 ? 500 :
-      safeRooms === 2 ? 250 :
-      150;
-    const budgetLimit = Math.min(50, Math.floor(primaryLimit / 4));
+      safeRooms === 2 ? 200 :
+      safeRooms === 3 ? 80 :
+      60;
+    const budgetLimit = safeRooms >= 3 ? 0 : Math.min(50, Math.floor(primaryLimit / 4));
 
     const fetchTimeout = new Promise<HotelOffer[]>((_, reject) =>
       setTimeout(() => reject(new Error('LiteAPI timeout')), timeoutMs),
@@ -492,30 +517,34 @@ async function fetchLiteApiHotels(
         console.warn(`[liteapi:primary] ${cityName} failed:`, message);
         return [] as HotelOffer[];
       }),
-      Promise.race([
-        liteapiGetHotels({
-          ...(centroid
-            ? {
-                latitude: centroid.lat,
-                longitude: centroid.lng,
-                distanceKm: centroid.radiusKm ?? 15,
-                countryCode: resolvedCountry,
-              }
-            : { cityName: resolvedCity, countryCode: resolvedCountry }),
-          checkIn: checkin,
-          checkOut: checkout,
-          occupancy,
-          currency: 'GBP',
-          guestNationality: 'GB',
-          limit: budgetLimit,
-          starRatings: [0, 1, 2, 3],
-        }),
-        fetchTimeout,
-      ]).catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : String(err);
-        console.warn(`[liteapi:budget] ${cityName} failed:`, message);
-        return [] as HotelOffer[];
-      }),
+      // Budget tier — skipped entirely when budgetLimit === 0 (multi-room
+      // queries) so we don't double-burn upstream rates calls.
+      budgetLimit === 0
+        ? Promise.resolve([] as HotelOffer[])
+        : Promise.race([
+            liteapiGetHotels({
+              ...(centroid
+                ? {
+                    latitude: centroid.lat,
+                    longitude: centroid.lng,
+                    distanceKm: centroid.radiusKm ?? 15,
+                    countryCode: resolvedCountry,
+                  }
+                : { cityName: resolvedCity, countryCode: resolvedCountry }),
+              checkIn: checkin,
+              checkOut: checkout,
+              occupancy,
+              currency: 'GBP',
+              guestNationality: 'GB',
+              limit: budgetLimit,
+              starRatings: [0, 1, 2, 3],
+            }),
+            fetchTimeout,
+          ]).catch((err: unknown) => {
+            const message = err instanceof Error ? err.message : String(err);
+            console.warn(`[liteapi:budget] ${cityName} failed:`, message);
+            return [] as HotelOffer[];
+          }),
     ]);
     // Merge + dedupe by hotelId. Primary wins on duplicates so its
     // (potentially negotiated) rate is preserved.
@@ -1627,7 +1656,7 @@ export async function GET(req: NextRequest) {
       const hotels = [...apiHotels, ...geoFilter(curatedHotels.filter(passesStars))];
 
       const result = { hotels, city: match.charAt(0).toUpperCase() + match.slice(1), checkin, checkout, adults: adultsNum, children: childrenNum, rooms: roomsNum, liteapiCount: apiHotels.length };
-      try { await kv.set(kvKey, result, { ex: KV_TTL }); } catch { /* KV write fail */ }
+      await safeKvSet(kvKey, result);
       return NextResponse.json(result);
     }
 
@@ -1635,7 +1664,7 @@ export async function GET(req: NextRequest) {
     const apiHotels = geoFilter((await mergeApis()).filter(passesStars));
     if (apiHotels.length > 0) {
       const result = { hotels: apiHotels, city, checkin, checkout, adults: adultsNum, children: childrenNum, rooms: roomsNum, liteapiCount: apiHotels.length };
-      try { await kv.set(kvKey, result, { ex: KV_TTL }); } catch {}
+      await safeKvSet(kvKey, result);
       return NextResponse.json(result);
     }
 
@@ -1673,7 +1702,7 @@ export async function GET(req: NextRequest) {
   };
 
   // Cache in KV
-  try { await kv.set(kvKey, result, { ex: KV_TTL }); } catch { /* KV write fail */ }
+  await safeKvSet(kvKey, result);
 
   return NextResponse.json(result);
   } catch (err: unknown) {
