@@ -73,6 +73,10 @@ export async function POST(req: NextRequest) {
       "If you didn't request this, you can ignore the email.",
     ].join('\n');
 
+    // Build the unsubscribe / preferences URL up-front. Magic-link emails
+    // are transactional, so "unsubscribe" really means "stop trying to
+    // sign me in" — point at /contact rather than a marketing-prefs page.
+    const unsubscribeUrl = `${originOf(req)}/contact?topic=email-stop&e=${encodeURIComponent(email)}`;
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -83,9 +87,21 @@ export async function POST(req: NextRequest) {
         from: 'JetMeAway <account@jetmeaway.co.uk>',
         reply_to: 'contact@jetmeaway.co.uk',
         to: [email],
-        subject: 'Your JetMeAway sign-in link',
+        // Subject change: "sign-in link" is a known phishing-keyword
+        // trigger across Gmail/M365 spam scoring. "Open your trips" is
+        // value-led and reads as transactional.
+        subject: 'Open your JetMeAway trips',
         html,
         text,
+        // RFC 8058 / Gmail+Yahoo bulk-sender requirement. Even for
+        // transactional mail, including these headers signals
+        // "legitimate sender that respects opt-out" and keeps us out
+        // of the junk bucket while domain reputation is young.
+        headers: {
+          'List-Unsubscribe': `<${unsubscribeUrl}>, <mailto:contact@jetmeaway.co.uk?subject=unsubscribe>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+          'X-Entity-Ref-ID': `magic-link-${Date.now()}`,
+        },
       }),
     });
 
