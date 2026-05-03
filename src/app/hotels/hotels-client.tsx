@@ -991,17 +991,34 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
 }
 
 /**
- * OccupancyPicker — adults, children, rooms in a single dropdown.
- * Caps: 9 guests total (adults + children), 5 rooms.
+ * OccupancyPicker — per-room: each room has its own adults / children
+ * controls and one age dropdown per child. Caps: 9 guests across all
+ * rooms, 5 rooms, 4 adults/room, 4 children/room. Ages 0-17.
+ *
+ * The component still emits the flat shape ({ adults, children, rooms,
+ * childrenAges }) so the parent search form doesn't change. We track
+ * the per-room shape internally and ALSO emit it as `roomsArr` in the
+ * onChange callback so the parent can serialise to the new `occ=` URL
+ * param.
  */
 function OccupancyPicker({
-  adults, children, rooms, childrenAges, onChange,
+  adults, children, rooms, childrenAges, roomsArr, onChange,
 }: {
   adults: number;
   children: number;
   rooms: number;
   childrenAges: number[];
-  onChange: (next: { adults: number; children: number; rooms: number; childrenAges: number[] }) => void;
+  /** Per-room occupancy. Source of truth — the flat counts above are
+   *  derived from this. Parent supplies via decodeFromParams() on
+   *  search-state restore. */
+  roomsArr: import('@/lib/occupancy').Room[];
+  onChange: (next: {
+    adults: number;
+    children: number;
+    rooms: number;
+    childrenAges: number[];
+    roomsArr: import('@/lib/occupancy').Room[];
+  }) => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -1012,71 +1029,201 @@ function OccupancyPicker({
     return () => document.removeEventListener('mousedown', fn);
   }, []);
 
-  function setChildren(n: number) {
-    const ages = [...childrenAges];
-    while (ages.length < n) ages.push(5);
-    onChange({ adults, children: n, rooms, childrenAges: ages.slice(0, n) });
-  }
-  function setChildAge(idx: number, age: number) {
-    const ages = [...childrenAges];
-    ages[idx] = age;
-    onChange({ adults, children, rooms, childrenAges: ages });
+  // Caps mirror src/lib/occupancy.ts. Re-stated as locals so the JSX
+  // reads cleanly without importing 5 constants.
+  const MAX_ROOMS_UI = 5;
+  const MAX_TOTAL = 9;
+  const MAX_ADULTS_ROOM = 4;
+  const MAX_CHILDREN_ROOM = 4;
+  const total = roomsArr.reduce((s, r) => s + r.adults + r.childAges.length, 0);
+  const remaining = MAX_TOTAL - total;
+
+  /** Emit a fresh state from a Room[] update. Re-derives the flat
+   *  counts so legacy consumers + URL-builder code keep working. */
+  function commit(next: import('@/lib/occupancy').Room[]) {
+    const flatAdults = next.reduce((s, r) => s + r.adults, 0);
+    const flatChildren = next.reduce((s, r) => s + r.childAges.length, 0);
+    const flatAges = next.flatMap((r) => r.childAges);
+    onChange({
+      adults: flatAdults,
+      children: flatChildren,
+      rooms: next.length,
+      childrenAges: flatAges,
+      roomsArr: next,
+    });
   }
 
-  const Row = ({ label, sublabel, value, min, max, onSet }: { label: string; sublabel?: string; value: number; min: number; max: number; onSet: (v: number) => void }) => (
-    <div className="flex items-center justify-between py-2">
-      <div>
-        <span className="font-poppins font-bold text-[.85rem] text-[#1A1D2B]">{label}</span>
-        {sublabel && <div className="text-[.7rem] text-[#8E95A9]">{sublabel}</div>}
-      </div>
-      <div className="flex items-center gap-3">
-        <button type="button" onClick={() => onSet(Math.max(min, value - 1))}
-          className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-orange-400 transition-all disabled:opacity-30" disabled={value <= min}>−</button>
-        <span className="font-poppins font-black text-[.95rem] text-[#1A1D2B] w-5 text-center">{value}</span>
-        <button type="button" onClick={() => onSet(Math.min(max, value + 1))}
-          className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-orange-400 transition-all disabled:opacity-30" disabled={value >= max}>+</button>
-      </div>
+  function setRoomAdults(idx: number, v: number) {
+    const next = roomsArr.map((r, i) => (i === idx ? { ...r, adults: v } : r));
+    commit(next);
+  }
+  function setRoomChildren(idx: number, n: number) {
+    const next = roomsArr.map((r, i) => {
+      if (i !== idx) return r;
+      const ages = [...r.childAges];
+      while (ages.length < n) ages.push(8);
+      return { ...r, childAges: ages.slice(0, n) };
+    });
+    commit(next);
+  }
+  function setRoomChildAge(idx: number, ageIdx: number, age: number) {
+    const next = roomsArr.map((r, i) => {
+      if (i !== idx) return r;
+      const ages = [...r.childAges];
+      ages[ageIdx] = age;
+      return { ...r, childAges: ages };
+    });
+    commit(next);
+  }
+  function addRoom() {
+    if (roomsArr.length >= MAX_ROOMS_UI) return;
+    if (remaining < 1) return;
+    commit([...roomsArr, { adults: 1, childAges: [] }]);
+  }
+  function removeRoom(idx: number) {
+    if (roomsArr.length <= 1) return;
+    commit(roomsArr.filter((_, i) => i !== idx));
+  }
+
+  // adults+/− and children+/− controls share this little stepper.
+  const Stepper = ({
+    value,
+    min,
+    max,
+    onSet,
+    disabledPlus,
+  }: {
+    value: number;
+    min: number;
+    max: number;
+    onSet: (v: number) => void;
+    disabledPlus?: boolean;
+  }) => (
+    <div className="flex items-center gap-3">
+      <button
+        type="button"
+        onClick={() => onSet(Math.max(min, value - 1))}
+        className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-orange-400 transition-all disabled:opacity-30"
+        disabled={value <= min}
+        aria-label="decrement"
+      >−</button>
+      <span className="font-poppins font-black text-[.95rem] text-[#1A1D2B] w-5 text-center">{value}</span>
+      <button
+        type="button"
+        onClick={() => onSet(Math.min(max, value + 1))}
+        className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-orange-400 transition-all disabled:opacity-30"
+        disabled={value >= max || !!disabledPlus}
+        aria-label="increment"
+      >+</button>
     </div>
   );
 
+  // Button label: same compact summary as before.
   const label = `${adults} Adult${adults !== 1 ? 's' : ''}${children > 0 ? ` · ${children} Child${children !== 1 ? 'ren' : ''}` : ''} · ${rooms} Room${rooms !== 1 ? 's' : ''}`;
 
   return (
     <div ref={ref} className="relative">
-      <button type="button" onClick={() => setOpen(v => !v)}
-        className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-left text-[.78rem] font-semibold text-[#1A1D2B] outline-none focus:border-orange-400 hover:bg-white transition-all flex items-center justify-between whitespace-nowrap">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-left text-[.78rem] font-semibold text-[#1A1D2B] outline-none focus:border-orange-400 hover:bg-white transition-all flex items-center justify-between whitespace-nowrap"
+      >
         <span className="truncate">{label}</span>
         <span className="text-[#B0B8CC] text-xs ml-2">{open ? '▴' : '▾'}</span>
       </button>
       {open && (
-        <div className="absolute z-50 w-64 mt-1.5 right-0 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl p-4">
-          <Row label="Adults" value={adults} min={1} max={9 - children}
-            onSet={(v) => onChange({ adults: v, children, rooms, childrenAges })} />
-          <Row label="Children" sublabel="Age 0–17" value={children} min={0} max={9 - adults}
-            onSet={(v) => setChildren(v)} />
-          <p className="text-[.6rem] text-[#8E95A9] font-semibold">Max 9 guests total</p>
-          {children > 0 && (
-            <div className="py-2 border-t border-[#F1F3F7]">
-              <p className="text-[.68rem] font-bold text-[#8E95A9] uppercase tracking-[1.5px] mb-2">Child ages</p>
-              <div className="grid grid-cols-2 gap-2">
-                {Array.from({ length: children }).map((_, i) => (
-                  <div key={i} className="text-center">
-                    <div className="text-[.6rem] text-[#8E95A9] mb-1">Child {i + 1}</div>
-                    <select value={childrenAges[i] ?? 5} onChange={e => setChildAge(i, Number(e.target.value))}
-                      className="w-full text-center text-[.8rem] font-bold text-[#1A1D2B] bg-[#F8FAFC] border border-[#E8ECF4] rounded-lg py-1.5 outline-none focus:border-orange-400">
-                      {Array.from({ length: 18 }, (_, a) => a).map(age => (
-                        <option key={age} value={age}>{age < 1 ? 'Under 1' : age}</option>
-                      ))}
-                    </select>
+        <div className="absolute z-50 w-72 mt-1.5 right-0 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl p-4 max-h-[calc(100vh-160px)] overflow-y-auto">
+          {roomsArr.map((room, idx) => {
+            // Per-room caps: this room can grow until either its own cap
+            // OR the global remaining-guests budget runs out.
+            const roomTotal = room.adults + room.childAges.length;
+            const adultsCanAdd = room.adults < MAX_ADULTS_ROOM && remaining > 0;
+            const childrenCanAdd =
+              room.childAges.length < MAX_CHILDREN_ROOM && remaining > 0;
+            void roomTotal;
+            return (
+              <div
+                key={idx}
+                className={`pb-3 mb-3 border-b border-[#F1F3F7] last:border-b-0 last:pb-0 last:mb-0`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-poppins font-black text-[.82rem] text-[#1A1D2B]">
+                    Room {idx + 1}
+                  </span>
+                  {roomsArr.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeRoom(idx)}
+                      className="text-[.7rem] font-bold text-orange-500 hover:text-orange-600"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center justify-between py-1.5">
+                  <div>
+                    <span className="font-poppins font-semibold text-[.78rem] text-[#1A1D2B]">Adults</span>
                   </div>
-                ))}
+                  <Stepper
+                    value={room.adults}
+                    min={1}
+                    max={MAX_ADULTS_ROOM}
+                    onSet={(v) => setRoomAdults(idx, v)}
+                    disabledPlus={!adultsCanAdd}
+                  />
+                </div>
+                <div className="flex items-center justify-between py-1.5">
+                  <div>
+                    <span className="font-poppins font-semibold text-[.78rem] text-[#1A1D2B]">Children</span>
+                    <div className="text-[.65rem] text-[#8E95A9]">Ages 0 to 17</div>
+                  </div>
+                  <Stepper
+                    value={room.childAges.length}
+                    min={0}
+                    max={MAX_CHILDREN_ROOM}
+                    onSet={(v) => setRoomChildren(idx, v)}
+                    disabledPlus={!childrenCanAdd}
+                  />
+                </div>
+                {room.childAges.length > 0 && (
+                  <div className="grid grid-cols-2 gap-2 mt-1.5">
+                    {room.childAges.map((age, ageIdx) => (
+                      <div key={ageIdx}>
+                        <div className="text-[.6rem] text-[#8E95A9] mb-1">Child {ageIdx + 1} age</div>
+                        <select
+                          value={age}
+                          onChange={(e) => setRoomChildAge(idx, ageIdx, Number(e.target.value))}
+                          className="w-full text-center text-[.78rem] font-bold text-[#1A1D2B] bg-[#F8FAFC] border border-[#E8ECF4] rounded-lg py-1.5 outline-none focus:border-orange-400"
+                        >
+                          {Array.from({ length: 18 }, (_, a) => a).map((a) => (
+                            <option key={a} value={a}>
+                              {a < 1 ? 'Under 1' : a}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          )}
-          <Row label="Rooms" value={rooms} min={1} max={5}
-            onSet={(v) => onChange({ adults, children, rooms: v, childrenAges })} />
-          <button type="button" onClick={() => setOpen(false)}
-            className="w-full mt-3 bg-orange-500 hover:bg-orange-600 text-white font-poppins font-bold text-[.8rem] py-2 rounded-xl transition-colors">
+            );
+          })}
+          <button
+            type="button"
+            onClick={addRoom}
+            disabled={roomsArr.length >= MAX_ROOMS_UI || remaining < 1}
+            className="w-full mt-1 mb-2 text-[.78rem] font-bold text-orange-500 hover:text-orange-600 disabled:opacity-40 disabled:cursor-not-allowed py-1.5 border-2 border-dashed border-orange-200 rounded-xl"
+          >
+            + Add another room
+          </button>
+          <p className="text-[.6rem] text-[#8E95A9] font-semibold text-center">
+            Max {MAX_TOTAL} guests across {MAX_ROOMS_UI} rooms · {remaining} left
+          </p>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="w-full mt-3 bg-orange-500 hover:bg-orange-600 text-white font-poppins font-bold text-[.8rem] py-2 rounded-xl transition-colors"
+          >
             Done
           </button>
         </div>
@@ -1785,6 +1932,13 @@ function HotelsContent() {
   const [childCount, setChildCount] = useState(0);
   const [childrenAges, setChildrenAges] = useState<number[]>([]);
   const [rooms, setRooms] = useState(1);
+  // Per-room occupancy — source of truth for the new picker. The flat
+  // adults/childCount/rooms/childrenAges above are derived from this on
+  // every picker update. Initial value is a single 2-adult room; the
+  // legacy decoder below rebuilds it from URL params + sticky search.
+  const [roomsArr, setRoomsArr] = useState<import('@/lib/occupancy').Room[]>([
+    { adults: 2, childAges: [] },
+  ]);
   const [minStars, setMinStars] = useState(0);
   const [boardFilter, setBoardFilter] = useState('any');
   const [refundableOnly, setRefundableOnly] = useState(false);
@@ -1952,6 +2106,35 @@ function HotelsContent() {
 
     if (pid) setSelectedPlaceId(pid);
     else if (sticky?.placeId && !dest) setSelectedPlaceId(sticky.placeId);
+
+    // Per-room occupancy restore. Reads `occ=` (new) first; falls back
+    // to the legacy adults/children/rooms/childrenAges decoder which
+    // matches what the search form just set above. Either way, the
+    // picker's source-of-truth `roomsArr` is reconstructed here so the
+    // dropdown opens to the right state.
+    import('@/lib/occupancy').then(({ decodeFromParams }) => {
+      const occParam = p.get('occ');
+      const ra = decodeFromParams({
+        occ: occParam,
+        adults: a ?? (sticky?.adults != null ? String(sticky.adults) : null),
+        children: c ?? (typeof sticky?.children === 'number' ? String(sticky.children) : null),
+        rooms: r ?? (sticky?.rooms != null ? String(sticky.rooms) : null),
+        childrenAges:
+          p.get('childrenAges') ??
+          (Array.isArray(sticky?.childrenAges) ? sticky!.childrenAges!.join(',') : null),
+      });
+      setRoomsArr(ra);
+      // Re-derive flat counts from the rebuilt roomsArr so they're in
+      // lockstep (legacy URL params may have set them already, but the
+      // decoder normalises caps and could change things).
+      const flatA = ra.reduce((s, r) => s + r.adults, 0);
+      const flatC = ra.reduce((s, r) => s + r.childAges.length, 0);
+      const flatAges = ra.flatMap((r) => r.childAges);
+      setAdults(flatA);
+      setChildCount(flatC);
+      setRooms(ra.length);
+      setChildrenAges(flatAges);
+    });
   }, []);
 
   // Geolocation auto-fill removed 2026-04-27 — real Clarity recording
@@ -2045,6 +2228,13 @@ function HotelsContent() {
       if (childrenAges.length > 0) {
         params.set('childrenAges', childrenAges.join(','));
       }
+      // Per-room occupancy — encoded as `occ=2-6/1-8`. Sent ALONGSIDE
+      // the legacy params so server-side back-compat doesn't have to
+      // do anything special; the API decoder prefers `occ` when valid
+      // and falls back to flat otherwise.
+      const { encodeOccupancy } = await import('@/lib/occupancy');
+      const occEncoded = encodeOccupancy(roomsArr);
+      if (occEncoded) params.set('occ', occEncoded);
 
       const res = await fetch(`/api/hotels?${params}`);
       const data = await res.json();
@@ -2355,8 +2545,13 @@ function HotelsContent() {
                 children={childCount}
                 rooms={rooms}
                 childrenAges={childrenAges}
-                onChange={({ adults: a, children: c, rooms: r, childrenAges: ages }) => {
-                  setAdults(a); setChildCount(c); setRooms(r); setChildrenAges(ages);
+                roomsArr={roomsArr}
+                onChange={({ adults: a, children: c, rooms: r, childrenAges: ages, roomsArr: ra }) => {
+                  setAdults(a);
+                  setChildCount(c);
+                  setRooms(r);
+                  setChildrenAges(ages);
+                  setRoomsArr(ra);
                 }}
               />
             </div>
