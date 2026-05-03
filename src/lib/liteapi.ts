@@ -389,6 +389,19 @@ export interface GetHotelsParams {
   destinationId?: string;
   cityName?: string;
   countryCode?: string;
+  /**
+   * Optional WGS84 coordinates + radius for lat/lng-based search. When set
+   * (and no destinationId is provided) we hit /data/hotels with
+   * latitude/longitude/distance instead of cityName+countryCode — gives
+   * us actual local inventory for small towns where the city-name path
+   * aliases up to a metro and returns the wrong neighbourhoods (Coulsdon
+   * → London → all of Zone 1-3 instead of South-London proper).
+   * 2026-05-03 added after Coulsdon search returned Maida Vale + Wembley.
+   */
+  latitude?: number;
+  longitude?: number;
+  /** Search radius in km for lat/lng search. Default 15. */
+  distanceKm?: number;
   checkIn: string;   // YYYY-MM-DD
   checkOut: string;  // YYYY-MM-DD
   occupancy: Occupancy[];
@@ -531,6 +544,9 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     destinationId,
     cityName,
     countryCode,
+    latitude,
+    longitude,
+    distanceKm,
     checkIn,
     checkOut,
     occupancy,
@@ -540,8 +556,12 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     starRatings,
   } = params;
 
-  if (!destinationId && !(cityName && countryCode)) {
-    throw new Error('destinationId or cityName+countryCode is required');
+  const hasLatLng =
+    typeof latitude === 'number' && Number.isFinite(latitude) &&
+    typeof longitude === 'number' && Number.isFinite(longitude);
+
+  if (!destinationId && !hasLatLng && !(cityName && countryCode)) {
+    throw new Error('destinationId, latitude+longitude, or cityName+countryCode is required');
   }
   if (!checkIn || !checkOut) throw new Error('checkIn and checkOut are required');
   if (!occupancy?.length) throw new Error('occupancy is required');
@@ -586,10 +606,20 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     // Caller passed a CSV of hotel ids directly
     hotelIds = destinationId.split(',').map((s) => s.trim()).filter(Boolean);
   } else {
-    // Look up hotels by placeId OR cityName+countryCode
+    // Look up hotels by placeId, lat/lng, OR cityName+countryCode (in that
+    // priority order — lat/lng takes precedence when both are set because
+    // it's strictly more accurate for small-town searches).
     const listQuery = new URLSearchParams({ limit: String(limit) });
     if (destinationId) {
       listQuery.set('placeId', destinationId);
+    } else if (hasLatLng) {
+      listQuery.set('latitude', String(latitude));
+      listQuery.set('longitude', String(longitude));
+      listQuery.set('distance', String(distanceKm ?? 15));
+      // countryCode helps LiteAPI scope correctly even on lat/lng search
+      // — without it some property records can leak from neighbouring
+      // tenants (rare but cheap to add).
+      if (countryCode) listQuery.set('countryCode', countryCode);
     } else {
       listQuery.set('cityName', cityName!);
       listQuery.set('countryCode', countryCode!);

@@ -363,6 +363,13 @@ async function fetchLiteApiHotels(
   childAgesParam: number[] = [],
   timeoutMs: number = 12000,
   placeId?: string,
+  // Optional WGS84 coords + radius for lat/lng-based LiteAPI search.
+  // When supplied (and no destinationId-style placeId is set), we use
+  // these instead of cityName so a search for Coulsdon doesn't get
+  // aliased upstream into "London" and return Maida Vale / Wembley.
+  // Caller is responsible for passing the centroid the visitor really
+  // meant — we pass it straight to LiteAPI.
+  centroid?: { lat: number; lng: number; radiusKm?: number },
 ): Promise<HotelOffer[]> {
   if (!process.env.LITE_API_KEY) {
     console.warn('[liteapi] LITE_API_KEY not set — skipping hotel search');
@@ -440,8 +447,17 @@ async function fetchLiteApiHotels(
     const [primaryResult, budgetResult] = await Promise.all([
       Promise.race([
         liteapiGetHotels({
-          cityName: resolvedCity,
-          countryCode: resolvedCountry,
+          // lat/lng wins over cityName when the caller supplied a centroid
+          // (small-town searches like Coulsdon). Falls back to cityName for
+          // direct city searches that don't have explicit coords.
+          ...(centroid
+            ? {
+                latitude: centroid.lat,
+                longitude: centroid.lng,
+                distanceKm: centroid.radiusKm ?? 15,
+                countryCode: resolvedCountry,
+              }
+            : { cityName: resolvedCity, countryCode: resolvedCountry }),
           checkIn: checkin,
           checkOut: checkout,
           occupancy,
@@ -457,8 +473,14 @@ async function fetchLiteApiHotels(
       }),
       Promise.race([
         liteapiGetHotels({
-          cityName: resolvedCity,
-          countryCode: resolvedCountry,
+          ...(centroid
+            ? {
+                latitude: centroid.lat,
+                longitude: centroid.lng,
+                distanceKm: centroid.radiusKm ?? 15,
+                countryCode: resolvedCountry,
+              }
+            : { cityName: resolvedCity, countryCode: resolvedCountry }),
           checkIn: checkin,
           checkOut: checkout,
           occupancy,
@@ -1237,14 +1259,12 @@ export async function GET(req: NextRequest) {
   // v21 — added children + rooms to the response echo so the Monkey Test
   // Suite (and any future client) can do strict-equality assertions on
   // occupancy round-trip. Old v20 cache entries lack those fields.
-  // v23 — aliased-search filter rewritten: instead of hard-rejecting hotels
-  // outside the radius (which gave 0 results for Coulsdon since LiteAPI has
-  // no inventory <15km of the centroid), sort by distance ASC and take the
-  // closest 50. Visitors get South-London hotels first, central London
-  // appears further down for those willing to commute, and far-flung North
-  // London / outer-zone outliers fall off entirely. Invalidates v22 entries
-  // (which were too aggressively empty).
-  const kvKey = `hotels:v23:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
+  // v24 — LiteAPI now searches by lat/lng for aliased small-town searches
+  // (Coulsdon's coords, not the aliased "London" cityName) so we get
+  // genuinely-local inventory — Sutton, Croydon, Banstead — instead of
+  // central London hotels that happen to be the geographically-nearest of
+  // a wrong fetch. Invalidates v23 entries built from the wrong upstream.
+  const kvKey = `hotels:v24:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
 
   // Group occupancy bypass: large groups (>4 guests) always get fresh prices
   // because cached availability/room blocks may not hold for that many people.
@@ -1304,10 +1324,48 @@ export async function GET(req: NextRequest) {
       excludedTaxes: o.excludedTaxes ?? null,
     }));
 
+  // ── Centroid resolution ── (must happen BEFORE the LiteAPI fetch so we
+  // can search by lat/lng for aliased small-town searches that would
+  // otherwise alias up to a metro and return wrong-neighbourhood hotels).
+  // Order of precedence: autocomplete-supplied → manual CITY_COORDS table
+  // (rawCityKey first, then alias) → Google Place Details (cached 30d).
+  let preResolvedCentre =
+    autocompleteCentre ??
+    CITY_COORDS[rawCityKey] ??
+    CITY_COORDS[cityKey] ??
+    null;
+  if (!preResolvedCentre && placeId.startsWith('google:')) {
+    const rawId = placeId.slice('google:'.length);
+    const detailsKey = `place-coords:${rawId}`;
+    try {
+      const cached = await kv.get<{ lat: number; lng: number }>(detailsKey);
+      if (cached && typeof cached.lat === 'number' && typeof cached.lng === 'number') {
+        preResolvedCentre = cached;
+      } else {
+        const fresh = await googlePlaceDetails(rawId);
+        if (fresh) {
+          preResolvedCentre = fresh;
+          await kv.set(detailsKey, fresh, { ex: 60 * 60 * 24 * 30 });
+        }
+      }
+    } catch (err) {
+      console.error('[hotels:place-details]', err instanceof Error ? err.message : err);
+    }
+  }
+  const isAliasedSearchEarly = rawCityKey !== cityKey;
+  const liteApiCentroid =
+    isAliasedSearchEarly && preResolvedCentre
+      ? {
+          lat: preResolvedCentre.lat,
+          lng: preResolvedCentre.lng,
+          radiusKm: CITY_RADIUS_KM[rawCityKey] ?? 15,
+        }
+      : undefined;
+
   // Kick off LiteAPI + RateHawk + DOTW in parallel (triple API racing).
   // DOTW uses mocked fixtures when DOTW_USERNAME is unset — still gives us a
   // Giata-tagged result set to exercise the de-dupe path in dev.
-  const liteApiPromise = fetchLiteApiHotels(cityKey, checkin, checkout, adultsNum, childrenNum, roomsNum, childAges, 12000, placeId || undefined);
+  const liteApiPromise = fetchLiteApiHotels(cityKey, checkin, checkout, adultsNum, childrenNum, roomsNum, childAges, 12000, placeId || undefined, liteApiCentroid);
   const rateHawkPromise = fetchRateHawkHotels(cityKey, checkin, checkout, adultsNum, roomsNum);
   // Absolute-origin proxy to the nodejs DOTW sub-route — Vercel requires
   // absolute URLs for edge → node internal fetches.
@@ -1338,38 +1396,17 @@ export async function GET(req: NextRequest) {
   // table doesn't list (Hove, Reigate, Banstead, …) without requiring a
   // code change every time a customer searches a new suburb. Cached in KV
   // per placeId for 30 days — coords are stable.
-  let resolvedCentre =
-    autocompleteCentre ??
-    CITY_COORDS[rawCityKey] ??
-    CITY_COORDS[cityKey] ??
-    null;
-  if (!resolvedCentre && placeId.startsWith('google:')) {
-    const rawId = placeId.slice('google:'.length);
-    const detailsKey = `place-coords:${rawId}`;
-    try {
-      const cached = await kv.get<{ lat: number; lng: number }>(detailsKey);
-      if (cached && typeof cached.lat === 'number' && typeof cached.lng === 'number') {
-        resolvedCentre = cached;
-      } else {
-        const fresh = await googlePlaceDetails(rawId);
-        if (fresh) {
-          resolvedCentre = fresh;
-          // 30-day TTL — place coords don't drift.
-          await kv.set(detailsKey, fresh, { ex: 60 * 60 * 24 * 30 });
-        }
-      }
-    } catch (err) {
-      console.error('[hotels:place-details]', err instanceof Error ? err.message : err);
-    }
-  }
-  const cityCentre = resolvedCentre;
+  // Centroid was already resolved earlier (so the LiteAPI fetch could use
+  // it as lat/lng input). Reuse the same value for the post-filter — they
+  // must be identical or upstream and downstream disagree.
+  const cityCentre = preResolvedCentre;
   // Same precedence as the centroid lookup — rawCityKey first so an aliased
   // "coulsdon → london" search still uses the strict 8km Coulsdon radius
   // rather than London's wide 25km.
   const radiusKm =
     CITY_RADIUS_KM[rawCityKey] ??
     CITY_RADIUS_KM[cityKey] ??
-    (autocompleteCentre || resolvedCentre ? 10 : DEFAULT_RADIUS_KM);
+    (autocompleteCentre || preResolvedCentre ? 10 : DEFAULT_RADIUS_KM);
   /**
    * Geo proximity filter with graceful expansion.
    * `geoFilter(hotels)` runs the strict radius first; if fewer than 5 hotels
@@ -1379,7 +1416,7 @@ export async function GET(req: NextRequest) {
    * cities with plenty of inventory.
    */
   const MIN_RESULTS_FOR_STRICT = 5;
-  const isAliasedSearch = rawCityKey !== cityKey;
+  const isAliasedSearch = isAliasedSearchEarly;
   const distanceFor = <T extends { lat?: number; lng?: number; latitude?: number; longitude?: number }>(
     h: T,
   ): number | null => {
