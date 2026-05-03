@@ -39,6 +39,70 @@ async function safeKvSet(key: string, value: unknown): Promise<void> {
   }
 }
 
+/**
+ * Airport WGS84 coords. When a search hits an airport-aliased term we use
+ * THESE coords as the geo-filter centroid so the result is "hotels near
+ * the airport", not "hotels near the metro centre". Without this, a
+ * "Heathrow" search aliased to cityKey='london' was returning Trafalgar
+ * Square / St James (central London, 25km from LHR) — wrong destination.
+ * Stress test 2026-05-03 caught this.
+ */
+const AIRPORT_COORDS: Record<string, { lat: number; lng: number; radiusKm?: number }> = {
+  // UK
+  'gatwick': { lat: 51.1537, lng: -0.1821, radiusKm: 12 },
+  'heathrow': { lat: 51.4700, lng: -0.4543, radiusKm: 12 },
+  'stansted': { lat: 51.8860, lng: 0.2389, radiusKm: 12 },
+  'luton': { lat: 51.8747, lng: -0.3683, radiusKm: 12 },
+  'london city': { lat: 51.5048, lng: 0.0495, radiusKm: 8 },
+  'london city airport': { lat: 51.5048, lng: 0.0495, radiusKm: 8 },
+  'manchester airport': { lat: 53.3537, lng: -2.2750, radiusKm: 10 },
+  'birmingham airport': { lat: 52.4539, lng: -1.7480, radiusKm: 10 },
+  'edinburgh airport': { lat: 55.9500, lng: -3.3725, radiusKm: 10 },
+  'glasgow airport': { lat: 55.8722, lng: -4.4333, radiusKm: 10 },
+  // EU
+  'cdg': { lat: 49.0097, lng: 2.5479, radiusKm: 12 },
+  'charles de gaulle': { lat: 49.0097, lng: 2.5479, radiusKm: 12 },
+  'orly': { lat: 48.7233, lng: 2.3794, radiusKm: 10 },
+  'fco': { lat: 41.8003, lng: 12.2389, radiusKm: 12 },
+  'fiumicino': { lat: 41.8003, lng: 12.2389, radiusKm: 12 },
+  'mxp': { lat: 45.6306, lng: 8.7281, radiusKm: 12 },
+  'malpensa': { lat: 45.6306, lng: 8.7281, radiusKm: 12 },
+  'bcn': { lat: 41.2974, lng: 2.0833, radiusKm: 10 },
+  'mad': { lat: 40.4983, lng: -3.5676, radiusKm: 10 },
+  'barajas': { lat: 40.4983, lng: -3.5676, radiusKm: 10 },
+  'ams': { lat: 52.3086, lng: 4.7639, radiusKm: 10 },
+  'schiphol': { lat: 52.3086, lng: 4.7639, radiusKm: 10 },
+  'fra': { lat: 50.0379, lng: 8.5622, radiusKm: 10 },
+  'muc': { lat: 48.3538, lng: 11.7861, radiusKm: 10 },
+  'zrh': { lat: 47.4647, lng: 8.5492, radiusKm: 10 },
+  // US
+  'jfk': { lat: 40.6413, lng: -73.7781, radiusKm: 10 },
+  'lga': { lat: 40.7769, lng: -73.8740, radiusKm: 8 },
+  'ewr': { lat: 40.6895, lng: -74.1745, radiusKm: 10 },
+  'newark': { lat: 40.6895, lng: -74.1745, radiusKm: 10 },
+  'lax': { lat: 33.9416, lng: -118.4085, radiusKm: 10 },
+  'mco': { lat: 28.4312, lng: -81.3081, radiusKm: 12 },
+  'mia': { lat: 25.7959, lng: -80.2870, radiusKm: 10 },
+  'ord': { lat: 41.9742, lng: -87.9073, radiusKm: 12 },
+  "o'hare": { lat: 41.9742, lng: -87.9073, radiusKm: 12 },
+  'sfo': { lat: 37.6213, lng: -122.3790, radiusKm: 12 },
+  'las': { lat: 36.0840, lng: -115.1537, radiusKm: 10 },
+  // Asia / ME
+  'dxb': { lat: 25.2532, lng: 55.3657, radiusKm: 12 },
+  'doh': { lat: 25.2611, lng: 51.5651, radiusKm: 12 },
+  'sin': { lat: 1.3644, lng: 103.9915, radiusKm: 12 },
+  'changi': { lat: 1.3644, lng: 103.9915, radiusKm: 12 },
+  'hnd': { lat: 35.5494, lng: 139.7798, radiusKm: 12 },
+  'haneda': { lat: 35.5494, lng: 139.7798, radiusKm: 12 },
+  'narita': { lat: 35.7720, lng: 140.3929, radiusKm: 15 },
+  'bkk': { lat: 13.6900, lng: 100.7501, radiusKm: 15 },
+  'suvarnabhumi': { lat: 13.6900, lng: 100.7501, radiusKm: 15 },
+  'ist': { lat: 41.2753, lng: 28.7519, radiusKm: 15 },
+  'sabiha': { lat: 40.8983, lng: 29.3092, radiusKm: 12 },
+  'dub': { lat: 53.4264, lng: -6.2499, radiusKm: 10 },
+  'dublin airport': { lat: 53.4264, lng: -6.2499, radiusKm: 10 },
+};
+
 /** Airport / landmark name → nearest city LiteAPI actually has hotels for.
  *  LiteAPI's /data/hotels treats these as airport types and returns 0 rows
  *  when sent as cityName. Rewrite happens BEFORE resolveCountryCode so we
@@ -1317,12 +1381,11 @@ export async function GET(req: NextRequest) {
   // v21 — added children + rooms to the response echo so the Monkey Test
   // Suite (and any future client) can do strict-equality assertions on
   // occupancy round-trip. Old v20 cache entries lack those fields.
-  // v24 — LiteAPI now searches by lat/lng for aliased small-town searches
-  // (Coulsdon's coords, not the aliased "London" cityName) so we get
-  // genuinely-local inventory — Sutton, Croydon, Banstead — instead of
-  // central London hotels that happen to be the geographically-nearest of
-  // a wrong fetch. Invalidates v23 entries built from the wrong upstream.
-  const kvKey = `hotels:v24:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
+  // v25 — airport searches (Heathrow, Gatwick, JFK …) now centre on
+  // AIRPORT_COORDS, not the metro centroid. Previously aliased airports
+  // returned central-metro hotels (Heathrow → Trafalgar Square). v24
+  // entries are stamped against the wrong centroid, must invalidate.
+  const kvKey = `hotels:v25:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}`;
 
   // Group occupancy bypass: large groups (>4 guests) always get fresh prices
   // because cached availability/room blocks may not hold for that many people.
@@ -1385,10 +1448,19 @@ export async function GET(req: NextRequest) {
   // ── Centroid resolution ── (must happen BEFORE the LiteAPI fetch so we
   // can search by lat/lng for aliased small-town searches that would
   // otherwise alias up to a metro and return wrong-neighbourhood hotels).
-  // Order of precedence: autocomplete-supplied → manual CITY_COORDS table
-  // (rawCityKey first, then alias) → Google Place Details (cached 30d).
+  // Order of precedence:
+  //   1. autocomplete-supplied lat/lng (most specific — picked from list)
+  //   2. AIRPORT_COORDS — when the search hits an airport-aliased term
+  //      (Heathrow, Gatwick, JFK, etc) we MUST centre on the airport
+  //      coords, not the metro centroid, otherwise customers searching
+  //      "Heathrow" get Trafalgar Square hotels.
+  //   3. CITY_COORDS keyed on rawCityKey (covers small UK suburbs)
+  //   4. CITY_COORDS keyed on aliased cityKey
+  //   5. Google Place Details (cached 30d) for unknown Google placeIds
+  const airportCentre = AIRPORT_COORDS[rawCityKey];
   let preResolvedCentre =
     autocompleteCentre ??
+    airportCentre ??
     CITY_COORDS[rawCityKey] ??
     CITY_COORDS[cityKey] ??
     null;
@@ -1411,12 +1483,17 @@ export async function GET(req: NextRequest) {
     }
   }
   const isAliasedSearchEarly = rawCityKey !== cityKey;
+  // Airport searches ALWAYS use lat/lng upstream — the airport-coord
+  // radius is much smaller than the metro radius, and we want LiteAPI
+  // to surface airport-area inventory directly rather than filtering
+  // a metro-wide fetch down.
+  const isAirportSearch = !!airportCentre;
   const liteApiCentroid =
-    isAliasedSearchEarly && preResolvedCentre
+    (isAliasedSearchEarly || isAirportSearch) && preResolvedCentre
       ? {
           lat: preResolvedCentre.lat,
           lng: preResolvedCentre.lng,
-          radiusKm: CITY_RADIUS_KM[rawCityKey] ?? 15,
+          radiusKm: airportCentre?.radiusKm ?? CITY_RADIUS_KM[rawCityKey] ?? 15,
         }
       : undefined;
 
