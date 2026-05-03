@@ -372,6 +372,32 @@ function nearestAirport(hotelLat: number, hotelLng: number, candidates: Airport[
   return best;
 }
 
+/**
+ * Pick the top-N closest airports to a hotel, each within `maxMiles`.
+ * Used on hotel cards to show "near LHR (4 mi) · LGW (28 mi) · STN (40 mi)"
+ * so customers know all viable airport options, not just the single
+ * geographically-nearest one (which can be misleading when two airports
+ * are roughly equidistant in different directions).
+ *
+ * Returns airports sorted by distance ASC, capped at limit.
+ */
+function nearbyAirports(
+  hotelLat: number,
+  hotelLng: number,
+  candidates: Airport[],
+  maxMiles = 60,
+  limit = 3,
+): Array<{ airport: Airport; miles: number }> {
+  if (!candidates.length) return [];
+  const ranked: Array<{ airport: Airport; miles: number }> = [];
+  for (const a of candidates) {
+    const miles = haversineMi(hotelLat, hotelLng, a.lat, a.lng);
+    if (miles <= maxMiles) ranked.push({ airport: a, miles });
+  }
+  ranked.sort((x, y) => x.miles - y.miles);
+  return ranked.slice(0, limit);
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    PROVIDER DEEP LINKS (only affiliated providers)
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -1112,17 +1138,23 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
   /** Hovering this card notifies the map so it can emphasise the pin. */
   onHover?: (hovered: boolean) => void;
 }) {
-  // Distance (miles) from city centre + the *nearest* candidate airport —
-  // picked per-hotel, so a Crawley hotel labels LGW while a Hounslow hotel
-  // labels LHR even when both were returned by the same "London" search.
+  // Distance (miles) from city centre + up to 3 nearby candidate airports
+  // (within 60mi). A hotel near Reading shows LHR (~25mi) AND LGW (~50mi)
+  // so customers picking based on which airport their flight lands at
+  // can decide for themselves — single-airport labels were misleading
+  // when two airports sit roughly equidistant in different directions.
   const hasCoords = typeof hotel.lat === 'number' && typeof hotel.lng === 'number';
   const milesFromCentre = hasCoords && cityCentre
     ? haversineMi(hotel.lat!, hotel.lng!, cityCentre.lat, cityCentre.lng)
     : null;
-  const airport = hasCoords ? nearestAirport(hotel.lat!, hotel.lng!, airports) : null;
-  const milesFromAirport = hasCoords && airport
-    ? haversineMi(hotel.lat!, hotel.lng!, airport.lat, airport.lng)
-    : null;
+  const airportsNearby = hasCoords
+    ? nearbyAirports(hotel.lat!, hotel.lng!, airports, 60, 3)
+    : [];
+  // Backwards-compat aliases — kept so the existing JSX doesn't have to
+  // change in this commit. `airport` is the closest, `milesFromAirport`
+  // its distance — used by the legacy single-pin chip below the tile.
+  const airport = airportsNearby[0]?.airport ?? null;
+  const milesFromAirport = airportsNearby[0]?.miles ?? null;
   const fmtMi = (mi: number) => (mi < 10 ? mi.toFixed(1) : Math.round(mi).toString());
   const [selectedBoard, setSelectedBoard] = useState(0);
   const h = hotel;
@@ -1228,7 +1260,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
             </div>
             <h3 className="font-[var(--font-playfair)] font-black text-[1.2rem] text-[#0a1628] tracking-tight mb-1 leading-tight">{h.name}</h3>
             {h.district && <p className="text-[.75rem] text-[#8E95A9] font-semibold mb-1">📍 {h.district}</p>}
-            {(milesFromCentre != null || milesFromAirport != null) && (
+            {(milesFromCentre != null || airportsNearby.length > 0) && (
               <p className="text-[.72rem] text-[#287DFA] font-semibold mb-2 flex flex-wrap items-center gap-x-2 gap-y-0.5">
                 {milesFromCentre != null && (
                   <span className="inline-flex items-center gap-1">
@@ -1236,11 +1268,13 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
                     {fmtMi(milesFromCentre)} mi from centre
                   </span>
                 )}
-                {milesFromCentre != null && milesFromAirport != null && <span className="text-[#287DFA]/40">·</span>}
-                {milesFromAirport != null && airport && (
+                {milesFromCentre != null && airportsNearby.length > 0 && <span className="text-[#287DFA]/40">·</span>}
+                {airportsNearby.length > 0 && (
                   <span className="inline-flex items-center gap-1">
                     <i className="fa-solid fa-plane text-[.62rem] text-[#287DFA]" />
-                    {fmtMi(milesFromAirport)} mi from {airport.iata}
+                    {airportsNearby
+                      .map(({ airport: a, miles }) => `${a.iata} ${fmtMi(miles)}mi`)
+                      .join(' · ')}
                   </span>
                 )}
               </p>
