@@ -10,6 +10,16 @@ const GREETING: Msg = {
     "Hi, I'm Scout 👋 Ask me anything about travel — destinations, packing, weather, visas, culture. For prices, head to our search pages.",
 };
 
+// Default vertical position for the Scout button (px from the bottom).
+// Was 20px which collided with the mobile sticky category bar and
+// covered the bottom-most page CTAs on smaller phones. 80px lifts it
+// clear of those without floating into the middle of the screen.
+const DEFAULT_BOTTOM_PX = 80;
+const SCOUT_POS_KEY = 'jma_scout_bottom_px';
+// Keep the button at least this far from each edge so it never sits
+// off-screen or behind the header.
+const MIN_BOTTOM = 16;
+
 export default function ScoutChat() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([GREETING]);
@@ -17,6 +27,70 @@ export default function ScoutChat() {
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Vertical position state. Restored from localStorage on mount so the
+  // visitor's chosen spot persists across visits. Drag handlers below
+  // update it live; we save to localStorage on pointer-up so we don't
+  // hammer storage during the drag.
+  const [bottomPx, setBottomPx] = useState<number>(DEFAULT_BOTTOM_PX);
+  const draggingRef = useRef(false);
+  const dragStartYRef = useRef(0);
+  const dragStartBottomRef = useRef(DEFAULT_BOTTOM_PX);
+  // While dragging we suppress the click that fires on pointerup so a
+  // drag-to-reposition doesn't also open the chat.
+  const justDraggedRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const raw = window.localStorage.getItem(SCOUT_POS_KEY);
+    if (raw) {
+      const n = Number(raw);
+      if (Number.isFinite(n)) {
+        setBottomPx(clampBottom(n));
+      }
+    }
+  }, []);
+
+  function clampBottom(v: number): number {
+    if (typeof window === 'undefined') return v;
+    const max = Math.max(MIN_BOTTOM, window.innerHeight - 80);
+    return Math.min(max, Math.max(MIN_BOTTOM, v));
+  }
+
+  function onPointerDown(e: React.PointerEvent<HTMLButtonElement>) {
+    // Only start dragging on a long-press / drag — a normal click still
+    // toggles the chat. We arm the drag state and decide based on
+    // movement in pointermove.
+    draggingRef.current = true;
+    dragStartYRef.current = e.clientY;
+    dragStartBottomRef.current = bottomPx;
+    justDraggedRef.current = false;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  }
+  function onPointerMove(e: React.PointerEvent<HTMLButtonElement>) {
+    if (!draggingRef.current) return;
+    const dy = dragStartYRef.current - e.clientY;
+    if (Math.abs(dy) > 4) justDraggedRef.current = true;
+    setBottomPx(clampBottom(dragStartBottomRef.current + dy));
+  }
+  function onPointerUp(e: React.PointerEvent<HTMLButtonElement>) {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch { /* ignore */ }
+    if (justDraggedRef.current && typeof window !== 'undefined') {
+      window.localStorage.setItem(SCOUT_POS_KEY, String(bottomPx));
+    }
+  }
+  function handleClick() {
+    // Suppress the click that immediately follows a drag.
+    if (justDraggedRef.current) {
+      justDraggedRef.current = false;
+      return;
+    }
+    setOpen((v) => !v);
+  }
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -67,11 +141,19 @@ export default function ScoutChat() {
 
   return (
     <>
-      {/* Floating Scout avatar */}
+      {/* Floating Scout avatar — vertically draggable. Drag with finger
+          or mouse to move up/down; position persists across visits via
+          localStorage. Default sits well above the mobile sticky
+          category bar so it doesn't cover bottom CTAs. */}
       <button
-        onClick={() => setOpen((v) => !v)}
-        aria-label={open ? 'Close Scout' : 'Open Scout'}
-        className="fixed bottom-5 left-5 z-[300] group flex items-center gap-2.5 transition-all"
+        onClick={handleClick}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        aria-label={open ? 'Close Scout' : 'Open Scout (drag to move)'}
+        style={{ bottom: `${bottomPx}px`, touchAction: 'none' }}
+        className="fixed left-5 z-[300] group flex items-center gap-2.5 transition-[transform,opacity] cursor-grab active:cursor-grabbing"
       >
         {/* Name tag — visible when closed, hides on open */}
         {!open && (
@@ -95,9 +177,13 @@ export default function ScoutChat() {
         </span>
       </button>
 
-      {/* Chat panel */}
+      {/* Chat panel — anchored just above the (movable) avatar so it
+          follows whichever spot the customer dragged Scout to. */}
       {open && (
-        <div className="fixed bottom-24 left-5 z-[299] w-[calc(100vw-40px)] max-w-[380px] h-[520px] max-h-[calc(100vh-120px)] bg-white rounded-3xl shadow-[0_32px_64px_-15px_rgba(0,0,0,0.25)] border border-[#E8ECF4] flex flex-col overflow-hidden">
+        <div
+          style={{ bottom: `${bottomPx + 56}px` }}
+          className="fixed left-5 z-[299] w-[calc(100vw-40px)] max-w-[380px] h-[520px] max-h-[calc(100vh-120px)] bg-white rounded-3xl shadow-[0_32px_64px_-15px_rgba(0,0,0,0.25)] border border-[#E8ECF4] flex flex-col overflow-hidden"
+        >
           {/* Header */}
           <div className="bg-gradient-to-br from-[#0066FF] to-[#4F46E5] text-white px-5 py-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-lg">
