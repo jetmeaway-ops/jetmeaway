@@ -157,6 +157,222 @@ export async function googlePlaceDetails(
  * `includedTypes` are Google's "primary type" tokens — see
  * https://developers.google.com/maps/documentation/places/web-service/place-types
  */
+// ---------------------------------------------------------------------------
+// Hotel photos + reviews enrichment.
+// ---------------------------------------------------------------------------
+// Used to top up the gallery + reviews on the hotel detail page when LiteAPI
+// is light on imagery. Two-call flow:
+//   1. Text Search by hotel name + location bias to resolve a placeId.
+//   2. Place Details with field mask `photos,reviews,rating,userRatingCount`.
+// Then for each photo `name`, a media call resolves the short-lived CDN URI
+// (`skipHttpRedirect=true` → JSON `photoUri`). Callers KV-cache the result
+// (24h) so a hotel detail page only burns quota on the first visitor per day.
+//
+// Cost (2026-05): Text Search $32/1k, Place Details $25/1k Pro SKU,
+// Photo Media $7/1k. Six photos per hotel ≈ $0.10 first-fetch then free
+// for 24h. With our current KV-cached pattern this stays inside the
+// $200/mo Google credit even at 50k hotel detail views/mo.
+
+const TEXT_SEARCH_ENDPOINT = 'https://places.googleapis.com/v1/places:searchText';
+
+export type GoogleHotelReview = {
+  authorName: string;
+  authorPhoto: string | null;
+  rating: number;
+  text: string;
+  relativeTime: string;
+  publishTime: string | null;
+};
+
+export type GoogleHotelEnrichment = {
+  placeId: string | null;
+  rating: number | null;            // 1-5 Google rating
+  ratingCount: number | null;       // total Google reviews
+  photos: string[];                 // resolved photoUri CDN URLs (no API key in URL)
+  reviews: GoogleHotelReview[];     // up to 5 most-relevant reviews
+  editorialSummary: string | null;  // Google's short editorial blurb
+  websiteUri: string | null;        // hotel's official site
+  phone: string | null;             // international format
+  priceLevel: string | null;        // PRICE_LEVEL_INEXPENSIVE | _MODERATE | _EXPENSIVE | _VERY_EXPENSIVE
+  formattedAddress: string | null;  // multi-line postal address
+  googleMapsUri: string | null;     // canonical Google Maps URL
+  openingHours: string[] | null;    // weekly schedule, one entry per day
+};
+
+/**
+ * Resolve a hotel to a Google placeId via Text Search.
+ * Includes location bias when coords are supplied so we don't match a
+ * different "Hotel X" on the wrong continent.
+ */
+export async function googleHotelPlaceId(
+  name: string,
+  lat?: number,
+  lng?: number,
+  signal?: AbortSignal,
+): Promise<string | null> {
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+  if (!apiKey || !name) return null;
+
+  const body: Record<string, unknown> = {
+    textQuery: name,
+    includedType: 'lodging',
+    maxResultCount: 1,
+  };
+  if (typeof lat === 'number' && typeof lng === 'number' && isFinite(lat) && isFinite(lng)) {
+    body.locationBias = {
+      circle: {
+        center: { latitude: lat, longitude: lng },
+        radius: 5000,
+      },
+    };
+  }
+
+  try {
+    const res = await fetch(TEXT_SEARCH_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': 'places.id',
+      },
+      body: JSON.stringify(body),
+      signal,
+    });
+    if (!res.ok) {
+      console.error('[google-places:textSearch] HTTP', res.status, await res.text().catch(() => ''));
+      return null;
+    }
+    const data = await res.json() as { places?: Array<{ id?: string }> };
+    return data.places?.[0]?.id ?? null;
+  } catch (err) {
+    console.error('[google-places:textSearch]', err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+/**
+ * Fetch photos + reviews for a hotel by Google placeId.
+ * Resolves up to 6 photo URLs (1200px max width) and returns the 5 reviews
+ * Google ranks as most relevant. Returns null on any error.
+ */
+export async function googleHotelEnrichment(
+  placeId: string,
+  signal?: AbortSignal,
+): Promise<Omit<GoogleHotelEnrichment, 'placeId'> | null> {
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+  if (!apiKey || !placeId) return null;
+
+  type PlaceDetails = {
+    rating?: number;
+    userRatingCount?: number;
+    photos?: Array<{ name?: string }>;
+    reviews?: Array<{
+      authorAttribution?: {
+        displayName?: string;
+        photoUri?: string;
+      };
+      rating?: number;
+      text?: { text?: string };
+      relativePublishTimeDescription?: string;
+      publishTime?: string;
+    }>;
+    editorialSummary?: { text?: string };
+    websiteUri?: string;
+    internationalPhoneNumber?: string;
+    nationalPhoneNumber?: string;
+    priceLevel?: string;
+    formattedAddress?: string;
+    googleMapsUri?: string;
+    regularOpeningHours?: { weekdayDescriptions?: string[] };
+    currentOpeningHours?: { weekdayDescriptions?: string[] };
+  };
+
+  let details: PlaceDetails | null = null;
+  try {
+    const res = await fetch(`${DETAILS_ENDPOINT}/${encodeURIComponent(placeId)}`, {
+      method: 'GET',
+      headers: {
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': [
+          'rating',
+          'userRatingCount',
+          'photos',
+          'reviews',
+          'editorialSummary',
+          'websiteUri',
+          'internationalPhoneNumber',
+          'nationalPhoneNumber',
+          'priceLevel',
+          'formattedAddress',
+          'googleMapsUri',
+          'regularOpeningHours.weekdayDescriptions',
+          'currentOpeningHours.weekdayDescriptions',
+        ].join(','),
+      },
+      signal,
+    });
+    if (!res.ok) {
+      console.error('[google-places:enrich] HTTP', res.status, await res.text().catch(() => ''));
+      return null;
+    }
+    details = await res.json();
+  } catch (err) {
+    console.error('[google-places:enrich]', err instanceof Error ? err.message : err);
+    return null;
+  }
+  if (!details) return null;
+
+  // Resolve up to 6 photos in parallel — each call hits the Photo Media SKU.
+  const photoNames = (details.photos ?? []).slice(0, 6).map((p) => p.name).filter(Boolean) as string[];
+  const photoUris = await Promise.all(
+    photoNames.map(async (name): Promise<string | null> => {
+      try {
+        const url = `https://places.googleapis.com/v1/${name}/media?maxWidthPx=1200&skipHttpRedirect=true`;
+        const r = await fetch(url, {
+          headers: { 'X-Goog-Api-Key': apiKey },
+          signal,
+        });
+        if (!r.ok) return null;
+        const d = await r.json() as { photoUri?: string };
+        return d.photoUri ?? null;
+      } catch {
+        return null;
+      }
+    }),
+  );
+
+  const reviews: GoogleHotelReview[] = (details.reviews ?? [])
+    .slice(0, 5)
+    .map((r) => ({
+      authorName: r.authorAttribution?.displayName ?? 'Google reviewer',
+      authorPhoto: r.authorAttribution?.photoUri ?? null,
+      rating: typeof r.rating === 'number' ? r.rating : 0,
+      text: r.text?.text ?? '',
+      relativeTime: r.relativePublishTimeDescription ?? '',
+      publishTime: r.publishTime ?? null,
+    }))
+    .filter((r) => r.text.length > 0);
+
+  const openingHours =
+    details.currentOpeningHours?.weekdayDescriptions ??
+    details.regularOpeningHours?.weekdayDescriptions ??
+    null;
+
+  return {
+    rating: typeof details.rating === 'number' ? details.rating : null,
+    ratingCount: typeof details.userRatingCount === 'number' ? details.userRatingCount : null,
+    photos: photoUris.filter((u): u is string => !!u),
+    reviews,
+    editorialSummary: details.editorialSummary?.text ?? null,
+    websiteUri: details.websiteUri ?? null,
+    phone: details.internationalPhoneNumber ?? details.nationalPhoneNumber ?? null,
+    priceLevel: details.priceLevel ?? null,
+    formattedAddress: details.formattedAddress ?? null,
+    googleMapsUri: details.googleMapsUri ?? null,
+    openingHours,
+  };
+}
+
 export async function googlePlacesNearby(
   lat: number,
   lng: number,

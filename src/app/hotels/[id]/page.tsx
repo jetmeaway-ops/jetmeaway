@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Header from '@/components/Header';
@@ -220,6 +220,26 @@ export default function HotelDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activePhoto, setActivePhoto] = useState(0);
+  const galleryRef = useRef<HTMLDivElement | null>(null);
+
+  // Google Places enrichment — extra photos, Google reviews, Google's editorial
+  // blurb, phone, website, opening hours, Google Maps link. Loaded after the
+  // primary hotel details so the page can render without waiting on it.
+  type GoogleInfo = {
+    placeId: string | null;
+    rating: number | null;
+    ratingCount: number | null;
+    photos: string[];
+    reviews: Array<{ authorName: string; authorPhoto: string | null; rating: number; text: string; relativeTime: string }>;
+    editorialSummary: string | null;
+    websiteUri: string | null;
+    phone: string | null;
+    priceLevel: string | null;
+    formattedAddress: string | null;
+    googleMapsUri: string | null;
+    openingHours: string[] | null;
+  };
+  const [googleInfo, setGoogleInfo] = useState<GoogleInfo | null>(null);
   const [startingBooking, setStartingBooking] = useState(false);
   const [similarHotels, setSimilarHotels] = useState<SimilarHotel[]>([]);
   const [similarLoading, setSimilarLoading] = useState(false);
@@ -308,6 +328,26 @@ export default function HotelDetailPage() {
     })();
     return () => { cancelled = true; };
   }, [id, city, checkin, checkout, adults, children, rooms]);
+
+  // Google Places enrichment — runs once we have the hotel name + coords from
+  // the primary details fetch. Server-side route KV-caches per hotelId for
+  // 24h so repeat visits don't burn quota. Failures are silent — Google data
+  // is purely additive, not load-bearing for the page.
+  useEffect(() => {
+    if (!hotel?.name) return;
+    let cancelled = false;
+    const params = new URLSearchParams({ hotelId: hotel.id, name: hotel.name });
+    if (typeof hotel.latitude === 'number') params.set('lat', String(hotel.latitude));
+    if (typeof hotel.longitude === 'number') params.set('lng', String(hotel.longitude));
+    fetch(`/api/hotels/google-info?${params}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled) return;
+        if (d?.success && d.data) setGoogleInfo(d.data as GoogleInfo);
+      })
+      .catch(() => { /* silent — purely additive */ });
+    return () => { cancelled = true; };
+  }, [hotel?.id, hotel?.name, hotel?.latitude, hotel?.longitude]);
 
   // Fetch similar hotels in the same city
   useEffect(() => {
@@ -529,7 +569,22 @@ export default function HotelDetailPage() {
     );
   }
 
-  const gallery = hotel.photos.length > 0 ? hotel.photos : (hotel.mainPhoto ? [hotel.mainPhoto] : []);
+  // Merge LiteAPI photos with Google Places photos (de-duplicated). Google
+  // photos are appended after LiteAPI's so the booking-partner imagery still
+  // leads, but visitors get more variety to scroll through.
+  const liteapiPhotos = hotel.photos.length > 0 ? hotel.photos : (hotel.mainPhoto ? [hotel.mainPhoto] : []);
+  const googlePhotos = googleInfo?.photos ?? [];
+  const gallery = (() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const url of [...liteapiPhotos, ...googlePhotos]) {
+      if (url && !seen.has(url)) {
+        seen.add(url);
+        out.push(url);
+      }
+    }
+    return out;
+  })();
   const mainImg = gallery[activePhoto] || hotel.mainPhoto;
 
   const numNights = checkin && checkout
@@ -717,13 +772,78 @@ export default function HotelDetailPage() {
           </div>
         </div>
 
-        {/* Gallery */}
+        {/* Gallery — swipeable horizontal carousel.
+            Native scroll-snap so users can swipe on mobile and scroll/drag on
+            desktop without any JS gesture handler. onScroll syncs activePhoto
+            with the thumbnail strip; clicking a thumbnail scrolls the carousel
+            to that slide. Desktop also gets prev/next arrow buttons over the
+            image. Photo counter pill in the corner. */}
         {gallery.length > 0 && (
           <div className="mb-6">
-            <div className="w-full h-[280px] md:h-[460px] rounded-2xl overflow-hidden bg-[#F1F3F7]">
-              {mainImg && (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img src={mainImg} alt={hotel.name} className="w-full h-full object-cover" />
+            <div className="relative group w-full h-[280px] md:h-[460px] rounded-2xl overflow-hidden bg-[#F1F3F7]">
+              <div
+                ref={galleryRef}
+                onScroll={(e) => {
+                  const el = e.currentTarget;
+                  const idx = Math.round(el.scrollLeft / el.clientWidth);
+                  if (idx !== activePhoto && idx >= 0 && idx < gallery.length) {
+                    setActivePhoto(idx);
+                  }
+                }}
+                className="flex h-full w-full overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden"
+                style={{ scrollbarWidth: 'none' }}
+              >
+                {gallery.map((url, i) => (
+                  <div key={i} className="relative flex-shrink-0 w-full h-full snap-start snap-always">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={url}
+                      alt={`${hotel.name} — photo ${i + 1}`}
+                      className="w-full h-full object-cover select-none"
+                      draggable={false}
+                      loading={i === 0 ? 'eager' : 'lazy'}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Photo counter — only shown when there's more than one photo */}
+              {gallery.length > 1 && (
+                <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-full bg-black/55 text-white text-[.7rem] font-semibold tabular-nums backdrop-blur-sm">
+                  {activePhoto + 1} / {gallery.length}
+                </div>
+              )}
+
+              {/* Desktop arrows — hidden on touch (md+ only). Fade in on hover. */}
+              {gallery.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Previous photo"
+                    onClick={() => {
+                      const el = galleryRef.current;
+                      if (!el) return;
+                      const target = Math.max(0, activePhoto - 1);
+                      el.scrollTo({ left: target * el.clientWidth, behavior: 'smooth' });
+                    }}
+                    className="hidden md:flex items-center justify-center absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/85 hover:bg-white text-[#0a1628] shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <i className="fa-solid fa-chevron-left text-sm" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Next photo"
+                    onClick={() => {
+                      const el = galleryRef.current;
+                      if (!el) return;
+                      const target = Math.min(gallery.length - 1, activePhoto + 1);
+                      el.scrollTo({ left: target * el.clientWidth, behavior: 'smooth' });
+                    }}
+                    className="hidden md:flex items-center justify-center absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/85 hover:bg-white text-[#0a1628] shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <i className="fa-solid fa-chevron-right text-sm" />
+                  </button>
+                </>
               )}
             </div>
             {gallery.length > 1 && (
@@ -732,7 +852,11 @@ export default function HotelDetailPage() {
                   <button
                     key={i}
                     type="button"
-                    onClick={() => setActivePhoto(i)}
+                    onClick={() => {
+                      setActivePhoto(i);
+                      const el = galleryRef.current;
+                      if (el) el.scrollTo({ left: i * el.clientWidth, behavior: 'smooth' });
+                    }}
                     className={`flex-shrink-0 w-24 h-16 rounded-lg overflow-hidden border-2 transition-all ${i === activePhoto ? 'border-orange-500' : 'border-transparent'}`}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -821,6 +945,65 @@ export default function HotelDetailPage() {
                 <p className="text-[.88rem] text-[#5C6378] font-medium leading-relaxed whitespace-pre-line">
                   {hotel.description.slice(0, 1200)}{hotel.description.length > 1200 ? '…' : ''}
                 </p>
+                {googleInfo?.editorialSummary && (
+                  <div className="mt-4 pt-4 border-t border-[#E8ECF4]">
+                    <div className="text-[.66rem] font-black uppercase tracking-[1px] text-[#8E95A9] mb-1.5">
+                      <i className="fa-brands fa-google text-[.7rem] mr-1.5" />
+                      Google says
+                    </div>
+                    <p className="text-[.84rem] text-[#1A1D2B] font-medium italic leading-relaxed">
+                      {googleInfo.editorialSummary}
+                    </p>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* Hotel quick facts — phone, website, opening hours, Google Maps
+                link. Only renders when at least one Google-sourced field is
+                present so we don't show an empty card. */}
+            {googleInfo && (googleInfo.phone || googleInfo.websiteUri || googleInfo.openingHours?.length || googleInfo.googleMapsUri) && (
+              <section className="bg-white border border-[#E8ECF4] rounded-2xl p-6 mb-5">
+                <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-3">Hotel info</h2>
+                <ul className="space-y-2.5 text-[.84rem]">
+                  {googleInfo.phone && (
+                    <li className="flex items-start gap-3">
+                      <i className="fa-solid fa-phone text-[#0066FF] mt-1 w-4 text-center" />
+                      <a href={`tel:${googleInfo.phone.replace(/\s+/g, '')}`} className="text-[#0a1628] font-semibold hover:underline">
+                        {googleInfo.phone}
+                      </a>
+                    </li>
+                  )}
+                  {googleInfo.websiteUri && (
+                    <li className="flex items-start gap-3">
+                      <i className="fa-solid fa-globe text-[#0066FF] mt-1 w-4 text-center" />
+                      <a href={googleInfo.websiteUri} target="_blank" rel="nofollow noopener noreferrer" className="text-[#0a1628] font-semibold hover:underline truncate max-w-[300px]">
+                        {googleInfo.websiteUri.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                      </a>
+                    </li>
+                  )}
+                  {googleInfo.googleMapsUri && (
+                    <li className="flex items-start gap-3">
+                      <i className="fa-solid fa-map-location-dot text-[#0066FF] mt-1 w-4 text-center" />
+                      <a href={googleInfo.googleMapsUri} target="_blank" rel="nofollow noopener noreferrer" className="text-[#0a1628] font-semibold hover:underline">
+                        View on Google Maps
+                      </a>
+                    </li>
+                  )}
+                  {googleInfo.openingHours && googleInfo.openingHours.length > 0 && (
+                    <li className="flex items-start gap-3">
+                      <i className="fa-solid fa-clock text-[#0066FF] mt-1 w-4 text-center" />
+                      <div className="flex-1">
+                        <div className="text-[#0a1628] font-semibold mb-1">Reception hours</div>
+                        <ul className="text-[.76rem] text-[#5C6378] font-medium space-y-0.5">
+                          {googleInfo.openingHours.map((line, i) => (
+                            <li key={i}>{line}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </li>
+                  )}
+                </ul>
               </section>
             )}
 
@@ -1109,6 +1292,86 @@ export default function HotelDetailPage() {
                   </p>
                   <p className="text-[.74rem] text-[#5C6378] font-medium max-w-[380px] mx-auto">
                     This property hasn&apos;t been reviewed on our network yet. Once guests complete their stay, their feedback will appear here.
+                  </p>
+                </div>
+              )}
+
+              {/* Google reviews block — additive to LiteAPI/Booking.com reviews
+                  above. Only renders when Google returned at least one review.
+                  Shows the aggregate Google rating + count alongside the cards
+                  so the social-proof score from a different source compounds. */}
+              {googleInfo && googleInfo.reviews.length > 0 && (
+                <div className="mt-6 pt-6 border-t border-[#E8ECF4]">
+                  <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
+                    <div>
+                      <h3 className="font-poppins font-black text-[1rem] text-[#1A1D2B] mb-1">
+                        <i className="fa-brands fa-google text-[.86rem] mr-2" />
+                        Google reviews
+                      </h3>
+                      <p className="text-[.72rem] text-[#8E95A9] font-semibold">
+                        Live from Google — independent traveller feedback.
+                      </p>
+                    </div>
+                    {typeof googleInfo.rating === 'number' && (
+                      <div className="flex items-center gap-3">
+                        <div className="rounded-xl bg-amber-50 ring-1 ring-amber-200 px-3 py-2 text-center min-w-[68px]">
+                          <div className="font-[var(--font-playfair)] font-black text-[1.4rem] text-amber-700 leading-none">
+                            {googleInfo.rating.toFixed(1)}
+                          </div>
+                          <div className="text-[.58rem] font-black uppercase tracking-wider text-amber-700 mt-1">
+                            out of 5
+                          </div>
+                        </div>
+                        {typeof googleInfo.ratingCount === 'number' && googleInfo.ratingCount > 0 && (
+                          <div className="text-[.75rem]">
+                            <div className="text-[#8E95A9] font-semibold text-[.66rem] uppercase tracking-[.8px]">
+                              Google reviews
+                            </div>
+                            <div className="text-[#0a1628] font-poppins font-black text-[1.05rem] leading-tight">
+                              {googleInfo.ratingCount.toLocaleString()}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {googleInfo.reviews.map((r, i) => (
+                      <li key={`g-${i}`}>
+                        <div className="rounded-xl bg-[#FAFBFC] ring-1 ring-[#E8ECF4] p-4">
+                          <div className="flex items-start gap-3 mb-2">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            {r.authorPhoto && (
+                              <img src={r.authorPhoto} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" loading="lazy" />
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <div className="font-poppins font-bold text-[.82rem] text-[#0a1628] truncate">
+                                {r.authorName}
+                              </div>
+                              <div className="text-[.68rem] text-[#8E95A9] font-semibold flex items-center gap-1.5 flex-wrap">
+                                <span aria-label={`Rating ${r.rating} of 5`}>
+                                  {Array.from({ length: 5 }).map((_, idx) => (
+                                    <i key={idx} className={`fa-solid fa-star text-[.6rem] ${idx < Math.round(r.rating) ? 'text-amber-500' : 'text-slate-300'}`} />
+                                  ))}
+                                </span>
+                                {r.relativeTime && (
+                                  <>
+                                    <span aria-hidden>·</span>
+                                    <span>{r.relativeTime}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <p className="text-[.78rem] text-[#1A1D2B] font-medium leading-snug line-clamp-6">
+                            {r.text}
+                          </p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-4 text-[.66rem] text-[#8E95A9] font-medium">
+                    Reviews shown via the Google Places API — Google branding remains the property of Google.
                   </p>
                 </div>
               )}
