@@ -156,7 +156,10 @@ function assertResponse(s, status, body) {
   } else if (Number(body.children) !== expectedChildren) {
     errs.push(`children mismatch: sent ${s.children} (clamped ${expectedChildren}), got ${body.children}`);
   }
-  const expectedRooms = Math.max(1, Math.min(5, s.rooms));
+  // The occupancy decoder clamps rooms to <= adults (LiteAPI rule:
+  // each room needs at least 1 adult), so "1 adult / 3 rooms" comes
+  // back as 1 room. Mirror that clamp in the assertion.
+  const expectedRooms = Math.max(1, Math.min(5, s.rooms, s.adults));
   if (body.rooms === undefined) {
     errs.push(`rooms not echoed (expected ${expectedRooms})`);
   } else if (Number(body.rooms) !== expectedRooms) {
