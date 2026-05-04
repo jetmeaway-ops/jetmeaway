@@ -505,7 +505,7 @@ export default function HotelDetailPage() {
     return (
       <>
         <Header />
-        <main className="max-w-[1100px] mx-auto px-5 pt-32 pb-16 text-center">
+        <main className="max-w-[1100px] mx-auto px-5 pt-40 lg:pt-32 pb-16 text-center">
           <div className="inline-block w-8 h-8 border-4 border-[#E8ECF4] border-t-orange-500 rounded-full animate-spin" />
           <p className="mt-4 text-sm font-semibold text-[#5C6378]">Loading hotel…</p>
         </main>
@@ -518,7 +518,7 @@ export default function HotelDetailPage() {
     return (
       <>
         <Header />
-        <main className="max-w-[1100px] mx-auto px-5 pt-32 pb-16">
+        <main className="max-w-[1100px] mx-auto px-5 pt-40 lg:pt-32 pb-16">
           <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
             <p className="font-poppins font-bold text-red-700">{error || 'Hotel not found'}</p>
             <a href={city ? `/hotels?destination=${encodeURIComponent(city)}&checkin=${checkin}&checkout=${checkout}&adults=${adults}` : '/hotels'} className="inline-block mt-4 text-sm font-bold text-[#0066FF] underline">← Back to hotels</a>
@@ -625,7 +625,9 @@ export default function HotelDetailPage() {
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: JSON.stringify(hotelJsonLd) }}
       />
-      <main className="max-w-[1100px] mx-auto px-5 pt-28 pb-24 md:pb-16">
+      {/* pt-40 on mobile clears the fixed header (90px) + sticky category
+          bar (~55px). pt-28 on desktop matches the rest of the site. */}
+      <main className="max-w-[1100px] mx-auto px-5 pt-40 lg:pt-28 pb-24 md:pb-16">
         {/* BACKLOG B4 (2026-04-21): Prominent "Back to search results" pill.
             User feedback — the browser back button lands on the empty /hotels
             state because the landing page is fully client-driven. Build an
