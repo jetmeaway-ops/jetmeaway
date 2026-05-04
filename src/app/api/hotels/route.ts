@@ -1464,12 +1464,11 @@ export async function GET(req: NextRequest) {
   // v21 — added children + rooms to the response echo so the Monkey Test
   // Suite (and any future client) can do strict-equality assertions on
   // occupancy round-trip. Old v20 cache entries lack those fields.
-  // v28 — drop curated metro hotels from aliased searches (Coulsdon /
-  // Hove / Watford etc). Every curated entry is stamped at the metro
-  // centroid, so they were leaking into the new "nearest-50" sort for
-  // aliased search and pushing The Savoy etc into a Coulsdon result.
+  // v29 — actually apply the v28 fix to the MAIN curated merge path,
+  // not just the partial-match fallback. v28 only patched one of two
+  // sites; The Savoy was still leaking through the main path.
   const occCacheSuffix = parsed.data.occ ? `:occ=${parsed.data.occ}` : '';
-  const kvKey = `hotels:v28:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}${occCacheSuffix}`;
+  const kvKey = `hotels:v29:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}${occCacheSuffix}`;
 
   // Group occupancy bypass: large groups (>4 guests) always get fresh prices
   // because cached availability/room blocks may not hold for that many people.
@@ -1853,11 +1852,15 @@ export async function GET(req: NextRequest) {
     ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
   }));
   const apiHotels = geoFilter((await mergeApis()).filter(passesStars));
-  // Bookable API hotels first, curated deep-link hotels after. Curated also
-  // runs through geoFilter — otherwise an aliased "coulsdon→london" search
-  // would leak the entire curated London set (each stamped at the London
-  // centroid) into a 15km-Coulsdon-radius response.
-  const hotels = [...apiHotels, ...geoFilter(curatedHotels.filter(passesStars))];
+  // Skip curated entirely on aliased searches — every curated entry is
+  // stamped at the metro centroid (e.g. London = 51.5074), never the
+  // searched suburb, so they're never the right answer for a Coulsdon /
+  // Hove / Watford lookup. Direct city searches still get them as
+  // backfill when the supplier tier is sparse.
+  const hotels = [
+    ...apiHotels,
+    ...(isAliasedSearch ? [] : geoFilter(curatedHotels.filter(passesStars))),
+  ];
 
   const result = {
     hotels,
