@@ -1464,13 +1464,12 @@ export async function GET(req: NextRequest) {
   // v21 — added children + rooms to the response echo so the Monkey Test
   // Suite (and any future client) can do strict-equality assertions on
   // occupancy round-trip. Old v20 cache entries lack those fields.
-  // v27 — per-room occupancy (Room[] from the new picker) is now part
-  // of the cache key when the new `occ=` param is supplied. Two
-  // requests with the same totals but different per-room splits now
-  // get distinct cache slots, so a 2A/2K/1R booking and a 1A+1K /
-  // 1A+1K split return different inventory + pricing.
+  // v28 — drop curated metro hotels from aliased searches (Coulsdon /
+  // Hove / Watford etc). Every curated entry is stamped at the metro
+  // centroid, so they were leaking into the new "nearest-50" sort for
+  // aliased search and pushing The Savoy etc into a Coulsdon result.
   const occCacheSuffix = parsed.data.occ ? `:occ=${parsed.data.occ}` : '';
-  const kvKey = `hotels:v27:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}${occCacheSuffix}`;
+  const kvKey = `hotels:v28:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}${occCacheSuffix}`;
 
   // Group occupancy bypass: large groups (>4 guests) always get fresh prices
   // because cached availability/room blocks may not hold for that many people.
@@ -1815,7 +1814,15 @@ export async function GET(req: NextRequest) {
       // search would bypass proximity for the curated set (every curated hotel
       // is stamped with the city centroid, so they all sit at the same point;
       // without this filter, all-of-London curated leaks into Coulsdon results).
-      const hotels = [...apiHotels, ...geoFilter(curatedHotels.filter(passesStars))];
+      // Skip curated entirely on aliased searches — every curated entry
+      // is stamped with the METRO centroid, never the searched suburb,
+      // so the geoFilter "nearest-50" on aliased mode would pick them
+      // up at 20km when the visitor wanted 8km. (Caught by monkey-smoke
+      // 2026-05-04: Coulsdon a3c3r3 → The Savoy at 20.9km.)
+      const hotels = [
+        ...apiHotels,
+        ...(isAliasedSearch ? [] : geoFilter(curatedHotels.filter(passesStars))),
+      ];
 
       const result = { hotels, city: match.charAt(0).toUpperCase() + match.slice(1), checkin, checkout, adults: adultsNum, children: childrenNum, rooms: roomsNum, liteapiCount: apiHotels.length };
       await safeKvSet(kvKey, result);
