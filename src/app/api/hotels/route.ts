@@ -258,6 +258,26 @@ const AIRPORT_TO_CITY: Record<string, string> = {
   'victoriafalls': 'victoria falls', 'victoria-falls': 'victoria falls',
   'playadelcarmen': 'playa del carmen', 'playa-del-carmen': 'playa del carmen',
   'monteguebay': 'montego bay', 'montego-bay': 'montego bay',
+  // Saudi Arabia — English exonyms map to LiteAPI's transliterated forms.
+  // Without these, "Mecca" returns 0 and "Medina" routes to Medina, Ohio.
+  // Added 2026-05-05 after user report.
+  'mecca': 'makkah', 'makkah al-mukarramah': 'makkah', 'makkah al mukarramah': 'makkah',
+  'medina': 'madinah', 'medinah': 'madinah',
+  'al madinah': 'madinah', 'al-madinah': 'madinah',
+  'al madinah al munawwarah': 'madinah',
+  // Variants of other major Saudi cities
+  'jiddah': 'jeddah', 'jedda': 'jeddah',
+  'ar-riyadh': 'riyadh', 'ar riyadh': 'riyadh',
+  // India — niche destinations LiteAPI indexes under different names than
+  // the common English/marketing form. Added 2026-05-05 after user reports
+  // ("Spiti Valley" → 0, "Pondicherry" → 0).
+  'spiti valley': 'spiti', 'spiti-valley': 'spiti',
+  'pondicherry': 'puducherry', 'pondichéry': 'puducherry', 'pondichery': 'puducherry',
+  // Cabo Verde — main resort island is Sal but LiteAPI indexes hotels under
+  // the town name "Santa Maria", not the island. Added 2026-05-05 after the
+  // /hotels?destination=Sal CTA in the Cabo Verde blog returned 0 results.
+  'sal': 'santa maria', 'cape verde': 'santa maria', 'cabo verde': 'santa maria',
+  'cape-verde': 'santa maria', 'cabo-verde': 'santa maria',
 };
 
 /** City → ISO-3166 alpha-2 country code for LiteAPI lookups */
@@ -292,12 +312,16 @@ const CITY_COUNTRY: Record<string, string> = {
   'dubrovnik': 'HR', 'split': 'HR',
   // Middle East
   'dubai': 'AE', 'abu dhabi': 'AE', 'doha': 'QA', 'muscat': 'OM',
+  // Saudi Arabia (incl. Hajj/Umrah destinations — high volume from UK Muslim travellers)
+  'makkah': 'SA', 'madinah': 'SA', 'jeddah': 'SA', 'riyadh': 'SA', 'dammam': 'SA',
+  'taif': 'SA', 'al khobar': 'SA',
   // Africa
   'cairo': 'EG', 'hurghada': 'EG', 'sharm el sheikh': 'EG',
   'marrakech': 'MA', 'casablanca': 'MA', 'agadir': 'MA',
   'cape town': 'ZA', 'johannesburg': 'ZA', 'durban': 'ZA',
   'nairobi': 'KE', 'zanzibar': 'TZ', 'victoria falls': 'ZW',
   'tunis': 'TN', 'hammamet': 'TN', 'sousse': 'TN',
+  'santa maria': 'CV', 'praia': 'CV',
   // Asia
   'tokyo': 'JP', 'osaka': 'JP', 'kyoto': 'JP',
   'bangkok': 'TH', 'phuket': 'TH', 'chiang mai': 'TH', 'pattaya': 'TH',
@@ -306,6 +330,10 @@ const CITY_COUNTRY: Record<string, string> = {
   'hong kong': 'HK', 'seoul': 'KR', 'taipei': 'TW',
   'hanoi': 'VN', 'ho chi minh city': 'VN',
   'mumbai': 'IN', 'delhi': 'IN', 'goa': 'IN',
+  // India niche / blog destinations
+  'spiti': 'IN', 'puducherry': 'IN', 'hampi': 'IN', 'khajuraho': 'IN',
+  'mahabalipuram': 'IN', 'jorhat': 'IN', 'kochi': 'IN', 'itanagar': 'IN',
+  'mcleod ganj': 'IN', 'dharamshala': 'IN',
   'colombo': 'LK',
   // Nepal
   'kathmandu': 'NP', 'pokhara': 'NP', 'chitwan': 'NP', 'lumbini': 'NP',
@@ -774,6 +802,12 @@ const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
   'maldives': { lat: 4.1755, lng: 73.5093 },
   'sydney': { lat: -33.8688, lng: 151.2093 },
   'cape town': { lat: -33.9249, lng: 18.4241 },
+  // Saudi Arabia — Hajj/Umrah and Gulf travel
+  'makkah': { lat: 21.4225, lng: 39.8262 },
+  'madinah': { lat: 24.4707, lng: 39.6126 },
+  'jeddah': { lat: 21.4858, lng: 39.1925 },
+  'riyadh': { lat: 24.7136, lng: 46.6753 },
+  'dammam': { lat: 26.4207, lng: 50.0888 },
   'los angeles': { lat: 34.0522, lng: -118.2437 },
   'miami': { lat: 25.7617, lng: -80.1918 },
   'gran canaria': { lat: 27.9202, lng: -15.5474 },
