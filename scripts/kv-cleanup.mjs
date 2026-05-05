@@ -51,8 +51,11 @@ async function call(cmd) {
 }
 
 const STALE_PREFIXES = [
-  // OLD CACHE VERSIONS — anything before v24
-  ...Array.from({ length: 23 }, (_, i) => `hotels:v${i + 1}:`),
+  // ALL hotels:vN cache entries v1..v29 — v29 is current but its 193 cached
+  // entries hit ~504 MB and pushed us past the 256 MB Upstash free quota.
+  // Deleting is safe: cache rebuilds on next search per city/dates combo.
+  // First user hitting an evicted combo waits ~3s instead of ~50ms once.
+  ...Array.from({ length: 29 }, (_, i) => `hotels:v${i + 1}:`),
   // Stale lookups that re-derive cheap on demand
   'place-coords:',
   'hotellook:datestrip:',

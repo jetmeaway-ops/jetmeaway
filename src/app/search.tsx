@@ -193,15 +193,25 @@ export default function FlightSearch() {
   }
 
   function submitSearch() {
-    const q = query.trim().toLowerCase();
-    if (!q) {
+    const raw = query.trim();
+    if (!raw) {
       inputRef.current?.focus();
       return;
     }
-    // Resolve to a destination: exact match first, then startsWith, then includes
+    const q = raw.toLowerCase();
+    // Resolve to a destination: exact match first, then startsWith, then includes.
     const exact = DESTINATIONS.find(d => d.city.toLowerCase() === q || d.code.toLowerCase() === q);
     const partial = exact || DESTINATIONS.find(d => d.city.toLowerCase().startsWith(q)) || DESTINATIONS.find(d => d.city.toLowerCase().includes(q));
-    if (partial) goToFlights(partial);
+    if (partial) {
+      goToFlights(partial);
+      return;
+    }
+    // Fallback: nothing matched in the homepage's 50-city short-list.
+    // Hand off to /flights with the typed text so the flights page's
+    // wider 250-airport autocomplete + keyword search can resolve it.
+    // Without this fallback the search button silently no-ops on any
+    // destination not in the short-list (Krakow, Karachi, Phuket, etc.).
+    window.location.href = `/flights?origin=${origin.code}&destCity=${encodeURIComponent(raw)}`;
   }
 
   return (

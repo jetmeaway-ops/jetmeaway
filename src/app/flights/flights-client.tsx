@@ -1082,7 +1082,12 @@ function FlightsContent() {
       setInitDest(sticky.dest);
       if (sticky.destCity) setDestCity(sticky.destCity);
     }
-    if (destCityParam && d) setDestCity(destCityParam);
+    // destCity can arrive without an IATA `dest` code — e.g. when the
+    // homepage couldn't resolve a typed city to one of its 50-city
+    // short-list and handed off the raw text to /flights so this page's
+    // wider autocomplete can resolve it. Fill the destCity field so the
+    // user sees their query land + the autocomplete kicks in.
+    if (destCityParam) setDestCity(destCityParam);
     if (dep) {
       setDepDate(dep);
     } else if (sticky?.departure) {
