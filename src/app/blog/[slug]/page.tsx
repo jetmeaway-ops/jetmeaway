@@ -5,6 +5,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import MidArticleCta from '@/components/blog/MidArticleCta';
 import DownloadPdfCard from '@/components/blog/DownloadPdfCard';
+import HotelPhoto from '@/components/blog/HotelPhoto';
 import { getAllPostSlugs, getPostBySlug, formatPostDate } from '@/lib/blog';
 import type { Metadata } from 'next';
 
@@ -118,6 +119,9 @@ const mdxComponents = {
   // Lead-magnet PDF download card — usable as `<DownloadPdfCard slug="..." city="..." />`
   // anywhere inside MDX. See src/components/blog/DownloadPdfCard.tsx.
   DownloadPdfCard,
+  // Per-hotel hero image pulled from Google Places — usable inside any
+  // hotel city blog post as `<HotelPhoto hotelName="…" city="…" />`.
+  HotelPhoto,
 };
 /* eslint-enable @typescript-eslint/no-explicit-any */
 

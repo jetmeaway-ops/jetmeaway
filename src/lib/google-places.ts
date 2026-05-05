@@ -251,6 +251,68 @@ export async function googleHotelPlaceId(
 }
 
 /**
+ * Cheaper variant — just one photo, used by blog posts where we only
+ * need a single hero shot per recommended hotel. Two API calls:
+ * Text Search → Photo Media (skipping the Place Details photos field
+ * which is the expensive part of full enrichment).
+ *
+ * Returns the resolved CDN photo URL (lh3.googleusercontent.com/places/…)
+ * or null on any error / missing key. Caller is responsible for caching.
+ *
+ * Cost: Text Search $32/1k + Photo Media $7/1k ≈ $0.04 per hotel
+ * first-fetch — half the cost of the full enrichment path.
+ */
+export async function googleHotelFirstPhoto(
+  query: string,
+  signal?: AbortSignal,
+): Promise<string | null> {
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+  if (!apiKey || !query) return null;
+
+  try {
+    // Text Search — return first photo name in the same call (saves
+    // one Place Details request vs. doing it in two steps).
+    const res = await fetch(TEXT_SEARCH_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': 'places.id,places.photos.name',
+      },
+      body: JSON.stringify({
+        textQuery: query,
+        includedType: 'lodging',
+        maxResultCount: 1,
+      }),
+      signal,
+    });
+    if (!res.ok) {
+      console.error('[google-places:firstPhoto] HTTP', res.status, await res.text().catch(() => ''));
+      return null;
+    }
+    const data = await res.json() as {
+      places?: Array<{ id?: string; photos?: Array<{ name?: string }> }>;
+    };
+    const photoName = data.places?.[0]?.photos?.[0]?.name;
+    if (!photoName) return null;
+
+    const mediaRes = await fetch(
+      `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=1200&skipHttpRedirect=true`,
+      {
+        headers: { 'X-Goog-Api-Key': apiKey },
+        signal,
+      },
+    );
+    if (!mediaRes.ok) return null;
+    const mediaData = await mediaRes.json() as { photoUri?: string };
+    return mediaData.photoUri ?? null;
+  } catch (err) {
+    console.error('[google-places:firstPhoto]', err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+/**
  * Fetch photos + reviews for a hotel by Google placeId.
  * Resolves up to 6 photo URLs (1200px max width) and returns the 5 reviews
  * Google ranks as most relevant. Returns null on any error.
