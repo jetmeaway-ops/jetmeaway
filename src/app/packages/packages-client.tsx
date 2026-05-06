@@ -278,6 +278,29 @@ function LoadingState({ dest }: { dest: string }) {
    AFFILIATE LINK BUILDERS
    ═══════════════════════════════════════════════════════════════════════════ */
 
+/**
+ * Calculate the integer night count between two ISO yyyy-mm-dd dates.
+ * Floors fractional results (DST shifts) and clamps the minimum to 1
+ * so a `duration=0` never gets pushed to a partner page that would
+ * default back to its own 7-night fallback.
+ *
+ * Used by the Expedia + Trip.com package URL builders below to send
+ * an explicit `duration` / `noOfNights` parameter alongside the
+ * start/end dates. Both partners normally derive duration from the
+ * date range, but a defensive explicit value insures against either
+ * side failing to parse the dates and silently falling back to a
+ * 7-day default — the failure mode owners reported on Build #15/#16
+ * after navigating from the native packages search.
+ */
+export function calculateNights(checkIn: string, checkOut: string): number {
+  if (!checkIn || !checkOut) return 1;
+  const a = new Date(checkIn).getTime();
+  const b = new Date(checkOut).getTime();
+  if (!Number.isFinite(a) || !Number.isFinite(b) || b <= a) return 1;
+  const days = Math.floor((b - a) / 86_400_000);
+  return Math.max(1, days);
+}
+
 function buildExpediaUrl(
   dest: string,
   from: string,
@@ -300,8 +323,14 @@ function buildExpediaUrl(
   //                                        format (`children=N_age1_age2`).
   //   tripType=ROUND_TRIP, cabinClass=COACH
   //   startDate / endDate               → ISO yyyy-mm-dd
+  //   duration                          → integer night count, defensive
+  //                                        echo of (endDate - startDate).
+  //                                        Stops Expedia from defaulting
+  //                                        to a 7-night package when a
+  //                                        date parse fails. (2026-05-06)
   //   destination / origin              → display strings (Expedia resolves)
   const childCount = Math.max(0, children | 0);
+  const nights = calculateNights(depDate, retDate);
   const params = new URLSearchParams();
   params.set('packageType', 'fh');
   params.set('searchProduct', 'hotel');
@@ -320,6 +349,7 @@ function buildExpediaUrl(
   params.set('cabinClass', 'COACH');
   params.set('startDate', depDate);
   params.set('endDate', retDate);
+  params.set('duration', String(nights));
   params.set('destination', dest);
   params.set('origin', from);
   params.set('affcid', 'clbU3QK');
@@ -378,7 +408,14 @@ function buildTripUrl(
     ageParams.push(`age${i + 1}=${safe}`);
   }
   const ageQuery = ageParams.length > 0 ? `&${ageParams.join('&')}` : '';
-  return `https://www.trip.com/packages/list?adult=${adults}&child=${childCount}&infants=0${ageQuery}&aCityCode=${destCity}&dCityCode=${fromCity}&tripWay=round-trip&classType=ys&dDate=${depDate}&rDate=${retDate}&room=1&sourceFrom=IBUdefault&destinationName=${encodeURIComponent(destName)}&isOversea=true&locale=en-GB&curr=GBP&Allianceid=8023009&SID=303363796&trip_sub3=D15021113`;
+  // `noOfNights` is Trip.com's explicit duration parameter — a defensive
+  // echo of (rDate - dDate). Trip.com normally derives the night count
+  // from the date pair, but on edge cases (locale parse drift, malformed
+  // ISO dates) the page falls back to a 7-night default and that's what
+  // owners reported on Build #15/#16 after navigating from the native
+  // packages search. Belt-and-braces alongside dDate / rDate. (2026-05-06)
+  const nights = calculateNights(depDate, retDate);
+  return `https://www.trip.com/packages/list?adult=${adults}&child=${childCount}&infants=0${ageQuery}&aCityCode=${destCity}&dCityCode=${fromCity}&tripWay=round-trip&classType=ys&dDate=${depDate}&rDate=${retDate}&noOfNights=${nights}&room=1&sourceFrom=IBUdefault&destinationName=${encodeURIComponent(destName)}&isOversea=true&locale=en-GB&curr=GBP&Allianceid=8023009&SID=303363796&trip_sub3=D15021113`;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
