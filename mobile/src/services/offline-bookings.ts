@@ -1,19 +1,27 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
 /**
  * Offline bookings — local copy of the user's most recent booking confirmations
  * so they can pull up the details at the airport with no signal.
  *
  * Apple Guideline 4.2 case: this is a native capability the web cannot deliver.
  * Web has no persistent device storage that survives an airplane-mode flight
- * connection drop; AsyncStorage gives us 6MB of guaranteed-available local
- * storage on every device.
+ * connection drop; MMKV gives us encrypted, sub-millisecond local storage on
+ * every device.
  *
  * Source of bookings: the WebView on /success/[id] posts a message to the
  * native shell with the booking JSON. The shell calls saveBooking() — the
- * resulting list is then renderable by the native My Trips modal even when
+ * resulting list is then renderable by the native Trips screen even when
  * offline.
+ *
+ * Storage backend: encrypted MMKV v4 instance from `./storage`. Migration
+ * from the legacy AsyncStorage key (jma:bookings:v1 in production) is run
+ * once at app launch by `migrateFromAsyncStorage()` — see storage.ts.
+ *
+ * API stays async-typed (Promise<...>) for backward compatibility with the
+ * existing callers in App.tsx and MyTripsModal.tsx. MMKV is actually
+ * synchronous; sync helpers are exposed alongside for first-frame paint.
  */
+
+import { storage, readJson, writeJson, deleteKey } from './storage';
 
 export type SavedBooking = {
   id: string;            // booking reference (JMA-... or supplier ref)
@@ -29,43 +37,51 @@ export type SavedBooking = {
   savedAt: number;       // epoch ms — used for sort
 };
 
-const KEY = 'jma:bookings:v1';
-const MAX_BOOKINGS = 25;
+const KEY = 'trips:v1';
+const MAX_BOOKINGS = 50;
 
-export async function listBookings(): Promise<SavedBooking[]> {
-  try {
-    const raw = await AsyncStorage.getItem(KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter((b): b is SavedBooking => !!b && typeof b === 'object' && typeof b.id === 'string')
-      .sort((a, b) => (b.savedAt ?? 0) - (a.savedAt ?? 0));
-  } catch {
-    return [];
-  }
+/* ── Sync helpers (preferred — paints on the first frame) ───────────── */
+
+/**
+ * Read all saved bookings synchronously, sorted newest first.
+ * Returns an empty array on any error / empty store.
+ */
+export function getBookingsSync(): SavedBooking[] {
+  const list = readJson<SavedBooking[]>(KEY, []);
+  if (!Array.isArray(list)) return [];
+  return list
+    .filter((b): b is SavedBooking => !!b && typeof b === 'object' && typeof b.id === 'string')
+    .sort((a, b) => (b.savedAt ?? 0) - (a.savedAt ?? 0));
 }
 
-export async function saveBooking(booking: Omit<SavedBooking, 'savedAt'>): Promise<void> {
+export function saveBookingSync(booking: Omit<SavedBooking, 'savedAt'>): void {
   if (!booking?.id) return;
-  const existing = await listBookings();
+  const existing = getBookingsSync();
   // Dedupe by id — newest write wins.
   const filtered = existing.filter((b) => b.id !== booking.id);
   const next: SavedBooking[] = [{ ...booking, savedAt: Date.now() }, ...filtered].slice(0, MAX_BOOKINGS);
-  try {
-    await AsyncStorage.setItem(KEY, JSON.stringify(next));
-  } catch (err) {
-    console.error('[offline-bookings] save failed', err);
-  }
+  writeJson(KEY, next);
+}
+
+export function clearAllBookingsSync(): void {
+  deleteKey(KEY);
+}
+
+/* ── Async wrappers (backward compat for existing callers) ──────────── */
+
+export async function listBookings(): Promise<SavedBooking[]> {
+  return getBookingsSync();
+}
+
+export async function saveBooking(booking: Omit<SavedBooking, 'savedAt'>): Promise<void> {
+  saveBookingSync(booking);
 }
 
 export async function clearAllBookings(): Promise<void> {
-  try {
-    await AsyncStorage.removeItem(KEY);
-  } catch {
-    /* ignore */
-  }
+  clearAllBookingsSync();
 }
+
+/* ── Inbound message validator (called from WebView bridge) ─────────── */
 
 /**
  * Parse an inbound message from the WebView. Returns the SavedBooking shape
@@ -91,3 +107,11 @@ export function parseBookingMessage(payload: unknown): Omit<SavedBooking, 'saved
     url: p.url,
   };
 }
+
+/* ── Storage debug accessor ─────────────────────────────────────────── */
+
+/**
+ * Internal — exposes the underlying MMKV instance for hooks that need
+ * `useMMKVListener` to react in real time (e.g. trips badge counter).
+ */
+export const _storage = storage;
