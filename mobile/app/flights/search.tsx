@@ -122,7 +122,21 @@ export default function FlightSearchScreen() {
     });
     if (passengers.children > 0) params.set('children', String(passengers.children));
     if (passengers.infants > 0) params.set('infants', String(passengers.infants));
-    if (recent.range.return) params.set('return', recent.range.return);
+    // Trip-type contract with the web /flights page:
+    //   - mode==='return' → include `return=YYYY-MM-DD`. Web sees the
+    //     `return` param and locks tripType='return'.
+    //   - mode==='one-way' → omit `return` AND set `tripType=oneway`.
+    //     Earlier builds only omitted `return` and relied on the web
+    //     defaulting to one-way, but the page actually defaults to
+    //     'return' and only flips to one-way via sticky-search state —
+    //     a fresh native install with no sticky shows the return date
+    //     input. The explicit `tripType` token is read by the web in the
+    //     companion fix that lands on `main` in this same change set.
+    if (mode === 'one-way') {
+      params.set('tripType', 'oneway');
+    } else if (recent.range.return) {
+      params.set('return', recent.range.return);
+    }
     if (cabin !== 'economy') params.set('cabin', cabin);
 
     router.push(`/webview/flights?${params.toString()}`);

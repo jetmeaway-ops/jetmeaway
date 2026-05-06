@@ -28,7 +28,7 @@ import DateRangePicker, {
 } from '../../src/components/forms/DateRangePicker';
 import { colors, radii, spacing, typography } from '../../src/theme';
 import { haptics } from '../../src/hooks/useHaptics';
-import { HOTEL_DESTINATIONS } from '../../src/lib/popular-locations';
+import { CAR_PICKUPS } from '../../src/lib/popular-locations';
 
 export default function CarsSearchScreen() {
   const router = useRouter();
@@ -44,14 +44,33 @@ export default function CarsSearchScreen() {
     if (!canSearch || !pickup || !range.depart || !range.return) return;
     haptics.success();
 
+    // URL contract for /webview/cars (matches the website's /cars page —
+    // see src/app/cars/page.tsx readURL useEffect):
+    //   location        — full airport name string, EXACT match required
+    //                     for findLocation() to resolve the EB plc ID and
+    //                     fire the auto-search. Provided by CAR_PICKUPS.
+    //   pickup          — pickup DATE (YYYY-MM-DD). NB: same key name as
+    //                     the location used to use, hence the rename.
+    //   dropoff         — dropoff DATE (YYYY-MM-DD).
+    //   pickupTime      — HH:mm. Default 10:00 to land on a working
+    //                     affiliate page.
+    //   dropoffTime     — HH:mm. Default 10:00.
+    //   age             — driver age (numeric).
+    //   returnLocation  — full airport name string for one-way hires
+    //                     (different drop-off airport).
+    // Build #15 sent the wrong keys (`pickup=<IATA>&from=&to=`) so the web
+    // page never auto-searched and the user perceived "Search button
+    // does nothing." Fixed in 1.0.8 (2026-05-06).
     const params = new URLSearchParams({
-      pickup: pickup.code,
-      from: range.depart.toISOString().slice(0, 10),
-      to: range.return.toISOString().slice(0, 10),
+      location: pickup.code,
+      pickup: range.depart.toISOString().slice(0, 10),
+      dropoff: range.return.toISOString().slice(0, 10),
+      pickupTime: '10:00',
+      dropoffTime: '10:00',
       age: String(driverAge),
     });
     if (returnDifferent && dropoff) {
-      params.set('dropoff', dropoff.code);
+      params.set('returnLocation', dropoff.code);
     }
 
     router.push(`/webview/cars?${params.toString()}`);
@@ -72,7 +91,7 @@ export default function CarsSearchScreen() {
             <LocationPicker
               value={pickup}
               onChange={setPickup}
-              options={HOTEL_DESTINATIONS}
+              options={CAR_PICKUPS}
               placeholder="Pickup"
               icon="car-outline"
               customHint="Type any city or airport"
@@ -81,7 +100,7 @@ export default function CarsSearchScreen() {
               <LocationPicker
                 value={dropoff}
                 onChange={setDropoff}
-                options={HOTEL_DESTINATIONS}
+                options={CAR_PICKUPS}
                 placeholder="Drop-off"
                 icon="flag-outline"
                 customHint="Type any city or airport"

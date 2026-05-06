@@ -41,7 +41,14 @@ import { HOTEL_DESTINATIONS } from '../../src/lib/popular-locations';
 import { readJson, writeJson } from '../../src/services/storage';
 import { donateIntent } from '../../src/services/intents';
 
-const RECENT_KEY = 'searches:hotels:v1';
+// 2026-05-06: bumped v1 → v2. The previous schema persisted destination
+// `code` strings like "Kerala" / "Bali" / "Tenerife" which LiteAPI can't
+// resolve (Kerala is a state, the others are islands). The new
+// HOTEL_DESTINATIONS map those labels to resolvable cities (Kochi,
+// Denpasar, Adeje). Old MMKV entries would still send the unresolvable
+// codes if we kept the same key, so we discard them on first launch of
+// 1.0.8 by reading from a fresh key.
+const RECENT_KEY = 'searches:hotels:v2';
 const MAX_RECENTS = 8;
 
 type RecentSearch = {

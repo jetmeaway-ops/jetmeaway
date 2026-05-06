@@ -46,9 +46,23 @@ export default function PackagesSearchScreen() {
     if (!canSearch || !origin || !destination || !range.depart || !range.return) return;
     haptics.success();
 
+    // URL contract for /webview/packages (matches src/app/packages/
+    // packages-client.tsx readURL useEffect):
+    //   from   — origin airport (any of: IATA / "London (LON)" / etc.)
+    //   to     — DESTINATION CITY NAME, not an IATA code. The web
+    //            page calls /api/hotels?city=<to> which uses LiteAPI's
+    //            city-name resolver. Build #15 sent the IATA code (e.g.
+    //            "CDG") which LiteAPI returns nothing for, so the user
+    //            saw the page's curated "7 nights from London Heathrow"
+    //            FAMILY_PACKAGES section instead of their actual search
+    //            results — hence the "duration says 7 days" report.
+    //   depart / return — YYYY-MM-DD.
+    //   adults / children — pax counts.
+    // Fixed in 1.0.8 (2026-05-06): send `destination.label` (city
+    // name, e.g. "Paris") rather than `destination.code` (IATA).
     const params = new URLSearchParams({
       from: origin.code,
-      to: destination.code,
+      to: destination.label,
       depart: range.depart.toISOString().slice(0, 10),
       return: range.return.toISOString().slice(0, 10),
       adults: String(guests.adults),
@@ -107,7 +121,8 @@ export default function PackagesSearchScreen() {
           <Ionicons name="information-circle-outline" size={20} color={colors.brand} />
           <Text style={styles.infoText}>
             Packages combine flight + hotel for a single price. We compare
-            Expedia, Trip.com, Booking, and Klook side by side.
+            Expedia, Trip.com, Klook and our direct hotel partners side by
+            side.
           </Text>
         </Card>
       </ScrollView>
