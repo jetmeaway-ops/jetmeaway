@@ -22,6 +22,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -140,6 +141,32 @@ export default function ProfileScreen() {
     },
     [router],
   );
+
+  // App Store guideline 5.1.1(v) — discoverable in-app account-deletion
+  // entry point. Mirrors the row in settings/account.tsx so reviewers
+  // (and customers) can find it without digging through Settings first.
+  const handleDeleteAccount = useCallback(() => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to permanently delete your account? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            haptics.medium();
+            Linking.openURL('https://jetmeaway.co.uk/delete-account').catch(() => {
+              Alert.alert(
+                'Cannot open browser',
+                'Please visit https://jetmeaway.co.uk/delete-account to complete account deletion.',
+              );
+            });
+          },
+        },
+      ],
+    );
+  }, []);
 
   const isSignedIn = !!email;
   const initials = (email || '?')
@@ -274,6 +301,28 @@ export default function ProfileScreen() {
           />
         </Card>
 
+        {/* ── Account deletion (Apple Guideline 5.1.1(v)) ─ */}
+        <Text style={styles.sectionLabel}>ACCOUNT MANAGEMENT</Text>
+        <Card style={styles.settingsCard}>
+          <Pressable
+            onPress={handleDeleteAccount}
+            accessibilityRole="button"
+            accessibilityLabel="Delete account"
+            style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+          >
+            <View style={[styles.rowIcon, styles.deleteIcon]}>
+              <Ionicons name="trash-outline" size={20} color={colors.danger} />
+            </View>
+            <View style={styles.rowText}>
+              <Text style={[styles.rowLabel, styles.deleteLabel]}>Delete Account</Text>
+              <Text style={styles.rowSublabel}>
+                Permanently remove your saved searches, deal alerts and sign-in.
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.danger} />
+          </Pressable>
+        </Card>
+
         {/* ── Version footer ─────────────────────────────── */}
         <Text style={styles.versionFooter}>
           JetMeAway {appVersion} ({buildNumber})
@@ -398,5 +447,11 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: 'center',
     marginTop: spacing.lg,
+  },
+  deleteIcon: {
+    backgroundColor: colors.dangerSubtle,
+  },
+  deleteLabel: {
+    color: colors.danger,
   },
 });

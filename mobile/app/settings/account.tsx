@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -83,6 +84,32 @@ export default function AccountScreen() {
       ],
     );
   }, [router]);
+
+  // App Store guideline 5.1.1(v) — in-app entry point for permanent account
+  // deletion. Native confirmation alert, then hand off to the web confirmation
+  // page which performs the actual deletion against /api/account/delete.
+  const handleDeleteAccount = useCallback(() => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to permanently delete your account? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            haptics.medium();
+            Linking.openURL('https://jetmeaway.co.uk/delete-account').catch(() => {
+              Alert.alert(
+                'Cannot open browser',
+                'Please visit https://jetmeaway.co.uk/delete-account to complete account deletion.',
+              );
+            });
+          },
+        },
+      ],
+    );
+  }, []);
 
   const isSignedIn = !!email;
 
@@ -170,6 +197,30 @@ export default function AccountScreen() {
             />
           </View>
         ) : null}
+
+        {/* Account deletion — Apple Guideline 5.1.1(v). Always visible so a
+            signed-out reviewer can still find the entry point. */}
+        <Text style={styles.sectionLabel}>DANGER ZONE</Text>
+        <Card style={styles.card}>
+          <Pressable
+            onPress={handleDeleteAccount}
+            accessibilityRole="button"
+            accessibilityLabel="Delete account"
+            style={({ pressed }) => [styles.deleteRow, pressed && styles.rowPressed]}
+          >
+            <View style={[styles.rowIcon, styles.deleteIcon]}>
+              <Ionicons name="trash-outline" size={20} color={colors.danger} />
+            </View>
+            <View style={styles.rowText}>
+              <Text style={[styles.rowLabel, styles.deleteLabel]}>Delete Account</Text>
+              <Text style={styles.rowSublabel}>
+                Permanently remove your saved searches, deal alerts and sign-in.
+                Booking records are retained as required by law.
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.danger} />
+          </Pressable>
+        </Card>
       </ScrollView>
     </SafeAreaView>
   );
@@ -239,4 +290,16 @@ const styles = StyleSheet.create({
     borderColor: colors.borderStrong,
   },
   signOutWrap: { marginTop: spacing.md },
+  deleteRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    padding: spacing.sm,
+  },
+  deleteIcon: {
+    backgroundColor: colors.dangerSubtle,
+  },
+  deleteLabel: {
+    color: colors.danger,
+  },
 });
