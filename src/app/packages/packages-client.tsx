@@ -329,8 +329,12 @@ const EXPEDIA_ORIGIN_REGION: Record<string, number> = {
 };
 type ExpediaDest = { city: number; airport: number; iata: string; display: string };
 const EXPEDIA_DEST: Record<string, ExpediaDest> = {
-  // Verified live on expedia.co.uk 2026-05-06:
+  // Verified live on expedia.co.uk 2026-05-06 — captured by submitting
+  // the /Holidays form for each city and decoding the resulting misId
+  // suffix (see scripts/affiliate-link-monitor.mjs for the protobuf
+  // structure). Add a row by repeating that flow.
   TFS: { city: 6047194, airport: 5457492, iata: 'TFS', display: 'Tenerife, Canary Islands, Spain' },
+  AYT: { city: 481,     airport: 5527873, iata: 'AYT', display: 'Antalya, Antalya Region, Türkiye' },
 };
 
 function varintBytes(n: number): number[] {
