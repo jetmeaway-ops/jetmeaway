@@ -2150,6 +2150,24 @@ function HotelsContent() {
     else if (sticky?.rooms) setRooms(Math.min(5, Math.max(1, sticky.rooms)));
 
     if (s) setMinStars(Math.min(5, Math.max(0, parseInt(s))));
+    else if (typeof sticky?.minStars === 'number') {
+      setMinStars(Math.min(5, Math.max(0, sticky.minStars)));
+    }
+
+    // Result-page filters (Board Basis pills, Free-cancellation toggle).
+    // URL wins; sticky is the fallback so filters survive a round-trip
+    // through /hotels/[id]. (2026-05-06 — fixes "filters reset on back
+    // navigation" bug reported on iOS Build #19.)
+    const bf = p.get('boardBasis') || p.get('board');
+    if (bf) setBoardFilter(bf);
+    else if (sticky?.boardFilter) setBoardFilter(sticky.boardFilter);
+
+    const refParam = p.get('refundable');
+    if (refParam === '1') setRefundableOnly(true);
+    else if (refParam === '0') setRefundableOnly(false);
+    else if (typeof sticky?.refundableOnly === 'boolean') {
+      setRefundableOnly(sticky.refundableOnly);
+    }
 
     if (pid) setSelectedPlaceId(pid);
     else if (sticky?.placeId && !dest) setSelectedPlaceId(sticky.placeId);
@@ -2245,6 +2263,9 @@ function HotelsContent() {
       childrenAges: childCount > 0 ? childrenAges.slice(0, childCount) : [],
       rooms,
       ...(occForSticky ? { occ: occForSticky } : {}),
+      minStars,
+      boardFilter,
+      refundableOnly,
     });
 
     // Prefetch Trip.com cityId in the background so "Trip.com →" buttons
@@ -2487,6 +2508,25 @@ function HotelsContent() {
   // filter, page-size, or the hotel list itself. Without this you can land
   // on page 4 of an old search when a new search returns 12 results.
   useEffect(() => { setCurrentPage(1); }, [sortBy, boardFilter, refundableOnly, pageSize, totalResults]);
+
+  // Mirror filter changes into sticky-search so they survive a round-trip
+  // through /hotels/[id]. handleSearch already writes the full sticky
+  // record on each search, but filters are typically tweaked AFTER the
+  // first search lands — without this effect those tweaks would never
+  // hit localStorage and the back-link from a hotel detail would land on
+  // a results page with the filters reset to defaults. Gated on
+  // `searched` so a fresh visitor doesn't get a sticky record written
+  // out of pure default values. (2026-05-06.)
+  useEffect(() => {
+    if (!searched) return;
+    const existing = loadSticky<StickyHotels>('hotels') || {};
+    saveSticky<StickyHotels>('hotels', {
+      ...existing,
+      minStars,
+      boardFilter,
+      refundableOnly,
+    });
+  }, [searched, minStars, boardFilter, refundableOnly]);
 
   // Smooth-scroll to top of results section on page change so users don't
   // stay scrolled at the previous page's last card.

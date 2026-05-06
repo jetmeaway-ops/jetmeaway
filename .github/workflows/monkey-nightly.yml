@@ -71,3 +71,18 @@ jobs:
           BASE: https://jetmeaway.co.uk
           BUG_MONITOR_SECRET: ${{ secrets.BUG_MONITOR_SECRET }}
         run: node scripts/a11y-audit.mjs
+
+      # Stage 6 — affiliate link monitor. Catches the class of regression
+      # that bit Build 19 (2026-05-06): Trip.com silently changed their
+      # /packages/list contract so our city codes were ignored, and
+      # Expedia's bundle flow stopped triggering without a session-bound
+      # misId. Fetches a known-good London → Tenerife package URL on each
+      # provider and asserts the rendered HTML still contains the flight+
+      # hotel bundle markers. Provider contract drift fails this step
+      # before owner has to spot it in a smoke-test.
+      - name: Run affiliate link monitor (Stage 6)
+        if: always()
+        env:
+          BASE: https://jetmeaway.co.uk
+          BUG_MONITOR_SECRET: ${{ secrets.BUG_MONITOR_SECRET }}
+        run: node scripts/affiliate-link-monitor.mjs

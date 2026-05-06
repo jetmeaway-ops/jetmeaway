@@ -93,6 +93,14 @@ export type StickyHotels = {
    *  populated alongside so older code paths keep working. */
   occ?: string;
   rooms?: number;
+  /** Result-page filters. Persisted so they survive a round-trip
+   *  through /hotels/[id] — the detail page's "Back to search" link
+   *  rebuilds a URL without these params, so without sticky restore
+   *  the user lost their Hotel Class / Board Basis / Free-cancellation
+   *  selections every time they viewed a hotel. (2026-05-06.) */
+  minStars?: number;
+  boardFilter?: string;
+  refundableOnly?: boolean;
 };
 
 export type StickyCars = {
