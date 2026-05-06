@@ -20,9 +20,15 @@ const palette = {
   slate600: '#5C6378',
   slate500: '#8E95A9',
   slate300: '#CBD5E1',
-  slate200: '#E8ECF4',
-  slate100: '#F1F3F7',
-  slate50: '#F8FAFC',
+  // 2026-05-06 — premium-theme darken pass. The earlier values
+  // (slate200 #E8ECF4, slate100 #F1F3F7, slate50 #F8FAFC) read
+  // sterile white on iOS; users said the app felt cold. Shifted to
+  // a deeper navy-tinted grey-blue family so the screen background
+  // and dividers carry brand warmth without sacrificing card
+  // contrast (cards stay pure white).
+  slate200: '#D7DDE9',
+  slate100: '#E4E9F2',
+  slate50: '#EEF3F9',
   blue900: '#001F66',
   blue700: '#0052CC',
   blue600: '#0066FF',
@@ -151,26 +157,28 @@ export const typography = {
 } as const;
 
 export const shadows = {
+  // Bumped one notch with the premium-darken theme pass so cards still
+  // read as elevated against the deeper navy-tinted surfaceAlt.
   sm: {
     shadowColor: '#0066FF',
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    shadowOpacity: 0.10,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
   },
   md: {
     shadowColor: '#0066FF',
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
+    shadowOpacity: 0.14,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 7,
   },
   lg: {
     shadowColor: '#0066FF',
-    shadowOpacity: 0.18,
-    shadowRadius: 32,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 12,
+    shadowOpacity: 0.20,
+    shadowRadius: 34,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 14,
   },
 } as const;
 

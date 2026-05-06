@@ -25,6 +25,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 
 import { Button, Card, SegmentedControl } from '../../src/components/primitives';
+import HeaderBack from '../../src/components/nav/HeaderBack';
 import LocationPicker, {
   type LocationOption,
 } from '../../src/components/forms/LocationPicker';
@@ -151,7 +152,13 @@ export default function FlightSearchScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={['bottom']}>
-      <Stack.Screen options={{ title: 'Search flights' }} />
+      <Stack.Screen
+        options={{
+          title: 'Search flights',
+          headerLeft: () => <HeaderBack />,
+          headerBackVisible: false,
+        }}
+      />
       <ScrollView contentContainerStyle={styles.content}>
         <SegmentedControl
           segments={['Return', 'One-way']}

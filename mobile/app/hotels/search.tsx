@@ -25,6 +25,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 
 import { Button, Card } from '../../src/components/primitives';
+import HeaderBack from '../../src/components/nav/HeaderBack';
 import LocationPicker, {
   type LocationOption,
 } from '../../src/components/forms/LocationPicker';
@@ -116,7 +117,13 @@ export default function HotelSearchScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={['bottom']}>
-      <Stack.Screen options={{ title: 'Search hotels' }} />
+      <Stack.Screen
+        options={{
+          title: 'Search hotels',
+          headerLeft: () => <HeaderBack />,
+          headerBackVisible: false,
+        }}
+      />
       <ScrollView contentContainerStyle={styles.content}>
         <Card style={[styles.card, styles.padNone]}>
           <View style={{ padding: spacing.md }}>
