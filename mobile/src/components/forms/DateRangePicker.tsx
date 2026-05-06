@@ -1,6 +1,6 @@
 /**
  * DateRangePicker — single unified calendar for picking depart + return on
- * one screen, just like Booking.com / Airbnb / Skyscanner.
+ * one screen, like Airbnb / Skyscanner.
  *
  *   Tap a day  →  that becomes the depart date.
  *   Tap a later day  →  that becomes the return date and the range fills

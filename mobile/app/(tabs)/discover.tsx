@@ -94,9 +94,15 @@ const CATEGORY_ROWS: CategoryRow[] = [
   },
 ];
 
+// Partner brand strip — shown at the bottom of the Discover tab. Only
+// suppliers we hold a signed/active contract with. Booking.com is
+// intentionally excluded (the affiliate cut is too small vs the LiteAPI /
+// RateHawk / Webbeds direct contracts and the brand association leaks
+// trust). 2026-05-06 added Viator, Webbeds, RateHawk, Kyte.
 const BRAND_STRIP = [
-  'Duffel', 'LiteAPI', 'Trip.com', 'Expedia', 'Booking.com',
-  'Aviasales', 'Hotellook', 'Klook', 'Airalo', 'Stripe',
+  'Duffel', 'LiteAPI', 'RateHawk', 'Webbeds', 'Trip.com',
+  'Expedia', 'Aviasales', 'Hotellook', 'GetYourGuide', 'Viator',
+  'Klook', 'Airalo', 'Kyte', 'Stripe',
 ];
 
 export default function DiscoverScreen() {
