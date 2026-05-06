@@ -27,7 +27,15 @@
         "NSLocationWhenInUseUsageDescription": "JetMeAway uses your location to suggest the nearest airport and map the neighbourhood around your hotel. Location is never shared or sold.",
         "NSUserNotificationsUsageDescription": "JetMeAway sends deal alerts when hotel and flight prices drop on routes you've shown interest in. You can turn this off any time in Settings.",
         "ITSAppUsesNonExemptEncryption": false,
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification",
+          "fetch"
+        ]
+      },
+      "entitlements": {
+        "com.apple.security.application-groups": [
+          "group.uk.co.jetmeaway.app"
+        ]
       }
     },
     "android": {
@@ -48,10 +56,19 @@
           "action": "VIEW",
           "autoVerify": true,
           "data": [
-            { "scheme": "https", "host": "jetmeaway.co.uk" },
-            { "scheme": "https", "host": "www.jetmeaway.co.uk" }
+            {
+              "scheme": "https",
+              "host": "jetmeaway.co.uk"
+            },
+            {
+              "scheme": "https",
+              "host": "www.jetmeaway.co.uk"
+            }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -76,7 +93,9 @@
       "expo-secure-store",
       "@react-native-community/datetimepicker",
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-router",
+      "@sentry/react-native"
     ],
     "extra": {
       "eas": {
