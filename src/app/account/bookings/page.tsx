@@ -113,6 +113,15 @@ export default async function AccountBookingsPage() {
         <p className="text-[.72rem] text-[#8E95A9] font-medium text-center mt-8">
           Refundable bookings can be cancelled straight from the card above, up to the free-cancel deadline on your rate. For everything else, please <a href="/contact" className="underline font-semibold text-[#0066FF]">contact support</a>.
         </p>
+
+        <div className="mt-12 pt-8 border-t border-[#E8ECF4] text-center">
+          <a
+            href="/delete-account"
+            className="text-[.78rem] font-bold text-red-600 hover:text-red-700 underline underline-offset-2"
+          >
+            Delete my account
+          </a>
+        </div>
       </main>
       <Footer />
     </>
