@@ -40,6 +40,7 @@ import { haptics } from '../../src/hooks/useHaptics';
 import { HOTEL_DESTINATIONS } from '../../src/lib/popular-locations';
 import { readJson, writeJson } from '../../src/services/storage';
 import { donateIntent } from '../../src/services/intents';
+import { useSearchContext } from '../../src/store/search-context';
 
 // 2026-05-06: bumped v1 → v2. The previous schema persisted destination
 // `code` strings like "Kerala" / "Bali" / "Tenerife" which LiteAPI can't
@@ -61,11 +62,68 @@ type RecentSearch = {
 
 export default function HotelSearchScreen() {
   const router = useRouter();
-  const [destination, setDestination] = useState<LocationOption | null>(null);
-  const [range, setRange] = useState<DateRange>({ depart: null, return: null });
-  const [guests, setGuests] = useState<Guests>({ adults: 2, children: 0 });
-  const [refundableOnly, setRefundableOnly] = useState(false);
+
+  // Persisted form state — read directly from the zustand store. The
+  // store is rehydrated from MMKV at first import, so on screen mount
+  // (whether after a tab-switch, navigate-back from the WebView, or a
+  // cold launch) the form sees the user's previous selections without
+  // a separate async fetch. Writes go back through `setHotelFormState`
+  // on every interaction so the next mount picks up the latest values.
+  // (2026-05-06 — 1.1.0 finalisation pass.)
+  const persisted = useSearchContext((s) => s.hotelFormState);
+  const setHotelFormState = useSearchContext((s) => s.setHotelFormState);
+
+  const [destination, setDestinationLocal] = useState<LocationOption | null>(
+    persisted.destination,
+  );
+  const [range, setRangeLocal] = useState<DateRange>({
+    depart: persisted.range.departISO ? new Date(persisted.range.departISO) : null,
+    return: persisted.range.returnISO ? new Date(persisted.range.returnISO) : null,
+  });
+  const [guests, setGuestsLocal] = useState<Guests>(persisted.guests);
+  const [refundableOnly, setRefundableOnlyLocal] = useState(persisted.refundableOnly);
   const [recents, setRecents] = useState<RecentSearch[]>([]);
+
+  // Wrapped setters — keep the local React state in sync with the
+  // persisted store so each interaction is durable across screen
+  // unmounts. Local state is still the source of truth for the
+  // current frame's render; the store mirror is for next-mount restore.
+  const setDestination = useCallback(
+    (next: LocationOption | null) => {
+      setDestinationLocal(next);
+      setHotelFormState({ destination: next });
+    },
+    [setHotelFormState],
+  );
+  const setRange = useCallback(
+    (next: DateRange | ((prev: DateRange) => DateRange)) => {
+      setRangeLocal((prev) => {
+        const resolved = typeof next === 'function' ? next(prev) : next;
+        setHotelFormState({
+          range: {
+            departISO: resolved.depart ? resolved.depart.toISOString().slice(0, 10) : null,
+            returnISO: resolved.return ? resolved.return.toISOString().slice(0, 10) : null,
+          },
+        });
+        return resolved;
+      });
+    },
+    [setHotelFormState],
+  );
+  const setGuests = useCallback(
+    (next: Guests) => {
+      setGuestsLocal(next);
+      setHotelFormState({ guests: next });
+    },
+    [setHotelFormState],
+  );
+  const setRefundableOnly = useCallback(
+    (next: boolean) => {
+      setRefundableOnlyLocal(next);
+      setHotelFormState({ refundableOnly: next });
+    },
+    [setHotelFormState],
+  );
 
   useEffect(() => {
     setRecents(readJson<RecentSearch[]>(RECENT_KEY, []));

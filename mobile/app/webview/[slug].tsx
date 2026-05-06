@@ -20,7 +20,7 @@
  * 404 inside the app.
  */
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -35,7 +35,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { WebView } from 'react-native-webview';
 
-import { colors, spacing, typography } from '../../src/theme';
+import { Skeleton } from '../../src/components/primitives';
+import { colors, radii, spacing, typography } from '../../src/theme';
 import { haptics } from '../../src/hooks/useHaptics';
 import { INJECTED_BRIDGE } from '../../src/services/webview-bridge';
 
@@ -55,6 +56,68 @@ const TITLE_BY_SLUG: Record<string, string> = {
   insurance: 'Insurance',
   explore: 'Explore',
   blog: 'Stories',
+  flights: 'Flights',
+  hotels: 'Hotels',
+};
+
+/**
+ * Slugs whose underlying URL is a comparison / affiliate redirect flow
+ * (cars / packages / esim / insurance / explore plus the live flight
+ * and hotel result pages). These get the high-fidelity native
+ * "scouting" overlay on first load — required for Apple 4.2 so the
+ * native-to-web transition reads as a native experience rather than a
+ * disguised browser. Static content (terms, privacy, blog, etc.) gets
+ * the lighter ActivityIndicator overlay since there's nothing to scout.
+ */
+const SCOUTING_SLUGS = new Set([
+  'cars',
+  'packages',
+  'esim',
+  'insurance',
+  'explore',
+  'flights',
+  'hotels',
+]);
+
+/**
+ * Per-slug scouting copy. Tone matches the native "Scout" identity used
+ * elsewhere in the app — purposeful, not chirpy. Falls back to a generic
+ * line for any slug not specifically named.
+ */
+const SCOUTING_COPY: Record<string, { title: string; subtitle: string }> = {
+  packages: {
+    title: 'Scouting the best package deals for you…',
+    subtitle: 'Comparing flight + hotel bundles across our partners',
+  },
+  flights: {
+    title: 'Scouting live flight prices…',
+    subtitle: 'Comparing fares across our airline partners',
+  },
+  hotels: {
+    title: 'Scouting hotel rates…',
+    subtitle: 'Comparing live rates from our wholesale partners',
+  },
+  cars: {
+    title: 'Scouting car-hire rates…',
+    subtitle: 'Comparing suppliers across our partner network',
+  },
+  esim: {
+    title: 'Scouting eSIM data plans…',
+    subtitle: 'Comparing 150+ countries across Airalo and Yesim',
+  },
+  insurance: {
+    title: 'Scouting travel insurance…',
+    subtitle: 'Comparing cover types and price points',
+  },
+  explore: {
+    title: 'Scouting tours and activities…',
+    subtitle: 'Comparing GetYourGuide, Viator and Klook',
+  },
+};
+
+const SCOUTING_FALLBACK = {
+  title: 'Scouting the best deals for you…',
+  subtitle: 'Comparing live prices across our trusted partners',
 };
 
 function resolveTitle(slug: string): string {
@@ -103,6 +166,25 @@ export default function WebviewSlugScreen() {
   const title = resolveTitle(slug);
   const webRef = useRef<WebView>(null);
   const [loading, setLoading] = useState(true);
+
+  // Affiliate / comparison routes get the branded scouting overlay.
+  // Static-content routes (terms, privacy, blog) keep the lighter
+  // ActivityIndicator. The overlay also ships with a minimum display
+  // window — even on a fast WebView load we hold for ~600ms so the
+  // transition reads as deliberate rather than a flicker. (Apple 4.2
+  // angle: a native-to-web hand-off feels native, not like a redirect.)
+  const isScouting = SCOUTING_SLUGS.has(slug);
+  const scoutingCopy = SCOUTING_COPY[slug] ?? SCOUTING_FALLBACK;
+  const [minDisplayElapsed, setMinDisplayElapsed] = useState(false);
+  useEffect(() => {
+    if (!isScouting) {
+      setMinDisplayElapsed(true);
+      return;
+    }
+    const t = setTimeout(() => setMinDisplayElapsed(true), 600);
+    return () => clearTimeout(t);
+  }, [isScouting]);
+  const showScoutingOverlay = isScouting && (loading || !minDisplayElapsed);
 
   const handleShare = useCallback(async () => {
     haptics.light();
@@ -163,7 +245,34 @@ export default function WebviewSlugScreen() {
       </View>
 
       <View style={styles.webWrap}>
-        {loading ? (
+        {showScoutingOverlay ? (
+          <View style={styles.scoutingOverlay} pointerEvents="none">
+            <View style={styles.scoutingCard}>
+              {/* Brand mark — uses the same compass icon Scout wears
+                  elsewhere in the app so the transition feels of-a-piece
+                  with Discover / Trips, not generic. */}
+              <View style={styles.scoutingMark}>
+                <Ionicons name="compass-outline" size={28} color={colors.brand} />
+              </View>
+              <Text style={styles.scoutingTitle}>{scoutingCopy.title}</Text>
+              <Text style={styles.scoutingSubtitle}>{scoutingCopy.subtitle}</Text>
+              {/* Skeleton rows hint at the result cards that are about
+                  to materialise — keeps the eye on the surface rather
+                  than on the spinner. */}
+              <View style={styles.scoutingSkeletons}>
+                <Skeleton variant="rect" height={68} radius={radii.md} />
+                <Skeleton variant="rect" height={68} radius={radii.md} />
+                <Skeleton variant="rect" height={68} radius={radii.md} />
+              </View>
+              <View style={styles.scoutingSpinnerRow}>
+                <ActivityIndicator color={colors.brand} />
+                <Text style={styles.scoutingSpinnerLabel}>
+                  Live prices in seconds
+                </Text>
+              </View>
+            </View>
+          </View>
+        ) : loading ? (
           <View style={styles.loadingOverlay} pointerEvents="none">
             <ActivityIndicator color={colors.brand} />
           </View>
@@ -226,5 +335,57 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 10,
     backgroundColor: 'rgba(255,255,255,0.6)',
+  },
+  // Branded scouting overlay — sits over the WebView while the comparison
+  // page hydrates. Uses navy-slate `surfaceAlt` (#EEF3F9) rather than a
+  // washed-out white so the transition looks premium, not provisional.
+  scoutingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    zIndex: 10,
+    backgroundColor: colors.surfaceAlt,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+  },
+  scoutingCard: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
+    padding: spacing.lg,
+    gap: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  scoutingMark: {
+    width: 56,
+    height: 56,
+    borderRadius: radii.lg,
+    backgroundColor: colors.brandSubtle,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scoutingTitle: {
+    ...typography.h3,
+    color: colors.textPrimary,
+  },
+  scoutingSubtitle: {
+    ...typography.bodySm,
+    color: colors.textSecondary,
+  },
+  scoutingSkeletons: {
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  scoutingSpinnerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  scoutingSpinnerLabel: {
+    ...typography.caption,
+    color: colors.textMuted,
   },
 });
