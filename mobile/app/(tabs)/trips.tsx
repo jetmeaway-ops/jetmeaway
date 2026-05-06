@@ -38,6 +38,9 @@ import {
 } from '../../src/api/account';
 import type { SavedBooking } from '../../src/services/offline-bookings';
 import type { SavedSearch } from '../../src/api/types';
+import { refreshWidgetState } from '../../src/widgets/client';
+import { indexSpotlightItems } from '../../src/services/spotlight';
+import { donateIntent } from '../../src/services/intents';
 
 const SEGMENTS = ['Upcoming', 'Past', 'Saved Searches'] as const;
 type Segment = 'upcoming' | 'past' | 'saved-searches';
@@ -58,11 +61,29 @@ export default function TripsScreen() {
 
   // Refresh whichever segment is showing whenever the screen comes back
   // into focus — covers the case of returning from Trip Detail after a
-  // cancel or from Search after saving a new search.
+  // cancel or from Search after saving a new search. Also refreshes the
+  // widget state and donates a "show my trips" Siri intent so the OS
+  // surfaces it in Spotlight + Shortcuts.
   useFocusEffect(
     useCallback(() => {
       tripsQuery.refetch();
       savedSearchesQuery.refetch();
+      const widget = refreshWidgetState();
+      donateIntent({ kind: 'show-trips' }).catch(() => {});
+      // Index every cached trip + saved search into Spotlight. Bridge is
+      // a no-op until the Swift target ships.
+      const spotlightItems = [
+        ...widget.upcoming.map((t) => ({
+          id: `trip:${t.id}`,
+          domain: 'trip' as const,
+          title: t.title,
+          subtitle: t.subtitle,
+          deepLink: `/trip/${t.id}`,
+        })),
+      ];
+      if (spotlightItems.length > 0) {
+        indexSpotlightItems(spotlightItems).catch(() => {});
+      }
       // We intentionally don't depend on the queries' identity — they
       // capture the currently active query references on first focus.
       // eslint-disable-next-line react-hooks/exhaustive-deps

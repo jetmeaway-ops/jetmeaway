@@ -38,6 +38,7 @@ import { colors, radii, spacing, typography } from '../../src/theme';
 import { haptics } from '../../src/hooks/useHaptics';
 import { HOTEL_DESTINATIONS } from '../../src/lib/popular-locations';
 import { readJson, writeJson } from '../../src/services/storage';
+import { donateIntent } from '../../src/services/intents';
 
 const RECENT_KEY = 'searches:hotels:v1';
 const MAX_RECENTS = 8;
@@ -84,6 +85,8 @@ export default function HotelSearchScreen() {
     ].slice(0, MAX_RECENTS);
     setRecents(next);
     writeJson(RECENT_KEY, next);
+
+    donateIntent({ kind: 'find-hotels', city: destination.label }).catch(() => {});
 
     const params = new URLSearchParams({
       destination: destination.code,

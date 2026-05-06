@@ -41,6 +41,7 @@ import {
   FLIGHT_DESTINATIONS,
 } from '../../src/lib/popular-locations';
 import { readJson, writeJson } from '../../src/services/storage';
+import { donateIntent } from '../../src/services/intents';
 
 type TripMode = 'return' | 'one-way';
 type Cabin = 'economy' | 'premium' | 'business' | 'first';
@@ -106,6 +107,11 @@ export default function FlightSearchScreen() {
     const next = [recent, ...recents.filter((r) => r.destination.code !== destination.code)].slice(0, MAX_RECENTS);
     setRecents(next);
     writeJson(RECENT_KEY, next);
+
+    // Donate the search to Siri so iOS surfaces "Find flights to <city>"
+    // in Shortcuts + Spotlight. Bridge is a no-op until the Swift target
+    // ships in Phase 8.
+    donateIntent({ kind: 'find-flights', destination: destination.label }).catch(() => {});
 
     const params = new URLSearchParams({
       from: origin.code,
