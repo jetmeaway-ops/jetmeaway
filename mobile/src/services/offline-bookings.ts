@@ -23,6 +23,8 @@
 
 import { storage, readJson, writeJson, deleteKey } from './storage';
 
+export type BookingProvider = 'liteapi' | 'duffel' | 'webbeds' | 'unknown';
+
 export type SavedBooking = {
   id: string;            // booking reference (JMA-... or supplier ref)
   type: 'flight' | 'hotel' | 'package';
@@ -35,7 +37,44 @@ export type SavedBooking = {
   total?: string;        // pre-formatted total (e.g. "£312.40")
   url: string;           // deep link back to the booking page on jetmeaway.co.uk
   savedAt: number;       // epoch ms — used for sort
+  /** Booking pipeline that confirmed the trip — drives the provider tag. */
+  provider?: BookingProvider;
+  /** WGS84 latitude for the destination, used for Apple Maps deep-links. */
+  lat?: number;
+  /** WGS84 longitude for the destination. */
+  lng?: number;
+  /** Total nights for hotels, segments for flights. */
+  nights?: number;
+  /** Total head-count (adults + children + infants). */
+  passengers?: number;
 };
+
+/**
+ * Best-effort provider detection. Prefers an explicit `provider` field;
+ * otherwise infers from the booking-ID prefix written by the backend
+ * (`JMA-H-…` → LiteAPI hotels, `JMA-F-…` → Duffel flights). Falls back
+ * to the booking type, then `unknown`.
+ */
+export function inferProvider(b: Pick<SavedBooking, 'provider' | 'id' | 'type'>): BookingProvider {
+  if (b.provider) return b.provider;
+  if (typeof b.id === 'string') {
+    if (b.id.startsWith('JMA-H-')) return 'liteapi';
+    if (b.id.startsWith('JMA-F-')) return 'duffel';
+    if (b.id.startsWith('JMA-W-')) return 'webbeds';
+  }
+  if (b.type === 'hotel') return 'liteapi';
+  if (b.type === 'flight') return 'duffel';
+  return 'unknown';
+}
+
+export function providerLabel(p: BookingProvider): string {
+  switch (p) {
+    case 'liteapi': return 'LiteAPI';
+    case 'duffel':  return 'Duffel';
+    case 'webbeds': return 'WebBeds';
+    case 'unknown': return 'Direct';
+  }
+}
 
 const KEY = 'trips:v1';
 const MAX_BOOKINGS = 50;

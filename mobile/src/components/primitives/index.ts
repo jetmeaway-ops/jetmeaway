@@ -17,3 +17,5 @@ export type { PillTone } from './Pill';
 
 export { default as Banner } from './Banner';
 export type { BannerTone } from './Banner';
+
+export { default as SegmentedControl } from './SegmentedControl';

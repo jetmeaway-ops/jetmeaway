@@ -1,24 +1,101 @@
 /**
- * Trips tab — Phase 1 placeholder rendering the existing offline cache so
- * Apple's reviewer can already see the offline-trip behaviour even before
- * Phase 2 builds the proper Trip Detail screen.
+ * Trips tab — three-segment view (Upcoming · Past · Saved Searches) with
+ * pull-to-refresh, an offline banner, and a friendly empty state. Reads
+ * trips locally first via MMKV (`getBookingsSync` powers `initialData`),
+ * then merges remote bookings from `/api/account/me`. Saved searches
+ * mirror to MMKV so they're available offline as well.
  *
- * Reads from MMKV synchronously via `getBookingsSync()`; if the user is
- * offline, the offline banner renders above the list.
+ * Apple 4.2 angle: the offline banner appears whenever `useNetwork().online`
+ * flips false, and the cached list keeps rendering — visibly differentiates
+ * the native experience from a web tab.
  */
 
-import { useMemo } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Banner, Card, Pill } from '../../src/components/primitives';
+import { useFocusEffect } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
+
+import { Banner, SegmentedControl } from '../../src/components/primitives';
+import TripCard from '../../src/components/trip/TripCard';
+import SavedSearchRow from '../../src/components/trip/SavedSearchRow';
+import TripsEmptyState from '../../src/components/trip/TripsEmptyState';
+
 import { colors, spacing, typography } from '../../src/theme';
 import { useNetwork } from '../../src/hooks/useNetwork';
-import { getBookingsSync, type SavedBooking } from '../../src/services/offline-bookings';
+import {
+  useTrips,
+  useSavedSearches,
+  tripsQueryKey,
+  savedSearchesQueryKey,
+} from '../../src/api/account';
+import type { SavedBooking } from '../../src/services/offline-bookings';
+import type { SavedSearch } from '../../src/api/types';
+
+const SEGMENTS = ['Upcoming', 'Past', 'Saved Searches'] as const;
+type Segment = 'upcoming' | 'past' | 'saved-searches';
 
 export default function TripsScreen() {
+  const [segmentIndex, setSegmentIndex] = useState(0);
+  const segment: Segment = (
+    ['upcoming', 'past', 'saved-searches'] as Segment[]
+  )[segmentIndex];
+
   const { online } = useNetwork();
-  // Sync read on mount — paints on the first frame.
-  const bookings = useMemo(() => getBookingsSync(), []);
+  const queryClient = useQueryClient();
+
+  const tripsQuery = useTrips();
+  const savedSearchesQuery = useSavedSearches();
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Refresh whichever segment is showing whenever the screen comes back
+  // into focus — covers the case of returning from Trip Detail after a
+  // cancel or from Search after saving a new search.
+  useFocusEffect(
+    useCallback(() => {
+      tripsQuery.refetch();
+      savedSearchesQuery.refetch();
+      // We intentionally don't depend on the queries' identity — they
+      // capture the currently active query references on first focus.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []),
+  );
+
+  const onRefresh = useCallback(async () => {
+    if (!online) return;
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: tripsQueryKey }),
+        queryClient.invalidateQueries({ queryKey: savedSearchesQueryKey }),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [online, queryClient]);
+
+  const { upcoming, past } = useMemo(
+    () => splitByDate(tripsQuery.data ?? []),
+    [tripsQuery.data],
+  );
+
+  const data = segment === 'saved-searches'
+    ? savedSearchesQuery.data ?? []
+    : segment === 'upcoming'
+      ? upcoming
+      : past;
+
+  const isLoading =
+    (segment === 'saved-searches' ? savedSearchesQuery.isLoading : tripsQuery.isLoading) &&
+    data.length === 0;
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -37,66 +114,114 @@ export default function TripsScreen() {
         </View>
       )}
 
-      {bookings.length === 0 ? (
-        <View style={styles.empty}>
-          <Card variant="elevated">
-            <Text style={styles.placeholderTitle}>No saved trips yet</Text>
-            <Text style={styles.placeholderBody}>
-              When you complete a booking it appears here automatically and
-              stays available even without a signal — perfect for showing the
-              receptionist on arrival.
-            </Text>
-          </Card>
+      <View style={styles.segmentWrap}>
+        <SegmentedControl
+          segments={SEGMENTS as unknown as string[]}
+          selectedIndex={segmentIndex}
+          onChange={setSegmentIndex}
+        />
+      </View>
+
+      {isLoading ? (
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator color={colors.brand} />
         </View>
+      ) : data.length === 0 ? (
+        <TripsEmptyState variant={segment} />
+      ) : segment === 'saved-searches' ? (
+        <FlatList<SavedSearch>
+          data={data as SavedSearch[]}
+          keyExtractor={(s) => s.id}
+          contentContainerStyle={styles.listContent}
+          ItemSeparatorComponent={Separator}
+          renderItem={({ item }) => <SavedSearchRow search={item} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.brand}
+            />
+          }
+        />
       ) : (
         <FlatList<SavedBooking>
-          data={bookings}
+          data={data as SavedBooking[]}
           keyExtractor={(b) => b.id}
           contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => (
-            <Card style={styles.tripCard}>
-              <View style={styles.tripRow}>
-                <Pill tone="brand">{item.type.toUpperCase()}</Pill>
-                <Text style={styles.tripRef}>{item.id}</Text>
-              </View>
-              <Text style={styles.tripTitle} numberOfLines={2}>
-                {item.title}
-              </Text>
-              {item.subtitle ? (
-                <Text style={styles.tripMeta}>{item.subtitle}</Text>
-              ) : null}
-              {item.startDate ? (
-                <Text style={styles.tripDates}>
-                  {item.startDate}
-                  {item.endDate ? ` → ${item.endDate}` : ''}
-                </Text>
-              ) : null}
-              {item.total ? (
-                <Text style={styles.tripTotal}>{item.total}</Text>
-              ) : null}
-            </Card>
-          )}
+          ItemSeparatorComponent={Separator}
+          renderItem={({ item }) => <TripCard booking={item} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.brand}
+            />
+          }
         />
       )}
     </SafeAreaView>
   );
 }
 
+function Separator() {
+  return <View style={{ height: spacing.sm }} />;
+}
+
+/**
+ * Trips with a startDate strictly before today land in 'past'; everything
+ * else (including bookings without a startDate) lands in 'upcoming' so
+ * the user always sees them somewhere.
+ */
+function splitByDate(bookings: SavedBooking[]): {
+  upcoming: SavedBooking[];
+  past: SavedBooking[];
+} {
+  const todayMidnight = new Date();
+  todayMidnight.setHours(0, 0, 0, 0);
+  const todayMs = todayMidnight.getTime();
+
+  const upcoming: SavedBooking[] = [];
+  const past: SavedBooking[] = [];
+
+  for (const b of bookings) {
+    const end = b.endDate ? new Date(b.endDate).getTime() : null;
+    const start = b.startDate ? new Date(b.startDate).getTime() : null;
+    const reference = end ?? start;
+
+    if (reference !== null && Number.isFinite(reference) && reference < todayMs) {
+      past.push(b);
+    } else {
+      upcoming.push(b);
+    }
+  }
+
+  return { upcoming, past };
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surfaceAlt },
-  header: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.sm },
+  header: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
   eyebrow: { ...typography.overline, color: colors.brand },
   heading: { ...typography.display, color: colors.textPrimary },
-  bannerWrap: { paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
-  listContent: { padding: spacing.lg, gap: spacing.md },
-  empty: { padding: spacing.lg },
-  tripCard: { gap: spacing.xs },
-  tripRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  tripRef: { ...typography.caption, color: colors.textMuted },
-  tripTitle: { ...typography.h3, color: colors.textPrimary },
-  tripMeta: { ...typography.bodySm, color: colors.textSecondary },
-  tripDates: { ...typography.caption, color: colors.textPrimary },
-  tripTotal: { ...typography.h3, color: colors.brand, marginTop: spacing.xs },
-  placeholderTitle: { ...typography.h3, color: colors.textPrimary, marginBottom: spacing.xs },
-  placeholderBody: { ...typography.bodySm, color: colors.textSecondary },
+  bannerWrap: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
+  segmentWrap: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+  },
+  listContent: {
+    padding: spacing.lg,
+    paddingTop: 0,
+  },
+  loadingWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
