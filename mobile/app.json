@@ -31,11 +31,6 @@
           "remote-notification",
           "fetch"
         ]
-      },
-      "entitlements": {
-        "com.apple.security.application-groups": [
-          "group.uk.co.jetmeaway.app"
-        ]
       }
     },
     "android": {
