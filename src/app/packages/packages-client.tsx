@@ -508,6 +508,15 @@ function PackagesContent() {
   const [cheapestHotel, setCheapestHotel] = useState<number | null>(null);
   const [flightAirline, setFlightAirline] = useState('');
 
+  // True when the user landed on this page with search params already in
+  // the URL (e.g. from the native mobile app or a deep-link). We hide the
+  // curated "7 nights from London Heathrow" FAMILY_PACKAGES section in
+  // that case — the async auto-search takes 1-2s and the curated copy
+  // misleads users into thinking the duration on their actual search is
+  // 7 nights. (2026-05-06 — fix for native Build #15 "duration says 7
+  // days" report.)
+  const [hasInitialQuery, setHasInitialQuery] = useState(false);
+
   const resultsRef = useRef<HTMLDivElement>(null);
 
   // Read URL params + sticky search + legacy localStorage airport pref.
@@ -520,6 +529,13 @@ function PackagesContent() {
     const ret = p.get('return') || '';
     const a = p.get('adults');
     const c = p.get('children');
+
+    // Treat the page as "user has an inflight query" the moment we see
+    // any meaningful search param. That hides the curated 7-night
+    // section before the async auto-search resolves.
+    if (d || dep || ret || a || c) {
+      setHasInitialQuery(true);
+    }
 
     const sticky = loadSticky<StickyPackages>('packages');
     const today = new Date().toISOString().split('T')[0];
@@ -734,8 +750,11 @@ function PackagesContent() {
           <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">ATOL-protected options included · Book direct with providers</p>
         </div>
 
-      {/* ── Pre-built family packages (empty state only) ── */}
-      {!searched && !loading && <FamilyPackages />}
+      {/* ── Pre-built family packages (empty state only) ──
+            Hidden when the user came in with a search query — the
+            curated "7 nights" headline misled native-app users who
+            saw it before the async auto-search completed. */}
+      {!searched && !loading && !hasInitialQuery && <FamilyPackages />}
 
       {/* ── Loading ── */}
       {loading && <LoadingState dest={dest} />}

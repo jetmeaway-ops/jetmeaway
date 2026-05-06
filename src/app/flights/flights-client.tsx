@@ -1095,9 +1095,19 @@ function FlightsContent() {
       const today = new Date().toISOString().split('T')[0];
       if (sticky.departure >= today) setDepDate(sticky.departure);
     }
+    // URL `?tripType=` is checked first — when the native mobile app or
+    // a deep-link sends `tripType=oneway` we must honour it even when no
+    // `return` param is present and there's no sticky-search state.
+    // Earlier the code only flipped to one-way via sticky-search, so
+    // a fresh native install with no sticky always landed on the return
+    // form even after the user picked "One-way" on the native form.
+    // Accept both `oneway` and `one-way` for forgiveness. (2026-05-06)
+    const urlTripType = (p.get('tripType') || '').toLowerCase();
     if (ret) {
       setRetDate(ret);
-      setTripType('return');
+      setTripType(urlTripType === 'oneway' || urlTripType === 'one-way' ? 'one-way' : 'return');
+    } else if (urlTripType === 'oneway' || urlTripType === 'one-way') {
+      setTripType('one-way');
     } else if (sticky?.return) {
       const today = new Date().toISOString().split('T')[0];
       if (sticky.return >= today) {
