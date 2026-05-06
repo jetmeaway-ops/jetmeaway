@@ -169,7 +169,7 @@ const doc = new Document({
         // ─── 1. EXECUTIVE SUMMARY ────────────────────────────────
         heading("1. Executive Summary"),
         para("JetMeAway (jetmeaway.co.uk) is a UK-based online travel comparison engine that compares flights, hotels, car hire, holiday packages, travel insurance, and eSIM data plans across 10+ trusted providers. Customers see the cheapest price instantly and book directly with the provider."),
-        para("The platform is live, fully operational, and serves UK leisure travellers. Revenue is currently generated through affiliate commissions from partners including Expedia, Trip.com, Booking.com, Travelpayouts, Klook, and others."),
+        para("The platform is live, fully operational, and serves UK leisure travellers. Revenue is currently generated through affiliate commissions and direct-API margin from partners including Expedia, Trip.com, LiteAPI, RateHawk, Webbeds, Travelpayouts, GetYourGuide, Viator, Klook, Kyte, and others."),
         para("We are seeking to join an umbrella ATOL provider to add direct package booking capability alongside our existing affiliate comparison model. This will enable us to offer ATOL-protected holiday packages directly on our site, increasing revenue from 1\u20133% affiliate commission to 8\u201315% direct booking commission."),
 
         // ─── 2. COMPANY OVERVIEW ─────────────────────────────────
@@ -200,7 +200,7 @@ const doc = new Document({
         para("Secondary: Niche markets \u2014 British-Pakistani diaspora (Lahore, Islamabad, Karachi routes), eSIM data plans, travel insurance comparison."),
 
         heading("3.3 Business Type: Tailored with Niche Elements", HeadingLevel.HEADING_2),
-        para("JetMeAway is not a scale business \u2014 we cannot compete with TUI or Booking.com on volume. Instead, we compete through tailoring: comparing across 6+ providers per category, showing the cheapest option instantly. We also have niche elements, serving UK travellers specifically (18 UK departure airports, GBP pricing, geolocation to nearest airport) and the British-Pakistani community with dedicated routes and Urdu language support."),
+        para("JetMeAway is not a scale business \u2014 we cannot compete with TUI or the largest OTAs on volume. Instead, we compete through tailoring: comparing across 6+ providers per category, showing the cheapest option instantly. We also have niche elements, serving UK travellers specifically (18 UK departure airports, GBP pricing, geolocation to nearest airport) and the British-Pakistani community with dedicated routes and Urdu language support."),
 
         heading("3.4 Not a \u201CMe Too\u201D Business", HeadingLevel.HEADING_2),
         para("JetMeAway is differentiated from existing comparison sites in several key ways:"),
@@ -290,10 +290,14 @@ const doc = new Document({
             ["Travelpayouts", "Affiliate network", "Flights, cars"],
             ["Expedia", "Affiliate", "Flights, hotels, packages, cars"],
             ["Trip.com", "Affiliate", "Flights, hotels, packages, cars"],
-            ["Booking.com", "Affiliate", "Hotels"],
-            ["Klook", "Affiliate", "Packages, cars, activities"],
             ["LiteAPI / Nuitee", "Direct API", "Hotel bookings (2.9M+ properties)"],
-            ["RateHawk", "Affiliate API (pending)", "Hotel comparison"],
+            ["RateHawk", "Direct API", "Hotel comparison"],
+            ["Webbeds", "Direct API (signed)", "Hotel comparison"],
+            ["Duffel", "Direct API", "Flight bookings + Stripe MoR"],
+            ["Kyte", "Sandbox", "Flight comparison"],
+            ["Klook", "Affiliate", "Packages, cars, activities"],
+            ["GetYourGuide", "Affiliate", "Tours, activities, transfers"],
+            ["Viator", "Affiliate", "Tours, activities, transfers"],
             ["Airalo / Yesim", "Affiliate (Travelpayouts)", "eSIM data plans"],
             ["Umbrella ATOL Provider", "ATOL partner", "Packages \u2014 proposed"],
           ],

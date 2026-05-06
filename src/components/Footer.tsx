@@ -75,8 +75,16 @@ export default function Footer() {
 
         <div className="flex justify-between items-center flex-wrap gap-3">
           <p className="text-[.6rem] text-white/75">© 2026 JETMEAWAY LTD (Company No: 17140522 · DUNS: 234726109 · ICO: ZC125217). 66 Paul Street, EC2A 4NA, London. All rights reserved.</p>
-          <div className="flex gap-4 opacity-60 hover:opacity-80 transition-opacity">
-            {['Expedia','Trip.com','Aviasales','GetYourGuide','Klook','Airalo'].map(p => (
+          {/* Partner strip — only suppliers we have signed/active relationships
+              with. Booking.com explicitly excluded (the affiliate cut is too
+              small vs the LiteAPI/RateHawk/Webbeds direct contracts and the
+              brand association leaks trust). 2026-05-06 added Viator,
+              Webbeds, RateHawk, Kyte. */}
+          <div className="flex flex-wrap gap-3 md:gap-4 opacity-60 hover:opacity-80 transition-opacity">
+            {[
+              'Expedia','Trip.com','Aviasales','GetYourGuide','Viator',
+              'Klook','Airalo','Webbeds','RateHawk','Kyte',
+            ].map(p => (
               <span key={p} className="font-poppins font-extrabold text-[.65rem] text-white uppercase tracking-wider">{p}</span>
             ))}
           </div>

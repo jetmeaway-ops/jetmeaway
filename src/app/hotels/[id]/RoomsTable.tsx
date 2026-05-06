@@ -3,7 +3,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    ROOMS TABLE — "Scout" identity
    ───────────────────────────────────────────────────────────────────────────
-   A booking.com-style availability grid, reimagined in Scout's voice:
+   A standard wholesale-availability grid, reimagined in Scout's voice:
      - Playfair Display for room name + price (editorial, boutique)
      - Clean sans-serif for technical facts (Wifi, Cancellation, Board)
      - Emerald solid dot  = positive fact ("Breakfast included")
@@ -38,7 +38,7 @@ export interface RoomMetaInput {
 }
 
 /* A compact in-room amenity shortlist. We pick the first ≤3 that match these
-   popular categories (booking.com-style), so the row always surfaces the
+   popular categories (standard hotel-grid layout), so the row always surfaces the
    highest-signal facts first. Lowercase substring match — keeps us resilient
    to LiteAPI phrasing drift ("Hair Dryer" vs "Hairdryer" vs "Hair-dryer"). */
 const ROOM_AMENITY_PRIORITY: Array<{ icon: string; label: string; match: string[] }> = [

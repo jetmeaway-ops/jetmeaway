@@ -2,7 +2,7 @@
    GET /api/hotels/rates
    ───────────────────────────────────────────────────────────────────────────
    Returns ALL available rate options for a single hotel so the detail page
-   can render a booking.com-style rooms/rates table.
+   can render a standard rooms/rates table.
 
    Input (query):
      hotelId   — LiteAPI hotel id (with or without the `la_` prefix we use

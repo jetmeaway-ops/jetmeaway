@@ -10,9 +10,9 @@ JetMeAway (jetmeaway.co.uk) is a travel comparison engine built with Next.js 16,
 |-------|---------|
 | `/` | Home — hero, 4-step flight search wizard (destination > dates > passengers > results), category nav, trust section, travel essentials |
 | `/flights` | Flight comparison — 250+ airports, live Travelpayouts search with polling, cached Aviasales fallback, 3 providers (Aviasales, Trip.com, Expedia) |
-| `/hotels` | Hotel comparison — 160+ cities, Hotellook API, 6 providers (Booking.com, Expedia, Trip.com, Hotels.com, Agoda, Trivago), photo gallery, price grid |
+| `/hotels` | Hotel comparison — 160+ cities, LiteAPI / RateHawk / Webbeds direct + Hotellook fallback, 7 providers (Expedia, Trip.com, Hotels.com, Agoda, Trivago, RateHawk, Webbeds), photo gallery, price grid. **Booking.com is intentionally excluded — see "Partner exclusion" below.** |
 | `/cars` | Car hire — 7 providers (EconomyBookings, QEEQ, LocalRent, GetRentaCar, Klook, Expedia, Trip.com), deep links with search params |
-| `/packages` | Holiday packages — curated bundles per destination, 4 providers (Expedia, Trip.com, Booking.com, Klook), price comparison grid |
+| `/packages` | Holiday packages — curated bundles per destination, 3 providers (Expedia, Trip.com, Klook), price comparison grid |
 | `/insurance` | Travel insurance — 4 cover types, 1 provider (Ekta Traveling via Travelpayouts) |
 | `/esim` | eSIM data — 150+ countries, 2 providers (Airalo, Yesim — both via Travelpayouts) |
 | `/explore` | Activities & tours — 3 providers (GetYourGuide, Viator, Klook) |
@@ -87,6 +87,7 @@ These are non-negotiable. Read before writing or refactoring any infrastructure-
 - **Privacy Shield**: Never log, persist, or transmit PII (names, emails, phone, payment data, passport details) outside the booking pipeline. No PII in URL params, no PII in analytics events, no PII in error reports / bug-monitor payloads. Sanitise before `reportBug()` and before any third-party call.
 - **Stripe is for Duffel (flights) only**: Stripe is the MoR payment rail exclusively for Duffel flight bookings. LiteAPI hotels use LiteAPI's direct payment system — do NOT route LiteAPI bookings through Stripe. Webbeds is not active. Never log raw card data, never persist PaymentIntent secrets to KV, all 3DS2 flows stay client-side, refunds only via the admin route.
 - **NEVER change the database / KV variable structure without double-checking the current codebase first.** Key names, value shapes, and stored field names in Vercel KV (e.g. `bookings:all`, `pending-booking:*`, subscriber records) are referenced from many call sites including the Twilio IVR booking lookup, admin pages, and webhook handlers. Before renaming a key, changing a field, or altering a stored shape: grep the entire repo for every read/write site, list them, and confirm the migration path. A silent shape change has broken booking lookup before — do not repeat.
+- **Booking.com is NOT a partner.** Do not list Booking.com in any partner strip, FAQ provider list, comparison grid, brand strip, footer logo row, business plan, or marketing copy — anywhere user-facing or in deliverable docs. The affiliate cut (~3-4%) is materially smaller than the LiteAPI / RateHawk / Webbeds direct contracts (~5-15%) and the brand association leaks trust mid-decision. This rule has been re-applied multiple times — owner has flagged Booking.com regressions explicitly. The active partner list is: Expedia, Trip.com, Aviasales, GetYourGuide, Viator, Klook, Airalo, Yesim, LiteAPI, RateHawk, Webbeds, Duffel, Kyte, Travelpayouts. (2026-05-06)
 
 ## Important Notes
 
