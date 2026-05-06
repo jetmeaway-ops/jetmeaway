@@ -133,10 +133,13 @@ export default function ProfileScreen() {
     ]);
   }, []);
 
-  const handleComingSoon = useCallback((title: string) => {
-    haptics.light();
-    Alert.alert(title, 'Detailed controls land in the next app update.');
-  }, []);
+  const handleNavigate = useCallback(
+    (path: string) => {
+      haptics.light();
+      router.push(path);
+    },
+    [router],
+  );
 
   const isSignedIn = !!email;
   const initials = (email || '?')
@@ -202,17 +205,31 @@ export default function ProfileScreen() {
         <Text style={styles.sectionLabel}>SETTINGS</Text>
         <Card style={styles.settingsCard}>
           <SettingsRow
+            icon="person-circle-outline"
+            label="Account"
+            sublabel="Email, currency, default origin"
+            onPress={() => handleNavigate('/settings/account')}
+          />
+          <Divider />
+          <SettingsRow
             icon="notifications-outline"
             label="Notifications"
             sublabel="Price drops · departure reminders"
-            onPress={() => handleComingSoon('Notifications')}
+            onPress={() => handleNavigate('/settings/notifications')}
           />
           <Divider />
           <SettingsRow
             icon="shield-checkmark-outline"
             label="Privacy Shield"
             sublabel="Your details never touch supplier marketing"
-            onPress={() => handleComingSoon('Privacy Shield')}
+            onPress={() => handleNavigate('/settings/privacy-shield')}
+          />
+          <Divider />
+          <SettingsRow
+            icon="lock-closed-outline"
+            label="Security"
+            sublabel="Biometric lock, device cleanup"
+            onPress={() => handleNavigate('/settings/security')}
           />
           <Divider />
           <View style={styles.row}>
@@ -246,19 +263,14 @@ export default function ProfileScreen() {
           <SettingsRow
             icon="help-circle-outline"
             label="Help &amp; Support"
-            onPress={() => handleComingSoon('Help & Support')}
+            onPress={() => handleNavigate('/settings/help')}
           />
           <Divider />
           <SettingsRow
-            icon="document-text-outline"
-            label="Terms"
-            onPress={() => handleComingSoon('Terms')}
-          />
-          <Divider />
-          <SettingsRow
-            icon="lock-closed-outline"
-            label="Privacy Policy"
-            onPress={() => handleComingSoon('Privacy Policy')}
+            icon="information-circle-outline"
+            label="About"
+            sublabel="Version, terms, privacy, refund policy"
+            onPress={() => handleNavigate('/settings/about')}
           />
         </Card>
 

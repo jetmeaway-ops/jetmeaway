@@ -91,6 +91,14 @@ export default function RootLayout() {
                 gestureEnabled: false,
               }}
             />
+            <Stack.Screen
+              name="settings"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="webview"
+              options={{ headerShown: false }}
+            />
           </Stack>
         </QueryClientProvider>
       </SafeAreaProvider>
