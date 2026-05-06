@@ -99,6 +99,22 @@ export default function RootLayout() {
               name="webview"
               options={{ headerShown: false }}
             />
+            <Stack.Screen
+              name="flights"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="hotels"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="cars"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="packages"
+              options={{ headerShown: false }}
+            />
           </Stack>
         </QueryClientProvider>
       </SafeAreaProvider>
