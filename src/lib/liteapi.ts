@@ -810,7 +810,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     // Collect ALL (roomName × boardType) options for this hotel. We key the
     // map by `${roomKey}|${boardKey}` so identical room+board combos collapse
     // to the cheapest, but different room categories (Standard / Deluxe /
-    // Suite) each get their own row — booking.com's grid, Scout's voice.
+    // Suite) each get their own row — wholesale-grid layout, Scout's voice.
     type OptionRow = {
       offerId: string;
       boardType: string;

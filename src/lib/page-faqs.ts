@@ -16,9 +16,9 @@ export const FLIGHTS_FAQS: Faq[] = [
 ];
 
 export const HOTELS_FAQS: Faq[] = [
-  { q: 'How many hotel providers does JetMeAway compare?', a: 'We compare hotel prices across 6 providers: Booking.com, Expedia, Trip.com, Hotels.com, Agoda and Trivago, so you always see the cheapest rate side-by-side.' },
+  { q: 'How many hotel providers does JetMeAway compare?', a: 'We compare live wholesale rates from our direct hotel partners (LiteAPI, RateHawk and Webbeds) alongside Expedia, Trip.com, Hotels.com, Agoda and Trivago, so you always see the cheapest rate side-by-side.' },
   { q: 'Are hotel prices on JetMeAway live?', a: 'Yes — hotel prices are fetched in real time when you search. Prices are shown in GBP where available and refresh on every new search.' },
-  { q: 'Do I pay JetMeAway or the hotel provider?', a: 'For most hotels, you book through the provider (Booking.com, Expedia etc.) and pay them directly. For selected inventory JetMeAway will act as booking agent — this is made clear at checkout.' },
+  { q: 'Do I pay JetMeAway or the hotel provider?', a: 'For most hotels you book directly with JetMeAway and pay us — we are the booking agent on inventory sourced via LiteAPI, RateHawk and Webbeds. For redirect partners (Expedia, Trip.com etc.) you pay them directly; this is made clear at checkout.' },
   { q: 'Can I cancel a hotel booking?', a: 'Cancellation depends on the rate you chose. Refundable rates can be cancelled free up to the deadline shown; non-refundable rates cannot. The provider handles refunds.' },
 ];
 
@@ -57,7 +57,7 @@ export const EXPLORE_FAQS: Faq[] = [
 
 export const CONTACT_FAQS: Faq[] = [
   { q: 'Is JetMeAway free to use?', a: 'Yes. JetMeAway is 100% free for travellers. We earn a commission from our partner providers when you book, but this never affects the price you pay.' },
-  { q: 'Can I book a flight or hotel directly on JetMeAway?', a: 'For most inventory we are a comparison engine — we redirect you to the trusted partner (Booking.com, Expedia, Trip.com and others) to complete your booking securely on their site.' },
+  { q: 'Can I book a flight or hotel directly on JetMeAway?', a: 'Hotels sourced via our direct partners (LiteAPI, RateHawk, Webbeds) are bookable on JetMeAway with a single checkout. For flights and other categories we redirect you to the trusted partner (Expedia, Trip.com, Aviasales and others) to complete your booking securely on their site.' },
   { q: 'Is JetMeAway a registered UK company?', a: 'Yes. JetMeAway is registered in England & Wales with Companies House number 17140522. We are a UK travel comparison site operating under UK consumer law.' },
   { q: 'Who do I contact if I have a problem with my booking?', a: 'Because your booking contract is with the travel provider, please contact them first for cancellations, changes, refunds or complaints. If the provider is unresponsive, email us at contact@jetmeaway.co.uk and we will help you escalate.' },
   { q: 'How quickly does JetMeAway reply to messages?', a: 'Monday to Friday we aim to reply within 24 hours. Weekend messages are answered within 48 hours. For urgent booking issues we recommend contacting the provider directly for the fastest response.' },

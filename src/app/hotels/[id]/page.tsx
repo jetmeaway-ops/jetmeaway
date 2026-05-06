@@ -653,10 +653,11 @@ export default function HotelDetailPage() {
           }
         : {}),
       // Note: only aggregateRating is emitted — individual `review` items are
-      // intentionally omitted. Our reviews come from LiteAPI (sourced from
-      // Booking.com) and are not first-party collected. Google's review-snippet
-      // policy treats third-party review arrays as spam risk. Aggregate score +
-      // count is still Google-compliant and drives the star-rating rich snippet.
+      // intentionally omitted. Our reviews come from LiteAPI (sourced from our
+      // wholesale hotel partners) and are not first-party collected. Google's
+      // review-snippet policy treats third-party review arrays as spam risk.
+      // Aggregate score + count is still Google-compliant and drives the
+      // star-rating rich snippet.
       ...(hotel.reviews && hotel.reviews.count > 0 && hotel.reviews.averageScore
         ? {
             aggregateRating: {
@@ -753,8 +754,8 @@ export default function HotelDetailPage() {
               </p>
             )}
             {/* Trust chip row — "Includes all taxes & fees" is the premium
-                cue customers read for in every Booking.com listing. We keep
-                it even when no rate is selected yet. */}
+                cue customers read for on every wholesale hotel listing. We
+                keep it even when no rate is selected yet. */}
             <div className="mt-3 flex flex-wrap gap-2">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[.68rem] font-bold">
                 <i className="fa-solid fa-receipt text-[.62rem]" />
@@ -869,10 +870,11 @@ export default function HotelDetailPage() {
         )}
 
         {/* Phase-5: Anchor sub-nav — smooth-scrolls to the main sections
-            below. Booking.com's "Overview / Info & prices / Facilities /
-            Reviews / Fine print" row; we keep a shorter Scout-voiced version
-            so the page feels navigable from the top. Uses native anchor
-            links so keyboard + screen-reader navigation comes for free. */}
+            below. Mirrors the standard "Overview / Rooms / Facilities /
+            Reviews / Fine print" row most hotel pages use; we keep a shorter
+            Scout-voiced version so the page feels navigable from the top.
+            Uses native anchor links so keyboard + screen-reader navigation
+            comes for free. */}
         <nav
           aria-label="Sections"
           className="sticky top-[72px] z-20 -mx-5 md:-mx-0 px-5 md:px-0 py-2 bg-white/90 backdrop-blur-md border-y border-[#E8ECF4] mb-6"
@@ -1045,8 +1047,7 @@ export default function HotelDetailPage() {
                     icon drawn from HOTEL_AMENITY_ICON_MAP. Unknown amenities
                     fall back to a generic check so we never show an empty
                     square. Three columns on desktop, two on tablet, one on
-                    phone — matches Booking.com's density without feeling
-                    cramped. */}
+                    phone — dense without feeling cramped. */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-2.5">
                   {hotel.amenities.slice(0, 30).map((a, i) => {
                     const info = resolveAmenityIcon(a);
@@ -1176,18 +1177,19 @@ export default function HotelDetailPage() {
 
               {hotel.reviews && hotel.reviews.list.length > 0 ? (
                 (() => {
-                  // Reviews stay ON our site — no click-through to Booking.com.
-                  // Earlier versions linked every review card + a "Read all on
-                  // Booking.com" CTA to a Booking.com search results page (with
-                  // our affiliate aid=318615 preserved). That was a net loss:
-                  // Booking.com's affiliate cut (~3-4%) is materially smaller
-                  // than the LiteAPI direct commission we earn when the
-                  // customer books on our own site (~5-15%), AND the trust hit
-                  // of suddenly being on a competitor's domain mid-decision is
-                  // real. The reviews themselves are still presented as
-                  // verified — the count + "via Booking.com" attribution at
-                  // the footer of the section preserves the social-proof
-                  // origin without sending traffic away. (2026-04-29)
+                  // Reviews stay ON our site — no click-through to a
+                  // competitor. Earlier versions linked every review card to
+                  // an external search-results page (with our affiliate id
+                  // preserved). That was a net loss: third-party affiliate
+                  // cuts (~3-4%) are materially smaller than the LiteAPI /
+                  // RateHawk / Webbeds direct commission we earn when the
+                  // customer books on our own site (~5-15%), AND the trust
+                  // hit of suddenly being on a competitor's domain mid-
+                  // decision is real. The reviews themselves are still
+                  // presented as verified — the count + "verified guest
+                  // reviews" attribution at the footer of the section
+                  // preserves the social-proof origin without sending
+                  // traffic away. (2026-04-29, refreshed 2026-05-06)
                   return (
                 <>
                 <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1253,11 +1255,11 @@ export default function HotelDetailPage() {
                     </li>
                   ))}
                 </ul>
-                {/* BACKLOG B2 tweak (2026-04-21): Booking.com-style review-count
-                    footer beneath the list. Shows how many of the total
-                    verified reviews are visible — anchors social proof at the
-                    bottom of the section so the page closes on a strong
-                    number, not on the last review card. */}
+                {/* BACKLOG B2 tweak (2026-04-21): review-count footer beneath
+                    the list. Shows how many of the total verified reviews
+                    are visible — anchors social proof at the bottom of the
+                    section so the page closes on a strong number, not on
+                    the last review card. */}
                 <div className="mt-5 pt-4 border-t border-[#E8ECF4] flex flex-wrap items-center justify-between gap-3">
                   <p className="text-[.82rem] text-[#0a1628] font-poppins font-bold">
                     Showing {Math.min(5, hotel.reviews.list.length)} of{' '}
@@ -1272,14 +1274,14 @@ export default function HotelDetailPage() {
                   )}
                 </div>
                 {/* Verified-source attribution — static, no link-out.
-                    Earlier versions had a "Read all on Booking.com" CTA
-                    here (with our aid=318615) — removed 2026-04-29 to stop
-                    leaking traffic to a competitor mid-decision. The
-                    "via Booking.com" line preserves the social-proof
-                    origin without sending users away. */}
+                    Earlier versions had a "Read all on <competitor>" CTA
+                    here — removed 2026-04-29 to stop leaking traffic mid-
+                    decision. The "verified guest reviews" line preserves
+                    the social-proof origin without naming or linking to
+                    a competitor. */}
                 <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 ring-1 ring-emerald-200 text-emerald-800 text-[.72rem] font-bold">
                   <i className="fa-solid fa-shield-halved text-[.7rem]" aria-hidden />
-                  {hotel.reviews.count.toLocaleString()} verified reviews via Booking.com
+                  {hotel.reviews.count.toLocaleString()} verified guest reviews
                 </div>
                 </>
                   );
@@ -1296,10 +1298,11 @@ export default function HotelDetailPage() {
                 </div>
               )}
 
-              {/* Google reviews block — additive to LiteAPI/Booking.com reviews
-                  above. Only renders when Google returned at least one review.
-                  Shows the aggregate Google rating + count alongside the cards
-                  so the social-proof score from a different source compounds. */}
+              {/* Google reviews block — additive to the LiteAPI guest-review
+                  set above. Only renders when Google returned at least one
+                  review. Shows the aggregate Google rating + count alongside
+                  the cards so the social-proof score from a different source
+                  compounds. */}
               {googleInfo && googleInfo.reviews.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-[#E8ECF4]">
                   <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">

@@ -54,7 +54,15 @@ const jsonLd = [
    PROVIDER LOGOS — infinite horizontal scroll (pure CSS, no hooks)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const PROVIDERS = ['Expedia', 'Trip.com', 'Aviasales', 'GetYourGuide', 'Viator', 'Klook', 'Airalo', 'Yesim'];
+// Trusted-provider logo scroll. Mirrors the footer partner strip (signed /
+// active relationships only). Booking.com is intentionally NOT here — the
+// affiliate cut is too small vs our LiteAPI / RateHawk / Webbeds direct
+// contracts and the brand association leaks trust. (2026-05-06: added
+// Webbeds, RateHawk, Kyte alongside footer.)
+const PROVIDERS = [
+  'Expedia', 'Trip.com', 'Aviasales', 'GetYourGuide', 'Viator',
+  'Klook', 'Airalo', 'Yesim', 'Webbeds', 'RateHawk', 'Kyte',
+];
 
 function LogoScroll() {
   return (

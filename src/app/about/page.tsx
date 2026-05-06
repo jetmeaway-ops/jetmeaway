@@ -116,8 +116,8 @@ export default function About() {
 
         <Card title="🔍 How It Works">
           <p>
-            Tell us where you want to go. JetMeAway scouts across 15+ providers — including Expedia, Trip.com, Nuitee,
-            Aviasales, Airalo, Klook, and many more — to help you find the best prices.
+            Tell us where you want to go. JetMeAway scouts across 15+ providers — including Expedia, Trip.com, LiteAPI (Nuitee),
+            RateHawk, Webbeds, Aviasales, Duffel, GetYourGuide, Viator, Klook, Airalo, Kyte and many more — to help you find the best prices.
           </p>
           <p>
             For hotels and eSIMs, you book directly with us. For flights and packages, we route you to our

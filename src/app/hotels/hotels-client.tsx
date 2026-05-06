@@ -1574,9 +1574,9 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
                 {nights > 0 && (
                   <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">£{displayTotal} total for {nights} night{nights !== 1 ? 's' : ''}</div>
                 )}
-                {/* Trust chip — the "why us vs Booking" proof. Booking.com shows
-                    pre-tax headline prices; our displayed price is all-in. Loud,
-                    green, never missed. */}
+                {/* Trust chip — the "why us" proof. Many comparison sites
+                    show pre-tax headline prices; our displayed price is
+                    all-in. Loud, green, never missed. */}
                 <span className="inline-flex items-center gap-1 mt-1.5 text-[.68rem] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
                   <i className="fa-solid fa-circle-check text-[.62rem]" aria-hidden />
                   Total Price (Inc. All Taxes &amp; Fees)

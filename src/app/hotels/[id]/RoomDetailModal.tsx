@@ -4,9 +4,10 @@
    ROOM DETAIL MODAL — "Scout" identity
    ───────────────────────────────────────────────────────────────────────────
    Opens when the customer clicks "See room details & photos" on a RoomsTable
-   row. Booking.com's modal shows a photo carousel, size/bed/occupancy chips,
-   a dense amenity grid, the room description, and a sticky "Reserve" footer.
-   We match that information density in Scout's editorial voice:
+   row. The standard hotel-detail modal shows a photo carousel, size/bed/
+   occupancy chips, a dense amenity grid, the room description, and a sticky
+   "Reserve" footer. We match that information density in Scout's editorial
+   voice:
      - Playfair Display title
      - Emerald solid / slate outline dots for amenity tone (same as RoomsTable)
      - Scroll-snap photo strip (matches hotel gallery pattern)
@@ -218,7 +219,7 @@ export default function RoomDetailModal({
               </div>
             )}
 
-            {/* Amenity grid — Booking.com-style two-column checklist */}
+            {/* Amenity grid — standard two-column checklist */}
             {room.amenities.length > 0 && (
               <div className="mt-6">
                 <h3 className="font-poppins font-black text-[.78rem] text-[#0a1628] uppercase tracking-[1.8px] mb-3">
