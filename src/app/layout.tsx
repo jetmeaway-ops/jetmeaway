@@ -100,7 +100,11 @@ const organizationSchema = {
   '@type': 'TravelAgency',
   '@id': 'https://jetmeaway.co.uk/#organization',
   name: 'JetMeAway',
-  alternateName: 'JetMeAway Travel Comparison',
+  // Spelling variants people actually search. "Jetaway" / "Jet me away"
+  // captures the brand-misspell traffic surfacing in GSC at position ~13
+  // (2026-05-07). Telling Google these aliases all map to JetMeAway helps
+  // it surface us correctly when users drop the "Me" or add a space.
+  alternateName: ['JetMeAway Travel Comparison', 'Jet Me Away', 'Jetaway'],
   url: 'https://jetmeaway.co.uk',
   logo: {
     '@type': 'ImageObject',

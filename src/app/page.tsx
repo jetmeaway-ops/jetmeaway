@@ -9,6 +9,10 @@ const jsonLd = [
     '@type': ['TravelAgency', 'Organization'],
     name: 'JetMeAway',
     legalName: 'JETMEAWAY LTD',
+    // Brand-misspell aliases — see layout.tsx Organization schema for the
+    // canonical sitewide list. Mirrored here so the homepage's standalone
+    // Organization assertion carries the same signal.
+    alternateName: ['JetMeAway Travel Comparison', 'Jet Me Away', 'Jetaway'],
     url: 'https://jetmeaway.co.uk',
     logo: 'https://jetmeaway.co.uk/jetmeaway-logo.png',
     email: 'contact@jetmeaway.co.uk',
