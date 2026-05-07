@@ -3,8 +3,10 @@
  * `Location.requestForegroundPermissionsAsync()` call.
  *
  * We always show the rationale card first so the system permission dialog
- * lands on a user who's read why we want it. Whether they grant or deny,
- * the flow advances — we never trap them on this screen.
+ * lands on a user who's read why we want it. The single "Continue" CTA
+ * always proceeds to the system permission request — there is no skip /
+ * dismiss path on this screen, per App Review guideline 5.1.1(iv). Whether
+ * the user grants or denies the system dialog, the flow advances.
  */
 
 import { useState } from 'react';
@@ -21,7 +23,7 @@ export default function LocationOnboardingScreen() {
   const router = useRouter();
   const [requesting, setRequesting] = useState(false);
 
-  const handleAllow = async () => {
+  const handleContinue = async () => {
     setRequesting(true);
     try {
       const result = await Location.requestForegroundPermissionsAsync();
@@ -32,10 +34,6 @@ export default function LocationOnboardingScreen() {
       setRequesting(false);
       router.push('/onboarding/notifications');
     }
-  };
-
-  const handleSkip = () => {
-    router.push('/onboarding/notifications');
   };
 
   return (
@@ -62,19 +60,12 @@ export default function LocationOnboardingScreen() {
 
       <View style={styles.footer}>
         <Button
-          title="Allow Location"
-          onPress={handleAllow}
+          title="Continue"
+          onPress={handleContinue}
           fullWidth
           size="lg"
           loading={requesting}
           haptic="medium"
-        />
-        <Button
-          title="Skip for now"
-          variant="ghost"
-          fullWidth
-          onPress={handleSkip}
-          haptic={false}
         />
       </View>
     </SafeAreaView>

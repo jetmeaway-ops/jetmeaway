@@ -6,7 +6,10 @@
  * `syncPushTokenToBackend()` so the server can target this device for
  * deal alerts immediately.
  *
- * Either grant or skip advances to the sign-in step.
+ * The single "Continue" CTA always proceeds to the system permission
+ * request — there is no skip / dismiss path on this screen, mirroring
+ * the location pre-prompt rule under App Review guideline 5.1.1(iv).
+ * Whether the user grants or denies the system dialog, the flow advances.
  */
 
 import { useState } from 'react';
@@ -26,7 +29,7 @@ export default function NotificationsOnboardingScreen() {
   const router = useRouter();
   const [requesting, setRequesting] = useState(false);
 
-  const handleAllow = async () => {
+  const handleContinue = async () => {
     setRequesting(true);
     try {
       const token = await registerForPushNotifications();
@@ -42,10 +45,6 @@ export default function NotificationsOnboardingScreen() {
       setRequesting(false);
       router.push('/onboarding/signin');
     }
-  };
-
-  const handleSkip = () => {
-    router.push('/onboarding/signin');
   };
 
   return (
@@ -72,19 +71,12 @@ export default function NotificationsOnboardingScreen() {
 
       <View style={styles.footer}>
         <Button
-          title="Allow Notifications"
-          onPress={handleAllow}
+          title="Continue"
+          onPress={handleContinue}
           fullWidth
           size="lg"
           loading={requesting}
           haptic="medium"
-        />
-        <Button
-          title="Skip for now"
-          variant="ghost"
-          fullWidth
-          onPress={handleSkip}
-          haptic={false}
         />
       </View>
     </SafeAreaView>

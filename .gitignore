@@ -67,3 +67,13 @@ scripts/broadcast-contacts*.json
 # NEVER commit. Live source of truth lives in ~/.claude/ (also gitignored above).
 jetmeaway-memory/
 .playwright-mcp/
+
+# ASC screenshot upload — experimental JS-injection tooling from 2026-05-07
+# session (the manual drag-drop ended up being the path that worked).
+# Output blobs are large (5MB+) and tools are session-specific.
+scripts/asc-chunks/
+scripts/asc-mini/
+scripts/asc-inject.js
+scripts/build-asc-injection*.mjs
+scripts/fix-alpha-asc-screenshots.mjs
+scripts/serve-screenshots.mjs
