@@ -11,11 +11,13 @@
  *   /settings/privacy-shield    Explainer for the Privacy Shield concept
  */
 
-import { Stack } from 'expo-router';
-import { Platform } from 'react-native';
-import { colors } from '../../src/theme';
+import { Stack, useRouter } from 'expo-router';
+import { Platform, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing } from '../../src/theme';
 
 export default function SettingsLayout() {
+  const router = useRouter();
   return (
     <Stack
       screenOptions={{
@@ -29,6 +31,23 @@ export default function SettingsLayout() {
         },
         headerBackTitle: 'Back',
         headerShadowVisible: false,
+        // /settings is mounted as a sibling of (tabs), so the FIRST screen
+        // pushed here is the Settings stack root — expo-router's default
+        // headerLeft hides the chevron in that case, leaving the user
+        // stranded (Apple flagged this exact pattern in the Build 19
+        // rejection thread). Always render a chevron and let router.back()
+        // pop up to the parent navigator (the originating tab).
+        headerLeft: () => (
+          <Pressable
+            onPress={() => router.back()}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+            style={{ paddingHorizontal: spacing.xs, paddingVertical: 4 }}
+          >
+            <Ionicons name="chevron-back" size={28} color={colors.brand} />
+          </Pressable>
+        ),
         // iOS slide-from-right is the default; Android uses fade.
         animation: Platform.OS === 'ios' ? 'default' : 'fade_from_bottom',
       }}
