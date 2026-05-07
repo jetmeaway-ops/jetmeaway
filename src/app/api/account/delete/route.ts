@@ -13,10 +13,12 @@
  *     shape" rule plus legal-retention requirements both forbid this. The
  *     /delete-account page tells the user this in plain language.
  *
- * Returns a 303 redirect to /account-deleted with the session cookie cleared.
- * 303 is safe here — this is a POST from a form on the same origin, no
- * WKWebView Set-Cookie race (the cookie clear is a Max-Age=0, the browser
- * commits it before following the redirect).
+ * Two response shapes, switched by `Accept` header:
+ *   - `Accept: application/json` (native iOS/Android app) → JSON body, cookie
+ *     cleared via Set-Cookie. Lets the native client call signOut() locally
+ *     and route to the home tab without ever leaving the app.
+ *   - default (web `<form>` POST) → 303 redirect to /account-deleted with the
+ *     session cookie cleared. Same behaviour as before.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
@@ -25,8 +27,16 @@ import { readSessionEmail, clearSessionCookieHeader } from '@/lib/session';
 export const runtime = 'edge';
 
 export async function POST(req: NextRequest) {
+  const wantsJson = (req.headers.get('accept') || '').toLowerCase().includes('application/json');
   const email = await readSessionEmail(req.headers.get('cookie'));
+
   if (!email) {
+    if (wantsJson) {
+      return NextResponse.json(
+        { ok: false, error: 'not_signed_in' },
+        { status: 401 },
+      );
+    }
     return NextResponse.redirect(new URL('/account?error=expired', req.url), 303);
   }
 
@@ -36,6 +46,12 @@ export async function POST(req: NextRequest) {
   if (subscribers.includes(email)) {
     const next = subscribers.filter((s) => s !== email);
     await kv.set('deal_alert_subscribers', next);
+  }
+
+  if (wantsJson) {
+    const res = NextResponse.json({ ok: true, email });
+    res.headers.append('Set-Cookie', clearSessionCookieHeader());
+    return res;
   }
 
   const res = NextResponse.redirect(new URL('/account-deleted', req.url), 303);
