@@ -9,10 +9,9 @@
  * route we mirror the writes; until then MMKV is canonical.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
-  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -85,10 +84,18 @@ export default function AccountScreen() {
     );
   }, [router]);
 
-  // App Store guideline 5.1.1(v) — in-app entry point for permanent account
-  // deletion. Native confirmation alert, then hand off to the web confirmation
-  // page which performs the actual deletion against /api/account/delete.
+  // App Store guideline 5.1.1(v) — fully native account-deletion flow.
+  // POSTs to /api/account/delete with Accept: application/json. On success
+  // we clear the local cache via signOut() and route back to the home tab.
+  const deletingRef = useRef(false);
   const handleDeleteAccount = useCallback(() => {
+    if (!email) {
+      Alert.alert(
+        'Sign in to delete',
+        'You need to be signed in to delete your account.',
+      );
+      return;
+    }
     Alert.alert(
       'Delete Account',
       'Are you sure you want to permanently delete your account? This action cannot be undone.',
@@ -97,19 +104,67 @@ export default function AccountScreen() {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
+            if (deletingRef.current) return;
+            deletingRef.current = true;
             haptics.medium();
-            Linking.openURL('https://jetmeaway.co.uk/delete-account').catch(() => {
-              Alert.alert(
-                'Cannot open browser',
-                'Please visit https://jetmeaway.co.uk/delete-account to complete account deletion.',
+            try {
+              const res = await fetch(
+                'https://jetmeaway.co.uk/api/account/delete',
+                {
+                  method: 'POST',
+                  credentials: 'include',
+                  headers: { Accept: 'application/json' },
+                },
               );
-            });
+              const body = (await res.json().catch(() => null)) as
+                | { ok?: boolean; error?: string }
+                | null;
+
+              if (res.ok && body?.ok) {
+                await signOut();
+                setEmail(null);
+                haptics.success();
+                Alert.alert(
+                  'Account Deleted',
+                  'Your account, saved searches and deal alerts have been removed. Booking records are retained where required by UK consumer law.',
+                  [
+                    {
+                      text: 'OK',
+                      onPress: () => router.replace('/(tabs)'),
+                    },
+                  ],
+                );
+                return;
+              }
+
+              if (res.status === 401 || body?.error === 'not_signed_in') {
+                Alert.alert(
+                  'Session expired',
+                  'Please sign in again to delete your account.',
+                );
+                await signOut();
+                setEmail(null);
+                return;
+              }
+
+              Alert.alert(
+                'Could not delete account',
+                'Something went wrong on our side. Please try again in a moment.',
+              );
+            } catch {
+              Alert.alert(
+                'No internet connection',
+                'Connect to the internet and try again to delete your account.',
+              );
+            } finally {
+              deletingRef.current = false;
+            }
           },
         },
       ],
     );
-  }, []);
+  }, [email, router]);
 
   const isSignedIn = !!email;
 

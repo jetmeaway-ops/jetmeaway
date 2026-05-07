@@ -19,10 +19,9 @@
  * reviewer to accept as a real native settings surface.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
-  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -142,10 +141,20 @@ export default function ProfileScreen() {
     [router],
   );
 
-  // App Store guideline 5.1.1(v) — discoverable in-app account-deletion
-  // entry point. Mirrors the row in settings/account.tsx so reviewers
-  // (and customers) can find it without digging through Settings first.
+  // App Store guideline 5.1.1(v) — fully native account-deletion flow.
+  // POSTs to /api/account/delete with Accept: application/json so the backend
+  // returns a JSON body (and Set-Cookie clear) instead of a 303 redirect.
+  // After success: clear local cache via signOut(), confirm with the user,
+  // then route back to the home tab (logged-out search screen).
+  const deletingRef = useRef(false);
   const handleDeleteAccount = useCallback(() => {
+    if (!email) {
+      Alert.alert(
+        'Sign in to delete',
+        'You need to be signed in to delete your account.',
+      );
+      return;
+    }
     Alert.alert(
       'Delete Account',
       'Are you sure you want to permanently delete your account? This action cannot be undone.',
@@ -154,19 +163,67 @@ export default function ProfileScreen() {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
+            if (deletingRef.current) return;
+            deletingRef.current = true;
             haptics.medium();
-            Linking.openURL('https://jetmeaway.co.uk/delete-account').catch(() => {
-              Alert.alert(
-                'Cannot open browser',
-                'Please visit https://jetmeaway.co.uk/delete-account to complete account deletion.',
+            try {
+              const res = await fetch(
+                'https://jetmeaway.co.uk/api/account/delete',
+                {
+                  method: 'POST',
+                  credentials: 'include',
+                  headers: { Accept: 'application/json' },
+                },
               );
-            });
+              const body = (await res.json().catch(() => null)) as
+                | { ok?: boolean; error?: string }
+                | null;
+
+              if (res.ok && body?.ok) {
+                await signOut();
+                setEmail(null);
+                haptics.success();
+                Alert.alert(
+                  'Account Deleted',
+                  'Your account, saved searches and deal alerts have been removed. Booking records are retained where required by UK consumer law.',
+                  [
+                    {
+                      text: 'OK',
+                      onPress: () => router.replace('/(tabs)'),
+                    },
+                  ],
+                );
+                return;
+              }
+
+              if (res.status === 401 || body?.error === 'not_signed_in') {
+                Alert.alert(
+                  'Session expired',
+                  'Please sign in again to delete your account.',
+                );
+                await signOut();
+                setEmail(null);
+                return;
+              }
+
+              Alert.alert(
+                'Could not delete account',
+                'Something went wrong on our side. Please try again in a moment.',
+              );
+            } catch {
+              Alert.alert(
+                'No internet connection',
+                'Connect to the internet and try again to delete your account.',
+              );
+            } finally {
+              deletingRef.current = false;
+            }
           },
         },
       ],
     );
-  }, []);
+  }, [email, router]);
 
   const isSignedIn = !!email;
   const initials = (email || '?')
