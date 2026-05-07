@@ -1,0 +1,47 @@
+{
+  "$comment": "Travel-themed trivia. Each question has exactly 4 choices and a single correct index (0-3). Add freely; no code changes needed.",
+  "categories": {
+    "World Geography": [
+      { "id": "wg-1",  "q": "Which river flows through Cairo?",                          "choices": ["Tigris", "Nile", "Congo", "Niger"],                "correct": 1 },
+      { "id": "wg-2",  "q": "What is the capital of Australia?",                          "choices": ["Sydney", "Melbourne", "Canberra", "Brisbane"],     "correct": 2 },
+      { "id": "wg-3",  "q": "Which continent is Argentina in?",                           "choices": ["South America", "Europe", "Africa", "Asia"],       "correct": 0 },
+      { "id": "wg-4",  "q": "Which sea separates Italy and Croatia?",                     "choices": ["Aegean", "Adriatic", "Ionian", "Tyrrhenian"],     "correct": 1 },
+      { "id": "wg-5",  "q": "Mount Fuji is in which country?",                            "choices": ["South Korea", "China", "Japan", "Vietnam"],        "correct": 2 },
+      { "id": "wg-6",  "q": "Which country has the longest coastline?",                   "choices": ["Russia", "Canada", "Australia", "USA"],            "correct": 1 },
+      { "id": "wg-7",  "q": "The Andes mountain range runs along which coast?",           "choices": ["West coast of South America", "East coast of Africa", "South coast of Europe", "North coast of Asia"], "correct": 0 },
+      { "id": "wg-8",  "q": "Which European capital is built on 14 islands?",             "choices": ["Helsinki", "Copenhagen", "Stockholm", "Oslo"],     "correct": 2 },
+      { "id": "wg-9",  "q": "Lake Titicaca lies between Peru and which country?",         "choices": ["Chile", "Bolivia", "Ecuador", "Brazil"],           "correct": 1 },
+      { "id": "wg-10", "q": "Which strait separates Spain from Morocco?",                 "choices": ["Bosphorus", "Gibraltar", "Hormuz", "Bering"],     "correct": 1 },
+      { "id": "wg-11", "q": "What is the largest desert in the world?",                   "choices": ["Sahara", "Gobi", "Antarctic", "Arabian"],         "correct": 2 },
+      { "id": "wg-12", "q": "Which country has the most islands?",                        "choices": ["Indonesia", "Philippines", "Sweden", "Greece"],   "correct": 2 }
+    ],
+    "Famous Landmarks": [
+      { "id": "fl-1",  "q": "The Colosseum is in which city?",                            "choices": ["Athens", "Florence", "Rome", "Naples"],            "correct": 2 },
+      { "id": "fl-2",  "q": "Christ the Redeemer overlooks which city?",                  "choices": ["Buenos Aires", "Lima", "São Paulo", "Rio de Janeiro"], "correct": 3 },
+      { "id": "fl-3",  "q": "The Burj Khalifa is located in?",                            "choices": ["Doha", "Riyadh", "Dubai", "Abu Dhabi"],            "correct": 2 },
+      { "id": "fl-4",  "q": "Machu Picchu was built by which civilisation?",              "choices": ["Aztec", "Maya", "Olmec", "Inca"],                  "correct": 3 },
+      { "id": "fl-5",  "q": "Which landmark is in Agra, India?",                          "choices": ["Red Fort", "Taj Mahal", "Lotus Temple", "Hawa Mahal"], "correct": 1 },
+      { "id": "fl-6",  "q": "The Acropolis sits above which city?",                       "choices": ["Istanbul", "Cairo", "Athens", "Rome"],             "correct": 2 },
+      { "id": "fl-7",  "q": "Angkor Wat is the largest religious monument in?",           "choices": ["Thailand", "Cambodia", "Laos", "Vietnam"],         "correct": 1 },
+      { "id": "fl-8",  "q": "The Sagrada Família was designed by?",                       "choices": ["Gaudí", "Picasso", "Dalí", "Calatrava"],          "correct": 0 },
+      { "id": "fl-9",  "q": "Petra is carved into the rock face in which country?",       "choices": ["Egypt", "Jordan", "Israel", "Saudi Arabia"],      "correct": 1 },
+      { "id": "fl-10", "q": "The Golden Gate Bridge spans which strait?",                 "choices": ["Long Island Sound", "Puget Sound", "Golden Gate Strait", "Strait of Juan de Fuca"], "correct": 2 },
+      { "id": "fl-11", "q": "The Brandenburg Gate stands in which city?",                 "choices": ["Vienna", "Munich", "Berlin", "Hamburg"],          "correct": 2 },
+      { "id": "fl-12", "q": "Stonehenge is located in which country?",                    "choices": ["Ireland", "Scotland", "England", "Wales"],        "correct": 2 }
+    ],
+    "Aviation History": [
+      { "id": "av-1",  "q": "Who made the first powered, controlled aeroplane flight in 1903?", "choices": ["Wright Brothers", "Charles Lindbergh", "Amelia Earhart", "Glenn Curtiss"], "correct": 0 },
+      { "id": "av-2",  "q": "What does 'IATA' stand for?",                                       "choices": ["Inter-Airline Transport Authority", "International Air Transport Association", "International Aviation Trade Association", "Inter-Airport Terminal Authority"], "correct": 1 },
+      { "id": "av-3",  "q": "Which aircraft was the first commercial supersonic airliner?",      "choices": ["Boeing 747", "Concorde", "TU-144", "Airbus A380"], "correct": 1 },
+      { "id": "av-4",  "q": "The Boeing 747 is famously nicknamed?",                             "choices": ["Dreamliner", "Jumbo Jet", "Queen of the Skies", "Both 'Jumbo Jet' and 'Queen of the Skies'"], "correct": 3 },
+      { "id": "av-5",  "q": "What is a 'black box' on an aircraft actually coloured?",           "choices": ["Black", "Silver", "Bright orange", "White"], "correct": 2 },
+      { "id": "av-6",  "q": "Which airline is the flag carrier of the Netherlands?",             "choices": ["Lufthansa", "KLM", "Air France", "Iberia"], "correct": 1 },
+      { "id": "av-7",  "q": "What is the world's busiest airport by passenger traffic (typical year)?", "choices": ["Heathrow", "Beijing Capital", "Atlanta (Hartsfield-Jackson)", "Dubai"], "correct": 2 },
+      { "id": "av-8",  "q": "Amelia Earhart was the first woman to fly solo across which ocean?", "choices": ["Pacific", "Indian", "Atlantic", "Arctic"], "correct": 2 },
+      { "id": "av-9",  "q": "Which country is Airbus headquartered in?",                         "choices": ["Germany", "United Kingdom", "France", "Spain"], "correct": 2 },
+      { "id": "av-10", "q": "What does 'ETOPS' refer to in aviation?",                           "choices": ["Extended-range Twin-engine OPerationS", "Engine Throttle Optimised Procedure System", "Emergency Take-Off Procedure System", "European Twin Operations Standard"], "correct": 0 },
+      { "id": "av-11", "q": "The first jet-powered airliner was the?",                          "choices": ["Boeing 707", "Douglas DC-8", "de Havilland Comet", "Caravelle"], "correct": 2 },
+      { "id": "av-12", "q": "What altitude do most commercial jets cruise at?",                  "choices": ["15,000 ft", "25,000 ft", "35,000 ft", "55,000 ft"], "correct": 2 }
+    ]
+  }
+}

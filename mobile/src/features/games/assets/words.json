@@ -1,0 +1,25 @@
+{
+  "$comment": "Travel-themed word lists for the Word Search game, grouped by category. Keep entries 3-9 letters and uppercase A-Z only — the engine assumes that. Add/remove words freely; no code changes needed.",
+  "categories": {
+    "Global Destinations": [
+      "LONDON", "PARIS", "TOKYO", "ROME", "DUBAI", "CAIRO", "MADRID", "LISBON",
+      "VIENNA", "PRAGUE", "ATHENS", "BERLIN", "SEOUL", "DELHI", "OSLO", "BOSTON",
+      "SYDNEY", "TORONTO", "LIMA", "QUITO", "DUBLIN", "ZURICH", "DOHA", "MILAN"
+    ],
+    "Airport Life": [
+      "FLIGHT", "PILOT", "RUNWAY", "GATE", "BOARDING", "CABIN", "AISLE", "SEAT",
+      "TICKET", "LAYOVER", "TAKEOFF", "LANDING", "TURBINE", "JETLAG", "HANGAR",
+      "TOWER", "RADAR", "TARMAC", "WING", "ENGINE", "CARGO", "CREW", "FUEL"
+    ],
+    "Travel Essentials": [
+      "PASSPORT", "VISA", "CUSTOMS", "HOTEL", "HOSTEL", "RESORT", "LOUNGE",
+      "JOURNEY", "VOYAGE", "EXPLORE", "WANDER", "ADVENTURE", "SUITCASE",
+      "BACKPACK", "MAP", "GUIDE", "ROUTE", "BORDER", "STAMP", "CURRENCY"
+    ],
+    "Wild Adventures": [
+      "TROPICS", "ISLAND", "BEACH", "MOUNTAIN", "DESERT", "SAFARI", "CRUISE",
+      "FERRY", "TRAIN", "STATION", "JUNGLE", "REEF", "VOLCANO", "GLACIER",
+      "CANYON", "FOREST", "RIVER", "LAKE", "TRAIL", "SUMMIT"
+    ]
+  }
+}

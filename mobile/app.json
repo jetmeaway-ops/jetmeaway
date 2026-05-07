@@ -90,7 +90,8 @@
       "expo-font",
       "expo-web-browser",
       "expo-router",
-      "@sentry/react-native"
+      "@sentry/react-native",
+      "expo-audio"
     ],
     "extra": {
       "eas": {

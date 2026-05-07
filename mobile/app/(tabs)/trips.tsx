@@ -20,10 +20,11 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
+import { FontAwesome5 } from '@expo/vector-icons';
 
-import { Banner, SegmentedControl } from '../../src/components/primitives';
+import { Banner, Card, SegmentedControl } from '../../src/components/primitives';
 import TripCard from '../../src/components/trip/TripCard';
 import SavedSearchRow from '../../src/components/trip/SavedSearchRow';
 import TripsEmptyState from '../../src/components/trip/TripsEmptyState';
@@ -53,6 +54,7 @@ export default function TripsScreen() {
 
   const { online } = useNetwork();
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   const tripsQuery = useTrips();
   const savedSearchesQuery = useSavedSearches();
@@ -141,6 +143,31 @@ export default function TripsScreen() {
           selectedIndex={segmentIndex}
           onChange={setSegmentIndex}
         />
+      </View>
+
+      <View style={styles.gamesEntryWrap}>
+        <Card
+          variant="interactive"
+          onPress={() => router.push('/games')}
+          accessibilityLabel="Open Scout Lounge"
+        >
+          <View style={styles.gamesEntryInner}>
+            <View style={styles.gamesIcon}>
+              <FontAwesome5 name="gamepad" size={18} color={colors.brand} solid />
+            </View>
+            <View style={styles.gamesText}>
+              <Text style={styles.gamesTitle}>Scout Lounge</Text>
+              <Text style={styles.gamesBlurb}>
+                Offline puzzles, word search &amp; trivia for the flight.
+              </Text>
+            </View>
+            <FontAwesome5
+              name="chevron-right"
+              size={14}
+              color={colors.textMuted}
+            />
+          </View>
+        </Card>
       </View>
 
       {isLoading ? (
@@ -236,6 +263,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
   },
+  gamesEntryWrap: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+  },
+  gamesEntryInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  gamesIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.brandSubtle,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gamesText: { flex: 1 },
+  gamesTitle: { ...typography.h3, color: colors.textPrimary },
+  gamesBlurb: { ...typography.bodySm, color: colors.textSecondary },
   listContent: {
     padding: spacing.lg,
     paddingTop: 0,
