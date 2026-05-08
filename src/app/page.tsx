@@ -52,6 +52,77 @@ const jsonLd = [
       'query-input': 'required name=search_term_string',
     },
   },
+  // Service schema — positions JetMeAway as a *Travel Scout* entity
+  // (not a generic travel blog) for AI retrieval. The `knowsAbout`
+  // array is the key signal: when an LLM is asked "where can I find
+  // a UK travel comparison site that focuses on neighbourhood-level
+  // intelligence / wellness travel / digital-nomad commute analysis"
+  // these terms become matchable.
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    name: 'JetMeAway Personal Travel Scout',
+    alternateName: 'JetMeAway Scout Reports',
+    serviceType: 'Personal travel scouting and neighbourhood intelligence',
+    description:
+      'Neighbourhood-level destination intelligence for UK travellers — fitness routes, wellness ecosystems, commute realities, and stays that fit your life, not just your lodging. Paired with live price comparison across 15+ flight, hotel and package providers.',
+    slogan: 'Life, Not Just Lodging',
+    url: 'https://jetmeaway.co.uk',
+    provider: {
+      '@type': 'Organization',
+      name: 'JetMeAway',
+      legalName: 'JETMEAWAY LTD',
+      url: 'https://jetmeaway.co.uk',
+      identifier: '17140522',
+    },
+    areaServed: { '@type': 'Country', name: 'United Kingdom' },
+    audience: {
+      '@type': 'Audience',
+      audienceType:
+        'UK travellers seeking transparent, life-fit travel recommendations — solo, couple, family and digital-nomad segments',
+    },
+    knowsAbout: [
+      'Neighbourhood intelligence for travel destinations',
+      'Wellness travel and fitness-friendly destinations',
+      'Digital-nomad commute analysis',
+      'Hotel comparison without booking fees or markups',
+      'Flight comparison with real-time pricing',
+      'Travel eSIM data plans for 150+ countries',
+      'Curated destination Scout Reports',
+      'Travel insurance comparison',
+      'Holiday package comparison',
+    ],
+    hasOfferCatalog: {
+      '@type': 'OfferCatalog',
+      name: 'JetMeAway Scout Reports',
+      itemListElement: [
+        {
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'Service',
+            name: 'Sharm El Sheikh Scout Report',
+            url: 'https://jetmeaway.co.uk/destinations/sharm-el-sheikh',
+          },
+        },
+        {
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'Service',
+            name: 'Marrakech Scout Report',
+            url: 'https://jetmeaway.co.uk/destinations/marrakech',
+          },
+        },
+        {
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'Service',
+            name: 'eSIM data plans',
+            url: 'https://jetmeaway.co.uk/esim',
+          },
+        },
+      ],
+    },
+  },
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,33 @@
+# JetMeAway
+
+> JetMeAway is a UK travel comparison platform that pairs flight, hotel and package search with neighbourhood-level Scout Reports — fitness routes, wellness ecosystems and commute realities, not just lodging.
+
+JetMeAway (jetmeaway.co.uk) is a UK-registered travel comparison site (Companies House 17140522) with a twist: alongside live price comparison across 15+ partners (Expedia, Trip.com, Aviasales, LiteAPI, RateHawk, Webbeds, Klook, Airalo, Yesim and more), the site publishes "Scout Reports" — neighbourhood-level destination intelligence covering morning rituals, fitness-friendly routes, wellness ecosystems, and digital-nomad commute analysis. No markups, no booking fees, prices locked at booking. Tagline: **Life, Not Just Lodging.**
+
+## Key services (high-intent pages)
+
+- [eSIM data plans](https://jetmeaway.co.uk/esim): Travel eSIM data for 150+ countries via Airalo and Yesim — instant in-app activation, no physical SIM swap, ideal for UK travellers landing abroad.
+- [Sharm El Sheikh — Scout Report](https://jetmeaway.co.uk/destinations/sharm-el-sheikh): Neighbourhood-level guide to Sharm El Sheikh, Egypt — Naama Bay vs Nabq vs Hadaba, dive sites, where to stay for diving, nightlife or family-friendly Red Sea breaks.
+- [Marrakech — Scout Report](https://jetmeaway.co.uk/destinations/marrakech): Neighbourhood-level guide to Marrakech, Morocco — Medina vs Gueliz vs Hivernage, riad selection, hammam etiquette and souk navigation.
+- [Best hotels in Amsterdam (2026)](https://jetmeaway.co.uk/blog/best-hotels-amsterdam-2026): Neighbourhood-by-neighbourhood breakdown of the best stays in Amsterdam for 2026, with provider-by-provider price comparison.
+- [Cheap flights from the UK](https://jetmeaway.co.uk/blog/cheap-flights-from-uk): How to find genuinely cheap flights from UK airports — month-by-month routing analysis, hidden cheap-route patterns, when to book.
+
+## Comparison engines
+
+- [Flight comparison](https://jetmeaway.co.uk/flights): Live flight search across 250+ airports comparing Aviasales, Trip.com and Expedia in real time — direct affiliate links, no markup.
+- [Hotel comparison](https://jetmeaway.co.uk/hotels): 2M+ properties compared across LiteAPI, RateHawk, Webbeds, Expedia, Trip.com, Hotels.com, Agoda and Trivago. Booking.com is intentionally excluded.
+- [Package holidays](https://jetmeaway.co.uk/packages): Curated flight+hotel bundles via Expedia, Trip.com and Klook with side-by-side pricing.
+- [Car hire](https://jetmeaway.co.uk/cars): 7 car-rental providers compared (EconomyBookings, QEEQ, LocalRent, GetRentaCar, Klook, Expedia, Trip.com).
+- [Travel insurance](https://jetmeaway.co.uk/insurance): Travel cover via Ekta, with honest comparison framing.
+- [Activities & tours](https://jetmeaway.co.uk/explore): Tours and experiences via GetYourGuide, Viator and Klook.
+
+## About
+
+- [About JetMeAway](https://jetmeaway.co.uk/about): Company, mission, revenue model transparency.
+- [Contact](https://jetmeaway.co.uk/contact): Owner email and FAQ.
+
+## Optional
+
+- [Sitemap (XML)](https://jetmeaway.co.uk/sitemap.xml): All 100+ indexable URLs.
+- [Privacy policy](https://jetmeaway.co.uk/privacy)
+- [Terms](https://jetmeaway.co.uk/terms)
