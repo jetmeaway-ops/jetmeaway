@@ -5,36 +5,23 @@ import { kv } from '@vercel/kv';
  * Shows:
  *  - Total deal-alert subscriber count
  *  - Top per-PDF lead-magnet conversions (which guides earned emails)
- *  - Last 10 signups, masked (e.g. `w***@gmail.com`)
- *
- * No timestamps available: `deal_alert_subscribers` is stored as a `string[]`
- * (insertion order ≈ chronological). Order in the KV array is the only proxy
- * for "recent" — most-recently-added is at the end.
  *
  * No API route — this is rendered inside the admin server component, which
  * already enforces auth via the `jma_admin` cookie + secret check.
+ *
+ * Owner explicitly opted out of showing per-email rows on this card (even
+ * masked) — the count + per-PDF breakdown is enough at a glance.
  */
-
-function maskEmail(raw: string): string {
-  const trimmed = raw.trim();
-  const [local, domain] = trimmed.split('@');
-  if (!local || !domain) return '***@***';
-  if (local.length <= 1) return `${local}***@${domain}`;
-  if (local.length <= 3) return `${local[0]}**@${domain}`;
-  return `${local[0]}${local[1]}***@${domain}`;
-}
 
 type PdfLeadGroup = { slug: string; count: number };
 
 async function loadAll(): Promise<{
   total: number;
-  recent: string[];
   pdfGroups: PdfLeadGroup[];
 }> {
   // Combined deal-alerts list (also includes everyone who downloaded a PDF —
   // see /api/pdf-download which writes both per-slug and combined).
   const subscribers = (await kv.get<string[]>('deal_alert_subscribers')) || [];
-  const recent = subscribers.slice(-10).reverse(); // newest first
 
   // Per-PDF breakdown — scan all `pdf-leads:*` keys.
   let pdfGroups: PdfLeadGroup[] = [];
@@ -57,11 +44,11 @@ async function loadAll(): Promise<{
     // KV scan can fail in transient outages — degrade quietly, never crash /admin.
   }
 
-  return { total: subscribers.length, recent, pdfGroups };
+  return { total: subscribers.length, pdfGroups };
 }
 
 export default async function SubscribersWidget() {
-  const { total, recent, pdfGroups } = await loadAll();
+  const { total, pdfGroups } = await loadAll();
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -80,8 +67,8 @@ export default async function SubscribersWidget() {
       </div>
 
       {/* Per-PDF lead conversion (top 5) */}
-      {pdfGroups.length > 0 && (
-        <div className="mb-4">
+      {pdfGroups.length > 0 ? (
+        <div>
           <div className="text-[11px] font-bold uppercase tracking-wide text-[#5C6378] mb-1.5">
             PDF leads (top guides)
           </div>
@@ -99,31 +86,11 @@ export default async function SubscribersWidget() {
             ))}
           </ul>
         </div>
-      )}
-
-      {/* Last 10 signups, masked. Order is array insertion order — closest
-          thing to "recent" we have without a schema change. */}
-      <div>
-        <div className="text-[11px] font-bold uppercase tracking-wide text-[#5C6378] mb-1.5">
-          Last {Math.min(10, recent.length)} signups
+      ) : (
+        <div className="text-xs italic text-[#8E95A9]">
+          {total === 0 ? 'No signups yet.' : 'No PDF lead conversions yet.'}
         </div>
-        {recent.length === 0 ? (
-          <div className="text-xs italic text-[#8E95A9]">No signups yet.</div>
-        ) : (
-          <ul className="space-y-0.5 text-xs font-mono text-[#5C6378]">
-            {recent.map((email, i) => (
-              <li key={`${email}-${i}`} className="truncate">
-                {maskEmail(email)}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <div className="mt-4 pt-3 border-t border-gray-100 text-[10px] text-[#8E95A9] leading-snug">
-        Insertion order ≈ chronological. Add timestamps to KV schema if exact
-        signup dates are needed.
-      </div>
+      )}
     </div>
   );
 }
