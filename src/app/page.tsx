@@ -166,6 +166,57 @@ function WhatWeCompare() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   TRENDING DESTINATIONS — direct link bridge from homepage to specific
+   pSEO + blog URLs that GSC has flagged as "Discovered – currently not
+   indexed" (2026-05-08). Homepage is the most-crawled node on the site;
+   adding a single clean grid here creates a forced one-hop path so
+   Googlebot stops orphan-ing these URLs.
+   Plain card markup, no images — keeps LCP fast and the link signal
+   uncluttered for crawlers.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const TRENDING = [
+  { href: '/destinations/sharm-el-sheikh',   eyebrow: 'Egypt',     title: 'Sharm El Sheikh',  hint: 'Winter sun · Red Sea reefs' },
+  { href: '/destinations/marrakech',         eyebrow: 'Morocco',   title: 'Marrakech',        hint: 'Souks, riads & desert escapes' },
+  { href: '/destinations/berlin',            eyebrow: 'Germany',   title: 'Berlin',           hint: 'Year-round culture city break' },
+  { href: '/destinations/budapest',          eyebrow: 'Hungary',   title: 'Budapest',         hint: 'Thermal baths & Danube nights' },
+  { href: '/destinations/colombo',           eyebrow: 'Sri Lanka', title: 'Colombo',          hint: 'Gateway to beaches & tea hills' },
+  { href: '/blog/best-hotels-amsterdam-2026', eyebrow: 'Guide',    title: 'Amsterdam Hotels', hint: 'Best stays for 2026 — neighbourhood breakdown' },
+] as const;
+
+function TrendingDestinations() {
+  return (
+    <section className="py-12 px-6 bg-white" aria-labelledby="trending-heading">
+      <div className="max-w-[1100px] mx-auto">
+        <p className="text-center text-[.65rem] font-black uppercase tracking-[3px] text-orange-800 mb-1.5 font-[var(--font-dm-sans)]">Trending This Week</p>
+        <h2 id="trending-heading" className="text-center font-[var(--font-playfair)] text-[1.8rem] md:text-[2.2rem] font-black text-[#0a1628] mb-6">
+          Trending Destinations
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {TRENDING.map((t) => (
+            <a
+              key={t.href}
+              href={t.href}
+              className="group relative bg-white border border-[#E8ECF4] rounded-2xl p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] hover:border-orange-200"
+            >
+              <div className="text-[.58rem] font-black uppercase tracking-[2px] text-orange-700 mb-1 font-[var(--font-dm-sans)]">
+                {t.eyebrow}
+              </div>
+              <div className="font-poppins font-black text-[1.05rem] text-[#0a1628] mb-1 group-hover:text-orange-700 transition-colors">
+                {t.title} →
+              </div>
+              <div className="font-[var(--font-dm-sans)] text-[.74rem] text-[#5C6378] leading-snug">
+                {t.hint}
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    SCOUT DESTINATIONS — homepage card that passes link equity to /destinations
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -319,6 +370,7 @@ export default function Home() {
 
       <LogoScroll />
       <LazyPopularDestinations />
+      <TrendingDestinations />
       <ScoutDestinations />
       <WhatWeCompare />
       <HowItWorks />
