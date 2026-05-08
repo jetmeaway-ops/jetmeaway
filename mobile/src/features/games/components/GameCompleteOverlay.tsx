@@ -15,13 +15,13 @@ import { colors, radii, shadows, spacing, typography } from '../../../theme';
 import { gameColors } from '../theme';
 import { useSound } from '../hooks/useSound';
 
-// Audio sources. Swap each `null` for `require('../assets/audio/<file>.mp3')`
-// once the MP3 is dropped in. Until then, `useSound(null)` is a safe no-op
-// and the rest of the celebration still fires (haptic + overlay).
+// Audio sources wired to the bundled MP3s in ../assets/audio/. Each
+// require() runs at module-load and Metro bundles the file into the
+// IPA / APK — fully offline.
 const SOUNDS = {
-  chime: null as number | null,    // require('../assets/audio/chime.mp3')
-  fanfare: null as number | null,  // require('../assets/audio/fanfare.mp3')
-  victory: null as number | null,  // require('../assets/audio/victory.mp3')
+  chime: require('../assets/audio/chime.mp3') as number,
+  fanfare: require('../assets/audio/fanfare.mp3') as number,
+  victory: require('../assets/audio/victory.mp3') as number,
 };
 
 export type SoundKey = keyof typeof SOUNDS;

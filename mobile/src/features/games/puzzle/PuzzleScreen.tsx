@@ -33,7 +33,7 @@ import {
  * lands. Until then `playChime()` is a safe no-op so the win flow
  * completes without sound.
  */
-const CHIME_SOURCE: number | null = null; // require('../assets/audio/chime.mp3')
+const CHIME_SOURCE: number = require('../assets/audio/chime.mp3');
 import { PUZZLE_IMAGES, pickRandomImage } from './images';
 import PuzzleBoard from './PuzzleBoard';
 import {

@@ -51,9 +51,9 @@ import {
 const SCREEN_PADDING = spacing.lg;
 
 /* ── Sound placeholders ─────────────────────────────────────────────── */
-const CORRECT_SOURCE: number | null = null; // require('../assets/audio/correct.mp3')
-const WRONG_SOURCE: number | null = null;   // require('../assets/audio/wrong.mp3')
-const VICTORY_SOURCE: number | null = null; // require('../assets/audio/victory.mp3')
+const CORRECT_SOURCE: number = require('../assets/audio/correct.mp3');
+const WRONG_SOURCE: number = require('../assets/audio/wrong.mp3');
+const VICTORY_SOURCE: number = require('../assets/audio/victory.mp3');
 
 /* ── Categories ─────────────────────────────────────────────────────── */
 // JSON inference widens `choices` to `string[]`; cast through `unknown`

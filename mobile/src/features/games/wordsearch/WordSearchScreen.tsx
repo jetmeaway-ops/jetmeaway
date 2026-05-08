@@ -51,8 +51,8 @@ const SCREEN_PADDING = spacing.lg;
 /* ── Sound placeholders ─────────────────────────────────────────────── */
 // To wire real audio: drop `chime.mp3` / `fanfare.mp3` into
 // `../assets/audio/` and replace the `null` with a `require(...)` call.
-const CHIME_SOURCE: number | null = null;   // require('../assets/audio/chime.mp3')
-const FANFARE_SOURCE: number | null = null; // require('../assets/audio/fanfare.mp3')
+const CHIME_SOURCE: number = require('../assets/audio/chime.mp3');
+const FANFARE_SOURCE: number = require('../assets/audio/fanfare.mp3');
 
 /* ── Categories ─────────────────────────────────────────────────────── */
 type CategoriesShape = { categories: Record<string, string[]> };
