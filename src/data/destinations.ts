@@ -15,7 +15,7 @@ export interface Destination {
   averageNightlyPrice: number;
   flightTimeFromLondonHours: number;
   faqs: { q: string; a: string }[];
-  /** SEO overrides — when present, used instead of the auto-generated defaults */
+  /** SEO overrides \u2014 when present, used instead of the auto-generated defaults */
   seoTitle?: string;
   metaDescription?: string;
   /**
@@ -24,7 +24,7 @@ export interface Destination {
    * remaining tags are reserved for future ranking inside other tabs.
    */
   vibeTags?: VibeTag[];
-  /** Scout Sidebar — local intelligence surfaced as a distinct block */
+  /** Scout Sidebar \u2014 local intelligence surfaced as a distinct block */
   scout?: {
     morningRitual: string;
     wellness: string;
@@ -899,6 +899,63 @@ export const DESTINATIONS: Destination[] = [
     seoTitle: 'Berlin Scout: Urban Vitality & Hidden Forest Rituals',
     metaDescription: 'Tiergarten dawn runs, Grunewald forest swims and Vabali wellness stays for UK travellers. Compare Berlin hotels and direct flights with Scout-grade intel.',
   },
+  {
+    slug: 'barcelona',
+    vibeTags: ['foodie', 'urban'],
+    city: 'Barcelona',
+    country: 'Spain',
+    iata: 'BCN',
+    heroImage:
+      'https://images.unsplash.com/photo-1583422409516-2895a77efded?auto=format&fit=crop&w=1600&q=80',
+    tagline:
+      'Three different Barcelonas in one city \u2014 medieval Gothic, Modernista Eixample and the Mediterranean at Barceloneta.',
+    intro:
+      'Barcelona is the most spatially logical city in Europe for a long weekend \u2014 the medieval Gothic Quarter, the 19th-century Eixample grid (Gaud\u00ED, Passeig de Gr\u00E0cia, the design hotels) and the Barceloneta beach all sit within fifteen minutes of one another by metro. Pick the wrong neighbourhood for the trip you are taking and you will spend it on the L4 line; pick the right one and the city walks itself.',
+    whyGo:
+      '2h 10m flights from LHR, LGW, STN, MAN and EDI; the euro; and a price floor that still beats Paris or Amsterdam by 25%. The 1992 Olympic legacy left Barcelona with a swimmable urban beach (May to October) and a 4km coastal promenade \u2014 both free, both ten minutes from the Gothic Quarter.',
+    bestTime:
+      'May and September to early October: 22-26\u00B0C, sea is swimmable, terraces are open, and the Merc\u00E8 Festival lights the city for free in mid-September. August is 35\u00B0C+ and tourist-saturated. Winter (November to February) is mild (14\u00B0C) and the cheapest the four-stars get all year.',
+    neighbourhoods: [
+      {
+        name: 'Gothic Quarter / El Born',
+        blurb:
+          'The medieval city \u2014 Roman walls in the cathedral basement, the Picasso Museum in El Born, and the late-night eating culture (dinner at 10pm). Pickpocketing is real on Las Ramblas; one street back, it is calm.',
+      },
+      {
+        name: 'Eixample',
+        blurb:
+          'Cerd\u00E0\u2019s 1860 octagonal grid \u2014 Sagrada Fam\u00EDlia, Casa Batll\u00F3, Passeig de Gr\u00E0cia design hotels. Wider streets, quieter nights and better-ventilated rooms than the Gothic Quarter.',
+      },
+      {
+        name: 'Barceloneta',
+        blurb:
+          'The beach. Sea-view rooms, swimmable Mediterranean May to October, chiringuitos along the sand. Twenty minutes from the Gothic Quarter; the only zone where you can swim before breakfast.',
+      },
+    ],
+    averageNightlyPrice: 130,
+    flightTimeFromLondonHours: 2.2,
+    faqs: [
+      {
+        q: 'Is Barcelona safe for UK tourists?',
+        a: 'The Gothic Quarter and Las Ramblas have the highest pickpocketing rate of any European tourist district \u2014 phones in front pockets, bags on the inside, no backpacks in crowded streets. Beyond pickpocketing, Barcelona is safe day and night.',
+      },
+      {
+        q: 'Where to stay near Sagrada Fam\u00EDlia?',
+        a: 'The Sagrada Fam\u00EDlia sits in the Eixample grid. Hotel Casa Fuster is a 10-minute walk; Almanac Barcelona around 15. The blocks immediately around the basilica are residential, so no major hotel is on its doorstep \u2014 any Eixample stay puts it within a short walk.',
+      },
+      {
+        q: 'Underrated morning ritual?',
+        a: 'Sunrise at Bunkers del Carmel \u2014 Civil War anti-aircraft emplacements on top of Tur\u00F3 de la Rovira hill. Free, open 24/7, full 360\u00B0 city view. Bus 119 from Pla\u00E7a d\u2019Alfons X gets you halfway up; the rest is a 15-minute climb.',
+      },
+      {
+        q: 'How many days do I need in Barcelona?',
+        a: 'Four days for the essentials (Sagrada Fam\u00EDlia, Park G\u00FCell, Gothic Quarter, El Born, Barceloneta, Montju\u00EFc). Five or six if you are adding Sitges or a day trip to the Montserrat monastery 60km north-west.',
+      },
+    ],
+    seoTitle: 'Barcelona Scout: Gothic, Eixample & Barceloneta in One Trip',
+    metaDescription:
+      'Compare Barcelona hotels and direct flights from the UK. Three neighbourhoods, swimmable Mediterranean and Gaud\u00ED Modernisme \u2014 a Scout-grade guide for May, September and shoulder-season trips.',
+  },
 ];
 
 export function getDestination(slug: string): Destination | undefined {
@@ -913,7 +970,7 @@ export function getDestination(slug: string): Destination | undefined {
  * Precedence:
  *   1. Destination's own `vibeTags` (hand-picked editorial)
  *   2. Country-level fallback via `vibesForCountry`
- *   3. Empty array — Silent Scout falls back to its generic default
+ *   3. Empty array \u2014 Silent Scout falls back to its generic default
  *
  * Safe to call with any string; unknown cities return [] and Silent Scout
  * gracefully picks 'food' as the neutral default.

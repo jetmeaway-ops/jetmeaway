@@ -9,6 +9,10 @@ export const runtime = 'edge';
 export const metadata = {
   title: 'Compare Holiday Packages | JetMeAway',
   description: 'Compare flight + hotel package deals from Expedia and Trip.com. ATOL-protected holiday bundles at the best prices.',
+  // Canonical to the bare /packages path. Parameterised variants
+  // (?dest=…) share this template + metadata, so they're indexed as
+  // duplicates. Declaring canonical consolidates link equity to /packages.
+  alternates: { canonical: 'https://jetmeaway.co.uk/packages' },
 };
 
 export default function PackagesPage() {

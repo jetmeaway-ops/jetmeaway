@@ -9,6 +9,11 @@ export const runtime = 'edge';
 export const metadata = {
   title: 'Book Hotels Direct — Live Wholesale Rates | JetMeAway',
   description: 'Book hotels direct with JetMeAway. Live wholesale rates from 30+ suppliers, total prices including all taxes & fees, free cancellation on most rooms. No booking fees.',
+  // Canonical to the bare /hotels path. Every parameterised variant
+  // (?destination=…, ?city=…, ?region=…) shares this template + metadata,
+  // so they're indexed as duplicates. Declaring canonical consolidates link
+  // equity to /hotels and removes the dupes from Google's index.
+  alternates: { canonical: 'https://jetmeaway.co.uk/hotels' },
 };
 
 export default function HotelsPage() {

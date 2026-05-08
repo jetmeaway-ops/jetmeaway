@@ -9,6 +9,11 @@ export const runtime = 'edge';
 export const metadata = {
   title: 'Compare Cheap Flights from the UK | JetMeAway',
   description: 'Compare flights from 5 providers in seconds. Find the cheapest flights from UK airports to 250+ destinations worldwide.',
+  // Canonical to the bare /flights path. Every parameterised variant
+  // (?to=…, ?destination=…) shares this template + metadata, so they're
+  // indexed as duplicates. Declaring canonical consolidates link equity
+  // to /flights and removes the dupes from Google's index.
+  alternates: { canonical: 'https://jetmeaway.co.uk/flights' },
 };
 
 export default function FlightsPage() {
