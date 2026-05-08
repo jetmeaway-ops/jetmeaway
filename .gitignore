@@ -67,3 +67,14 @@ scripts/broadcast-contacts*.json
 # NEVER commit. Live source of truth lives in ~/.claude/ (also gitignored above).
 jetmeaway-memory/
 .playwright-mcp/
+
+# App Store Connect screenshot upload tooling — one-off generated artifacts
+# (base64 image blobs, chunked injection scripts, local screenshot server)
+scripts/asc-inject.js
+scripts/asc-chunks/
+scripts/asc-mini/
+scripts/build-asc-injection.mjs
+scripts/build-asc-injection-chunked.mjs
+scripts/build-asc-injection-mini.mjs
+scripts/fix-alpha-asc-screenshots.mjs
+scripts/serve-screenshots.mjs
