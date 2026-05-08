@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import BalanceWidget from './BalanceWidget';
 import StripeWidget from './StripeWidget';
+import SubscribersWidget from './SubscribersWidget';
 import {
   listBookings,
   summarise,
@@ -64,10 +65,11 @@ export default async function AdminDashboard() {
         <KpiCard label="Upcoming (7d)" value={`${stats.upcomingCheckIns} check-ins`} accent="text-amber-600" />
       </div>
 
-      {/* Supplier balances */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Supplier balances + subscribers */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <StripeWidget />
         <BalanceWidget />
+        <SubscribersWidget />
       </div>
 
       {/* Status breakdown */}
