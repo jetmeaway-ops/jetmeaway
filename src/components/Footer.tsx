@@ -73,6 +73,44 @@ export default function Footer() {
           ))}
         </div>
 
+        {/* App download row — promotes the JetMeAway iOS + Android apps.
+            iOS Smart App Banner (configured in metadata.itunes in
+            layout.tsx) covers iPhone Safari users automatically; this
+            row ensures everyone else (Android, desktop, in-app browsers)
+            sees the apps exist. Generic Tailwind buttons styled to match
+            footer aesthetic — deliberately not mimicking the trademarked
+            Apple/Google badge layouts. Brand glyphs come from Font
+            Awesome's brand set, which is licensed for this use. */}
+        <div className="flex flex-wrap items-center gap-3 mb-6">
+          <span className="text-[.55rem] uppercase tracking-[2.5px] font-extrabold text-white/75 mr-1">Get the JetMeAway app</span>
+          <a
+            href="https://apps.apple.com/gb/app/jetmeaway/id6765715611"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Get JetMeAway on the App Store"
+            className="inline-flex items-center gap-2.5 rounded-xl bg-white/[.08] border border-white/15 px-4 py-2 text-white transition-all hover:bg-white hover:text-[#0F1119] hover:border-transparent hover:-translate-y-0.5"
+          >
+            <i className="fa-brands fa-apple text-[1.4rem]" aria-hidden="true" />
+            <span className="flex flex-col leading-tight text-left">
+              <span className="text-[.55rem] uppercase tracking-[1.5px] font-bold opacity-75">iOS app</span>
+              <span className="text-[.78rem] font-extrabold">App Store</span>
+            </span>
+          </a>
+          <a
+            href="https://play.google.com/store/apps/details?id=uk.co.jetmeaway.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Get JetMeAway on Google Play"
+            className="inline-flex items-center gap-2.5 rounded-xl bg-white/[.08] border border-white/15 px-4 py-2 text-white transition-all hover:bg-white hover:text-[#0F1119] hover:border-transparent hover:-translate-y-0.5"
+          >
+            <i className="fa-brands fa-google-play text-[1.2rem]" aria-hidden="true" />
+            <span className="flex flex-col leading-tight text-left">
+              <span className="text-[.55rem] uppercase tracking-[1.5px] font-bold opacity-75">Android app</span>
+              <span className="text-[.78rem] font-extrabold">Google Play</span>
+            </span>
+          </a>
+        </div>
+
         <div className="flex justify-between items-center flex-wrap gap-3">
           <p className="text-[.6rem] text-white/75">© 2026 JETMEAWAY LTD (Company No: 17140522 · DUNS: 234726109 · ICO: ZC125217). 66 Paul Street, EC2A 4NA, London. All rights reserved.</p>
           {/* Partner strip — only suppliers we have signed/active relationships

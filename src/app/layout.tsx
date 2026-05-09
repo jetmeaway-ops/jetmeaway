@@ -78,6 +78,16 @@ export const metadata = {
     statusBarStyle: 'default',
     title: 'JetMeAway',
   },
+  // Smart App Banner — when an iPhone Safari user lands on jetmeaway.co.uk,
+  // iOS renders a thin native banner at the top of the page suggesting they
+  // install (or open) the JetMeAway app. `appId` is our App Store numeric
+  // ID. `appArgument` is the URL forwarded to the app when the banner is
+  // tapped — handled by our universal-links AASA so the app deep-links to
+  // the same page the user was on.
+  itunes: {
+    appId: '6765715611',
+    appArgument: 'https://jetmeaway.co.uk',
+  },
   other: {
     'mobile-web-app-capable': 'yes',
   },
