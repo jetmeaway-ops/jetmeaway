@@ -252,7 +252,12 @@ const TRENDING = [
   { href: '/destinations/berlin',            eyebrow: 'Germany',   title: 'Berlin',           hint: 'Year-round culture city break' },
   { href: '/destinations/budapest',          eyebrow: 'Hungary',   title: 'Budapest',         hint: 'Thermal baths & Danube nights' },
   { href: '/destinations/colombo',           eyebrow: 'Sri Lanka', title: 'Colombo',          hint: 'Gateway to beaches & tea hills' },
-  { href: '/blog/best-hotels-amsterdam-2026', eyebrow: 'Guide',    title: 'Amsterdam Hotels', hint: 'Best stays for 2026 — neighbourhood breakdown' },
+  // Swapped 2026-05-09: was the Amsterdam-hotels blog link, but that
+  // post already gets link equity from the Scout section below. Audit
+  // flagged /destinations/baden-baden as the only GSC-stuck destination
+  // URL with zero homepage link equity — moving the slot directly fixes
+  // the orphan path Googlebot was missing.
+  { href: '/destinations/baden-baden',       eyebrow: 'Germany',   title: 'Baden-Baden',     hint: 'Black Forest bathing & elite spas' },
 ] as const;
 
 function TrendingDestinations() {

@@ -49,6 +49,33 @@ export default function Footer() {
         <div className="max-w-[800px] mb-7">
           <p className="text-[.72rem] text-white/75 leading-relaxed font-semibold">Flight-inclusive packages are ATOL protected via Expedia (5788) &amp; Trip.com (11572). <Link href="/financial-protection" className="text-white/85 hover:text-white underline">Read our Financial Protection Notice</Link>.</p>
         </div>
+        {/* Popular Destinations row — passes footer link equity to the
+            most-crawl-worthy destination pages on every route. From the
+            2026-05-09 daily SEO audit (#8). Eight destinations chosen
+            for traffic potential + GSC indexing priority. Plain rounded
+            chips so they don't compete with the social row below. */}
+        <div className="flex flex-wrap items-center gap-2 mb-6">
+          <span className="text-[.55rem] uppercase tracking-[2.5px] font-extrabold text-white/75 mr-1">Popular Destinations</span>
+          {[
+            { name: 'Dubai',     slug: 'dubai' },
+            { name: 'Istanbul',  slug: 'istanbul' },
+            { name: 'Marrakech', slug: 'marrakech' },
+            { name: 'Budapest',  slug: 'budapest' },
+            { name: 'Lisbon',    slug: 'lisbon' },
+            { name: 'Porto',     slug: 'porto' },
+            { name: 'Abu Dhabi', slug: 'abu-dhabi' },
+            { name: 'Doha',      slug: 'doha' },
+          ].map(d => (
+            <Link
+              key={d.slug}
+              href={`/destinations/${d.slug}`}
+              className="text-[.7rem] font-semibold text-white/75 hover:text-white transition-colors px-2.5 py-1 rounded-full bg-white/[.06] hover:bg-white/[.12] border border-white/10 hover:border-white/20"
+            >
+              {d.name}
+            </Link>
+          ))}
+        </div>
+
         {/* Social row — sits above the © line. Brand-coloured hovers,
             opens in new tab, rel=me improves cross-platform identity
             verification (Mastodon, etc.) and is harmless elsewhere. */}
