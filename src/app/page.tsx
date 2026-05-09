@@ -422,6 +422,36 @@ export default function Home() {
           <div id="hero-search">
             <LazyFlightSearch />
           </div>
+
+          {/* App-link row — sits under the search wizard. Deliberately
+              icon-only + small so it doesn't compete with the Search CTA
+              but is visible above the fold for desktop visitors who'd
+              otherwise scroll past. iPhone Safari users also get the
+              automatic Smart App Banner up top (metadata.itunes in
+              layout.tsx) — this row is the desktop / Android equivalent.
+              White/75 colour palette matches the rest of the dark hero.
+              Brand glyphs from Font Awesome (already loaded). */}
+          <div className="mt-6 flex items-center justify-center gap-4">
+            <span className="font-[var(--font-dm-sans)] text-[.78rem] font-medium text-white/75">Get the app</span>
+            <a
+              href="https://apps.apple.com/gb/app/jetmeaway/id6765715611"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Get JetMeAway on the App Store"
+              className="text-white/85 hover:text-white transition-colors"
+            >
+              <i className="fa-brands fa-apple text-[1.4rem]" aria-hidden="true" />
+            </a>
+            <a
+              href="https://play.google.com/store/apps/details?id=uk.co.jetmeaway.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Get JetMeAway on Google Play"
+              className="text-white/85 hover:text-white transition-colors"
+            >
+              <i className="fa-brands fa-google-play text-[1.2rem]" aria-hidden="true" />
+            </a>
+          </div>
         </div>
       </section>
 
