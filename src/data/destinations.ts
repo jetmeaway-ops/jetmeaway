@@ -138,6 +138,9 @@ export const DESTINATIONS: Destination[] = [
         a: 'Three full days covers the headline sights. Four or five lets you slow down, cross to the Asian side, and eat properly.',
       },
     ],
+    seoTitle: 'Istanbul Scout: Hotels, Flights & Bosphorus Rituals',
+    metaDescription:
+      'Istanbul from the UK: weak lira, \u00A380 four-stars and four-hour direct flights. Compare hotels with Scout-grade picks for Beyo\u011Flu, Sultanahmet and Kad\u0131k\u00F6y.',
     scout: {
       morningRitual: 'Skip the hotel breakfast. Head to the Karak\u00F6y waterfront by 7:30 AM for a \u2018Simit and Sea\u2019 ritual \u2014 watching the ferries cross the Bosphorus while the city wakes up in the mist.',
       wellness: 'Experience the H\u00FCrrem Sultan Hamam for a royal Ottoman ritual, or run the Bosphorus Promenade from Bebek to Rumeli Hisar\u0131 \u2014 the most scenic 5km flat run in Europe (and Asia).',
@@ -192,6 +195,9 @@ export const DESTINATIONS: Destination[] = [
         a: 'Very. Baku is one of the safest capitals in the region. Violent crime against tourists is rare and the old city is well policed.',
       },
     ],
+    seoTitle: 'Baku Scout: Caspian Walls, Flame Towers & UK Direct Flights',
+    metaDescription:
+      'UNESCO walled city, Zaha Hadid skyline and £55/night four-stars from London Heathrow. Compare Baku hotels and direct flights with Scout-grade intel.',
     scout: {
       morningRitual: 'A sunrise walk on the Baku Boulevard. The air off the Caspian Sea is crisp, and you can watch the Flame Towers catch the first light before the city heat kicks in.',
       wellness: 'Visit the Hamambath for an authentic Azeri scrub, or head to the Fairmont Spa in the Flame Towers for the best high-altitude sky-pool workout in the region.',
@@ -747,7 +753,7 @@ export const DESTINATIONS: Destination[] = [
       { q: 'Underrated morning ritual?', a: 'G\u00E9ll\u00E9rt Hill sunrise hike \u2014 20 minutes up, 360\u00B0 Danube view, then coffee at Cafe G\u00E9rbeaud before the tour coaches land. Free.' },
     ],
     seoTitle: 'Scout Budapest: Thermal Rituals & Morning Wellness',
-    metaDescription: 'Budapest thermal baths, Danube morning runs and Buda hills wellness stays for UK travellers. Compare hotels and direct flights with Scout-grade neighbourhood notes.',
+    metaDescription: 'Budapest thermal baths, Danube morning runs and Buda hills wellness stays for UK travellers. Compare hotels and direct flights with Scout-grade intel.',
     scout: {
       morningRitual: 'The \u2018Gell\u00E9rt Rise.\u2019 Hike up Gell\u00E9rt Hill at 6:30 AM for a panoramic view of the Danube, then head straight down into the Gell\u00E9rt Thermal Baths as they open.',
       wellness: 'Beyond the famous baths, use Margitsziget (Margaret Island) \u2014 a 5km car-free island in the middle of the river dedicated entirely to running, swimming and outdoor fitness.',
@@ -781,7 +787,7 @@ export const DESTINATIONS: Destination[] = [
       { q: 'Underrated morning ritual?', a: 'Sunrise at Miradouro da Senhora do Monte \u2014 the highest viewpoint, zero tourists before 8am, then breakfast at Dear Breakfast in Pr\u00EDncipe Real.' },
     ],
     seoTitle: 'Lisbon Scout: Coastal Wellness & Neighborhood Rituals',
-    metaDescription: 'Atlantic surf, seven-hill walks and Principe Real wellness stays for UK travellers. Compare Lisbon hotels and direct flights with Scout-grade neighbourhood intel.',
+    metaDescription: 'Atlantic surf, seven-hill walks and Principe Real wellness stays for UK travellers. Compare Lisbon hotels and direct flights with Scout-grade intel.',
   },
   {
     slug: 'baden-baden',
@@ -954,7 +960,7 @@ export const DESTINATIONS: Destination[] = [
     ],
     seoTitle: 'Barcelona Scout: Gothic, Eixample & Barceloneta in One Trip',
     metaDescription:
-      'Compare Barcelona hotels and direct flights from the UK. Three neighbourhoods, swimmable Mediterranean and Gaud\u00ED Modernisme \u2014 a Scout-grade guide for May, September and shoulder-season trips.',
+      'Compare Barcelona hotels and direct flights from the UK. Gothic, Eixample, Barceloneta \u2014 Scout-grade picks for shoulder-season trips.',
   },
 ];
 

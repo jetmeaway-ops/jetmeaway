@@ -55,7 +55,11 @@ const dmSans = DM_Sans({
 });
 
 export const metadata = {
-  title: 'JetMeAway | Compare Flights, Hotels, Car Hire & Holidays — UK Travel Comparison',
+  // Title trimmed 2026-05-09 from 79 → 60 chars per the daily SEO audit.
+  // Google truncates SERP titles at ~60 chars; the previous form lost
+  // "UK Travel Comparison" mid-display. Brand recognition lives in the
+  // visible tail now.
+  title: 'JetMeAway | Flights, Hotels, Holidays — UK Travel Comparison',
   description: 'Compare flights, hotels, car hire and package holidays from trusted providers. Find the cheapest deals for your next trip. Free UK travel comparison site.',
   openGraph: {
     title: 'JetMeAway | Compare Flights, Hotels, Car Hire & Holidays',

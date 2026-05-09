@@ -48,9 +48,23 @@ export async function generateMetadata({
   const { slug } = await params;
   const post = getPostBySlug(slug);
   if (!post) return {};
+  // Trim the excerpt for the meta description — Google truncates at
+  // ~155-160 chars in SERPs, so we slice at 152 and back up to the last
+  // word boundary before adding an ellipsis. Frontmatter excerpts often
+  // run 200-300 chars (used as the long-form summary on /blog index
+  // cards), but only the truncated form ships in <meta description>.
+  const metaDesc =
+    post.excerpt.length > 155
+      ? post.excerpt.slice(0, 152).replace(/\s\S*$/, '') + '…'
+      : post.excerpt;
+
   return {
-    title: `${post.title} | JetMeAway Blog`,
-    description: post.excerpt,
+    // Title suffix shortened from " | JetMeAway Blog" (17 chars) to
+    // " | JetMeAway" (12 chars) per the 2026-05-09 daily SEO audit. 55
+    // of 58 posts had titles >65 chars after the longer suffix; this
+    // alone reclaims ~5 chars across every post.
+    title: `${post.title} | JetMeAway`,
+    description: metaDesc,
     // Canonical URL — tells Google + AI crawlers that any parameterised
     // variant of this post (?utm_source=…, ?ref=…, trailing slash, etc.)
     // should consolidate ranking signals into the bare /blog/<slug> URL.
