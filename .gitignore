@@ -78,3 +78,8 @@ scripts/build-asc-injection-chunked.mjs
 scripts/build-asc-injection-mini.mjs
 scripts/fix-alpha-asc-screenshots.mjs
 scripts/serve-screenshots.mjs
+
+# Apple Brand Profile cover photo — generated artifact, reproducible from
+# scripts/build-apple-cover.mjs. Lives uploaded on Apple Business Manager,
+# no need to ship the PNG bytes through git.
+/public/apple-brand-cover-1600x1040.png
