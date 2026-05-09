@@ -51,6 +51,15 @@ export async function generateMetadata({
   return {
     title: `${post.title} | JetMeAway Blog`,
     description: post.excerpt,
+    // Canonical URL — tells Google + AI crawlers that any parameterised
+    // variant of this post (?utm_source=…, ?ref=…, trailing slash, etc.)
+    // should consolidate ranking signals into the bare /blog/<slug> URL.
+    // Without this, GSC sees each parameter combo as a separate page and
+    // splits PageRank across all 58 blog posts. From the 2026-05-09 daily
+    // SEO audit (HIGH-impact, one-line fix, largest SEO surface area).
+    alternates: {
+      canonical: `https://jetmeaway.co.uk/blog/${post.slug}`,
+    },
     openGraph: {
       title: post.title,
       description: post.excerpt,
