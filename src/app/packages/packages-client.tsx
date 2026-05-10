@@ -11,18 +11,21 @@ import { saveSticky, loadSticky, type StickyPackages } from '@/lib/sticky-search
 
 const DESTINATIONS = [
   'London', 'Manchester', 'Birmingham', 'Edinburgh', 'Glasgow', 'Liverpool',
-  'Barcelona', 'Madrid', 'Malaga', 'Tenerife', 'Lanzarote', 'Fuerteventura',
-  'Gran Canaria', 'Palma', 'Alicante', 'Faro', 'Lisbon',
-  'Paris', 'Nice', 'Amsterdam', 'Rome', 'Venice', 'Florence', 'Milan',
-  'Athens', 'Crete', 'Rhodes', 'Corfu', 'Santorini',
-  'Dubrovnik', 'Split', 'Antalya', 'Bodrum', 'Dalaman', 'Istanbul',
-  'Dubai', 'Marrakech', 'Cairo', 'New York', 'Los Angeles', 'Miami',
-  'Las Vegas', 'Orlando', 'San Francisco', 'Cancun', 'Punta Cana',
-  'Tokyo', 'Bangkok', 'Singapore', 'Bali', 'Phuket', 'Maldives',
-  'Sydney', 'Melbourne', 'Cape Town', 'Johannesburg',
+  'Barcelona', 'Madrid', 'Malaga', 'Marbella', 'Seville', 'Valencia', 'Ibiza', 'Mallorca',
+  'Tenerife', 'Lanzarote', 'Fuerteventura', 'Gran Canaria', 'Palma', 'Alicante', 'Benidorm',
+  'Faro', 'Algarve', 'Lisbon', 'Madeira', 'Porto',
+  'Paris', 'Nice', 'Amsterdam', 'Rome', 'Venice', 'Florence', 'Milan', 'Naples', 'Sicily', 'Sardinia',
+  'Athens', 'Crete', 'Rhodes', 'Corfu', 'Santorini', 'Mykonos', 'Kos', 'Zante',
+  'Dubrovnik', 'Split', 'Antalya', 'Bodrum', 'Dalaman', 'Marmaris', 'Istanbul',
+  'Dubai', 'Abu Dhabi', 'Marrakech', 'Agadir', 'Cairo', 'Sharm El Sheikh', 'Hurghada',
+  'New York', 'Los Angeles', 'Miami', 'Las Vegas', 'Orlando', 'San Francisco',
+  'Cancun', 'Punta Cana', 'Mexico City', 'Tulum', 'Jamaica', 'Barbados',
+  'Tokyo', 'Bangkok', 'Singapore', 'Bali', 'Phuket', 'Krabi', 'Maldives', 'Sri Lanka', 'Colombo',
+  'Sydney', 'Melbourne', 'Cape Town', 'Johannesburg', 'Mauritius', 'Seychelles', 'Zanzibar', 'Mombasa',
   'Toronto', 'Vancouver', 'Hong Kong', 'Seoul', 'Kuala Lumpur',
   'Lima', 'Buenos Aires', 'Rio de Janeiro',
-  'Vienna', 'Prague', 'Budapest', 'Copenhagen', 'Stockholm',
+  'Vienna', 'Prague', 'Budapest', 'Copenhagen', 'Stockholm', 'Oslo', 'Helsinki',
+  'Cyprus', 'Paphos', 'Larnaca', 'Malta',
   'Doha', 'Reykjavik', 'Dublin',
   // Pakistan
   'Lahore', 'Islamabad', 'Karachi',
@@ -30,6 +33,42 @@ const DESTINATIONS = [
   'Baku', 'Yerevan', 'Tbilisi', 'Ashgabat', 'Tashkent',
   'Almaty', 'Astana', 'Bishkek', 'Dushanbe',
 ];
+
+/**
+ * Country / region aliases — typing a country name surfaces the most popular
+ * cities in that country as suggestions. Without this, "Spain" returns zero
+ * matches even though we have eight Spanish cities listed. (See Clarity
+ * session 2026-05-10: 37 seconds of typing on /packages with no autocomplete
+ * hits → bounce.)
+ */
+const DESTINATION_ALIASES: Record<string, string[]> = {
+  spain: ['Barcelona', 'Madrid', 'Malaga', 'Marbella', 'Tenerife', 'Lanzarote', 'Mallorca', 'Ibiza'],
+  portugal: ['Lisbon', 'Algarve', 'Faro', 'Porto', 'Madeira'],
+  greece: ['Athens', 'Crete', 'Rhodes', 'Corfu', 'Santorini', 'Mykonos', 'Kos', 'Zante'],
+  italy: ['Rome', 'Venice', 'Florence', 'Milan', 'Naples', 'Sicily', 'Sardinia'],
+  france: ['Paris', 'Nice'],
+  turkey: ['Antalya', 'Bodrum', 'Dalaman', 'Marmaris', 'Istanbul'],
+  croatia: ['Dubrovnik', 'Split'],
+  egypt: ['Cairo', 'Sharm El Sheikh', 'Hurghada'],
+  morocco: ['Marrakech', 'Agadir'],
+  uae: ['Dubai', 'Abu Dhabi'],
+  emirates: ['Dubai', 'Abu Dhabi'],
+  thailand: ['Bangkok', 'Phuket', 'Krabi'],
+  indonesia: ['Bali'],
+  japan: ['Tokyo'],
+  australia: ['Sydney', 'Melbourne'],
+  usa: ['New York', 'Los Angeles', 'Miami', 'Las Vegas', 'Orlando', 'San Francisco'],
+  america: ['New York', 'Los Angeles', 'Miami', 'Las Vegas', 'Orlando', 'San Francisco'],
+  mexico: ['Cancun', 'Tulum', 'Mexico City'],
+  caribbean: ['Punta Cana', 'Jamaica', 'Barbados', 'Cancun'],
+  pakistan: ['Lahore', 'Islamabad', 'Karachi'],
+  'sri lanka': ['Colombo'],
+  'south africa': ['Cape Town', 'Johannesburg'],
+  canaries: ['Tenerife', 'Lanzarote', 'Fuerteventura', 'Gran Canaria'],
+  'canary islands': ['Tenerife', 'Lanzarote', 'Fuerteventura', 'Gran Canaria'],
+  balearics: ['Mallorca', 'Ibiza', 'Palma'],
+  'costa del sol': ['Malaga', 'Marbella'],
+};
 
 /* ═══════════════════════════════════════════════════════════════════════════
    UK AIRPORTS (for "From" field)
@@ -92,9 +131,33 @@ function DestinationPicker({ value, onChange }: { value: string; onChange: (v: s
   }, []);
 
   const q = value.toLowerCase().trim();
-  const filtered = q.length >= 1
-    ? DESTINATIONS.filter(d => d.toLowerCase().includes(q)).slice(0, 8)
+  // 1) Direct matches against the curated city list
+  const directHits = q.length >= 1
+    ? DESTINATIONS.filter(d => d.toLowerCase().includes(q))
     : DESTINATIONS.slice(0, 10);
+  // 2) Country / region aliases — surface popular cities when user types a
+  //    country name. Filtered against actual DESTINATIONS so we don't suggest
+  //    cities that won't survive the search submit.
+  const aliasHits: string[] = [];
+  if (q.length >= 1) {
+    for (const [key, cities] of Object.entries(DESTINATION_ALIASES)) {
+      if (key.includes(q) || q.includes(key)) {
+        for (const c of cities) {
+          if (!directHits.includes(c) && !aliasHits.includes(c)) aliasHits.push(c);
+        }
+      }
+    }
+  }
+  const filtered = [...directHits, ...aliasHits].slice(0, 8);
+  // Free-text fallback — when the user's query doesn't match anything in our
+  // curated list, packages search will still pass the raw text through to
+  // Expedia / Trip.com (their resolvers handle "Marbella", "Mauritius" etc.
+  // even though we don't list them). Surface this as the first suggestion so
+  // the user knows the form isn't a dead end.
+  const showFreeText =
+    q.length >= 2 &&
+    filtered.length === 0 &&
+    !DESTINATIONS.some(d => d.toLowerCase() === q);
 
   return (
     <div ref={ref} className="relative">
@@ -102,8 +165,14 @@ function DestinationPicker({ value, onChange }: { value: string; onChange: (v: s
         onChange={e => { onChange(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
         className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-purple-500 focus:bg-white transition-all placeholder:text-[#B0B8CC]" />
-      {open && (
+      {open && (filtered.length > 0 || showFreeText) && (
         <ul className="absolute z-50 w-full mt-1.5 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl overflow-auto max-h-64">
+          {showFreeText && (
+            <li onMouseDown={() => { setOpen(false); }}
+              className="px-4 py-3 hover:bg-purple-50 cursor-pointer transition-colors border-b border-[#F1F3F7] font-poppins font-semibold text-[.88rem] text-[#1A1D2B]">
+              <span className="text-purple-600">Search</span> &ldquo;{value}&rdquo; <span className="text-[.7rem] text-[#8E95A9] font-medium">— we&rsquo;ll pass it to package providers</span>
+            </li>
+          )}
           {filtered.map(c => (
             <li key={c} onMouseDown={() => { onChange(c); setOpen(false); }}
               className={`px-4 py-3 hover:bg-purple-50 cursor-pointer transition-colors border-b border-[#F1F3F7] last:border-0 font-poppins font-semibold text-[.88rem] text-[#1A1D2B] ${value === c ? 'bg-purple-50' : ''}`}>
