@@ -15,9 +15,12 @@ const IATA = 'FCO';
 const AVG_NIGHT = 145;
 
 export const metadata: Metadata = {
-  title: 'Where to Stay in Trastevere, Rome — Hotels, Mornings & Local Scout | JetMeAway',
+  // Title trimmed 2026-05-10 from 78 → 60 chars per daily SEO audit. Google
+  // truncates at ~60; previous version lost "| JetMeAway" mid-display.
+  title: 'Where to Stay in Trastevere, Rome — Scout Guide | JetMeAway',
+  // Description trimmed 2026-05-10 from 200 -> 152 chars (audit ceiling 155).
   description:
-    'Trastevere hotels from £145/night, the 6am coffee ritual, cobbled quiet-streets map and which side of Viale di Trastevere to pick. UK travellers\u2019 Scout guide to Rome\u2019s loudest-and-quietest neighbourhood.',
+    'Trastevere hotels from £145/night, the 6am coffee ritual, and which side of Viale di Trastevere is loud vs quiet. Rome Scout guide for UK travellers.',
   alternates: { canonical: 'https://jetmeaway.co.uk/destinations/rome/trastevere' },
   openGraph: {
     title: 'Trastevere, Rome — Scout Guide for UK Travellers',

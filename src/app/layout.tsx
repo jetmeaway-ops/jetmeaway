@@ -77,6 +77,10 @@ export const metadata = {
     // images: inherited from openGraph (Next auto-wires).
   },
   metadataBase: new URL('https://jetmeaway.co.uk'),
+  // Root canonical — covers the homepage. Without this, any parameterised
+  // variant of `/` (?utm_*, ?ref=…, etc.) is crawled as a separate page and
+  // dilutes PageRank. From the 2026-05-10 daily SEO audit (HIGH-impact).
+  alternates: { canonical: 'https://jetmeaway.co.uk' },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',

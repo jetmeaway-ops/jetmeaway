@@ -7,6 +7,10 @@ export const metadata = {
   title: 'Travel Blog | JetMeAway',
   description:
     'Expert travel tips, destination guides, and insider advice from your personal travel scout. Find the best hotels, flights, packages, and eSIM deals for 2026.',
+  // Canonical URL — collapses parameterised variants of /blog index page back
+  // to the bare URL. Per-post canonicals already shipped yesterday at
+  // src/app/blog/[slug]/page.tsx. 2026-05-10 audit.
+  alternates: { canonical: 'https://jetmeaway.co.uk/blog' },
   openGraph: {
     title: 'Travel Blog | JetMeAway',
     description:

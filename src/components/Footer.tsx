@@ -59,10 +59,13 @@ export default function Footer() {
           {[
             { name: 'Dubai',     slug: 'dubai' },
             { name: 'Istanbul',  slug: 'istanbul' },
+            { name: 'Barcelona', slug: 'barcelona' },
+            { name: 'London',    slug: 'london' },
             { name: 'Marrakech', slug: 'marrakech' },
             { name: 'Budapest',  slug: 'budapest' },
             { name: 'Lisbon',    slug: 'lisbon' },
             { name: 'Porto',     slug: 'porto' },
+            { name: 'Muscat',    slug: 'muscat' },
             { name: 'Abu Dhabi', slug: 'abu-dhabi' },
             { name: 'Doha',      slug: 'doha' },
           ].map(d => (
