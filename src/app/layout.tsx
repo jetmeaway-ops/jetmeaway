@@ -16,6 +16,7 @@ import DeferredWidgets from '@/components/DeferredWidgets';
 import MicrosoftClarity from '@/components/MicrosoftClarity';
 import ScrollToTop from '@/components/ScrollToTop';
 import ClientErrorReporter from '@/components/ClientErrorReporter';
+import AndroidAppBanner from '@/components/AndroidAppBanner';
 
 // Google tag ID. `AW-*` = Google Ads conversion tag (not GA4). The
 // <GoogleAnalytics> component from @next/third-parties just injects
@@ -268,6 +269,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         <ClientErrorReporter />
         <ScrollToTop />
+        <AndroidAppBanner />
         <DeferredWidgets />
         {/* Font Awesome — injected client-side during idle time so it never
             blocks first paint. Icons (star ratings, step icons, etc) appear
