@@ -7,7 +7,7 @@ import {
   dotwRoomsToDetail,
   dotwConfirmToBookingRef,
 } from '@/lib/suppliers/dotw-adapter';
-import { upsertBooking, type Booking, type Supplier } from '@/lib/bookings';
+import { listBookings, upsertBooking, type Booking, type Supplier } from '@/lib/bookings';
 import { notifyBookingConfirmed, notifyBookingDeclined } from '@/lib/notifications';
 import { reportBug } from '@/lib/report-bug';
 import { BookSchema, zodErrorToMessage } from '@/lib/hotel-schemas';
@@ -57,6 +57,58 @@ async function mirrorToUnified(
     const destination = record.city || '';
     const nowIso = new Date().toISOString();
 
+    // ── £5-off-2nd-booking promo: re-validate at confirmation time ────
+    // The eligibility check at /api/hotels/start-booking ran when the
+    // customer entered checkout (could be 30+ min ago). If a parallel
+    // checkout for the same email already redeemed in the meantime, we
+    // would otherwise pay out twice. Re-check here against the live
+    // bookings:all store; if another booking by this email already has
+    // promoStatus 'eligible' or 'paid', deny this one. Anything else
+    // (different supplier, customer not signed in, channel mismatch,
+    // etc.) was already gated at start-booking — we just trust the
+    // record.promoCode flag here. See src/lib/promo.ts for the full
+    // eligibility rules and ditch-the-5-cash-hazy-toast.md for context.
+    let promoStatus: Booking['promoStatus'] = null;
+    let promoCode: Booking['promoCode'] = null;
+    let promoDiscountPence: Booking['promoDiscountPence'] = 0;
+    if (
+      opts.status === 'confirmed' &&
+      record.promoCode === 'APP_2ND_5OFF' &&
+      record.guest.email
+    ) {
+      try {
+        const all = await listBookings();
+        const lower = record.guest.email.toLowerCase();
+        const otherRedemptions = all.filter(
+          (b) =>
+            b.id !== record.ref &&
+            (b.customerEmail || '').toLowerCase() === lower &&
+            b.promoCode === 'APP_2ND_5OFF' &&
+            (b.promoStatus === 'eligible' || b.promoStatus === 'paid'),
+        );
+        if (otherRedemptions.length > 0) {
+          promoStatus = 'denied';
+          // Race detected — log so the owner can see it in the bug inbox.
+          reportBug(
+            `Promo race: customer ${lower} attempted APP_2ND_5OFF on booking ${record.ref} ` +
+              `but already redeemed on ${otherRedemptions[0].id}. Denied.`,
+            { source: 'hotels/book/mirrorToUnified' },
+          );
+        } else {
+          promoStatus = 'eligible';
+          promoCode = 'APP_2ND_5OFF';
+          promoDiscountPence = record.promoDiscountPence || 500;
+        }
+      } catch (e) {
+        // Re-validation failure must never break booking confirmation.
+        // Fall back to honouring the start-booking decision.
+        console.warn('[hotels/book] promo re-validation skipped:', e);
+        promoStatus = 'eligible';
+        promoCode = 'APP_2ND_5OFF';
+        promoDiscountPence = record.promoDiscountPence || 500;
+      }
+    }
+
     const booking: Booking = {
       id: record.ref, // JMA-H-XXXXXXXX — matches clientReference sent to supplier
       type: 'hotel',
@@ -83,6 +135,10 @@ async function mirrorToUnified(
       // /api/account/bookings/cancel can gate the self-service button on
       // "deadline still in the future" without re-fetching LiteAPI.
       cancellationDeadline: record.cancellationDeadline || null,
+      // Channel + promo metadata (added 2026-05-10) — see src/lib/promo.ts.
+      channel: record.channel,
+      ...(promoCode ? { promoCode, promoDiscountPence, promoStatus } : {}),
+      ...(promoStatus === 'denied' ? { promoStatus: 'denied' as const } : {}),
     };
 
     await upsertBooking(booking);

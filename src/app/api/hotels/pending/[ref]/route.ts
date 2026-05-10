@@ -57,6 +57,13 @@ export async function GET(
         liteapiBookingId: record.liteapiBookingId ?? null,
         liteapiConfirmationCode: record.liteapiConfirmationCode ?? null,
         dotwBookingRef: record.dotwBookingRef ?? null,
+        // Channel + promo metadata (added 2026-05-10) — drives the
+        // £5-cashback line on the checkout summary sidebar. Customers
+        // see the line only when promoCode is set; channel itself is
+        // not surfaced in UI but is echoed for client-side analytics.
+        channel: record.channel ?? null,
+        promoCode: record.promoCode ?? null,
+        promoDiscountPence: record.promoDiscountPence ?? 0,
       },
     });
   } catch (err: unknown) {

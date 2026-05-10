@@ -70,6 +70,31 @@ export type Booking = {
   // doesn't surface one. /api/account/bookings/cancel gates self-service
   // cancellation on this being in the future.
   cancellationDeadline?: string | null;
+
+  // ── Channel attribution (added 2026-05-10) ────────────────────────────
+  // Booking origin captured server-side from request UA at start-booking
+  // time. Optional on older records that pre-date the field.
+  channel?: 'ios' | 'android' | 'web';
+
+  // ── £5-off-2nd-booking-via-app promo (added 2026-05-10) ───────────────
+  // v1 ships LiteAPI-only with a manual cashback payout. The eligibility
+  // engine lives at src/lib/promo.ts; the checkout flow flags the booking
+  // here so the admin /admin/promos page can surface it for the owner to
+  // process the £5 refund manually until v2 ships an automated payout.
+  /** Promo code applied to this booking. v1 only sets 'APP_2ND_5OFF'. */
+  promoCode?: string | null;
+  /** Discount amount in pence (always 500 for APP_2ND_5OFF in v1). */
+  promoDiscountPence?: number;
+  /** Cashback payout state.
+   *   'eligible' = flagged at booking confirmation, owner needs to refund £5.
+   *   'paid'     = owner has issued the refund and clicked "Mark as paid".
+   *   'denied'   = re-validation at book-time refused the promo (e.g. race). */
+  promoStatus?: 'eligible' | 'paid' | 'denied' | null;
+  /** ISO timestamp of when the owner marked the cashback as paid. */
+  promoPaidAt?: string;
+  /** Free-text note from the owner: e.g. "LiteAPI partial refund txn=xyz"
+   *  or "Wise transfer ref=abc". Surfaces on the admin booking detail page. */
+  promoPaidNote?: string;
 };
 
 export type BookingEvent = {

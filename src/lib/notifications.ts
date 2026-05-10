@@ -146,11 +146,30 @@ function confirmationHtml(booking: Booking): string {
     ? `Your e-ticket will arrive directly from the airline within a few hours. If you haven't received it by tomorrow, check your spam folder or reply to this email.`
     : `Your hotel confirmation voucher will arrive by email shortly. Present it at check-in.`;
 
+  // £5-off-2nd-booking-via-app cashback section. Renders only when the
+  // booking was flagged eligible at confirmation. v1: manual payout by
+  // the owner — copy matches the 7-working-day expectation set on the
+  // checkout page so the customer doesn't get a surprise. See
+  // ditch-the-5-cash-hazy-toast.md.
+  const promoBlock =
+    booking.promoCode === 'APP_2ND_5OFF' &&
+    (booking.promoStatus === 'eligible' || booking.promoStatus === 'paid')
+      ? `
+    <div style="margin:16px 0 0 0;padding:14px 16px;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:10px;">
+      <p style="margin:0 0 4px 0;color:#064E3B;font-size:14px;font-weight:700;">£5 cashback on the way</p>
+      <p style="margin:0;color:#065F46;font-size:13px;line-height:1.5;">
+        Thanks for booking your 2nd hotel via the JetMeAway app — we'll send £${(((booking.promoDiscountPence ?? 500)) / 100).toFixed(2)} to your card within 7 working days.
+        <a href="https://jetmeaway.co.uk/terms/promo-second-booking" style="color:#065F46;text-decoration:underline;">T&amp;Cs apply</a>.
+      </p>
+    </div>`
+      : '';
+
   const body = `
     <p style="margin:0 0 12px 0;color:#1A1D2B;">Hi ${escapeHtml(booking.customerName || 'there')},</p>
     <p style="margin:0 0 16px 0;">We've confirmed your booking. Here are the details:</p>
     ${detailsTable(rows)}
     <p style="margin:16px 0 0 0;color:#5C6378;font-size:14px;">${supplierNote}</p>
+    ${promoBlock}
   `;
 
   return shellHtml({

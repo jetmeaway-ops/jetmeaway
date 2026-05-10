@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
+import { detectChannelFromUA, type Channel } from '@/lib/channel';
+import { evaluateSecondBookingPromo, APP_2ND_5OFF } from '@/lib/promo';
+import { readSessionEmail } from '@/lib/session';
 
 export const runtime = 'edge';
 
@@ -82,6 +85,24 @@ export interface PendingBooking {
   dotwStatus?: string;
   dotwAllocationDetails?: string;   // only kept transiently during the 3-min lock
   error?: string;
+
+  // ── Channel attribution (added 2026-05-10) ────────────────────────────
+  // Captured server-side from request UA at start-booking time. Drives
+  // the £5-off-2nd-booking-via-app eligibility check below.
+  channel?: Channel;
+
+  // ── £5-off-2nd-booking-via-app promo (added 2026-05-10) ───────────────
+  // Eligibility is evaluated once at start-booking using the user's
+  // session email + channel + supplier + totalPrice. The result is
+  // re-validated at /api/hotels/book confirmation time as an idempotency
+  // guard against parallel-checkout races. See src/lib/promo.ts.
+  promoCode?: typeof APP_2ND_5OFF.code;
+  promoDiscountPence?: number;
+  /** ISO timestamp of when eligibility was evaluated. */
+  promoEligibleAt?: string;
+  /** Why this booking was/wasn't eligible. Captured for debugging and
+   *  potential support-ticket lookups. Never surfaced to the customer. */
+  promoEligibilityReason?: string;
 }
 
 const PENDING_TTL_SECONDS = 4 * 60 * 60; // 4h to complete checkout
@@ -201,6 +222,39 @@ export async function POST(req: NextRequest) {
       state: 'pending',
       createdAt: Date.now(),
     };
+
+    // ── Channel attribution + £5-off-2nd-booking promo eligibility ───
+    // Detect channel from the User-Agent header (mobile WebView injects
+    // `JetMeAway/1.x.x Mobile`; web browsers don't). Then, if the customer
+    // is signed in, evaluate the APP_2ND_5OFF promo. Both are persisted
+    // on the pending booking so /api/hotels/pending/[ref] can echo them
+    // to the checkout summary, and /api/hotels/book can re-validate at
+    // confirmation. See src/lib/channel.ts + src/lib/promo.ts + plan
+    // doc ditch-the-5-cash-hazy-toast.md.
+    record.channel = detectChannelFromUA(req.headers.get('user-agent'));
+    try {
+      const sessionEmail = await readSessionEmail(req.headers.get('cookie'));
+      const totalPence = Math.round(record.totalPrice * 100);
+      const evaluation = await evaluateSecondBookingPromo({
+        email: sessionEmail,
+        channel: record.channel,
+        supplier: record.supplier || 'liteapi',
+        totalPence,
+      });
+      record.promoEligibilityReason = evaluation.reason;
+      record.promoEligibleAt = new Date().toISOString();
+      if (evaluation.eligible) {
+        record.promoCode = evaluation.code;
+        record.promoDiscountPence = evaluation.discountPence;
+      }
+    } catch (e) {
+      // Promo evaluation must never block a booking. If something goes
+      // wrong (KV down, session decode failure, etc.) we log and proceed
+      // without the promo — the customer can still book at full price.
+      const msg = e instanceof Error ? e.message : 'promo eval failed';
+      console.warn('[start-booking] promo eval skipped:', msg);
+      record.promoEligibilityReason = 'eval_error';
+    }
 
     await kv.set(`pending-booking:${ref}`, record, { ex: PENDING_TTL_SECONDS });
     return NextResponse.json({ success: true, ref });

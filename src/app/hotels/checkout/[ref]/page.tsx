@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 
 // Lazy-load StripeCardForm so @stripe/react-stripe-js (and js.stripe.com)
@@ -43,6 +44,13 @@ interface PendingSummary {
   state: 'pending' | 'paid' | 'confirmed' | 'failed';
   /** Which wholesale supplier owns this offer. Drives the payment + book flow. */
   supplier?: 'liteapi' | 'dotw';
+  // ── £5-off-2nd-booking-via-app promo (added 2026-05-10) ─────────────
+  // Echoed from /api/hotels/pending/[ref]. The cashback line in the
+  // sidebar renders only when promoCode === 'APP_2ND_5OFF'. Channel
+  // attribution is captured but not surfaced in UI.
+  channel?: 'ios' | 'android' | 'web' | null;
+  promoCode?: 'APP_2ND_5OFF' | null;
+  promoDiscountPence?: number;
 }
 
 /**
@@ -929,6 +937,36 @@ export default function HotelCheckoutPage() {
                 {fmtPrice((prebookResult?.price ?? booking.totalPrice) + (booking.localFees || 0))}
               </span>
             </div>
+            {/* £5-off-2nd-booking-via-app promo (added 2026-05-10) — only renders
+                when start-booking flagged this booking as eligible. We bill the
+                customer the full Total above; the £5 lands as a separate
+                cashback to their card within 7 working days (manual payout in
+                v1, automated in v2). The "cashback" framing — not "discount" —
+                is deliberate: the customer's card statement won't show £5 less
+                on the booking-day charge, so we set the right expectation up
+                front. See ditch-the-5-cash-hazy-toast.md. */}
+            {booking.promoCode === 'APP_2ND_5OFF' && (
+              <div className="mt-2 rounded-lg bg-emerald-50 border border-emerald-200 p-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[.78rem] font-bold text-emerald-900">
+                    App promo · 2nd booking
+                  </span>
+                  <span className="font-poppins font-extrabold text-[.95rem] text-emerald-900">
+                    £{((booking.promoDiscountPence ?? 500) / 100).toFixed(2)} cashback
+                  </span>
+                </div>
+                <p className="mt-1 text-[.68rem] text-emerald-800 leading-snug">
+                  We&rsquo;ll send £5 to your card within 7 working days.{' '}
+                  <Link
+                    href="/terms/promo-second-booking"
+                    className="underline hover:text-emerald-950"
+                  >
+                    T&amp;Cs apply
+                  </Link>
+                  .
+                </p>
+              </div>
+            )}
           </div>
         </aside>
       </div>
