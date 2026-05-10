@@ -118,12 +118,21 @@ function buildUrl(s) {
   if (s.occMode === 'flat-occ') {
     const ages = (s.childrenAges || '').split(',').filter(Boolean).join('-');
     const segments = [];
+    // Clamp rooms to adults to match the backend's legacy decoder
+    // (decodeLegacy:143 — `Math.min(roomsN, adults)`). Without this clamp,
+    // "2 adults / 3 rooms" encodes to "1/1/1" = 3 adults total, which
+    // inflates the request and breaks the round-trip assertion below
+    // (it asserts the response echoes min(rooms, adults), not the raw
+    // requested rooms). The legacy URL path still sends the unclamped
+    // rooms=3, so the backend exercises its clamp on that path; here
+    // we just keep the per-room shape consistent so the assertion holds.
+    const roomCount = Math.min(s.rooms, s.adults);
     let remaining = s.adults;
-    for (let i = 0; i < s.rooms; i++) {
+    for (let i = 0; i < roomCount; i++) {
       const a =
-        i === s.rooms - 1
+        i === roomCount - 1
           ? Math.max(1, remaining)
-          : Math.max(1, Math.floor(s.adults / s.rooms));
+          : Math.max(1, Math.floor(s.adults / roomCount));
       remaining -= a;
       segments.push(i === 0 && ages ? `${a}-${ages}` : `${a}`);
     }
