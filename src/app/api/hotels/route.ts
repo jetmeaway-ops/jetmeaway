@@ -20,12 +20,17 @@ export const runtime = 'edge';
 // reportBug + soft 200 response before Vercel kills us.
 export const maxDuration = 60;
 
-// 6 hours — dropped from 12h on 2026-05-05 after the cache hit ~504 MB
-// (193 entries × ~2.6 MB each) and pushed us past Upstash's 256 MB free
-// tier. Halving the TTL caps how much can pile up before old entries
-// auto-expire. If hit-rate drops noticeably (more LiteAPI calls), bump
-// back up — but trim the cached payload first.
-const KV_TTL = 21600; // 6 hours
+// 30 minutes — dropped from 6h on 2026-05-11 after the cache hit ~147 MB
+// (with ~150 entries × ~1.12 MB each) and an Upstash request exceeded the
+// 10 MB per-request limit at 22:16 UK on 2026-05-10. The earlier 6h TTL
+// from 2026-05-05 wasn't tight enough — long-tail searches accumulate
+// faster than they expire. 30 min still covers the typical "compare a
+// few options, come back, refine, book" session within an hour and a
+// half. If hit-rate drops noticeably (more LiteAPI calls + slower
+// response) bump back up — but trim the cached payload first (the
+// hotels[] array is the bulk, each entry ships full photo URLs +
+// descriptions + rate plans).
+const KV_TTL = 1800; // 30 minutes
 
 /**
  * Race a KV write against a 5s timer. A slow KV write on a large
