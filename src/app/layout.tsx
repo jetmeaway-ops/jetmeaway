@@ -9,29 +9,13 @@
 import './globals.css';
 import Script from 'next/script';
 import { Poppins, Playfair_Display, DM_Sans } from 'next/font/google';
-// Vercel Analytics now lazy-loaded inside DeferredWidgets so its script
-// never competes with LCP/FCP. See components/DeferredWidgets.tsx.
-import { GoogleAnalytics } from '@next/third-parties/google';
+// Vercel Analytics + GA Ads + GA4 + Microsoft Clarity all live inside
+// DeferredWidgets now so their scripts never compete with LCP/FCP. See
+// components/DeferredWidgets.tsx + components/DeferredAnalytics.tsx.
 import DeferredWidgets from '@/components/DeferredWidgets';
-import MicrosoftClarity from '@/components/MicrosoftClarity';
 import ScrollToTop from '@/components/ScrollToTop';
 import ClientErrorReporter from '@/components/ClientErrorReporter';
 import AndroidAppBanner from '@/components/AndroidAppBanner';
-
-// Google tag ID. `AW-*` = Google Ads conversion tag (not GA4). The
-// <GoogleAnalytics> component from @next/third-parties just injects
-// gtag.js with this id and runs it through Next's afterInteractive
-// strategy, so it never blocks first paint. If we later add GA4
-// (G-*), both IDs can load through the same gtag.js — we'll call
-// gtag('config', 'G-...') from a separate tag.
-const GOOGLE_TAG_ID =
-  process.env.NEXT_PUBLIC_GOOGLE_ADS_ACCOUNT_ID || 'AW-18079068295';
-
-// GA4 measurement ID — property created 2026-04-23 so we can wire the
-// GBP profile to a verified analytics account and start collecting
-// behaviour data (bounce rate, scroll depth, conversions) alongside
-// the Ads conversion pixel.
-const GA4_ID = process.env.NEXT_PUBLIC_GA4_ID || 'G-4H2K83LKQM';
 
 const poppins = Poppins({
   weight: ['400', '700', '900'],
@@ -301,19 +285,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Travelpayouts tracker removed — causes CORS errors on tp-em.com
             that hurt Best Practices score. Re-add if TP fixes their CORS. */}
       </body>
-      {/* Google tag (gtag.js) for Google Ads conversion tracking.
-          afterInteractive strategy — loads after hydration so it never
-          competes with LCP. Conversion events fire via sendGAEvent()
-          at the point of booking success. */}
-      <GoogleAnalytics gaId={GOOGLE_TAG_ID} />
-      {/* GA4 property — injected via the same gtag.js runtime, so both
-          the Ads tag above and this GA4 tag share one gtag('js', ...)
-          init. Next's third-party helper dedupes the script import. */}
-      <GoogleAnalytics gaId={GA4_ID} />
-      {/* Microsoft Clarity — session recordings + heatmaps so we can
-          watch how real users navigate the hotel funnel and see exactly
-          where they drop off. Silently no-ops without NEXT_PUBLIC_CLARITY_ID. */}
-      <MicrosoftClarity />
+      {/* Analytics scripts (GA Ads + GA4 + Microsoft Clarity) now mount
+          inside DeferredWidgets 6s after hydration so they never compete
+          with LCP paint. See components/DeferredAnalytics.tsx. */}
     </html>
   );
 }
