@@ -45,23 +45,41 @@ const palette = {
   green100: '#D1FAE5',
 };
 
+// 2026-05-10 — dark navy theme pass for the 4 native iOS pieces
+// (Trips / native search forms / Discover / scouting overlay) so the
+// splash (#0A1230) flows into the native screens without a white flash.
+// Cards stay hardcoded-white in their own components and now pop against
+// the dark surface — that contrast IS the design. Rollback is one-line:
+// restore the previous values below.
+//   surface: palette.white         surface: palette.navy900
+//   surfaceAlt: palette.slate50    surfaceAlt: palette.navy800
+//   surfaceInverse: palette.navy900 surfaceInverse: palette.white
+//   surfaceMuted: palette.slate100 surfaceMuted: '#171A26'
+//   textPrimary: palette.navy800   textPrimary: palette.white
+//   textSecondary: palette.slate600 textSecondary: '#A8B0C8'
+//   textMuted: palette.slate500    textMuted: '#6F7896'
+//   textInverse: palette.white     textInverse: palette.navy800
 export const colors = {
   // Surface
-  surface: palette.white,
-  surfaceAlt: palette.slate50,
-  surfaceInverse: palette.navy900,
-  surfaceMuted: palette.slate100,
+  surface: palette.navy900,         // #0F1119 — matches splash #0A1230
+  surfaceAlt: palette.navy800,      // #1A1D2B — slightly lighter elevated
+  surfaceInverse: palette.white,    // flipped — used by light pop-overs on dark
+  surfaceMuted: '#171A26',          // between surface + surfaceAlt for dividers
 
-  // Lines / dividers
-  border: palette.slate200,
-  borderStrong: palette.slate300,
+  // Lines / dividers — slightly bumped opacity equivalents for dark surface.
+  // The existing slate200/slate300 tokens were tuned for light backgrounds
+  // (they sit at ~D7DDE9 / CBD5E1) and would disappear on navy900. The new
+  // values are dark-on-dark divider strokes with enough contrast to define
+  // edges without shouting.
+  border: '#2A2F3F',
+  borderStrong: '#3B4156',
 
   // Text
-  textPrimary: palette.navy800,
-  textSecondary: palette.slate600,
-  textMuted: palette.slate500,
-  textOnBrand: palette.white,
-  textInverse: palette.white,
+  textPrimary: palette.white,        // body copy on dark
+  textSecondary: '#A8B0C8',          // ~4.6:1 vs #0F1119 — sub-headings
+  textMuted: '#6F7896',              // ~3.0:1 — captions
+  textOnBrand: palette.white,        // unchanged — text on the blue brand fill
+  textInverse: palette.navy800,      // flipped — used when a light card sits on dark
 
   // Status
   danger: palette.red600,

@@ -297,7 +297,9 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
+      {/* Dark navy theme — clock/battery icons render white. Per-screen
+          overrides can flip back to "dark" for any light-themed modal. */}
+      <StatusBar style="light" />
       <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
         <WebView
           ref={webviewRef}
