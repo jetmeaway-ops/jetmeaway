@@ -707,6 +707,133 @@ const LANDMARK_ALIASES: Array<{
     searchAs: 'Bournemouth',
     placeId: 'ChIJ_WegsaCYc0gRlCypaxXgLjs',
   },
+  {
+    match: /disneyland\s*paris|disney\s*paris|disney\s*park$/i,
+    label: 'Disneyland Paris',
+    sublabel: '40+ hotels near the Disney parks (Coupvray · Marne-la-Vallée)',
+    searchAs: 'Disneyland Paris',
+    placeId: 'ChIJveJ6yhkd5kcRYOYQY8v4-Ic',
+  },
+  // --- UK & Ireland ---
+  { match: /big\s*ben|westminster\s*(palace|abbey)?/i, label: 'Big Ben / Westminster', sublabel: 'Hotels in central London', searchAs: 'London', placeId: 'ChIJdd4hrwug2EcRmSrV3Vo6llI' },
+  { match: /buckingham\s*palace/i, label: 'Buckingham Palace', sublabel: 'Hotels in central London', searchAs: 'London', placeId: 'ChIJdd4hrwug2EcRmSrV3Vo6llI' },
+  { match: /london\s*eye/i, label: 'London Eye', sublabel: 'Hotels on the South Bank · central London', searchAs: 'London', placeId: 'ChIJdd4hrwug2EcRmSrV3Vo6llI' },
+  { match: /tower\s*bridge/i, label: 'Tower Bridge', sublabel: 'Hotels in central London', searchAs: 'London', placeId: 'ChIJdd4hrwug2EcRmSrV3Vo6llI' },
+  { match: /stonehenge/i, label: 'Stonehenge', sublabel: 'Hotels in Salisbury · nearest town (~15 min drive)', searchAs: 'Salisbury, UK', placeId: 'ChIJt5sANlWMc0gRBqpe8oDgow0' },
+  { match: /edinburgh\s*castle/i, label: 'Edinburgh Castle', sublabel: 'Hotels in central Edinburgh', searchAs: 'Edinburgh', placeId: 'ChIJIyaYpQC4h0gRJxfnfHsU8mQ' },
+  { match: /loch\s*ness/i, label: 'Loch Ness', sublabel: 'Hotels in Inverness · gateway to the loch', searchAs: 'Inverness', placeId: 'ChIJK94XLVtxj0gRPcQ-LtEJQ2I' },
+  { match: /cliffs?\s*of\s*moher/i, label: 'Cliffs of Moher', sublabel: 'Hotels in Galway · nearest city (~1h drive)', searchAs: 'Galway, Ireland', placeId: 'ChIJ_1stWpWTW0gRgVJJCkQbKwM' },
+  { match: /giants?\s*causeway/i, label: "Giant's Causeway", sublabel: 'Hotels in Belfast · nearest city (~1h drive)', searchAs: 'Belfast', placeId: 'ChIJO4rQ1_3_YEgRMcXH7ywWVy4' },
+  { match: /york\s*minster/i, label: 'York Minster', sublabel: 'Hotels in central York', searchAs: 'York, UK', placeId: 'ChIJ8WWY4UDDeEgR0eRUiomrdEc' },
+  { match: /hadrian'?s?\s*wall/i, label: "Hadrian's Wall", sublabel: 'Hotels in Hexham · best base for the wall', searchAs: 'Hexham, UK', placeId: 'ChIJFZgxDWKQfUgRBMANIXgrOqg' },
+  // --- France ---
+  { match: /eiffel\s*tower|tour\s*eiffel/i, label: 'Eiffel Tower', sublabel: 'Hotels in central Paris', searchAs: 'Paris', placeId: 'ChIJD7fiBh9u5kcRYJSMaMOCCwQ' },
+  // --- Italy ---
+  { match: /colosseum|coliseum/i, label: 'Colosseum', sublabel: 'Hotels in central Rome', searchAs: 'Rome, Italy', placeId: 'ChIJu46S-ZZhLxMROG5lkwZ3D7k' },
+  { match: /trevi\s*fountain|fontana\s*di\s*trevi/i, label: 'Trevi Fountain', sublabel: 'Hotels in central Rome', searchAs: 'Rome, Italy', placeId: 'ChIJu46S-ZZhLxMROG5lkwZ3D7k' },
+  { match: /leaning\s*tower\s*of\s*pisa|tower\s*of\s*pisa/i, label: 'Leaning Tower of Pisa', sublabel: 'Hotels in Pisa', searchAs: 'Pisa, Italy', placeId: 'ChIJj1n28JqR1RIRyHiEp7UPuKo' },
+  // --- Spain ---
+  { match: /alhambra/i, label: 'Alhambra', sublabel: 'Hotels in Granada', searchAs: 'Granada, Spain', placeId: 'ChIJfcIyLeb8cQ0Rcg1g0533WJI' },
+  { match: /park\s*g(u|ü)ell|parc\s*g(u|ü)ell/i, label: 'Park Güell', sublabel: 'Hotels in Barcelona', searchAs: 'Barcelona', placeId: 'ChIJ5TCOcRaYpBIRCmZHTz37sEQ' },
+  // --- Germany & Austria ---
+  { match: /brandenburg\s*gate|brandenburger\s*tor/i, label: 'Brandenburg Gate', sublabel: 'Hotels in central Berlin', searchAs: 'Berlin', placeId: 'ChIJAVkDPzdOqEcRcDteW0YgIQQ' },
+  { match: /neuschwanstein/i, label: 'Neuschwanstein Castle', sublabel: 'Hotels in Füssen · gateway to the castle', searchAs: 'Füssen, Germany', placeId: 'ChIJCfRmaIBfnEcRAPOL161IHgQ' },
+  { match: /cologne\s*cathedral|k(o|ö)lner\s*dom/i, label: 'Cologne Cathedral', sublabel: 'Hotels in central Cologne', searchAs: 'Cologne, Germany', placeId: 'ChIJ5S-raZElv0cR8HcqSvxgJwQ' },
+  { match: /sch(o|ö)nbrunn/i, label: 'Schönbrunn Palace', sublabel: 'Hotels in Vienna', searchAs: 'Vienna', placeId: 'ChIJn8o2UZ4HbUcRRluiUYrlwv0' },
+  // --- Netherlands ---
+  { match: /anne\s*frank|rijksmuseum|van\s*gogh\s*museum/i, label: 'Amsterdam museums', sublabel: 'Hotels in central Amsterdam', searchAs: 'Amsterdam', placeId: 'ChIJVXealLU_xkcRja_At0z9AGY' },
+  // --- Czech Republic ---
+  { match: /prague\s*castle|charles\s*bridge|karl(u|ů)v\s*most/i, label: 'Prague Castle / Charles Bridge', sublabel: 'Hotels in central Prague', searchAs: 'Prague', placeId: 'ChIJi3lwCZyTC0cRkEAWZg-vAAQ' },
+  // --- Greece ---
+  { match: /acropolis|parthenon/i, label: 'Acropolis', sublabel: 'Hotels in central Athens', searchAs: 'Athens, Greece', placeId: 'ChIJ8UNwBh-9oRQR3Y1mdkU1Nic' },
+  { match: /meteora/i, label: 'Meteora', sublabel: 'Hotels in Kalambaka · gateway to the monasteries', searchAs: 'Kalambaka, Greece', placeId: 'ChIJeSx1tc8PWRMR-l8fWgNgo8A' },
+  // --- Croatia ---
+  { match: /plitvice/i, label: 'Plitvice Lakes', sublabel: 'Hotels at Plitvička Jezera · gateway to the park', searchAs: 'Plitvička Jezera, Croatia', placeId: 'ChIJqX7IpYRnYUcRsMMrhlCtAAQ' },
+  // --- Russia ---
+  { match: /red\s*square|kremlin/i, label: 'Red Square / Kremlin', sublabel: 'Hotels in central Moscow', searchAs: 'Moscow, Russia', placeId: 'ChIJybDUc_xKtUYRTM9XV8zWRD0' },
+  { match: /hermitage\s*museum|state\s*hermitage/i, label: 'Hermitage Museum', sublabel: 'Hotels in central Saint Petersburg', searchAs: 'Saint Petersburg, Russia', placeId: 'ChIJ7WVKx4w3lkYR_46Eqz9nx20' },
+  // --- Iceland & Nordics ---
+  { match: /blue\s*lagoon/i, label: 'Blue Lagoon (Iceland)', sublabel: 'Hotels in Reykjavík · ~45 min drive', searchAs: 'Reykjavik, Iceland', placeId: 'ChIJw-3c7rl01kgRcWDSMKIskew' },
+  { match: /northern\s*lights|aurora\s*borealis/i, label: 'Northern Lights (Tromsø)', sublabel: 'Hotels in Tromsø · prime aurora-viewing base', searchAs: 'Tromsø, Norway', placeId: 'ChIJ_XE7bFLExEUR075ujoXKPQI' },
+  // --- Turkey ---
+  { match: /hagia\s*sophia|ayasofya/i, label: 'Hagia Sophia', sublabel: 'Hotels in central Istanbul (Sultanahmet)', searchAs: 'Istanbul, Turkey', placeId: 'ChIJawhoAASnyhQR0LABvJj-zOE' },
+  { match: /blue\s*mosque|sultan\s*ahmed\s*mosque/i, label: 'Blue Mosque', sublabel: 'Hotels in central Istanbul (Sultanahmet)', searchAs: 'Istanbul, Turkey', placeId: 'ChIJawhoAASnyhQR0LABvJj-zOE' },
+  { match: /cappadocia|kapadokya/i, label: 'Cappadocia', sublabel: 'Hotels in Göreme · centre of the region', searchAs: 'Göreme, Turkey', placeId: 'ChIJq9Fr03loKhURUK4_ohdObEY' },
+  // --- UAE ---
+  { match: /burj\s*al\s*arab/i, label: 'Burj Al Arab', sublabel: 'Hotels in Dubai', searchAs: 'Dubai', placeId: 'ChIJRcbZaklDXz4RYlEphFBu5r0' },
+  { match: /palm\s*jumeirah/i, label: 'Palm Jumeirah', sublabel: 'Hotels in Dubai', searchAs: 'Dubai', placeId: 'ChIJRcbZaklDXz4RYlEphFBu5r0' },
+  // --- Africa ---
+  { match: /serengeti/i, label: 'Serengeti', sublabel: 'Hotels in Arusha · gateway to the parks', searchAs: 'Arusha, Tanzania', placeId: 'ChIJg3M48ogcNxgRUnFJ7PcHGbw' },
+  { match: /mount\s*kilimanjaro|kilimanjaro/i, label: 'Mount Kilimanjaro', sublabel: 'Hotels in Moshi · base for climbs', searchAs: 'Moshi, Tanzania', placeId: 'ChIJhWOFQ7TZORgRz7zYYwzVhBU' },
+  { match: /pyramids?\s*of\s*giza|great\s*pyramid/i, label: 'Pyramids of Giza', sublabel: 'Hotels in Giza · steps from the plateau', searchAs: 'Giza, Egypt', placeId: 'ChIJl5ZXNZJGWBQRUvx4mB_WkU4' },
+  { match: /sahara\s*desert/i, label: 'Sahara Desert (Merzouga)', sublabel: 'Hotels & camps in Merzouga · Erg Chebbi dunes', searchAs: 'Merzouga, Morocco', placeId: 'ChIJ5d80mCc8lw0RREretbL6OVY' },
+  // --- China ---
+  { match: /forbidden\s*city|imperial\s*palace\s*beijing/i, label: 'Forbidden City', sublabel: 'Hotels in central Beijing', searchAs: 'Beijing', placeId: 'ChIJuSwU55ZS8DURiqkPryBWYrk' },
+  { match: /great\s*wall\s*of\s*china|great\s*wall/i, label: 'Great Wall of China', sublabel: 'Hotels in Beijing · gateway to the wall', searchAs: 'Beijing', placeId: 'ChIJuSwU55ZS8DURiqkPryBWYrk' },
+  { match: /the\s*bund|shanghai\s*bund/i, label: 'The Bund (Shanghai)', sublabel: 'Hotels along the Bund · central Shanghai', searchAs: 'Shanghai', placeId: 'ChIJMzz1sUBwsjURoWTDI5QSlQI' },
+  { match: /hong\s*kong\s*skyline|victoria\s*peak/i, label: 'Hong Kong skyline', sublabel: 'Hotels in central Hong Kong', searchAs: 'Hong Kong', placeId: 'ChIJByjqov3-AzQR2pT0dDW0bUg' },
+  // --- Japan ---
+  { match: /mount\s*fuji|mt\.?\s*fuji|fuji\s*san/i, label: 'Mount Fuji', sublabel: 'Hotels in Fujikawaguchiko · classic Fuji-view base', searchAs: 'Fujikawaguchiko, Japan', placeId: 'ChIJGyRHiGvgG2ARRmIMgHRWc1w' },
+  { match: /tokyo\s*tower/i, label: 'Tokyo Tower', sublabel: 'Hotels in central Tokyo', searchAs: 'Tokyo', placeId: 'ChIJXSModoWLGGARILWiCfeu2M0' },
+  { match: /senso(\s|-)?ji|asakusa\s*temple/i, label: 'Sensō-ji Temple', sublabel: 'Hotels in Asakusa · central Tokyo', searchAs: 'Tokyo', placeId: 'ChIJXSModoWLGGARILWiCfeu2M0' },
+  { match: /kyoto\s*bamboo|arashiyama\s*bamboo/i, label: 'Arashiyama Bamboo Forest', sublabel: 'Hotels in central Kyoto', searchAs: 'Kyoto, Japan', placeId: 'ChIJ8cM8zdaoAWARPR27azYdlsA' },
+  // --- Southeast Asia ---
+  { match: /petronas\s*towers/i, label: 'Petronas Twin Towers', sublabel: 'Hotels in central Kuala Lumpur (KLCC)', searchAs: 'Kuala Lumpur, Malaysia', placeId: 'ChIJ5-rvAcdJzDERfSgcL1uO2fQ' },
+  { match: /angkor\s*wat/i, label: 'Angkor Wat', sublabel: 'Hotels in Siem Reap · gateway to the temples', searchAs: 'Siem Reap, Cambodia', placeId: 'ChIJeaiRjJoWEDER-rvlPvmqQKk' },
+  { match: /halong\s*bay|h(a|ạ)\s*long\s*bay/i, label: 'Halong Bay', sublabel: 'Hotels in Ha Long city', searchAs: 'Ha Long, Vietnam', placeId: 'ChIJBcqveDxXSjERAThbfWDP5Wc' },
+  { match: /^bali$|bali\s*indonesia|ubud|kuta\s*bali|seminyak/i, label: 'Bali', sublabel: 'Hotels in Denpasar · gateway to Bali', searchAs: 'Denpasar, Indonesia', placeId: 'ChIJ24BeDptA0i0RSje5zOg0c-I' },
+  // --- Singapore ---
+  { match: /marina\s*bay\s*sands/i, label: 'Marina Bay Sands', sublabel: 'Hotels in central Singapore', searchAs: 'Singapore', placeId: 'ChIJyY4rtGcX2jERIKTarqz3AAQ' },
+  { match: /sentosa\s*island|^sentosa$/i, label: 'Sentosa Island', sublabel: 'Hotels in Singapore', searchAs: 'Singapore', placeId: 'ChIJyY4rtGcX2jERIKTarqz3AAQ' },
+  { match: /gardens?\s*by\s*the\s*bay/i, label: 'Gardens by the Bay', sublabel: 'Hotels in central Singapore', searchAs: 'Singapore', placeId: 'ChIJyY4rtGcX2jERIKTarqz3AAQ' },
+  // --- Maldives ---
+  { match: /^maldives$|maldives\s*islands/i, label: 'Maldives', sublabel: 'Hotels & resorts via Malé · Maldives gateway', searchAs: 'Malé, Maldives', placeId: 'ChIJ5fXRB1Z-PzsRmRIFWpvp2Io' },
+  // --- Nepal ---
+  { match: /mount\s*everest|mt\.?\s*everest|everest\s*base\s*camp/i, label: 'Mount Everest', sublabel: 'Hotels in Kathmandu · start of the trek', searchAs: 'Kathmandu, Nepal', placeId: 'ChIJv6p7MIoZ6zkR6rGN8Rt8E7U' },
+  // --- India ---
+  { match: /taj\s*mahal/i, label: 'Taj Mahal', sublabel: 'Hotels in Agra', searchAs: 'Agra, India', placeId: 'ChIJ2UEvfIUNdDkRQjtSqTjvSng' },
+  { match: /^goa$|goa\s*beach|north\s*goa/i, label: 'Goa', sublabel: 'Hotels in Calangute · North Goa beaches', searchAs: 'Calangute, Goa', placeId: 'ChIJ9Vm7fePBvzsRhscxtxGXD50' },
+  { match: /kerala\s*backwaters|alleppey|alappuzha/i, label: 'Kerala Backwaters', sublabel: 'Hotels in Alleppey · houseboats & lagoons', searchAs: 'Alleppey, Kerala', placeId: 'ChIJYWspqvGECDsRWvhBLFVkR7g' },
+  // --- USA ---
+  { match: /statue\s*of\s*liberty/i, label: 'Statue of Liberty', sublabel: 'Hotels in New York City', searchAs: 'New York', placeId: 'ChIJOwg_06VPwokRYv534QaPC8g' },
+  { match: /empire\s*state\s*building/i, label: 'Empire State Building', sublabel: 'Hotels in midtown New York', searchAs: 'New York', placeId: 'ChIJOwg_06VPwokRYv534QaPC8g' },
+  { match: /central\s*park\s*(new\s*york|nyc|ny)?|central\s*park\s*manhattan/i, label: 'Central Park', sublabel: 'Hotels near Central Park · NYC', searchAs: 'New York', placeId: 'ChIJOwg_06VPwokRYv534QaPC8g' },
+  { match: /brooklyn\s*bridge/i, label: 'Brooklyn Bridge', sublabel: 'Hotels in New York City', searchAs: 'New York', placeId: 'ChIJOwg_06VPwokRYv534QaPC8g' },
+  { match: /hollywood\s*sign|hollywood\s*walk/i, label: 'Hollywood Sign', sublabel: 'Hotels in Los Angeles', searchAs: 'Los Angeles', placeId: 'ChIJE9on3F3HwoAR9AhGJW_fL-I' },
+  { match: /white\s*house|capitol\s*hill/i, label: 'The White House', sublabel: 'Hotels in Washington D.C.', searchAs: 'Washington DC, USA', placeId: 'ChIJW-T2Wt7Gt4kRKl2I1CJFUsI' },
+  { match: /mount\s*rushmore|mt\.?\s*rushmore/i, label: 'Mount Rushmore', sublabel: 'Hotels in Rapid City · 25 min from the monument', searchAs: 'Rapid City, USA', placeId: 'ChIJ-6W7nqVCfYcRx7eTPlphccQ' },
+  { match: /walt\s*disney\s*world|disney\s*world|magic\s*kingdom|epcot/i, label: 'Walt Disney World', sublabel: 'Hotels in Orlando · Disney area', searchAs: 'Orlando, USA', placeId: 'ChIJd7zN_thz54gRnr-lPAaywwo' },
+  { match: /disneyland\s*california|disneyland\s*ca|disneyland\s*anaheim/i, label: 'Disneyland California', sublabel: 'Hotels in Anaheim · Disneyland Resort area', searchAs: 'Anaheim, USA', placeId: 'ChIJZ-hVgPnW3IARYLErmquJqwE' },
+  // --- Canada ---
+  { match: /cn\s*tower/i, label: 'CN Tower', sublabel: 'Hotels in downtown Toronto', searchAs: 'Toronto', placeId: 'ChIJpTvG15DL1IkRd8S0KlBVNTI' },
+  // --- South America ---
+  { match: /christ\s*the\s*redeemer|cristo\s*redentor/i, label: 'Christ the Redeemer', sublabel: 'Hotels in Rio de Janeiro', searchAs: 'Rio de Janeiro', placeId: 'ChIJW6AIkVXemwARTtIvZ2xC3FA' },
+  { match: /iguazu\s*falls|igua(c|ç)u\s*falls/i, label: 'Iguazu Falls', sublabel: 'Hotels in Foz do Iguaçu · Brazilian side', searchAs: 'Foz do Iguaçu, Brazil', placeId: 'ChIJQwpTruuQ9pQRUqnEtHOUlyE' },
+  // --- Oceania ---
+  { match: /great\s*barrier\s*reef/i, label: 'Great Barrier Reef', sublabel: 'Hotels in Cairns · gateway to the reef', searchAs: 'Cairns, Australia', placeId: 'ChIJEySiW1VieGkRYHggf_HuAAQ' },
+  { match: /uluru|ayers\s*rock/i, label: 'Uluru / Ayers Rock', sublabel: 'Hotels in Yulara · only base for the rock', searchAs: 'Yulara, Australia', placeId: 'ChIJPz2rao9AIysRAIUkKqgXAgQ' },
+  { match: /hobbiton/i, label: 'Hobbiton', sublabel: 'Hotels in Matamata · gateway to the set', searchAs: 'Matamata, New Zealand', placeId: 'ChIJqRZ64SdObG0RsOGiQ2HvAAU' },
+  // === HIDDEN GEMS ===
+  { match: /lake\s*bled|^bled$/i, label: 'Lake Bled', sublabel: 'Hotels in Bled · Slovenia\'s alpine lake', searchAs: 'Bled, Slovenia', placeId: 'ChIJYZkT1x2OekcRUOw_ghz4AAQ' },
+  { match: /lake\s*como/i, label: 'Lake Como', sublabel: 'Hotels in Como · northern Italy', searchAs: 'Como, Italy', placeId: 'ChIJY-0nEEichkcRJPVfeK-Wm7k' },
+  { match: /cinque\s*terre|riomaggiore|monterosso/i, label: 'Cinque Terre', sublabel: 'Hotels in Riomaggiore · one of the five villages', searchAs: 'Riomaggiore, Italy', placeId: 'ChIJB4uscYn61BIRgGX4h7QPnhE' },
+  { match: /faroe\s*islands/i, label: 'Faroe Islands', sublabel: 'Hotels in Tórshavn · capital of the Faroes', searchAs: 'Tórshavn, Faroe Islands', placeId: 'ChIJlUCZXxwuvEgRqSUCjJgJrt0' },
+  { match: /lofoten/i, label: 'Lofoten Islands', sublabel: 'Hotels in Svolvær · main Lofoten town', searchAs: 'Svolvær, Norway', placeId: 'ChIJUUNvFyKA3kURMw-2Z5beIIw' },
+  { match: /^madeira$|madeira\s*island|madeira\s*portugal/i, label: 'Madeira', sublabel: 'Hotels in Funchal · capital of Madeira', searchAs: 'Funchal, Portugal', placeId: 'ChIJq4sfUMNfYAwROaHNFSxN2P8' },
+  { match: /^azores$|azores\s*islands/i, label: 'Azores', sublabel: 'Hotels in Ponta Delgada · main Azores city', searchAs: 'Ponta Delgada, Azores', placeId: 'ChIJlw6wdswqQwsRFsRvTvKAVXY' },
+  { match: /antelope\s*canyon|horseshoe\s*bend/i, label: 'Antelope Canyon', sublabel: 'Hotels in Page · gateway to the canyon', searchAs: 'Page, Arizona', placeId: 'ChIJj3XN_VsTNIcROU44U1EvmG4' },
+  { match: /atacama\s*desert|atacama/i, label: 'Atacama Desert', sublabel: 'Hotels in San Pedro de Atacama', searchAs: 'San Pedro de Atacama', placeId: 'ChIJP78qqXpMqJYR0Zf5rExh9Ho' },
+  { match: /salar\s*de\s*uyuni|uyuni\s*salt\s*flats/i, label: 'Salar de Uyuni', sublabel: 'Hotels in Uyuni · gateway to the salt flats', searchAs: 'Uyuni, Bolivia', placeId: 'ChIJvfLTWNm6_5MRU2ZOLB6EVRQ' },
+  { match: /easter\s*island|rapa\s*nui/i, label: 'Easter Island', sublabel: 'Hotels in Hanga Roa · only town on the island', searchAs: 'Hanga Roa, Chile', placeId: 'ChIJFwoxLFP6R5kRDBoGLMq7qpU' },
+  { match: /gal(a|á)pagos/i, label: 'Galápagos Islands', sublabel: 'Hotels in Puerto Ayora · main Galápagos town', searchAs: 'Puerto Ayora, Ecuador', placeId: 'ChIJa7-U-0NdqpoRNWGGLDX6QZg' },
+  { match: /^fiji$|fiji\s*islands/i, label: 'Fiji', sublabel: 'Hotels in Nadi · main Fiji gateway', searchAs: 'Nadi, Fiji', placeId: 'ChIJUQgUUYtaF24RKNOlslOphx0' },
+  { match: /komodo\s*island|pulau\s*komodo|komodo\s*dragons?/i, label: 'Komodo Island', sublabel: 'Hotels in Labuan Bajo · gateway to Komodo', searchAs: 'Labuan Bajo, Indonesia', placeId: 'ChIJ124xIYpntC0R3RVDNqpeqV4' },
+  { match: /raja\s*ampat/i, label: 'Raja Ampat', sublabel: 'Hotels in Waisai · main Raja Ampat town', searchAs: 'Waisai, Indonesia', placeId: 'ChIJC7tdhuojXy0RzmYVplSt3Ng' },
+  { match: /^boracay$|boracay\s*island/i, label: 'Boracay', sublabel: 'Hotels in Aklan · gateway to Boracay', searchAs: 'Aklan, Philippines', placeId: 'ChIJkc4JNwA_pTMR9YmVzK8IcUw' },
+  { match: /annapurna|annapurna\s*circuit/i, label: 'Annapurna', sublabel: 'Hotels in Pokhara · base for the trek', searchAs: 'Pokhara, Nepal', placeId: 'ChIJ_3YDv3uTlTkRZCGAJTuCz_Y' },
+  { match: /guilin\s*landscape|yangshuo|li\s*river/i, label: 'Guilin / Yangshuo', sublabel: 'Hotels in Yangshuo · karst landscape', searchAs: 'Yangshuo, China', placeId: 'ChIJZVKVEX6lpTYRBQDurljkC0c' },
+  { match: /^bhutan$|paro\s*valley/i, label: 'Bhutan', sublabel: 'Hotels in Paro · gateway to Bhutan', searchAs: 'Paro, Bhutan', placeId: 'ChIJtzlsWuid4TkRkAEHWg94-gE' },
+  { match: /gili\s*islands?|gili\s*trawangan|^lombok$/i, label: 'Gili Islands / Lombok', sublabel: 'Hotels in Lombok · gateway to the Gilis', searchAs: 'Lombok, Indonesia', placeId: 'ChIJBzxUOeI4zC0R286ewj4py_s' },
 ];
 
 type StayParams = {
