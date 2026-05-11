@@ -38,6 +38,7 @@ const poppins = Poppins({
   subsets: ['latin'],
   display: 'swap',
   variable: '--next-poppins',
+  // Keep preload: Poppins renders the mobile hero H1 (LCP element).
 });
 
 const playfair = Playfair_Display({
@@ -45,7 +46,12 @@ const playfair = Playfair_Display({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-playfair',
-  preload: true,
+  // preload: false — Playfair only renders on desktop H1 + below-fold
+  // H2s; mobile hero uses Poppins (`[font-family:var(--next-poppins)]`
+  // in page.tsx). Preloading the serif on every page wasted ~30-50KB
+  // of mobile bandwidth in the FCP window. font-display: swap means
+  // text still paints in fallback before Playfair arrives.
+  preload: false,
 });
 
 const dmSans = DM_Sans({
@@ -53,6 +59,12 @@ const dmSans = DM_Sans({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-dm-sans',
+  // preload: false — DM Sans is used for body copy + eyebrow text.
+  // Eyebrow ("UK's Smartest Travel Comparison") is above the fold but
+  // small (.72rem) and not the LCP element. font-display: swap renders
+  // fallback first, swaps to DM Sans when ready (FOUT). next/font's
+  // adjusted fallback metrics keep CLS unchanged.
+  preload: false,
 });
 
 export const metadata = {
