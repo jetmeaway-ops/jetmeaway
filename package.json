@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "monkey:search": "node scripts/monkey-search.mjs",
+    "monkey:landmarks": "node scripts/monkey-landmark.mjs",
+    "monkey:audit": "node scripts/monkey-audit.mjs"
   },
   "dependencies": {
     "@duffel/components": "^3.13.1",

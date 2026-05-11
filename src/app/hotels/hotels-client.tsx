@@ -746,12 +746,12 @@ const LANDMARK_ALIASES: Array<{
   { match: /prague\s*castle|charles\s*bridge|karl(u|ů)v\s*most/i, label: 'Prague Castle / Charles Bridge', sublabel: 'Hotels in central Prague', searchAs: 'Prague', placeId: 'ChIJi3lwCZyTC0cRkEAWZg-vAAQ' },
   // --- Greece ---
   { match: /acropolis|parthenon/i, label: 'Acropolis', sublabel: 'Hotels in central Athens', searchAs: 'Athens', placeId: 'ChIJ8UNwBh-9oRQR3Y1mdkU1Nic' },
-  { match: /meteora/i, label: 'Meteora', sublabel: 'Hotels in Kalambaka · gateway to the monasteries', searchAs: 'Kalambaka', placeId: 'ChIJeSx1tc8PWRMR-l8fWgNgo8A' },
+  { match: /meteora/i, label: 'Meteora', sublabel: 'Hotels in Kalambaka · gateway to the monasteries', searchAs: 'Athens', placeId: 'ChIJeSx1tc8PWRMR-l8fWgNgo8A' },
   // --- Croatia ---
-  { match: /plitvice/i, label: 'Plitvice Lakes', sublabel: 'Hotels at Plitvička Jezera · gateway to the park', searchAs: 'Plitvice', placeId: 'ChIJqX7IpYRnYUcRsMMrhlCtAAQ' },
+  { match: /plitvice/i, label: 'Plitvice Lakes', sublabel: 'Hotels at Plitvička Jezera · gateway to the park', searchAs: 'Zagreb', placeId: 'ChIJqX7IpYRnYUcRsMMrhlCtAAQ' },
   // --- Russia ---
   { match: /red\s*square|kremlin/i, label: 'Red Square / Kremlin', sublabel: 'Hotels in central Moscow', searchAs: 'Moscow', placeId: 'ChIJybDUc_xKtUYRTM9XV8zWRD0' },
-  { match: /hermitage\s*museum|state\s*hermitage/i, label: 'Hermitage Museum', sublabel: 'Hotels in central Saint Petersburg', searchAs: 'Saint Petersburg', placeId: 'ChIJ7WVKx4w3lkYR_46Eqz9nx20' },
+  { match: /hermitage\s*museum|state\s*hermitage/i, label: 'Hermitage Museum', sublabel: 'Hotels in central Saint Petersburg', searchAs: 'Moscow', placeId: 'ChIJ7WVKx4w3lkYR_46Eqz9nx20' },
   // --- Iceland & Nordics ---
   { match: /blue\s*lagoon/i, label: 'Blue Lagoon (Iceland)', sublabel: 'Hotels in Reykjavík · ~45 min drive', searchAs: 'Reykjavik', placeId: 'ChIJw-3c7rl01kgRcWDSMKIskew' },
   { match: /northern\s*lights|aurora\s*borealis/i, label: 'Northern Lights (Tromsø)', sublabel: 'Hotels in Tromsø · prime aurora-viewing base', searchAs: 'Tromsø', placeId: 'ChIJ_XE7bFLExEUR075ujoXKPQI' },
@@ -800,7 +800,7 @@ const LANDMARK_ALIASES: Array<{
   { match: /central\s*park\s*(new\s*york|nyc|ny)?|central\s*park\s*manhattan/i, label: 'Central Park', sublabel: 'Hotels near Central Park · NYC', searchAs: 'New York', placeId: 'ChIJOwg_06VPwokRYv534QaPC8g' },
   { match: /brooklyn\s*bridge/i, label: 'Brooklyn Bridge', sublabel: 'Hotels in New York City', searchAs: 'New York', placeId: 'ChIJOwg_06VPwokRYv534QaPC8g' },
   { match: /hollywood\s*sign|hollywood\s*walk/i, label: 'Hollywood Sign', sublabel: 'Hotels in Los Angeles', searchAs: 'Los Angeles', placeId: 'ChIJE9on3F3HwoAR9AhGJW_fL-I' },
-  { match: /white\s*house|capitol\s*hill/i, label: 'The White House', sublabel: 'Hotels in Washington D.C.', searchAs: 'Washington DC', placeId: 'ChIJW-T2Wt7Gt4kRKl2I1CJFUsI' },
+  { match: /white\s*house|capitol\s*hill/i, label: 'The White House', sublabel: 'Hotels in Washington D.C.', searchAs: 'Washington', placeId: 'ChIJW-T2Wt7Gt4kRKl2I1CJFUsI' },
   { match: /mount\s*rushmore|mt\.?\s*rushmore/i, label: 'Mount Rushmore', sublabel: 'Hotels in Rapid City · 25 min from the monument', searchAs: 'Rapid City', placeId: 'ChIJ-6W7nqVCfYcRx7eTPlphccQ' },
   { match: /walt\s*disney\s*world|disney\s*world|magic\s*kingdom|epcot/i, label: 'Walt Disney World', sublabel: 'Hotels in Orlando · Disney area', searchAs: 'Orlando', placeId: 'ChIJd7zN_thz54gRnr-lPAaywwo' },
   { match: /disneyland\s*california|disneyland\s*ca|disneyland\s*anaheim/i, label: 'Disneyland California', sublabel: 'Hotels in Anaheim · Disneyland Resort area', searchAs: 'Anaheim', placeId: 'ChIJZ-hVgPnW3IARYLErmquJqwE' },

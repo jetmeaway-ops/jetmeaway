@@ -86,3 +86,17 @@ jobs:
           BASE: https://jetmeaway.co.uk
           BUG_MONITOR_SECRET: ${{ secrets.BUG_MONITOR_SECRET }}
         run: node scripts/affiliate-link-monitor.mjs
+
+      # Stage 7 — landmark alias coverage. Iterates every entry in
+      # LANDMARK_ALIASES (curated famous-landmarks + hidden-gems list in
+      # src/app/hotels/hotels-client.tsx) and asserts each landmark's
+      # searchAs city returns ≥1 hotel via /api/hotels. Added 2026-05-11
+      # after the 94-alias rollout shipped silently broken (none of the
+      # entries had been tested against real LiteAPI inventory). Reproducing
+      # that class of bug should never be possible again.
+      - name: Run landmark monkey (Stage 7 — every landmark alias)
+        if: always()
+        env:
+          BASE: https://jetmeaway.co.uk
+          BUG_MONITOR_SECRET: ${{ secrets.BUG_MONITOR_SECRET }}
+        run: node scripts/monkey-landmark.mjs

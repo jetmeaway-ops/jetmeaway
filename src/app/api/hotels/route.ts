@@ -319,7 +319,7 @@ const CITY_COUNTRY: Record<string, string> = {
   // Turkey
   'istanbul': 'TR', 'antalya': 'TR', 'bodrum': 'TR', 'dalaman': 'TR',
   // Balkans
-  'dubrovnik': 'HR', 'split': 'HR',
+  'dubrovnik': 'HR', 'split': 'HR', 'zagreb': 'HR',
   // Middle East
   'dubai': 'AE', 'abu dhabi': 'AE', 'doha': 'QA', 'muscat': 'OM',
   // Saudi Arabia (incl. Hajj/Umrah destinations — high volume from UK Muslim travellers)
