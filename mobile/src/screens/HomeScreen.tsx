@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Animated, Easing, Linking, Alert, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { FontAwesome5 } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
 import { Colors } from '../constants/colors';
 import { API_BASE, Endpoints } from '../constants/api';
 
@@ -136,7 +137,13 @@ export default function HomeScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <>
+      {/* Home tab is on dark navy — flip the status bar icons to white while
+          focused so the clock/battery stay legible. expo-status-bar uses the
+          last-mounted component, so navigating to another tab restores the
+          global `style="dark"` set in App.tsx. */}
+      <StatusBar style="light" />
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Hero */}
       <Animated.View style={[styles.hero, { opacity: heroFade, transform: [{ translateY: heroSlide }] }]}>
         <View style={styles.heroIconRow}>
@@ -225,18 +232,19 @@ export default function HomeScreen() {
           </View>
         )}
       </View>
-    </ScrollView>
+      </ScrollView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1, backgroundColor: Colors.navy },
   content: { paddingBottom: 40 },
   hero: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 20, alignItems: 'center' },
   heroIconRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 12 },
-  heroTitle: { fontFamily: 'Poppins_900Black', fontSize: 28, color: Colors.dark, textAlign: 'center' },
+  heroTitle: { fontFamily: 'Poppins_900Black', fontSize: 28, color: Colors.white, textAlign: 'center' },
   heroAccent: { color: Colors.primary, fontStyle: 'italic' },
-  heroSub: { fontFamily: 'Poppins_400Regular', fontSize: 14, color: Colors.body, textAlign: 'center', marginTop: 8, lineHeight: 22 },
+  heroSub: { fontFamily: 'Poppins_400Regular', fontSize: 14, color: Colors.navySubtext, textAlign: 'center', marginTop: 8, lineHeight: 22 },
   globeContainer: { alignItems: 'center', justifyContent: 'center', width: 60, height: 60 },
   globeRing: {
     position: 'absolute', width: 60, height: 60, borderRadius: 30,
@@ -246,7 +254,7 @@ const styles = StyleSheet.create({
     position: 'absolute', width: 80, height: 80, borderRadius: 40,
     borderWidth: 1.5, borderColor: Colors.primary + '40',
   },
-  sectionTitle: { fontFamily: 'Poppins_700Bold', fontSize: 18, color: Colors.dark, paddingHorizontal: 24, marginTop: 8, marginBottom: 16 },
+  sectionTitle: { fontFamily: 'Poppins_700Bold', fontSize: 18, color: Colors.white, paddingHorizontal: 24, marginTop: 8, marginBottom: 16 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, gap: 12 },
   card: {
     backgroundColor: Colors.white,
@@ -263,7 +271,7 @@ const styles = StyleSheet.create({
   cardLabel: { fontFamily: 'Poppins_600SemiBold', fontSize: 14, color: Colors.dark },
   trustBar: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 32, paddingHorizontal: 16 },
   trustItem: { alignItems: 'center', gap: 6 },
-  trustText: { fontFamily: 'Poppins_600SemiBold', fontSize: 11, color: Colors.secondary },
+  trustText: { fontFamily: 'Poppins_600SemiBold', fontSize: 11, color: Colors.navySubtext },
   destCard: {
     backgroundColor: Colors.white, borderRadius: 16, padding: 16, alignItems: 'center', width: 130,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,

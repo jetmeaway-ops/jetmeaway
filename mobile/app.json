@@ -2,7 +2,7 @@
   "expo": {
     "name": "JetMeAway",
     "slug": "jetmeaway",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "scheme": "jetmeaway",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "uk.co.jetmeaway.app",
-      "buildNumber": "10",
+      "buildNumber": "11",
       "usesAppleSignIn": true,
       "associatedDomains": [
         "applinks:jetmeaway.co.uk",
@@ -39,7 +39,7 @@
         "backgroundColor": "#1458B5"
       },
       "package": "uk.co.jetmeaway.app",
-      "versionCode": 20,
+      "versionCode": 21,
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
