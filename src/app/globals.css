@@ -11,6 +11,28 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-poppins: var(--next-poppins, 'Poppins', sans-serif);
+  --font-playfair: var(--font-playfair, 'Playfair Display', serif);
+  --font-dm-sans: var(--font-dm-sans, 'DM Sans', sans-serif);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   TYPOGRAPHY FIX (Tailwind 4 / Next.js 16 upgrade regression)
+   ─────────────────────────────────────────────────────────────────────────
+   In Tailwind 4, `font-[var(--font-foo)]` is ambiguous and gets compiled
+   as font-WEIGHT (with an invalid CSS var value), so it silently falls
+   back to Arial 400 instead of the intended Playfair / DM Sans / Poppins.
+   The 92 existing call sites across 19 files all use this broken syntax.
+   These overrides re-route the same class names to font-family, restoring
+   the intended typography without editing any component markup.
+   ───────────────────────────────────────────────────────────────────────── */
+html .font-\[var\(--font-playfair\)\] {
+  font-family: var(--font-playfair), 'Playfair Display', serif;
+}
+html .font-\[var\(--font-dm-sans\)\] {
+  font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+}
+html .font-\[var\(--next-poppins\)\] {
+  font-family: var(--next-poppins), 'Poppins', sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {

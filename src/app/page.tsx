@@ -400,7 +400,7 @@ export default function Home() {
 
         <div className="max-w-[800px] mx-auto text-center relative z-[1]">
           <p className="font-[var(--font-dm-sans)] text-orange-300 text-[.72rem] font-bold uppercase tracking-[3px] mb-4">UK&apos;s Smartest Travel Comparison</p>
-          <h1 className="font-[var(--font-playfair)] text-[2.6rem] md:text-[4.2rem] font-black text-white leading-[1.08] tracking-tight mb-5">
+          <h1 className="[font-family:var(--next-poppins)] md:[font-family:var(--font-playfair)] text-[2.6rem] md:text-[4.2rem] font-black text-white leading-[1.08] tracking-tight mb-5">
             Find Your Perfect Trip for{' '}
             <span className="bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent">Less</span>
           </h1>
