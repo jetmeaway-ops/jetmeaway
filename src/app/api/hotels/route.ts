@@ -366,6 +366,48 @@ const CITY_COUNTRY: Record<string, string> = {
   'bishkek': 'KG', 'dushanbe': 'TJ',
   // Islands
   'maldives': 'MV', 'mauritius': 'MU', 'seychelles': 'SC',
+  // Landmark / hidden-gem searchAs values (LANDMARK_ALIASES in
+  // src/app/hotels/hotels-client.tsx). Each curated landmark uses one of
+  // these as its LiteAPI-resolvable search city. Without these entries
+  // the country resolver falls back to Nominatim (slow + flaky) and
+  // landmark searches silently return zero hotels. Added 2026-05-11 after
+  // the 94-alias rollout shipped without the matching country map.
+  'bournemouth': 'GB', 'salisbury': 'GB', 'inverness': 'GB',
+  'york': 'GB', 'hexham': 'GB',
+  'galway': 'IE',
+  'pisa': 'IT', 'como': 'IT', 'riomaggiore': 'IT',
+  'granada': 'ES',
+  'füssen': 'DE', 'fussen': 'DE', 'cologne': 'DE',
+  'kalambaka': 'GR',
+  'plitvice': 'HR', 'plitvička jezera': 'HR', 'plitvicka jezera': 'HR',
+  'moscow': 'RU', 'saint petersburg': 'RU', 'st petersburg': 'RU',
+  'reykjavik': 'IS', 'reykjavík': 'IS',
+  'tromsø': 'NO', 'tromso': 'NO', 'svolvær': 'NO', 'svolvaer': 'NO',
+  'göreme': 'TR', 'goreme': 'TR',
+  'arusha': 'TZ', 'moshi': 'TZ',
+  'giza': 'EG',
+  'merzouga': 'MA',
+  'beijing': 'CN', 'shanghai': 'CN', 'yangshuo': 'CN',
+  'fujikawaguchiko': 'JP',
+  'siem reap': 'KH',
+  'ha long': 'VN', 'halong': 'VN',
+  'denpasar': 'ID', 'labuan bajo': 'ID', 'waisai': 'ID', 'lombok': 'ID',
+  'malé': 'MV', 'male': 'MV',
+  'agra': 'IN', 'calangute': 'IN', 'alleppey': 'IN', 'alappuzha': 'IN',
+  'washington dc': 'US', 'washington': 'US', 'rapid city': 'US',
+  'anaheim': 'US', 'page': 'US',
+  'foz do iguaçu': 'BR', 'foz do iguacu': 'BR',
+  'cairns': 'AU', 'yulara': 'AU',
+  'matamata': 'NZ',
+  'bled': 'SI',
+  'tórshavn': 'FO', 'torshavn': 'FO',
+  'funchal': 'PT', 'ponta delgada': 'PT',
+  'san pedro de atacama': 'CL', 'hanga roa': 'CL',
+  'uyuni': 'BO',
+  'puerto ayora': 'EC',
+  'nadi': 'FJ',
+  'aklan': 'PH',
+  'paro': 'BT',
 };
 
 /** Look up country code for a city. Checks the hardcoded map first, then KV cache,
