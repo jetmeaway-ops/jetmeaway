@@ -83,3 +83,4 @@ scripts/serve-screenshots.mjs
 # scripts/build-apple-cover.mjs. Lives uploaded on Apple Business Manager,
 # no need to ship the PNG bytes through git.
 /public/apple-brand-cover-1600x1040.png
+tmp/

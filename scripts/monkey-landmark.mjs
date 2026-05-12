@@ -49,17 +49,50 @@ function loadLandmarks() {
     throw new Error('Failed to locate LANDMARK_ALIASES array boundaries');
   }
   const body = text.slice(openBracket, closeBracket);
-  // Each entry has searchAs + label on the same line (single-line entries)
-  // OR on adjacent lines (multi-line entries). Capture both pieces together.
+  // Parse each entry as a brace-balanced block so we can pull
+  // {label, searchAs, lat, lng, radiusKm} together. Greedy regex was
+  // brittle when entries had varying field order; this is robust.
   const entries = [];
-  const blockRe = /label:\s*['"]([^'"]+)['"][\s\S]*?searchAs:\s*['"]([^'"]+)['"]|searchAs:\s*['"]([^'"]+)['"][\s\S]*?label:\s*['"]([^'"]+)['"]/g;
-  let m;
-  while ((m = blockRe.exec(body)) !== null) {
-    const label = m[1] || m[4];
-    const searchAs = m[2] || m[3];
-    if (label && searchAs) entries.push({ label, searchAs });
+  const lines = body.split('\n');
+  let buf = '';
+  let depth = 0;
+  for (const line of lines) {
+    buf += line + ' ';
+    for (const ch of line) {
+      if (ch === '{') depth++;
+      else if (ch === '}') depth--;
+    }
+    if (depth === 0 && buf.includes('placeId:')) {
+      const labelM = buf.match(/label:\s*['"]([^'"]+)['"]/);
+      const searchAsM = buf.match(/searchAs:\s*['"]([^'"]+)['"]/);
+      const latM = buf.match(/\blat:\s*(-?\d+(?:\.\d+)?)/);
+      const lngM = buf.match(/\blng:\s*(-?\d+(?:\.\d+)?)/);
+      const radiusM = buf.match(/radiusKm:\s*(\d+)/);
+      if (labelM && searchAsM) {
+        entries.push({
+          label: labelM[1],
+          searchAs: searchAsM[1],
+          lat: latM ? Number(latM[1]) : null,
+          lng: lngM ? Number(lngM[1]) : null,
+          radiusKm: radiusM ? Number(radiusM[1]) : null,
+        });
+      }
+      buf = '';
+    }
   }
   return entries;
+}
+
+/** Haversine distance between two (lat,lng) points in km. */
+function haversineKm(a, b) {
+  const R = 6371;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const x = Math.sin(dLat / 2) ** 2 + Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+  return 2 * R * Math.asin(Math.sqrt(x));
 }
 
 function nightsFromNow(offsetDays, nights) {
@@ -68,21 +101,31 @@ function nightsFromNow(offsetDays, nights) {
   return { checkin: ci.toISOString().slice(0, 10), checkout: co.toISOString().slice(0, 10) };
 }
 
-function buildUrl(searchAs, checkin, checkout) {
+function buildUrl(entry, checkin, checkout) {
   const p = new URLSearchParams({
-    city: searchAs,
+    city: entry.searchAs,
     checkin,
     checkout,
     adults: '2',
     children: '0',
     rooms: '1',
   });
+  // Pass lat/lng/radius when the alias has them so the backend does a
+  // proper LiteAPI radius search at the landmark coords. This mirrors
+  // exactly what the frontend sends after a landmark autocomplete click.
+  if (typeof entry.lat === 'number' && typeof entry.lng === 'number') {
+    p.set('lat', String(entry.lat));
+    p.set('lng', String(entry.lng));
+  }
+  if (typeof entry.radiusKm === 'number') {
+    p.set('radius', String(entry.radiusKm));
+  }
   return `${BASE}/api/hotels?${p.toString()}`;
 }
 
 async function runOne(entry) {
   const { checkin, checkout } = nightsFromNow(30, 2);
-  const url = buildUrl(entry.searchAs, checkin, checkout);
+  const url = buildUrl(entry, checkin, checkout);
   const t0 = Date.now();
   let status = 0;
   let body = null;
@@ -99,9 +142,42 @@ async function runOne(entry) {
   const errs = [];
   if (err) errs.push(`fetch failed: ${err}`);
   if (status !== 200) errs.push(`HTTP ${status}`);
-  const hotelCount = Array.isArray(body?.hotels) ? body.hotels.length : null;
+  const hotels = Array.isArray(body?.hotels) ? body.hotels : null;
+  const hotelCount = hotels?.length ?? null;
   if (hotelCount === null) errs.push('hotels not an array');
   else if (hotelCount === 0) errs.push('hotels.length === 0');
+
+  // Proximity assertion — every returned hotel with coords must sit
+  // within `entry.radiusKm` of the landmark. We sample ALL returned
+  // hotels (landmark searches are curated; we want full coverage, not
+  // the first-10 sample monkey-search does for random city tests).
+  // Skip when the alias has no coords (falls back to city search path)
+  // or when no hotels came back (the count-based assertion above catches
+  // that). Hotels missing lat/lng are skipped so we don't false-positive.
+  if (
+    typeof entry.lat === 'number' &&
+    typeof entry.lng === 'number' &&
+    typeof entry.radiusKm === 'number' &&
+    hotels &&
+    hotels.length > 0
+  ) {
+    const landmark = { lat: entry.lat, lng: entry.lng };
+    const offenders = [];
+    for (const h of hotels) {
+      const lat = h.lat ?? h.latitude;
+      const lng = h.lng ?? h.longitude;
+      if (typeof lat !== 'number' || typeof lng !== 'number') continue;
+      const km = haversineKm(landmark, { lat, lng });
+      if (km > entry.radiusKm) {
+        offenders.push(`${(h.name || h.id || '?').slice(0, 36)} ${km.toFixed(1)}km`);
+      }
+    }
+    if (offenders.length > 0) {
+      errs.push(
+        `proximity drift (>${entry.radiusKm}km from ${entry.label}): ${offenders.slice(0, 3).join(', ')}${offenders.length > 3 ? ` (+${offenders.length - 3} more)` : ''}`,
+      );
+    }
+  }
   return { entry, status, ms, errs, hotelCount, checkin, checkout };
 }
 

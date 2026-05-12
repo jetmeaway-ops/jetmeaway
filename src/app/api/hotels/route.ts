@@ -1370,10 +1370,17 @@ export async function GET(req: NextRequest) {
   // manual coords table forever (Coulsdon, Hove, Reigate, Banstead, …).
   const latParam = parsed.data.lat ? Number(parsed.data.lat) : null;
   const lngParam = parsed.data.lng ? Number(parsed.data.lng) : null;
+  // Optional explicit radius (km). Clamped to a safe 5-200 km band.
+  // When set with lat/lng, overrides the centroid default of 15 km.
+  const radiusParam = parsed.data.radius ? Number(parsed.data.radius) : null;
+  const explicitRadiusKm =
+    typeof radiusParam === 'number' && Number.isFinite(radiusParam)
+      ? Math.max(5, Math.min(200, radiusParam))
+      : undefined;
   const autocompleteCentre =
     typeof latParam === 'number' && Number.isFinite(latParam) &&
     typeof lngParam === 'number' && Number.isFinite(lngParam)
-      ? { lat: latParam, lng: lngParam }
+      ? { lat: latParam, lng: lngParam, ...(explicitRadiusKm ? { radiusKm: explicitRadiusKm } : {}) }
       : null;
   const mode = parsed.data.mode || '';
 
@@ -1707,7 +1714,11 @@ export async function GET(req: NextRequest) {
   // Same precedence as the centroid lookup — rawCityKey first so an aliased
   // "coulsdon → london" search still uses the strict 8km Coulsdon radius
   // rather than London's wide 25km.
+  // Explicit `radius` URL param (curated LANDMARK_ALIASES etc.) wins over
+  // city-based defaults. Falls back to the CITY_RADIUS_KM lookup, then to
+  // 10 km when we have a centroid, else the global default.
   const radiusKm =
+    explicitRadiusKm ??
     CITY_RADIUS_KM[rawCityKey] ??
     CITY_RADIUS_KM[cityKey] ??
     (autocompleteCentre || preResolvedCentre ? 10 : DEFAULT_RADIUS_KM);

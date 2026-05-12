@@ -27,6 +27,11 @@ export const HotelSearchSchema = z
     // entry in the coords table (Coulsdon, Hove, etc).
     lat: z.string().regex(/^-?\d+(\.\d+)?$/).optional(),
     lng: z.string().regex(/^-?\d+(\.\d+)?$/).optional(),
+    // Explicit search radius in km. When set (with lat+lng), overrides the
+    // backend default of 15 km. Curated LANDMARK_ALIASES entries pass this
+    // — e.g. Disneyland Paris uses 10 km, Mount Everest uses 150 km. The
+    // value is clamped server-side to 5-200 km to avoid pathological calls.
+    radius: z.string().regex(/^\d+$/).optional(),
     // Per-room occupancy (new shape, takes precedence over flat
     // adults/children/rooms when both are supplied):
     //   occ=2-6/1-8/1-15
