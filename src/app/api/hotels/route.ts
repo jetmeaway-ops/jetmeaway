@@ -170,6 +170,30 @@ const AIRPORT_TO_CITY: Record<string, string> = {
   'lpl': 'liverpool',
   'newcastle airport': 'newcastle',
   'ncl': 'newcastle',
+  // International airports the IATA-suffix strip alone doesn't cover —
+  // their bare cityKey ("lyon airport", "berlin airport" etc.) doesn't
+  // get resolved cleanly via Nominatim/KV and the lat/lng-only LiteAPI
+  // call returns 0 from airport-edge coords. Explicit alias to the
+  // bare city makes resolveCountryCode pick up CITY_COUNTRY[cityName]
+  // and LiteAPI gets the country-scoped lat/lng search that surfaces
+  // the airport-hotel cluster. (CDG isn't aliased because its raw
+  // cityKey "charles de gaulle airport" already resolves to FR via
+  // Nominatim and returns 80+ live hotels.)
+  'lyon airport': 'lyon',
+  'lys': 'lyon',
+  'berlin airport': 'berlin',
+  'ber': 'berlin',
+  'goa airport': 'goa',
+  'goi': 'goa',
+  'cancun airport': 'cancun',
+  'cun': 'cancun',
+  'sydney airport': 'sydney',
+  'syd': 'sydney',
+  'cape town airport': 'cape town',
+  'cpt': 'cape town',
+  'sabiha airport': 'istanbul',
+  'sabiha gokcen airport': 'istanbul',
+  'saw': 'istanbul',
   // London outer-suburbs that LiteAPI's /data/hotels has no city entry for.
   // We alias to "london" so /data/hotels returns Greater-London inventory
   // rather than 0 results. Croydon/Wembley/Greenwich/Docklands etc are
