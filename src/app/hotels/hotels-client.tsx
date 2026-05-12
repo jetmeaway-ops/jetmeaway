@@ -753,7 +753,7 @@ const LANDMARK_ALIASES: Array<{
   { match: /acropolis|parthenon/i, label: 'Acropolis', sublabel: 'Hotels in central Athens', searchAs: 'Athens', placeId: 'ChIJ8UNwBh-9oRQR3Y1mdkU1Nic', lat: 37.9838096, lng: 23.727538799999998, radiusKm: 15 },
   { match: /meteora/i, label: 'Meteora', sublabel: 'Hotels in Kalambaka · gateway to the monasteries', searchAs: 'Athens', placeId: 'ChIJeSx1tc8PWRMR-l8fWgNgo8A', lat: 39.706618, lng: 21.6288728, radiusKm: 400 },
   // --- Croatia ---
-  { match: /plitvice/i, label: 'Plitvice Lakes', sublabel: 'Hotels at Plitvička Jezera · gateway to the park', searchAs: 'Karlovac', placeId: 'ChIJqX7IpYRnYUcRsMMrhlCtAAQ', lat: 44.8820957, lng: 15.6233311, radiusKm: 15 },
+  { match: /plitvice/i, label: 'Plitvice Lakes', sublabel: 'Hotels at Plitvička Jezera · gateway to the park', searchAs: 'Zagreb', placeId: 'ChIJqX7IpYRnYUcRsMMrhlCtAAQ', lat: 44.8820957, lng: 15.6233311, radiusKm: 150 },
   // --- Russia ---
   { match: /red\s*square|kremlin/i, label: 'Red Square / Kremlin', sublabel: 'Hotels in central Moscow', searchAs: 'Moscow', placeId: 'ChIJybDUc_xKtUYRTM9XV8zWRD0', lat: 55.756872099999995, lng: 37.6150527, radiusKm: 15 },
   { match: /hermitage\s*museum|state\s*hermitage/i, label: 'Hermitage Museum', sublabel: 'Hotels in central Saint Petersburg', searchAs: 'Moscow', placeId: 'ChIJ7WVKx4w3lkYR_46Eqz9nx20', lat: 59.931058400000005, lng: 30.360909699999997, radiusKm: 800 },
@@ -838,7 +838,7 @@ const LANDMARK_ALIASES: Array<{
   { match: /annapurna|annapurna\s*circuit/i, label: 'Annapurna', sublabel: 'Hotels in Pokhara · base for the trek', searchAs: 'Pokhara', placeId: 'ChIJ_3YDv3uTlTkRZCGAJTuCz_Y', lat: 28.2095831, lng: 83.9855674, radiusKm: 15 },
   { match: /guilin\s*landscape|yangshuo|li\s*river/i, label: 'Guilin / Yangshuo', sublabel: 'Hotels in Yangshuo · karst landscape', searchAs: 'Yangshuo', placeId: 'ChIJZVKVEX6lpTYRBQDurljkC0c', lat: 24.778429900000003, lng: 110.49663, radiusKm: 15 },
   { match: /^bhutan$|paro\s*valley/i, label: 'Bhutan', sublabel: 'Hotels in Paro · gateway to Bhutan', searchAs: 'Paro', placeId: 'ChIJtzlsWuid4TkRkAEHWg94-gE', lat: 27.4283009, lng: 89.41695229999999, radiusKm: 15 },
-  { match: /gili\s*islands?|gili\s*trawangan|^lombok$/i, label: 'Gili Islands / Lombok', sublabel: 'Hotels in Lombok · gateway to the Gilis', searchAs: 'Mataram', placeId: 'ChIJBzxUOeI4zC0R286ewj4py_s', lat: -8.5132429, lng: 116.666397, radiusKm: 15 },
+  { match: /gili\s*islands?|gili\s*trawangan|^lombok$/i, label: 'Gili Islands / Lombok', sublabel: 'Hotels in Lombok · gateway to the Gilis', searchAs: 'Denpasar', placeId: 'ChIJBzxUOeI4zC0R286ewj4py_s', lat: -8.5132429, lng: 116.666397, radiusKm: 100 },
 ];
 
 type StayParams = {

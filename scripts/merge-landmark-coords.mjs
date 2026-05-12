@@ -45,6 +45,8 @@ const RADIUS_OVERRIDES = {
   'ChIJAVkDPzdOqEcRcDteW0YgIQQ': 25,   // Brandenburg Gate → outer-Berlin hotels (16-18 km) within transit reach of central Berlin
   'ChIJeSx1tc8PWRMR-l8fWgNgo8A': 400,  // Meteora → LiteAPI has no Kalambaka inventory; cityName fallback returns Athens hotels (~360 km drive)
   'ChIJ7WVKx4w3lkYR_46Eqz9nx20': 800,  // Hermitage Museum → LiteAPI has no Saint Petersburg inventory (sanctions); cityName fallback returns Moscow hotels (~700 km)
+  'ChIJqX7IpYRnYUcRsMMrhlCtAAQ': 150,  // Plitvice Lakes → Zagreb gateway ~130 km; LiteAPI doesn't index Karlovac
+  'ChIJBzxUOeI4zC0R286ewj4py_s': 100,  // Gili Islands / Lombok → Denpasar Bali gateway ~70 km; Mataram + Lombok itself unindexed
   'ChIJt5sANlWMc0gRBqpe8oDgow0': 75,   // Stonehenge → Salisbury 15 km, rural surrounds
   'ChIJK94XLVtxj0gRPcQ-LtEJQ2I': 75,   // Loch Ness → Inverness ~40 km
   'ChIJFZgxDWKQfUgRBMANIXgrOqg': 75,   // Hadrian's Wall → Hexham, dispersed villages
