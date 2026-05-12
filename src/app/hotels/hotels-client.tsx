@@ -937,8 +937,14 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
             <li key={`landmark-${l.label}`}
               onMouseDown={() => {
                 if (debounceRef.current) clearTimeout(debounceRef.current);
-                onChange(l.searchAs);
-                onPlaceSelect({ id: l.placeId, name: l.searchAs, description: l.sublabel, type: 'locality' });
+                // Display the landmark LABEL in the input ("Disneyland Paris")
+                // — not the underlying searchAs city ("Paris"). The user typed
+                // "Disneyland" because they want Disneyland, not "Paris"; the
+                // searchAs is an implementation detail the backend uses to find
+                // hotels. handleSearch's memoized landmark resolver detects the
+                // label and substitutes the searchAs city before the API call.
+                onChange(l.label);
+                onPlaceSelect({ id: l.placeId, name: l.label, description: l.sublabel, type: 'locality' });
                 setOpen(false);
                 setApiResults([]);
                 setSearching(false);
