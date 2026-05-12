@@ -838,7 +838,7 @@ const LANDMARK_ALIASES: Array<{
   { match: /annapurna|annapurna\s*circuit/i, label: 'Annapurna', sublabel: 'Hotels in Pokhara · base for the trek', searchAs: 'Pokhara', placeId: 'ChIJ_3YDv3uTlTkRZCGAJTuCz_Y', lat: 28.2095831, lng: 83.9855674, radiusKm: 15 },
   { match: /guilin\s*landscape|yangshuo|li\s*river/i, label: 'Guilin / Yangshuo', sublabel: 'Hotels in Yangshuo · karst landscape', searchAs: 'Yangshuo', placeId: 'ChIJZVKVEX6lpTYRBQDurljkC0c', lat: 24.778429900000003, lng: 110.49663, radiusKm: 15 },
   { match: /^bhutan$|paro\s*valley/i, label: 'Bhutan', sublabel: 'Hotels in Paro · gateway to Bhutan', searchAs: 'Paro', placeId: 'ChIJtzlsWuid4TkRkAEHWg94-gE', lat: 27.4283009, lng: 89.41695229999999, radiusKm: 15 },
-  { match: /gili\s*islands?|gili\s*trawangan|^lombok$/i, label: 'Gili Islands / Lombok', sublabel: 'Hotels in Lombok · gateway to the Gilis', searchAs: 'Denpasar', placeId: 'ChIJBzxUOeI4zC0R286ewj4py_s', lat: -8.5132429, lng: 116.666397, radiusKm: 100 },
+  { match: /gili\s*islands?|gili\s*trawangan|^lombok$/i, label: 'Gili Islands / Lombok', sublabel: 'Hotels in Lombok · gateway to the Gilis', searchAs: 'Denpasar', placeId: 'ChIJBzxUOeI4zC0R286ewj4py_s', lat: -8.5132429, lng: 116.666397, radiusKm: 200 },
 ];
 
 type StayParams = {
