@@ -1765,12 +1765,25 @@ export async function GET(req: NextRequest) {
   // to surface airport-area inventory directly rather than filtering
   // a metro-wide fetch down.
   const isAirportSearch = !!airportCentre;
+  // When the URL carries an explicit lat/lng (autocompleteCentre), the
+  // caller already chose the exact point they meant — pass it through
+  // to LiteAPI upstream even when the cityKey isn't aliased and isn't
+  // in AIRPORT_COORDS. Without this, foreign airports the user picked
+  // from Google Places ("Charles De Gaulle Airport (CDG)", "Schiphol
+  // Airport (AMS)", "Tokyo Haneda Airport (HND)") fell through to a
+  // cityName search LiteAPI couldn't satisfy, then the fetchLiteApi
+  // path bailed at "no countryCode, no centroid" → 0 hotels.
+  const haveExplicitCentre = !!autocompleteCentre;
   const liteApiCentroid =
-    (isAliasedSearchEarly || isAirportSearch) && preResolvedCentre
+    (isAliasedSearchEarly || isAirportSearch || haveExplicitCentre) && preResolvedCentre
       ? {
           lat: preResolvedCentre.lat,
           lng: preResolvedCentre.lng,
-          radiusKm: airportCentre?.radiusKm ?? CITY_RADIUS_KM[rawCityKey] ?? 15,
+          radiusKm:
+            autocompleteCentre?.radiusKm ??
+            airportCentre?.radiusKm ??
+            CITY_RADIUS_KM[rawCityKey] ??
+            15,
         }
       : undefined;
 
