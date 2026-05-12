@@ -1610,7 +1610,16 @@ export async function GET(req: NextRequest) {
   // LiteAPI's /data/hotels?cityName=Gatwick has no city by that name.
   // Runs before resolveCountryCode so it also bypasses any stale Nominatim
   // KV cache that mapped the airport name to a country code.
-  const cityKey = AIRPORT_TO_CITY[rawCityKey] || rawCityKey;
+  //
+  // Fallback for international airports not in the alias map: strip a
+  // trailing " airport" word and try again. "lyon airport" → "lyon" picks up
+  // CITY_COUNTRY/CITY_COORDS without growing the alias table by hundreds
+  // of entries. Covers CDG/AMS/FCO/MXP/JFK/LAX/SYD/DEL/BOM etc. — every
+  // airport whose name is "<city> Airport".
+  const stripAirportWord = rawCityKey.replace(/\s+airport\s*$/i, '').trim();
+  const cityKey =
+    AIRPORT_TO_CITY[rawCityKey] ||
+    (stripAirportWord !== rawCityKey ? stripAirportWord : rawCityKey);
   if (cityKey !== rawCityKey) {
     console.log(`[hotels] rewriting "${rawCityKey}" → "${cityKey}" (airport→city alias)`);
   }

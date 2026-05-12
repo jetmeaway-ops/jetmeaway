@@ -131,7 +131,14 @@ function capitaliseEach(s) {
 }
 
 async function runOne(entry) {
-  const { checkin, checkout } = nightsFromNow(35, 2);
+  // Per-airport date offset (35–61 days out) so each query lands on its
+  // own KV cache key. Without this, the first run's cold-start timeouts
+  // got cached as empty responses and every subsequent run returned the
+  // cached empty for 30 minutes — making the suite report ~30 false-
+  // positive fails when real users hitting the same airport on a fresh
+  // cache see ≥100 live hotels.
+  const offsetDays = 35 + ((entry.iata.charCodeAt(0) + entry.iata.charCodeAt(2)) % 27);
+  const { checkin, checkout } = nightsFromNow(offsetDays, 2);
   const url = buildUrl(entry, checkin, checkout);
   const t0 = Date.now();
   let status = 0;
