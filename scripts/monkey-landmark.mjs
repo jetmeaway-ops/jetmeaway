@@ -222,8 +222,11 @@ async function main() {
   const landmarks = loadLandmarks();
   console.log(`Monkey landmark — ${landmarks.length} aliases against ${BASE}\n`);
   const results = [];
-  // Batch of 5 concurrent — mirrors monkey-search to avoid LiteAPI throttling.
-  const BATCH = 5;
+  // Batch of 3 concurrent — landmark searches fire 2 parallel LiteAPI
+  // tiers each (lat/lng + placeId), so 5-wide tipped big-inventory
+  // cities (NYC, London) over Vercel's function timeout. 3-wide keeps
+  // total in-flight rates-compute calls ≤ 6 which prod handles fine.
+  const BATCH = 3;
   for (let i = 0; i < landmarks.length; i += BATCH) {
     const slice = landmarks.slice(i, i + BATCH);
     const batch = await Promise.all(slice.map(runOne));
