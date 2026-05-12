@@ -741,7 +741,7 @@ const LANDMARK_ALIASES: Array<{
   { match: /alhambra/i, label: 'Alhambra', sublabel: 'Hotels in Granada', searchAs: 'Granada', placeId: 'ChIJfcIyLeb8cQ0Rcg1g0533WJI', lat: 37.1824607, lng: -3.6011675999999992, radiusKm: 15 },
   { match: /park\s*g(u|ü)ell|parc\s*g(u|ü)ell/i, label: 'Park Güell', sublabel: 'Hotels in Barcelona', searchAs: 'Barcelona', placeId: 'ChIJ5TCOcRaYpBIRCmZHTz37sEQ', lat: 41.387437399999996, lng: 2.1686495999999997, radiusKm: 15 },
   // --- Germany & Austria ---
-  { match: /brandenburg\s*gate|brandenburger\s*tor/i, label: 'Brandenburg Gate', sublabel: 'Hotels in central Berlin', searchAs: 'Berlin', placeId: 'ChIJAVkDPzdOqEcRcDteW0YgIQQ', lat: 52.520006599999995, lng: 13.404954, radiusKm: 15 },
+  { match: /brandenburg\s*gate|brandenburger\s*tor/i, label: 'Brandenburg Gate', sublabel: 'Hotels in central Berlin', searchAs: 'Berlin', placeId: 'ChIJAVkDPzdOqEcRcDteW0YgIQQ', lat: 52.520006599999995, lng: 13.404954, radiusKm: 25 },
   { match: /neuschwanstein/i, label: 'Neuschwanstein Castle', sublabel: 'Hotels in Füssen · gateway to the castle', searchAs: 'Füssen', placeId: 'ChIJCfRmaIBfnEcRAPOL161IHgQ', lat: 47.569648, lng: 10.7004328, radiusKm: 15 },
   { match: /cologne\s*cathedral|k(o|ö)lner\s*dom/i, label: 'Cologne Cathedral', sublabel: 'Hotels in central Cologne', searchAs: 'Cologne', placeId: 'ChIJ5S-raZElv0cR8HcqSvxgJwQ', lat: 50.937531, lng: 6.9602786, radiusKm: 15 },
   { match: /sch(o|ö)nbrunn/i, label: 'Schönbrunn Palace', sublabel: 'Hotels in Vienna', searchAs: 'Vienna', placeId: 'ChIJn8o2UZ4HbUcRRluiUYrlwv0', lat: 48.208069599999995, lng: 16.3713095, radiusKm: 15 },
@@ -751,12 +751,12 @@ const LANDMARK_ALIASES: Array<{
   { match: /prague\s*castle|charles\s*bridge|karl(u|ů)v\s*most/i, label: 'Prague Castle / Charles Bridge', sublabel: 'Hotels in central Prague', searchAs: 'Prague', placeId: 'ChIJi3lwCZyTC0cRkEAWZg-vAAQ', lat: 50.075538099999996, lng: 14.437800500000002, radiusKm: 15 },
   // --- Greece ---
   { match: /acropolis|parthenon/i, label: 'Acropolis', sublabel: 'Hotels in central Athens', searchAs: 'Athens', placeId: 'ChIJ8UNwBh-9oRQR3Y1mdkU1Nic', lat: 37.9838096, lng: 23.727538799999998, radiusKm: 15 },
-  { match: /meteora/i, label: 'Meteora', sublabel: 'Hotels in Kalambaka · gateway to the monasteries', searchAs: 'Athens', placeId: 'ChIJeSx1tc8PWRMR-l8fWgNgo8A', lat: 39.706618, lng: 21.6288728, radiusKm: 15 },
+  { match: /meteora/i, label: 'Meteora', sublabel: 'Hotels in Kalambaka · gateway to the monasteries', searchAs: 'Athens', placeId: 'ChIJeSx1tc8PWRMR-l8fWgNgo8A', lat: 39.706618, lng: 21.6288728, radiusKm: 400 },
   // --- Croatia ---
-  { match: /plitvice/i, label: 'Plitvice Lakes', sublabel: 'Hotels at Plitvička Jezera · gateway to the park', searchAs: 'Zagreb', placeId: 'ChIJqX7IpYRnYUcRsMMrhlCtAAQ', lat: 44.8820957, lng: 15.6233311, radiusKm: 15 },
+  { match: /plitvice/i, label: 'Plitvice Lakes', sublabel: 'Hotels at Plitvička Jezera · gateway to the park', searchAs: 'Karlovac', placeId: 'ChIJqX7IpYRnYUcRsMMrhlCtAAQ', lat: 44.8820957, lng: 15.6233311, radiusKm: 15 },
   // --- Russia ---
   { match: /red\s*square|kremlin/i, label: 'Red Square / Kremlin', sublabel: 'Hotels in central Moscow', searchAs: 'Moscow', placeId: 'ChIJybDUc_xKtUYRTM9XV8zWRD0', lat: 55.756872099999995, lng: 37.6150527, radiusKm: 15 },
-  { match: /hermitage\s*museum|state\s*hermitage/i, label: 'Hermitage Museum', sublabel: 'Hotels in central Saint Petersburg', searchAs: 'Moscow', placeId: 'ChIJ7WVKx4w3lkYR_46Eqz9nx20', lat: 59.931058400000005, lng: 30.360909699999997, radiusKm: 15 },
+  { match: /hermitage\s*museum|state\s*hermitage/i, label: 'Hermitage Museum', sublabel: 'Hotels in central Saint Petersburg', searchAs: 'Moscow', placeId: 'ChIJ7WVKx4w3lkYR_46Eqz9nx20', lat: 59.931058400000005, lng: 30.360909699999997, radiusKm: 800 },
   // --- Iceland & Nordics ---
   { match: /blue\s*lagoon/i, label: 'Blue Lagoon (Iceland)', sublabel: 'Hotels in Reykjavík · ~45 min drive', searchAs: 'Reykjavik', placeId: 'ChIJw-3c7rl01kgRcWDSMKIskew', lat: 64.1469868, lng: -21.940755199999998, radiusKm: 15 },
   { match: /northern\s*lights|aurora\s*borealis/i, label: 'Northern Lights (Tromsø)', sublabel: 'Hotels in Tromsø · prime aurora-viewing base', searchAs: 'Tromsø', placeId: 'ChIJ_XE7bFLExEUR075ujoXKPQI', lat: 69.6492047, lng: 18.9553238, radiusKm: 15 },
@@ -838,7 +838,7 @@ const LANDMARK_ALIASES: Array<{
   { match: /annapurna|annapurna\s*circuit/i, label: 'Annapurna', sublabel: 'Hotels in Pokhara · base for the trek', searchAs: 'Pokhara', placeId: 'ChIJ_3YDv3uTlTkRZCGAJTuCz_Y', lat: 28.2095831, lng: 83.9855674, radiusKm: 15 },
   { match: /guilin\s*landscape|yangshuo|li\s*river/i, label: 'Guilin / Yangshuo', sublabel: 'Hotels in Yangshuo · karst landscape', searchAs: 'Yangshuo', placeId: 'ChIJZVKVEX6lpTYRBQDurljkC0c', lat: 24.778429900000003, lng: 110.49663, radiusKm: 15 },
   { match: /^bhutan$|paro\s*valley/i, label: 'Bhutan', sublabel: 'Hotels in Paro · gateway to Bhutan', searchAs: 'Paro', placeId: 'ChIJtzlsWuid4TkRkAEHWg94-gE', lat: 27.4283009, lng: 89.41695229999999, radiusKm: 15 },
-  { match: /gili\s*islands?|gili\s*trawangan|^lombok$/i, label: 'Gili Islands / Lombok', sublabel: 'Hotels in Lombok · gateway to the Gilis', searchAs: 'Lombok', placeId: 'ChIJBzxUOeI4zC0R286ewj4py_s', lat: -8.5132429, lng: 116.666397, radiusKm: 15 },
+  { match: /gili\s*islands?|gili\s*trawangan|^lombok$/i, label: 'Gili Islands / Lombok', sublabel: 'Hotels in Lombok · gateway to the Gilis', searchAs: 'Mataram', placeId: 'ChIJBzxUOeI4zC0R286ewj4py_s', lat: -8.5132429, lng: 116.666397, radiusKm: 15 },
 ];
 
 type StayParams = {
