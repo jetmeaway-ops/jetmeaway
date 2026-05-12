@@ -25,7 +25,12 @@ const REPO = path.resolve(__dirname, '..');
 const SOURCE = path.join(REPO, 'src', 'app', 'hotels', 'hotels-client.tsx');
 const COORDS_JSON = path.join(REPO, 'tmp', 'landmark-coords.json');
 
-const DEFAULT_RADIUS_KM = 10;
+// Bumped 10 → 15 km after the first prod run flagged Brandenburg Gate
+// and Tokyo Tower with hotels 10.7-14 km from the landmark — within
+// 15-min walk/transit but just outside the 10 km circle. 15 km matches
+// LiteAPI's default distanceKm and Google's "near here" UX. Disneyland
+// Paris uses an override below to handle its larger search area.
+const DEFAULT_RADIUS_KM = 15;
 
 /**
  * RADIUS_OVERRIDES — keyed by placeId. Anything not listed gets the
@@ -36,6 +41,7 @@ const DEFAULT_RADIUS_KM = 10;
  *   - 150 : ultra-remote (Mount Everest)
  */
 const RADIUS_OVERRIDES = {
+  'ChIJveJ6yhkd5kcRYOYQY8v4-Ic': 35,   // Disneyland Paris → LiteAPI doesn't have on-site Disney resorts, expand to catch east-Paris hotels closest to the park (~27 km)
   'ChIJt5sANlWMc0gRBqpe8oDgow0': 75,   // Stonehenge → Salisbury 15 km, rural surrounds
   'ChIJK94XLVtxj0gRPcQ-LtEJQ2I': 75,   // Loch Ness → Inverness ~40 km
   'ChIJFZgxDWKQfUgRBMANIXgrOqg': 75,   // Hadrian's Wall → Hexham, dispersed villages

@@ -772,6 +772,35 @@ async function fetchLiteApiHotels(
       seenIds.add(h.hotelId);
       merged.push(h);
     }
+    // Centroid (lat/lng + distanceKm) fallback to cityName when the radius
+    // search returned nothing. Happens for remote landmarks whose actual
+    // lat/lng (Meteora, Plitvice village, the Hermitage) sit far from any
+    // LiteAPI-indexed inventory but whose searchAs city (Athens, Zagreb)
+    // does have hotels. Without this, the landmark autocomplete row sends
+    // users to "No live rates" even when the gateway city works fine.
+    if (merged.length === 0 && centroid && resolvedCity) {
+      try {
+        const cityFallback = await Promise.race([
+          liteapiGetHotels({
+            cityName: resolvedCity,
+            countryCode: resolvedCountry,
+            checkIn: checkin,
+            checkOut: checkout,
+            occupancy,
+            currency: 'GBP',
+            guestNationality: 'GB',
+            limit: primaryLimit,
+          }),
+          fetchTimeout,
+        ]).catch(() => [] as HotelOffer[]);
+        for (const h of cityFallback) {
+          if (!h.hotelId || seenIds.has(h.hotelId)) continue;
+          seenIds.add(h.hotelId);
+          merged.push(h);
+        }
+        console.log(`[liteapi:cityname-fallback] ${resolvedCity} (${resolvedCountry}): centroid found 0, cityName found ${cityFallback.length}`);
+      } catch { /* keep the empty result */ }
+    }
     console.log(`[liteapi] ${cityName} (${resolvedCountry}) ${checkin}→${checkout}: primary=${primaryResult.length} + budget=${budgetResult.length} → merged=${merged.length} in ${Date.now() - t0}ms`);
     return merged;
   } catch (err: unknown) {

@@ -39,8 +39,6 @@ const SOURCE = path.resolve(__dirname, '..', 'src', 'app', 'hotels', 'hotels-cli
  */
 function loadLandmarks() {
   const text = fs.readFileSync(SOURCE, 'utf8');
-  // Carve out just the array body to avoid catching `searchAs` references
-  // elsewhere in the file (defensive — there are none today).
   const start = text.indexOf('LANDMARK_ALIASES');
   if (start === -1) throw new Error('LANDMARK_ALIASES marker not found in ' + SOURCE);
   const openBracket = text.indexOf('[', start);
@@ -49,36 +47,36 @@ function loadLandmarks() {
     throw new Error('Failed to locate LANDMARK_ALIASES array boundaries');
   }
   const body = text.slice(openBracket, closeBracket);
-  // Parse each entry as a brace-balanced block so we can pull
-  // {label, searchAs, lat, lng, radiusKm} together. Greedy regex was
-  // brittle when entries had varying field order; this is robust.
+  // Anchor each entry by `placeId:` (every entry has one) and walk
+  // both directions from that anchor to find the matching label/lat/
+  // lng/radiusKm. This is robust to single-line vs multi-line entry
+  // formatting and doesn't depend on brace counting.
   const entries = [];
-  const lines = body.split('\n');
-  let buf = '';
-  let depth = 0;
-  for (const line of lines) {
-    buf += line + ' ';
-    for (const ch of line) {
-      if (ch === '{') depth++;
-      else if (ch === '}') depth--;
-    }
-    if (depth === 0 && buf.includes('placeId:')) {
-      const labelM = buf.match(/label:\s*['"]([^'"]+)['"]/);
-      const searchAsM = buf.match(/searchAs:\s*['"]([^'"]+)['"]/);
-      const latM = buf.match(/\blat:\s*(-?\d+(?:\.\d+)?)/);
-      const lngM = buf.match(/\blng:\s*(-?\d+(?:\.\d+)?)/);
-      const radiusM = buf.match(/radiusKm:\s*(\d+)/);
-      if (labelM && searchAsM) {
-        entries.push({
-          label: labelM[1],
-          searchAs: searchAsM[1],
-          lat: latM ? Number(latM[1]) : null,
-          lng: lngM ? Number(lngM[1]) : null,
-          radiusKm: radiusM ? Number(radiusM[1]) : null,
-        });
-      }
-      buf = '';
-    }
+  // After placeId comes `, lat: X, lng: Y, radiusKm: N` on the same line.
+  // Allow commas + whitespace between; stop at `}` or newline.
+  const placeIdRe = /placeId:\s*['"]([^'"]+)['"](?:[^}\n]*?\blat:\s*(-?\d+(?:\.\d+)?)[^}\n]*?\blng:\s*(-?\d+(?:\.\d+)?)[^}\n]*?\bradiusKm:\s*(\d+))?/g;
+  let m;
+  while ((m = placeIdRe.exec(body)) !== null) {
+    // For each placeId match, scan BACKWARDS to the nearest preceding
+    // `{` and extract label + searchAs from that entry's text.
+    const placeIdEnd = m.index + m[0].length;
+    // Find the opening `{` of this entry — search backwards from placeId.
+    let entryStart = body.lastIndexOf('{', m.index);
+    if (entryStart < 0) continue;
+    const entryEnd = body.indexOf('}', placeIdEnd);
+    if (entryEnd < 0) continue;
+    const entryText = body.slice(entryStart, entryEnd + 1);
+    const labelM = entryText.match(/label:\s*['"]([^'"]+)['"]/);
+    const searchAsM = entryText.match(/searchAs:\s*['"]([^'"]+)['"]/);
+    if (!labelM || !searchAsM) continue;
+    entries.push({
+      label: labelM[1],
+      searchAs: searchAsM[1],
+      placeId: m[1],
+      lat: m[2] ? Number(m[2]) : null,
+      lng: m[3] ? Number(m[3]) : null,
+      radiusKm: m[4] ? Number(m[4]) : null,
+    });
   }
   return entries;
 }
