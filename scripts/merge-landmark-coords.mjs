@@ -41,7 +41,7 @@ const DEFAULT_RADIUS_KM = 15;
  *   - 150 : ultra-remote (Mount Everest)
  */
 const RADIUS_OVERRIDES = {
-  'ChIJveJ6yhkd5kcRYOYQY8v4-Ic': 35,   // Disneyland Paris → LiteAPI doesn't have on-site Disney resorts, expand to catch east-Paris hotels closest to the park (~27 km)
+  'ChIJveJ6yhkd5kcRYOYQY8v4-lc': 35,   // Disneyland Paris → 35 km absorbs the Marne-la-Vallée / Coupvray cluster around the park (LiteAPI's place-cluster path returns 53+ properties via placeId)
   'ChIJAVkDPzdOqEcRcDteW0YgIQQ': 25,   // Brandenburg Gate → outer-Berlin hotels (16-18 km) within transit reach of central Berlin
   'ChIJ8UNwBh-9oRQR3Y1mdkU1Nic': 25,   // Acropolis → LiteAPI's Athens radius returns Glyfada/Vouliagmeni hotels at 17-18 km on some runs (variance); 25 km absorbs the drift
   'ChIJeSx1tc8PWRMR-l8fWgNgo8A': 400,  // Meteora → LiteAPI has no Kalambaka inventory; cityName fallback returns Athens hotels (~360 km drive)

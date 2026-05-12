@@ -717,7 +717,7 @@ const LANDMARK_ALIASES: Array<{
     label: 'Disneyland Paris',
     sublabel: '40+ hotels near the Disney parks (Coupvray · Marne-la-Vallée)',
     searchAs: 'Paris',
-    placeId: 'ChIJveJ6yhkd5kcRYOYQY8v4-Ic', lat: 48.8722, lng: 2.7758, radiusKm: 35,
+    placeId: 'ChIJveJ6yhkd5kcRYOYQY8v4-lc', lat: 48.8722, lng: 2.7758, radiusKm: 35,
   },
   // --- UK & Ireland ---
   { match: /big\s*ben|westminster\s*(palace|abbey)?/i, label: 'Big Ben / Westminster', sublabel: 'Hotels in central London', searchAs: 'London', placeId: 'ChIJdd4hrwug2EcRmSrV3Vo6llI', lat: 51.5072178, lng: -0.12758619999999998, radiusKm: 15 },
@@ -2490,6 +2490,19 @@ function HotelsContent() {
       });
       if (selectedPlaceId) {
         params.set('placeId', selectedPlaceId);
+      }
+      // Mark the search as a curated-landmark click when the typed destination
+      // or the picked place matches a LANDMARK_ALIASES entry. The route uses
+      // this flag to route the LiteAPI call through `destinationId=placeId`
+      // (LiteAPI's place-cluster index — catches Marne-la-Vallée hotels for
+      // Disneyland Paris, etc.) instead of lat/lng-radius which silently
+      // filters to the parent-city cluster and misses adjacent municipalities.
+      const isLandmarkClick =
+        !!landmarkMatch ||
+        (!!selectedPlaceId &&
+          LANDMARK_ALIASES.some((l) => l.placeId === selectedPlaceId));
+      if (isLandmarkClick) {
+        params.set('searchType', 'landmark');
       }
       const effectiveCoords = selectedPlaceCoords || fallbackCoords;
       if (effectiveCoords) {

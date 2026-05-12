@@ -606,22 +606,34 @@ async function fetchLiteApiHotels(
   // it explicitly via the per-room picker). Fallback path remains for
   // legacy URLs that only pass flat adults/children/rooms.
   perRoom?: Room[],
+  // 'landmark' = placeId came from a curated LANDMARK_ALIASES click and
+  // should be forwarded to LiteAPI as `destinationId`. LiteAPI's
+  // place-cluster index resolves Disneyland Paris → Coupvray properties
+  // (Mercure Bussy St Georges, Magic Hotel, ibis Val d'Europe …) which
+  // the lat/lng path silently filters out as "not in the Paris cluster".
+  // Borough Google Place IDs (Croydon, Wembley) deliberately don't carry
+  // this flag so the 2026-04-27 fix that skips placeId for those stays
+  // intact.
+  searchType?: 'landmark',
 ): Promise<HotelOffer[]> {
   if (!process.env.LITE_API_KEY) {
     console.warn('[liteapi] LITE_API_KEY not set — skipping hotel search');
     return [];
   }
 
-  // We DELIBERATELY ignore the Google Place ID for the LiteAPI call —
-  // owner's instruction 2026-04-27. LiteAPI treats borough-level Google
-  // Place IDs (Croydon, Wembley etc) as Greater-London regional pointers
-  // and returns hotels from Docklands, Hammersmith, Greenwich etc when
-  // the visitor only asked for Croydon. cityName + countryCode lookup
-  // works correctly. The placeId is still used as a cache-key suffix
-  // (kvKey) so two visitors picking the same Place ID share a cache hit,
-  // but it's never sent to LiteAPI itself. The placeId argument is
-  // kept in the signature to preserve callsite compatibility.
-  void placeId; // intentionally unused for LiteAPI lookup
+  // Borough-level Google Place IDs (Croydon, Wembley) are still skipped —
+  // LiteAPI treats them as Greater-London regional pointers and leaks
+  // hotels from neighbouring zones. cityName + countryCode is correct for
+  // those (2026-04-27 owner fix). LANDMARK_ALIASES placeIds, however, are
+  // precise POIs and LiteAPI's place-cluster index returns the *adjacent
+  // municipality* hotels we want (Coupvray for Disneyland Paris, Marne-la-
+  // Vallée etc.) — the lat/lng-radius path silently filters those out as
+  // "not in the parent-city cluster". We send the placeId only when the
+  // caller flags it as a curated landmark click.
+  const useLandmarkPlaceId = searchType === 'landmark' && !!placeId;
+  if (!useLandmarkPlaceId) {
+    void placeId; // intentionally unused for non-landmark LiteAPI lookups
+  }
   const countryCode = await resolveCountryCode(cityKey);
   if (!countryCode) {
     console.warn('[liteapi] could not resolve country code for city:', cityKey);
@@ -708,20 +720,25 @@ async function fetchLiteApiHotels(
     const fetchTimeout = new Promise<HotelOffer[]>((_, reject) =>
       setTimeout(() => reject(new Error('LiteAPI timeout')), timeoutMs),
     );
-    const [primaryResult, budgetResult] = await Promise.all([
+    // Primary destination clause: lat/lng wins over cityName when a centroid
+    // was supplied (small-town searches like Coulsdon). Falls back to
+    // cityName for direct city searches without coords. NOTE: landmark
+    // placeId is handled by a SEPARATE third parallel call below — keeping
+    // the primary/budget pair on the proven lat/lng path means we never
+    // lose the broad inventory (Raffles / Corinthia for Big Ben etc.).
+    const primaryDestClause = centroid
+      ? {
+          latitude: centroid.lat,
+          longitude: centroid.lng,
+          distanceKm: centroid.radiusKm ?? 15,
+          countryCode: resolvedCountry,
+        }
+      : { cityName: resolvedCity, countryCode: resolvedCountry };
+
+    const [primaryResult, budgetResult, landmarkResult] = await Promise.all([
       Promise.race([
         liteapiGetHotels({
-          // lat/lng wins over cityName when the caller supplied a centroid
-          // (small-town searches like Coulsdon). Falls back to cityName for
-          // direct city searches that don't have explicit coords.
-          ...(centroid
-            ? {
-                latitude: centroid.lat,
-                longitude: centroid.lng,
-                distanceKm: centroid.radiusKm ?? 15,
-                countryCode: resolvedCountry,
-              }
-            : { cityName: resolvedCity, countryCode: resolvedCountry }),
+          ...primaryDestClause,
           checkIn: checkin,
           checkOut: checkout,
           occupancy,
@@ -735,20 +752,17 @@ async function fetchLiteApiHotels(
         console.warn(`[liteapi:primary] ${cityName} failed:`, message);
         return [] as HotelOffer[];
       }),
-      // Budget tier — skipped entirely when budgetLimit === 0 (multi-room
-      // queries) so we don't double-burn upstream rates calls.
-      budgetLimit === 0
+      // Budget tier — skipped when budgetLimit === 0 (multi-room queries)
+      // OR when we're already firing a landmark placeId tier (3rd parallel
+      // call) — 3x limit=500 swamps LiteAPI's rates compute on big-city
+      // inventory (London 1 room timed out at 12s on Vercel). The placeId
+      // tier typically returns varied star levels anyway so budget coverage
+      // is preserved by the merge.
+      budgetLimit === 0 || useLandmarkPlaceId
         ? Promise.resolve([] as HotelOffer[])
         : Promise.race([
             liteapiGetHotels({
-              ...(centroid
-                ? {
-                    latitude: centroid.lat,
-                    longitude: centroid.lng,
-                    distanceKm: centroid.radiusKm ?? 15,
-                    countryCode: resolvedCountry,
-                  }
-                : { cityName: resolvedCity, countryCode: resolvedCountry }),
+              ...primaryDestClause,
               checkIn: checkin,
               checkOut: checkout,
               occupancy,
@@ -763,12 +777,39 @@ async function fetchLiteApiHotels(
             console.warn(`[liteapi:budget] ${cityName} failed:`, message);
             return [] as HotelOffer[];
           }),
+      // Landmark placeId tier — only fires when the search bar flagged this
+      // as a curated LANDMARK_ALIASES click. LiteAPI's place-cluster index
+      // returns the *adjacent municipality* hotels that the lat/lng-radius
+      // path silently filters out (Coupvray for Disneyland Paris — including
+      // Disney's on-site Sequoia Lodge / Hotel Cheyenne; Westminster cluster
+      // for Big Ben etc.). Merged into the primary set below so the user
+      // gets BOTH the lat/lng catchment AND the place-cluster inventory.
+      useLandmarkPlaceId
+        ? Promise.race([
+            liteapiGetHotels({
+              destinationId: placeId,
+              countryCode: resolvedCountry,
+              checkIn: checkin,
+              checkOut: checkout,
+              occupancy,
+              currency: 'GBP',
+              guestNationality: 'GB',
+              limit: primaryLimit,
+            }),
+            fetchTimeout,
+          ]).catch((err: unknown) => {
+            const message = err instanceof Error ? err.message : String(err);
+            console.warn(`[liteapi:landmark-placeid] ${cityName} failed:`, message);
+            return [] as HotelOffer[];
+          })
+        : Promise.resolve([] as HotelOffer[]),
     ]);
     // Merge + dedupe by hotelId. Primary wins on duplicates so its
-    // (potentially negotiated) rate is preserved.
+    // (potentially negotiated) rate is preserved. Landmark placeId tier
+    // fills in adjacent-municipality hotels the lat/lng path missed.
     const seenIds = new Set<string>();
     const merged: HotelOffer[] = [];
-    for (const h of [...primaryResult, ...budgetResult]) {
+    for (const h of [...primaryResult, ...budgetResult, ...landmarkResult]) {
       if (!h.hotelId || seenIds.has(h.hotelId)) continue;
       seenIds.add(h.hotelId);
       merged.push(h);
@@ -1394,6 +1435,10 @@ export async function GET(req: NextRequest) {
   const roomsParam = parsed.data.rooms || '1';
   const starsParam = parsed.data.stars || '0';
   const placeId = parsed.data.placeId || '';
+  // 'landmark' flag — set by the search bar when the user clicked a row in
+  // LANDMARK_ALIASES. Tells the LiteAPI path to forward placeId as
+  // destinationId (Marne-la-Vallée hotels for Disneyland Paris etc.).
+  const searchType = parsed.data.searchType === 'landmark' ? 'landmark' : undefined;
   // Optional WGS84 centroid forwarded from the autocomplete pick — used as
   // the geo-filter centre when CITY_COORDS doesn't have an entry for this
   // searched city. Lets us cover obscure UK suburbs without growing the
@@ -1706,7 +1751,7 @@ export async function GET(req: NextRequest) {
   // Kick off LiteAPI + RateHawk + DOTW in parallel (triple API racing).
   // DOTW uses mocked fixtures when DOTW_USERNAME is unset — still gives us a
   // Giata-tagged result set to exercise the de-dupe path in dev.
-  const liteApiPromise = fetchLiteApiHotels(cityKey, checkin, checkout, adultsNum, childrenNum, roomsNum, childAges, 12000, placeId || undefined, liteApiCentroid, roomsArr);
+  const liteApiPromise = fetchLiteApiHotels(cityKey, checkin, checkout, adultsNum, childrenNum, roomsNum, childAges, 12000, placeId || undefined, liteApiCentroid, roomsArr, searchType);
   const rateHawkPromise = fetchRateHawkHotels(cityKey, checkin, checkout, adultsNum, roomsNum);
   // Absolute-origin proxy to the nodejs DOTW sub-route — Vercel requires
   // absolute URLs for edge → node internal fetches.

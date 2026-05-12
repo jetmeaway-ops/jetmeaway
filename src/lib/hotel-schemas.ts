@@ -32,6 +32,15 @@ export const HotelSearchSchema = z
     // — e.g. Disneyland Paris uses 10 km, Mount Everest uses 150 km. The
     // value is clamped server-side to 5-200 km to avoid pathological calls.
     radius: z.string().regex(/^\d+$/).optional(),
+    // Signals that placeId came from a curated LANDMARK_ALIASES click (not
+    // a generic Google Place picker borough). When set, /api/hotels passes
+    // placeId straight to LiteAPI's destinationId path so they resolve via
+    // their own area-cluster index (which catches Marne-la-Vallée hotels
+    // for Disneyland Paris, Coupvray for the village edge of the park,
+    // etc.) instead of the lat/lng-near-Paris-cluster path. Borough Place
+    // IDs (Croydon, Wembley) deliberately don't set this flag so the
+    // 2026-04-27 fix that skips placeId for boroughs stays intact.
+    searchType: z.enum(['landmark', '']).optional(),
     // Per-room occupancy (new shape, takes precedence over flat
     // adults/children/rooms when both are supplied):
     //   occ=2-6/1-8/1-15
