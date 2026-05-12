@@ -713,7 +713,7 @@ const LANDMARK_ALIASES: Array<{
     placeId: 'ChIJ_WegsaCYc0gRlCypaxXgLjs', lat: 50.7220101, lng: -1.8667169, radiusKm: 15,
   },
   {
-    match: /disneyland\s*paris|disney\s*paris|disney\s*park$/i,
+    match: /^disneyland$|disneyland\s*paris|disney\s*paris|disney\s*park$/i,
     label: 'Disneyland Paris',
     sublabel: '40+ hotels near the Disney parks (Coupvray · Marne-la-Vallée)',
     searchAs: 'Paris',
@@ -2328,6 +2328,25 @@ function HotelsContent() {
     if (pid) setSelectedPlaceId(pid);
     else if (sticky?.placeId && !dest) setSelectedPlaceId(sticky.placeId);
 
+    // Hydrate landmark coords + radius from URL so deep-links and back-nav
+    // from /hotels/[id] preserve "Distance from Big Ben" sorting and the
+    // landmark-centred map view. Without this, lat/lng silently dropped
+    // every time the page mounted from a URL.
+    const latStr = p.get('lat');
+    const lngStr = p.get('lng');
+    const radiusStr = p.get('radius');
+    if (latStr && lngStr) {
+      const latN = parseFloat(latStr);
+      const lngN = parseFloat(lngStr);
+      if (Number.isFinite(latN) && Number.isFinite(lngN)) {
+        setSelectedPlaceCoords({ lat: latN, lng: lngN });
+      }
+    }
+    if (radiusStr) {
+      const rN = parseInt(radiusStr, 10);
+      if (Number.isFinite(rN) && rN > 0) setSelectedPlaceRadius(rN);
+    }
+
     // Per-room occupancy restore. Reads `occ=` (new) first; falls back
     // to the legacy adults/children/rooms/childrenAges decoder which
     // matches what the search form just set above. Either way, the
@@ -2619,15 +2638,30 @@ function HotelsContent() {
     handleSearch();
   }, [destination, checkin, checkout, handleSearch]);
 
-  // Compute centre of hotels that have coordinates — used as "city centre"
-  // reference for the distance sort and map default view.
+  // Compute centre for distance sort and map default view. Landmark search
+  // wins (anchored on the actual landmark — Big Ben, Disneyland Paris,
+  // etc.) so "Distance from centre" really means "distance from the place
+  // the user clicked", not the geometric centroid of returned hotels
+  // (which drifts toward outer-borough inventory and buries the central
+  // pick). Falls back to hotel-average centroid for plain city searches.
   const geoHotels = (hotels || []).filter(h => typeof h.lat === 'number' && typeof h.lng === 'number');
-  const cityCentre = geoHotels.length > 0
+  const cityCentre = selectedPlaceCoords ?? (geoHotels.length > 0
     ? {
         lat: geoHotels.reduce((s, h) => s + (h.lat || 0), 0) / geoHotels.length,
         lng: geoHotels.reduce((s, h) => s + (h.lng || 0), 0) / geoHotels.length,
       }
-    : null;
+    : null);
+
+  // Landmark search → default the sort to "Distance from centre" so the
+  // hotel closest to Big Ben / the Eiffel Tower / Disneyland Paris is at
+  // the top, even when it's the priciest. The user can still override via
+  // the Sort dropdown. Only fires when selectedPlaceCoords transitions
+  // null → coords AND the user hasn't already picked a non-default sort.
+  useEffect(() => {
+    if (selectedPlaceCoords) {
+      setSortBy(prev => (prev === 'recommended' ? 'distance' : prev));
+    }
+  }, [selectedPlaceCoords]);
 
   // Candidate airports for the searched metro. Each card picks its own
   // nearest from this set — so London results mix LHR/LGW/STN/LTN labels.
