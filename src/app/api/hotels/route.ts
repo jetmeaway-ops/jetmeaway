@@ -784,6 +784,11 @@ async function fetchLiteApiHotels(
       // Disney's on-site Sequoia Lodge / Hotel Cheyenne; Westminster cluster
       // for Big Ben etc.). Merged into the primary set below so the user
       // gets BOTH the lat/lng catchment AND the place-cluster inventory.
+      // limit capped at 100 — the place-cluster index is a curated tight
+      // ring around the landmark (rarely more than 60-80 properties even
+      // for the densest spots). 500 here compounded with primary=500 and
+      // tipped big-inventory cities (NYC, Dubai, Tokyo) over the rates-
+      // compute budget at 5 concurrent monkey hits → 500 timeouts.
       useLandmarkPlaceId
         ? Promise.race([
             liteapiGetHotels({
@@ -794,7 +799,7 @@ async function fetchLiteApiHotels(
               occupancy,
               currency: 'GBP',
               guestNationality: 'GB',
-              limit: primaryLimit,
+              limit: Math.min(100, primaryLimit),
             }),
             fetchTimeout,
           ]).catch((err: unknown) => {

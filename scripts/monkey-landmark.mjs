@@ -76,6 +76,7 @@ function loadLandmarks() {
       lat: m[2] ? Number(m[2]) : null,
       lng: m[3] ? Number(m[3]) : null,
       radiusKm: m[4] ? Number(m[4]) : null,
+      isLandmark: true, // every LANDMARK_ALIASES entry triggers searchType=landmark in production clicks
     });
   }
   return entries;
@@ -108,9 +109,14 @@ function buildUrl(entry, checkin, checkout) {
     children: '0',
     rooms: '1',
   });
-  // Pass lat/lng/radius when the alias has them so the backend does a
-  // proper LiteAPI radius search at the landmark coords. This mirrors
-  // exactly what the frontend sends after a landmark autocomplete click.
+  // Mirror EXACTLY what the frontend sends after a landmark click:
+  // placeId + lat/lng + radius + searchType=landmark. The backend uses
+  // placeId+searchType to fire LiteAPI's destinationId path (catches
+  // Marne-la-Vallée / Disney resorts that the lat/lng path filters out).
+  // Without these the test would only exercise the lat/lng route and
+  // silently miss regressions in the placeId tier.
+  if (entry.placeId) p.set('placeId', entry.placeId);
+  if (entry.isLandmark) p.set('searchType', 'landmark');
   if (typeof entry.lat === 'number' && typeof entry.lng === 'number') {
     p.set('lat', String(entry.lat));
     p.set('lng', String(entry.lng));
