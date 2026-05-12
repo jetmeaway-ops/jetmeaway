@@ -750,7 +750,7 @@ const LANDMARK_ALIASES: Array<{
   // --- Czech Republic ---
   { match: /prague\s*castle|charles\s*bridge|karl(u|ů)v\s*most/i, label: 'Prague Castle / Charles Bridge', sublabel: 'Hotels in central Prague', searchAs: 'Prague', placeId: 'ChIJi3lwCZyTC0cRkEAWZg-vAAQ', lat: 50.075538099999996, lng: 14.437800500000002, radiusKm: 15 },
   // --- Greece ---
-  { match: /acropolis|parthenon/i, label: 'Acropolis', sublabel: 'Hotels in central Athens', searchAs: 'Athens', placeId: 'ChIJ8UNwBh-9oRQR3Y1mdkU1Nic', lat: 37.9838096, lng: 23.727538799999998, radiusKm: 15 },
+  { match: /acropolis|parthenon/i, label: 'Acropolis', sublabel: 'Hotels in central Athens', searchAs: 'Athens', placeId: 'ChIJ8UNwBh-9oRQR3Y1mdkU1Nic', lat: 37.9838096, lng: 23.727538799999998, radiusKm: 25 },
   { match: /meteora/i, label: 'Meteora', sublabel: 'Hotels in Kalambaka · gateway to the monasteries', searchAs: 'Athens', placeId: 'ChIJeSx1tc8PWRMR-l8fWgNgo8A', lat: 39.706618, lng: 21.6288728, radiusKm: 400 },
   // --- Croatia ---
   { match: /plitvice/i, label: 'Plitvice Lakes', sublabel: 'Hotels at Plitvička Jezera · gateway to the park', searchAs: 'Zagreb', placeId: 'ChIJqX7IpYRnYUcRsMMrhlCtAAQ', lat: 44.8820957, lng: 15.6233311, radiusKm: 150 },
@@ -834,7 +834,7 @@ const LANDMARK_ALIASES: Array<{
   { match: /^fiji$|fiji\s*islands/i, label: 'Fiji', sublabel: 'Hotels in Nadi · main Fiji gateway', searchAs: 'Nadi', placeId: 'ChIJUQgUUYtaF24RKNOlslOphx0', lat: -17.780625699999998, lng: 177.42989609999998, radiusKm: 15 },
   { match: /komodo\s*island|pulau\s*komodo|komodo\s*dragons?/i, label: 'Komodo Island', sublabel: 'Hotels in Labuan Bajo · gateway to Komodo', searchAs: 'Labuan Bajo', placeId: 'ChIJ124xIYpntC0R3RVDNqpeqV4', lat: -8.5106689, lng: 119.87701099999998, radiusKm: 75 },
   { match: /raja\s*ampat/i, label: 'Raja Ampat', sublabel: 'Hotels in Waisai · main Raja Ampat town', searchAs: 'Waisai', placeId: 'ChIJC7tdhuojXy0RzmYVplSt3Ng', lat: -0.341786, lng: 130.966847, radiusKm: 100 },
-  { match: /^boracay$|boracay\s*island/i, label: 'Boracay', sublabel: 'Hotels in Aklan · gateway to Boracay', searchAs: 'Aklan', placeId: 'ChIJkc4JNwA_pTMR9YmVzK8IcUw', lat: 11.9174474, lng: 121.9606581, radiusKm: 15 },
+  { match: /^boracay$|boracay\s*island/i, label: 'Boracay', sublabel: 'Hotels on Boracay island', searchAs: 'Boracay', placeId: 'ChIJkc4JNwA_pTMR9YmVzK8IcUw', lat: 11.9174474, lng: 121.9606581, radiusKm: 15 },
   { match: /annapurna|annapurna\s*circuit/i, label: 'Annapurna', sublabel: 'Hotels in Pokhara · base for the trek', searchAs: 'Pokhara', placeId: 'ChIJ_3YDv3uTlTkRZCGAJTuCz_Y', lat: 28.2095831, lng: 83.9855674, radiusKm: 15 },
   { match: /guilin\s*landscape|yangshuo|li\s*river/i, label: 'Guilin / Yangshuo', sublabel: 'Hotels in Yangshuo · karst landscape', searchAs: 'Yangshuo', placeId: 'ChIJZVKVEX6lpTYRBQDurljkC0c', lat: 24.778429900000003, lng: 110.49663, radiusKm: 15 },
   { match: /^bhutan$|paro\s*valley/i, label: 'Bhutan', sublabel: 'Hotels in Paro · gateway to Bhutan', searchAs: 'Paro', placeId: 'ChIJtzlsWuid4TkRkAEHWg94-gE', lat: 27.4283009, lng: 89.41695229999999, radiusKm: 15 },

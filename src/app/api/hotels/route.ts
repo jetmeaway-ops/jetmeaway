@@ -407,7 +407,7 @@ const CITY_COUNTRY: Record<string, string> = {
   'uyuni': 'BO',
   'puerto ayora': 'EC',
   'nadi': 'FJ',
-  'aklan': 'PH',
+  'aklan': 'PH', 'boracay': 'PH',
   'paro': 'BT',
 };
 

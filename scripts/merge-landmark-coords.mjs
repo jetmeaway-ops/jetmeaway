@@ -43,6 +43,7 @@ const DEFAULT_RADIUS_KM = 15;
 const RADIUS_OVERRIDES = {
   'ChIJveJ6yhkd5kcRYOYQY8v4-Ic': 35,   // Disneyland Paris → LiteAPI doesn't have on-site Disney resorts, expand to catch east-Paris hotels closest to the park (~27 km)
   'ChIJAVkDPzdOqEcRcDteW0YgIQQ': 25,   // Brandenburg Gate → outer-Berlin hotels (16-18 km) within transit reach of central Berlin
+  'ChIJ8UNwBh-9oRQR3Y1mdkU1Nic': 25,   // Acropolis → LiteAPI's Athens radius returns Glyfada/Vouliagmeni hotels at 17-18 km on some runs (variance); 25 km absorbs the drift
   'ChIJeSx1tc8PWRMR-l8fWgNgo8A': 400,  // Meteora → LiteAPI has no Kalambaka inventory; cityName fallback returns Athens hotels (~360 km drive)
   'ChIJ7WVKx4w3lkYR_46Eqz9nx20': 800,  // Hermitage Museum → LiteAPI has no Saint Petersburg inventory (sanctions); cityName fallback returns Moscow hotels (~700 km)
   'ChIJqX7IpYRnYUcRsMMrhlCtAAQ': 150,  // Plitvice Lakes → Zagreb gateway ~130 km; LiteAPI doesn't index Karlovac
