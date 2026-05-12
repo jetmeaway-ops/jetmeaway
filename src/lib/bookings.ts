@@ -22,6 +22,7 @@ export type Supplier =
   | 'dotw'
   | 'duffel'
   | 'airgateway'
+  | 'kyte'
   | 'affiliate';
 
 export type BookingStatus =
@@ -281,6 +282,7 @@ export function supplierLabel(s: Supplier): string {
     dotw: 'DOTW',
     duffel: 'Duffel',
     airgateway: 'AirGateway',
+    kyte: 'Kyte',
     affiliate: 'Affiliate',
   }[s];
 }

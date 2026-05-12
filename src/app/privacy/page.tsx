@@ -130,6 +130,15 @@ export default function Privacy() {
           <h2 className="font-poppins text-[.95rem] font-bold text-[#0066FF] mt-5">10. Cookies &amp; Similar Technologies</h2>
           <p>We use cookies and similar technologies to make the Platform work, to remember your search preferences, to measure performance, and for affiliate tracking when you click through to a partner. Essential cookies do not require consent. Non-essential analytics, personalisation and affiliate-tracking cookies are placed only with your consent, which you give or withdraw through the cookie banner.</p>
           <p>Affiliate cookies are set by partners including Expedia (Partnerize), Travelpayouts, Trip.com and others when you click a partner link. They allow us to be credited for the referral; they do not increase the price you pay.</p>
+          <p><strong>Ryanair flight-confirmation iframe.</strong> When you book a Ryanair (FR) flight through the Platform, Ryanair require us to embed their flight-confirmation page as an iframe before payment. The iframe sets the following strictly-necessary cookies in your browser, controlled by Ryanair:</p>
+          <ul className="list-disc pl-5">
+            <li><strong>STORAGE_PREFERENCES</strong> (session) — stores your cookie-category preferences for the Ryanair iframe.</li>
+            <li><strong>mkt</strong> (365 days) — remembers your Ryanair market (e.g. <em>gb/en</em>).</li>
+            <li><strong>fr-correlation-id</strong> (session) — tracks an anonymous session between internal Ryanair services for support.</li>
+            <li><strong>rid</strong> (365 days) — identifies your device for enhanced security on Ryanair&apos;s side.</li>
+            <li><strong>rid-sig</strong> (365 days) — companion signature to <em>rid</em>, for the same security purpose.</li>
+          </ul>
+          <p>These cookies are mandatory for the iframe to function. They are not used by JetMeAway for marketing. Ryanair&apos;s own <a href="https://www.ryanair.com/gb/en/useful-info/cookies-policy" target="_blank" rel="noopener noreferrer" className="text-[#0066FF] font-bold">Cookie Policy</a> governs their use.</p>
 
           <h2 className="font-poppins text-[.95rem] font-bold text-[#0066FF] mt-5">11. Marketing Communications</h2>
           <p>We only send marketing emails, SMS or push notifications where you have opted in, or where you have previously booked a similar service and have not opted out (&ldquo;soft opt-in&rdquo; under PECR). Every marketing message includes a one-click unsubscribe link, and you can opt out at any time by emailing <a href="mailto:contact@jetmeaway.co.uk" className="text-[#0066FF] font-bold">contact@jetmeaway.co.uk</a>.</p>

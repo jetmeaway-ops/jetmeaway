@@ -437,8 +437,11 @@ type FlightResult = {
   return_at: string | null;
   flight_number: string | null;
   offer_id?: string | null;
-  source?: 'duffel' | 'travelpayouts';
+  source?: 'duffel' | 'travelpayouts' | 'kyte';
   link: string | null;
+  /** Set on Kyte rows — needed for the booking flow which threads
+   *  transactionId through Shop → Book → Commit → Payment. */
+  kyteTransactionId?: string;
 };
 
 /* ───────────────────────────────────────────────────────────────────────────
@@ -458,16 +461,157 @@ type FlightResult = {
    Read memory project_duffel_top_of_search.md before changing this.
    ─────────────────────────────────────────────────────────────────────────── */
 const TP_ROW_CAP = 30;
+/** A flight row is "direct" (we earn margin, customer books on-site) if
+ *  it's a Duffel offer OR a Kyte offer — both are direct-bookable.
+ *  Travelpayouts rows are always affiliate redirects. */
+function isDirectBookable(f: FlightResult): boolean {
+  return (
+    (f.source === 'duffel' && !!f.offer_id) ||
+    (f.source === 'kyte' && !!f.offer_id)
+  );
+}
 function mergeFlightsKeepAllDuffel(rows: FlightResult[]): FlightResult[] {
   const direct: FlightResult[] = [];
   const redirect: FlightResult[] = [];
   for (const f of rows) {
-    if (f.source === 'duffel' && f.offer_id) direct.push(f);
+    if (isDirectBookable(f)) direct.push(f);
     else redirect.push(f);
   }
   direct.sort((a, b) => a.price - b.price);
   redirect.sort((a, b) => a.price - b.price);
   return [...direct, ...redirect.slice(0, TP_ROW_CAP)];
+}
+
+/** Merge a single incoming flight row into the dedupe map.
+ *
+ *  Tier rules (do NOT regress — see project_duffel_top_of_search.md):
+ *    1. A direct-bookable row (Duffel OR Kyte, source has offer_id)
+ *       beats an affiliate-redirect row regardless of price.
+ *    2. Within the same tier, cheaper wins.
+ *
+ *  This is the single source of truth for how rows collide. The Duffel,
+ *  TP-polling, and Kyte search blocks all call into it. */
+function mergeFlightRow(bag: Map<string, FlightResult>, incoming: FlightResult, key: string) {
+  const existing = bag.get(key);
+  if (!existing) {
+    bag.set(key, incoming);
+    return;
+  }
+  const incomingDirect = isDirectBookable(incoming);
+  const existingDirect = isDirectBookable(existing);
+  if (incomingDirect && !existingDirect) {
+    bag.set(key, incoming);
+    return;
+  }
+  if (!incomingDirect && existingDirect) return;
+  if (incoming.price < existing.price) bag.set(key, incoming);
+}
+
+/** Convert Kyte's `POST /api/flights/kyte/search` response into our
+ *  `FlightResult` row shape. Kyte's offer structure:
+ *    offer.id, offer.totalPrice (minor units), offer.currency {code,decimals},
+ *    offer.flightSolutions: [solutionId...]  (1 outbound, optional 1 return)
+ *  Each solutionId resolves to `body.flightSolutions[solutionId]` which has
+ *  `segments[]` with marketingCarrier, flightNumber, duration, departure,
+ *  arrival — confirmed via scripts/kyte-offer-dump.mjs.
+ *
+ *  We set `link` to our own /flights/kyte/[offerId] detail page (carrying
+ *  the transactionId so the booking flow can call Book → Commit → Payment). */
+type KyteRawOffer = {
+  id: string;
+  flightSolutions?: string[];
+  totalPrice?: number;
+  currency?: { code: string; decimals: number };
+  owner?: string;
+  [k: string]: unknown;
+};
+type KyteRawSolution = {
+  totalDuration?: number;
+  segments?: Array<{
+    flightNumber?: string;
+    marketingCarrier?: { code?: string; name?: string };
+    operatingCarrier?: { code?: string; name?: string };
+    departure?: { airport?: { code?: string }; date?: string; time?: string };
+    arrival?: { airport?: { code?: string }; date?: string; time?: string };
+  }>;
+};
+type KyteRawSearchResponse = {
+  offers?: Record<string, KyteRawOffer>;
+  flightSolutions?: Record<string, KyteRawSolution>;
+  transactionId?: string;
+};
+
+function currencyToSymbol(code: string): string {
+  switch (code.toUpperCase()) {
+    case 'GBP': return '£';
+    case 'EUR': return '€';
+    case 'USD': return '$';
+    default: return code;
+  }
+}
+
+function kyteOffersToFlightResults(
+  data: KyteRawSearchResponse,
+  transactionId: string,
+): FlightResult[] {
+  if (!data.offers) return [];
+  const solutions = data.flightSolutions || {};
+  const out: FlightResult[] = [];
+
+  for (const [offerId, offer] of Object.entries(data.offers)) {
+    const solIds = Array.isArray(offer.flightSolutions) ? offer.flightSolutions : [];
+    if (solIds.length === 0) continue;
+    const outboundSol = solutions[solIds[0]];
+    if (!outboundSol?.segments?.length) continue;
+    const segs = outboundSol.segments;
+    const firstSeg = segs[0];
+    const lastSeg = segs[segs.length - 1];
+    if (!firstSeg.departure || !lastSeg.arrival) continue;
+
+    const decimals = offer.currency?.decimals ?? 2;
+    const major = (offer.totalPrice ?? 0) / Math.pow(10, decimals);
+    if (major <= 0) continue;
+
+    const returnSol = solIds.length > 1 ? solutions[solIds[1]] : null;
+    const returnFirstSeg = returnSol?.segments?.[0];
+
+    out.push({
+      airline:
+        firstSeg.marketingCarrier?.name ||
+        firstSeg.operatingCarrier?.name ||
+        firstSeg.marketingCarrier?.code ||
+        'Direct LCC',
+      airlineCode:
+        firstSeg.marketingCarrier?.code ||
+        firstSeg.operatingCarrier?.code ||
+        offer.owner ||
+        '??',
+      price: major,
+      currency: currencyToSymbol(offer.currency?.code || 'GBP'),
+      stops: segs.length === 1 ? 'Non-stop' : `${segs.length - 1} stop${segs.length > 2 ? 's' : ''}`,
+      transfers: segs.length - 1,
+      duration_to: outboundSol.totalDuration || 0,
+      duration_back: returnSol?.totalDuration || 0,
+      departure_at:
+        firstSeg.departure.date && firstSeg.departure.time
+          ? `${firstSeg.departure.date}T${firstSeg.departure.time}:00`
+          : null,
+      arrival_at:
+        lastSeg.arrival.date && lastSeg.arrival.time
+          ? `${lastSeg.arrival.date}T${lastSeg.arrival.time}:00`
+          : null,
+      return_at:
+        returnFirstSeg?.departure?.date && returnFirstSeg.departure.time
+          ? `${returnFirstSeg.departure.date}T${returnFirstSeg.departure.time}:00`
+          : null,
+      flight_number: firstSeg.flightNumber || null,
+      offer_id: offerId,
+      source: 'kyte',
+      link: `/flights/kyte/${encodeURIComponent(offerId)}?tx=${encodeURIComponent(transactionId)}`,
+      kyteTransactionId: transactionId,
+    });
+  }
+  return out;
 }
 
 type CalendarDay = {
@@ -1237,35 +1381,54 @@ function FlightsContent() {
           const key = f.flight_number
             ? `${f.flight_number}-${depDay}`
             : `${f.airlineCode}-${depDay}-${f.duration_to}`;
-          const existing = mergedByKey.get(key);
-          // Direct-bookable wins. Previously we did cheapest-wins which
-          // hid every Duffel offer behind cheaper TP-cached "indicative"
-          // prices that aren't actually bookable on-site. That stripped
-          // every "Book Direct" button from the UI even though we had
-          // live bookable inventory.
-          //
-          // New rule:
-          //  • Duffel offer (source='duffel' && offer_id) always wins
-          //    over a non-Duffel row — price be damned, it's the only
-          //    one the user can actually book here.
-          //  • Among two Duffel rows, cheaper wins.
-          //  • Among two non-Duffel rows, cheaper wins.
-          const incomingDuffel = f.source === 'duffel' && !!f.offer_id;
-          const existingDuffel = existing && existing.source === 'duffel' && !!existing.offer_id;
-          if (!existing) { mergedByKey.set(key, f); continue; }
-          if (incomingDuffel && !existingDuffel) { mergedByKey.set(key, f); continue; }
-          if (!incomingDuffel && existingDuffel) continue;
-          if (f.price < existing.price) { mergedByKey.set(key, f); continue; }
+          mergeFlightRow(mergedByKey, f, key);
         }
         // Render immediately if v1 hasn't surfaced anything yet.
-        // Slicing preserves ALL Duffel direct-bookable rows (any price) and
-        // caps only the affiliate-redirect rows, so the Book Now CTA never
-        // disappears just because TP returned 30 cheap-looking decoys.
+        // mergeFlightsKeepAllDuffel preserves ALL direct-bookable rows
+        // (Duffel + Kyte) and caps only the affiliate-redirect rows.
         const merged = mergeFlightsKeepAllDuffel(Array.from(mergedByKey.values()));
         setFlights(merged);
         setScoutAirlineCount(new Set(merged.map(f => f.airlineCode)).size);
       })
       .catch(() => { /* v1 will carry the search on its own */ });
+
+    // ── Kyte direct-bookable LCC search. Fires in parallel with Duffel.
+    // No `airlines` filter — Kyte returns whatever LCCs they have for
+    // this route (Jet2/easyJet/IndiGo/Wizz/Transavia/Volotea/Ryanair).
+    // Kyte rows are direct-bookable (we keep margin) — same tier as
+    // Duffel, displayed on top above any TP affiliate redirect.
+    const kytePromise = fetch('/api/flights/kyte/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        origin: originCode,
+        destination: destCode,
+        departure: depDate,
+        adults,
+        children,
+        infants,
+        cabin: cabinClass === 'premium_economy' ? 'economy' : cabinClass,
+        return: retDate && tripType === 'return' ? retDate : null,
+      }),
+    })
+      .then(r => r.json())
+      .then((data: KyteRawSearchResponse & { error?: string }) => {
+        if (!data || data.error || !data.offers) return;
+        const txId = data.transactionId || '';
+        if (!txId) return;
+        const rows = kyteOffersToFlightResults(data, txId);
+        for (const f of rows) {
+          const depDay = (f.departure_at || '').slice(0, 10);
+          const key = f.flight_number
+            ? `${f.flight_number}-${depDay}`
+            : `${f.airlineCode}-${depDay}-${f.duration_to}`;
+          mergeFlightRow(mergedByKey, f, key);
+        }
+        const merged = mergeFlightsKeepAllDuffel(Array.from(mergedByKey.values()));
+        setFlights(merged);
+        setScoutAirlineCount(new Set(merged.map(f => f.airlineCode)).size);
+      })
+      .catch(() => { /* Kyte is supplementary — failures don't break search */ });
 
     try {
       // ── Kick off a TP v1 async search. This actively queries GDS agents
@@ -1288,9 +1451,9 @@ function FlightsContent() {
       const initData = await initRes.json();
 
       if (!initRes.ok || !initData.searchId) {
-        // v1 init misfired — wait for Duffel to land, then fall back to
-        // v3 only if Duffel also came up empty.
-        await duffelPromise;
+        // v1 init misfired — wait for Duffel + Kyte to land, then fall
+        // back to v3 only if both came up empty.
+        await Promise.all([duffelPromise, kytePromise]);
         if (mergedByKey.size === 0) {
           await searchV3Fallback();
           return;
@@ -1326,15 +1489,11 @@ function FlightsContent() {
           const key = f.flight_number
             ? `${f.flight_number}-${depDay}`
             : `${f.airlineCode}-${depDay}-${f.duration_to}`;
-          const existing = mergedByKey.get(key);
-          // Direct-bookable wins. A v1 GDS row (no offer_id) must NOT
-          // displace a Duffel row even if cheaper — we'd lose the
-          // Book Direct button and strand the customer on an affiliate
-          // redirect. Among v1/v1 collisions, cheaper still wins.
-          const existingDuffel = existing && existing.source === 'duffel' && !!existing.offer_id;
-          if (!existing) { mergedByKey.set(key, f); continue; }
-          if (existingDuffel) continue;
-          if (f.price < existing.price) mergedByKey.set(key, f);
+          // Single source of truth — mergeFlightRow preserves the
+          // direct-bookable-tier-wins rule (Duffel + Kyte beat TP
+          // affiliate regardless of price). Among same-tier collisions,
+          // cheaper wins.
+          mergeFlightRow(mergedByKey, f, key);
         }
 
         // ⚠ DO NOT replace with a flat sort+slice — Duffel rows must
@@ -1356,10 +1515,10 @@ function FlightsContent() {
 
       setScoutActive(false);
 
-      // Give Duffel a final moment to land before deciding whether to
-      // fall back — its offers should be merged into the same results
-      // list when they arrive late.
-      await duffelPromise;
+      // Give Duffel + Kyte a final moment to land before deciding
+      // whether to fall back — their offers should be merged into the
+      // same results list when they arrive late.
+      await Promise.all([duffelPromise, kytePromise]);
 
       // If TP v1 AND Duffel both returned nothing (rare on niche
       // routes), fall back to the v3 cached path so we still show
@@ -1384,11 +1543,11 @@ function FlightsContent() {
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
       return;
     } catch {
-      // v1 failed entirely — wait on Duffel and fall back to v3 cached
-      // only if Duffel also came up empty. This ensures the ONE thing
+      // v1 failed entirely — wait on Duffel + Kyte and fall back to v3
+      // cached only if both came up empty. This ensures the ONE thing
       // a user never sees is a blank results page due to a transient
       // TP hiccup.
-      await duffelPromise;
+      await Promise.all([duffelPromise, kytePromise]);
       if (mergedByKey.size === 0) {
         await searchV3Fallback();
         return;
@@ -2131,8 +2290,10 @@ function FlightsContent() {
                   const duration = fmtDuration(f.duration_to);
                   const airlineLogo = `https://pics.avs.io/80/80/${f.airlineCode}.png`;
                   const isDuffel = f.source === 'duffel';
-                  const viewDealUrl = isDuffel
-                    ? '#' // Duffel flights — booking flow coming soon
+                  const isKyte = f.source === 'kyte';
+                  const isDirect = isDuffel || isKyte;
+                  const viewDealUrl = isDirect
+                    ? '#' // Direct-bookable — see provider-comparison row for the on-site book button
                     : buildAviasalesUrl(originCode, destCode, depDate, effectiveRet, adults);
 
                   return (
@@ -2190,12 +2351,15 @@ function FlightsContent() {
                               <>
                                 <div className="font-poppins font-black text-[1.5rem] text-[#1A1D2B] leading-none">{f.currency}{f.price}</div>
                                 <div className="text-[.6rem] text-[#8E95A9] font-semibold">
-                                  {isDuffel ? 'total price, per person' : `per person, ${f.return_at ? 'return' : 'one-way'}`}
+                                  {isDirect ? 'total price, per person' : `per person, ${f.return_at ? 'return' : 'one-way'}`}
                                 </div>
                               </>
                             )}
                             {isDuffel && (
                               <div className="text-[.55rem] text-green-600 font-bold mt-0.5">✓ Live price incl. taxes</div>
+                            )}
+                            {isKyte && (
+                              <div className="text-[.55rem] text-green-600 font-bold mt-0.5">✓ Direct via {f.airline} · Live price</div>
                             )}
                           </div>
                         </div>
@@ -2218,6 +2382,30 @@ function FlightsContent() {
                             <a href={`/checkout/${f.offer_id}`}
                               className="flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 text-white font-poppins font-bold text-[.7rem] py-2 px-3 rounded-lg transition-all shadow-sm whitespace-nowrap col-span-2 sm:col-span-3 lg:col-span-5">
                               ✓ Book Now — {f.currency}{priceView === 'total' ? Math.round(f.price * (adults + children)) : f.price}{priceView === 'total' ? ' total' : '/pp'} →
+                            </a>
+                          ) : isKyte && f.offer_id && f.link ? (
+                            <a href={f.link}
+                              onClick={() => {
+                                // Stash the full offer so the booking page has price + times + carrier
+                                // without re-fetching from Kyte (which would burn Fixie quota and
+                                // risk expired-offer errors). `destinationCode` / `destinationCity`
+                                // power the Scout neighbourhood-intel section on the success page.
+                                try {
+                                  sessionStorage.setItem(
+                                    `kyte-offer-${f.offer_id}`,
+                                    JSON.stringify({
+                                      ...f,
+                                      _searchedAt: Date.now(),
+                                      originCode,
+                                      originCity,
+                                      destinationCode: destCode,
+                                      destinationCity: destCity,
+                                    }),
+                                  );
+                                } catch { /* sessionStorage unavailable — page will refetch */ }
+                              }}
+                              className="flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 text-white font-poppins font-bold text-[.7rem] py-2 px-3 rounded-lg transition-all shadow-sm whitespace-nowrap col-span-2 sm:col-span-3 lg:col-span-5">
+                              ✓ Book direct — {f.currency}{priceView === 'total' ? Math.round(f.price * (adults + children)) : f.price}{priceView === 'total' ? ' total' : '/pp'} →
                             </a>
                           ) : (
                             PROVIDERS.map((p, pi) => {
