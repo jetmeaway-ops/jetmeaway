@@ -116,6 +116,17 @@ const AIRPORT_COORDS_RAW: Array<{ keys: string[]; lat: number; lng: number; radi
   { keys: ['icn', 'incheon', 'seoul incheon'], lat: 37.4602, lng: 126.4407, radiusKm: 12 },
   // Ireland
   { keys: ['dub', 'dublin airport'], lat: 53.4264, lng: -6.2499, radiusKm: 10 },
+  // Airports that sit far enough from their parent city that radius=15
+  // returns 0 LiteAPI hotels (city-cluster is outside the circle).
+  // Wider 25 km radius pulls in the central-city cluster alongside the
+  // airport hotels. Lyon Saint-Exupéry is 20 km from Lyon centre,
+  // Berlin Brandenburg 25 km southeast of Berlin, Goa Dabolim 30 km from
+  // Panaji, Heraklion is at the city edge but LiteAPI's index for that
+  // region is sparse — wider radius helps when it returns anything.
+  { keys: ['lys', 'lyon airport', 'saint-exupery', 'saint exupery'], lat: 45.7256, lng: 5.0811, radiusKm: 25 },
+  { keys: ['ber', 'berlin airport', 'brandenburg airport', 'berlin brandenburg'], lat: 52.3667, lng: 13.5033, radiusKm: 30 },
+  { keys: ['goi', 'goa airport', 'dabolim', 'dabolim airport'], lat: 15.3808, lng: 73.8311, radiusKm: 35 },
+  { keys: ['her', 'heraklion airport', 'crete airport', 'nikos kazantzakis'], lat: 35.3397, lng: 25.1802, radiusKm: 25 },
 ];
 
 const AIRPORT_COORDS: Record<string, { lat: number; lng: number; radiusKm?: number }> = {};
@@ -225,7 +236,7 @@ const AIRPORT_TO_CITY: Record<string, string> = {
   'lis': 'lisbon', 'lisbon airport': 'lisbon', 'humberto delgado': 'lisbon',
   'ath': 'athens', 'athens airport': 'athens',
   'istanbul airport': 'istanbul', 'new istanbul airport': 'istanbul',
-  'saw': 'istanbul', 'sabiha': 'istanbul', 'sabiha gokcen': 'istanbul',
+  'sabiha': 'istanbul', 'sabiha gokcen': 'istanbul',
   // US
   'jfk': 'new york', 'new york jfk': 'new york', 'jfk airport': 'new york',
   'lga': 'new york', 'laguardia': 'new york',
