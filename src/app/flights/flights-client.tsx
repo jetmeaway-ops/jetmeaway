@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { ShieldCheck } from 'lucide-react';
 import DateRangePicker from '@/components/DateRangePicker';
 import DateMatrixStrip, { type MatrixOption, type ScoutTip } from '@/components/DateMatrixStrip';
 import { redirectUrl } from '@/lib/redirect';
@@ -2311,6 +2312,15 @@ function FlightsContent() {
                               {isCheapest && <span className="text-[.55rem] font-black uppercase tracking-[1.5px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">Cheapest</span>}
                             </div>
                             {f.flight_number && <div className="text-[.65rem] text-[#8E95A9] font-semibold">{f.airlineCode} {f.flight_number}</div>}
+                            {isKyte && (
+                              <div
+                                className="flex items-center gap-1 text-emerald-700 text-[.7rem] font-bold mt-1"
+                                title="Bypassing third-party agents. This booking is handled directly with the airline via JetMeAway's secure scout engine — no markups, no booking fees, prices locked at booking."
+                              >
+                                <ShieldCheck size={12} strokeWidth={2.5} />
+                                Direct via {f.airline} · Live price
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -2358,9 +2368,6 @@ function FlightsContent() {
                             {isDuffel && (
                               <div className="text-[.55rem] text-green-600 font-bold mt-0.5">✓ Live price incl. taxes</div>
                             )}
-                            {isKyte && (
-                              <div className="text-[.55rem] text-green-600 font-bold mt-0.5">✓ Direct via {f.airline} · Live price</div>
-                            )}
                           </div>
                         </div>
                       </div>
@@ -2404,8 +2411,10 @@ function FlightsContent() {
                                   );
                                 } catch { /* sessionStorage unavailable — page will refetch */ }
                               }}
-                              className="flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 text-white font-poppins font-bold text-[.7rem] py-2 px-3 rounded-lg transition-all shadow-sm whitespace-nowrap col-span-2 sm:col-span-3 lg:col-span-5">
-                              ✓ Book direct — {f.currency}{priceView === 'total' ? Math.round(f.price * (adults + children)) : f.price}{priceView === 'total' ? ' total' : '/pp'} →
+                              title="Bypassing third-party agents. Booked directly with the airline via JetMeAway's secure scout engine — no markups, no booking fees."
+                              className="flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-poppins font-bold text-[.7rem] py-2 px-3 rounded-lg transition-all shadow-sm whitespace-nowrap col-span-2 sm:col-span-3 lg:col-span-5">
+                              <ShieldCheck size={14} strokeWidth={2.5} />
+                              Book direct — {f.currency}{priceView === 'total' ? Math.round(f.price * (adults + children)) : f.price}{priceView === 'total' ? ' total' : '/pp'} →
                             </a>
                           ) : (
                             PROVIDERS.map((p, pi) => {
