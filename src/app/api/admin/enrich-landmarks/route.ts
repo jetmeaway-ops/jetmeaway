@@ -22,8 +22,33 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin-auth';
 import { googlePlaceDetails } from '@/lib/google-places';
+
+const ADMIN_SECRET = process.env.ADMIN_SECRET || '';
+
+/**
+ * Accept either:
+ *   - Authorization: Bearer <ADMIN_SECRET>   (CLI / curl flow)
+ *   - jma_admin cookie equal to ADMIN_SECRET (logged-in /admin browser)
+ *
+ * Constant-time string compare on the bearer path to avoid timing leaks.
+ */
+function authed(req: NextRequest): boolean {
+  if (!ADMIN_SECRET) return false;
+  // Cookie path — set by /admin/login when the owner signs in.
+  const cookie = req.cookies.get('jma_admin')?.value;
+  if (cookie && cookie === ADMIN_SECRET) return true;
+  // Bearer header path
+  const header = req.headers.get('authorization') || '';
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  const token = match?.[1] || '';
+  if (!token || token.length !== ADMIN_SECRET.length) return false;
+  let diff = 0;
+  for (let i = 0; i < token.length; i++) {
+    diff |= token.charCodeAt(i) ^ ADMIN_SECRET.charCodeAt(i);
+  }
+  return diff === 0;
+}
 
 export const runtime = 'edge';
 
@@ -142,8 +167,12 @@ async function fetchCoordsInBatches(
 }
 
 export async function GET(req: NextRequest) {
-  const unauth = requireAdmin(req);
-  if (unauth) return unauth;
+  if (!authed(req)) {
+    return NextResponse.json(
+      { error: 'Unauthorized — sign in to /admin or send Authorization: Bearer <ADMIN_SECRET>' },
+      { status: 401 },
+    );
+  }
 
   const t0 = Date.now();
   const unique = Array.from(new Set(PLACE_IDS));
