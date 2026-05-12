@@ -2497,10 +2497,17 @@ function HotelsContent() {
       // (LiteAPI's place-cluster index — catches Marne-la-Vallée hotels for
       // Disneyland Paris, etc.) instead of lat/lng-radius which silently
       // filters to the parent-city cluster and misses adjacent municipalities.
+      // Defensive carve-out: airports look like landmarks (they have placeIds
+      // and lat/lng) but LiteAPI's place-cluster index doesn't carry airport
+      // POIs as destinations — sending destinationId=airport-placeId returns
+      // 0. Skip the flag and stay on the lat/lng-radius path which catches
+      // the airport-perimeter hotels correctly.
+      const isAirportLike = /\bairport|aerodrome\b/i.test(trimmedDest);
       const isLandmarkClick =
-        !!landmarkMatch ||
-        (!!selectedPlaceId &&
-          LANDMARK_ALIASES.some((l) => l.placeId === selectedPlaceId));
+        !isAirportLike &&
+        (!!landmarkMatch ||
+          (!!selectedPlaceId &&
+            LANDMARK_ALIASES.some((l) => l.placeId === selectedPlaceId)));
       if (isLandmarkClick) {
         params.set('searchType', 'landmark');
       }

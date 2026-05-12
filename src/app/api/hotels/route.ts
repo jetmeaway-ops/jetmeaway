@@ -635,12 +635,22 @@ async function fetchLiteApiHotels(
     void placeId; // intentionally unused for non-landmark LiteAPI lookups
   }
   const countryCode = await resolveCountryCode(cityKey);
-  if (!countryCode) {
+  // Country code missing means cityKey didn't match our static map, the KV
+  // cache, or Nominatim. Most-common cause: an international airport pick
+  // ("JFK", "CDG", "DXB") that the airport-strip rewrote but our map
+  // doesn't alias. When the caller supplied lat/lng we can STILL run the
+  // LiteAPI lat/lng search (countryCode is optional on that path) — we
+  // just drop the cityName fallback. Without this, every non-UK airport
+  // search returned 0 hotels.
+  if (!countryCode && !centroid) {
     console.warn('[liteapi] could not resolve country code for city:', cityKey);
     return [];
   }
+  if (!countryCode) {
+    console.log(`[liteapi] no country code for "${cityKey}" — proceeding with lat/lng-only search`);
+  }
   const resolvedCity = cityKey.charAt(0).toUpperCase() + cityKey.slice(1);
-  const resolvedCountry = countryCode;
+  const resolvedCountry = countryCode || undefined;
   const cityName = resolvedCity;
 
   // Occupancy: prefer the explicit per-room shape from the picker,
@@ -825,7 +835,7 @@ async function fetchLiteApiHotels(
     // LiteAPI-indexed inventory but whose searchAs city (Athens, Zagreb)
     // does have hotels. Without this, the landmark autocomplete row sends
     // users to "No live rates" even when the gateway city works fine.
-    if (merged.length === 0 && centroid && resolvedCity) {
+    if (merged.length === 0 && centroid && resolvedCity && resolvedCountry) {
       try {
         const cityFallback = await Promise.race([
           liteapiGetHotels({
@@ -1583,7 +1593,18 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(response);
   }
 
-  const rawCityKey = city.toLowerCase().trim();
+  // Strip an IATA-code parenthetical the autocomplete dropdown tacks on
+  // ("Heathrow Airport (LHR)" → "heathrow airport") before any normalisation
+  // lookup. Without this the AIRPORT_TO_CITY map misses every airport that
+  // came from a Google Place pick (which always returns the IATA-suffixed
+  // form) — searches for Heathrow, Gatwick, CDG, JFK etc. silently returned
+  // 0 hotels because the cityKey didn't match any entry and LiteAPI has no
+  // city by that name either.
+  const rawCityKey = city
+    .toLowerCase()
+    .trim()
+    .replace(/\s*\([a-z]{3}\)\s*$/i, '')
+    .trim();
   // Rewrite airport/landmark names → nearest city LiteAPI knows. Without this,
   // searches for "Gatwick", "Heathrow", "JFK" etc return 0 hotels because
   // LiteAPI's /data/hotels?cityName=Gatwick has no city by that name.
