@@ -634,14 +634,34 @@ async function fetchLiteApiHotels(
   if (!useLandmarkPlaceId) {
     void placeId; // intentionally unused for non-landmark LiteAPI lookups
   }
-  const countryCode = await resolveCountryCode(cityKey);
+  let countryCode = await resolveCountryCode(cityKey);
+  // International airport cityKeys that the AIRPORT_TO_CITY map doesn't
+  // alias (Lyon Airport, Berlin Airport, Goa Airport, etc.) sometimes
+  // fail Nominatim and end up countryCode-less. LiteAPI's lat/lng search
+  // at airport-edge coords without a country hint returns 0 hotels even
+  // when the same coords with the bare city name return plenty. Retry
+  // resolution with the " airport" suffix stripped so "lyon airport" →
+  // "lyon" picks up the FR code, but keep the cityKey itself intact for
+  // cache-key purposes and for the cityName fallback below — important
+  // because "charles de gaulle airport" DOES resolve to FR via Nominatim
+  // and "charles de gaulle" alone is a person's name, not a city, so we
+  // only USE the stripped form when the suffixed form failed.
+  if (!countryCode) {
+    const stripped = cityKey.replace(/\s+airport\s*$/i, '').trim();
+    if (stripped && stripped !== cityKey) {
+      countryCode = await resolveCountryCode(stripped);
+      if (countryCode) {
+        console.log(`[liteapi] country code resolved via airport-strip "${cityKey}" → "${stripped}" → ${countryCode}`);
+      }
+    }
+  }
   // Country code missing means cityKey didn't match our static map, the KV
-  // cache, or Nominatim. Most-common cause: an international airport pick
-  // ("JFK", "CDG", "DXB") that the airport-strip rewrote but our map
-  // doesn't alias. When the caller supplied lat/lng we can STILL run the
-  // LiteAPI lat/lng search (countryCode is optional on that path) — we
-  // just drop the cityName fallback. Without this, every non-UK airport
-  // search returned 0 hotels.
+  // cache, Nominatim, OR the airport-stripped Nominatim retry. Most-common
+  // cause: a brand-new international airport pick whose name is exotic
+  // enough that Nominatim has no entry. When the caller supplied lat/lng
+  // we can STILL run the LiteAPI lat/lng search (countryCode is optional
+  // on that path) — we just drop the cityName fallback. Without this,
+  // every non-UK airport search returned 0 hotels.
   if (!countryCode && !centroid) {
     console.warn('[liteapi] could not resolve country code for city:', cityKey);
     return [];
@@ -1610,16 +1630,7 @@ export async function GET(req: NextRequest) {
   // LiteAPI's /data/hotels?cityName=Gatwick has no city by that name.
   // Runs before resolveCountryCode so it also bypasses any stale Nominatim
   // KV cache that mapped the airport name to a country code.
-  //
-  // Fallback for international airports not in the alias map: strip a
-  // trailing " airport" word and try again. "lyon airport" → "lyon" picks up
-  // CITY_COUNTRY/CITY_COORDS without growing the alias table by hundreds
-  // of entries. Covers CDG/AMS/FCO/MXP/JFK/LAX/SYD/DEL/BOM etc. — every
-  // airport whose name is "<city> Airport".
-  const stripAirportWord = rawCityKey.replace(/\s+airport\s*$/i, '').trim();
-  const cityKey =
-    AIRPORT_TO_CITY[rawCityKey] ||
-    (stripAirportWord !== rawCityKey ? stripAirportWord : rawCityKey);
+  const cityKey = AIRPORT_TO_CITY[rawCityKey] || rawCityKey;
   if (cityKey !== rawCityKey) {
     console.log(`[hotels] rewriting "${rawCityKey}" → "${cityKey}" (airport→city alias)`);
   }
