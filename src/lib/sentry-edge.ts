@@ -17,7 +17,15 @@
  *  4. Done — every reportBug() call now also lands in Sentry.
  *
  * If SENTRY_DSN is unset (e.g. local dev) every call no-ops silently.
+ *
+ * Sensitive-data redaction: `extra` is run through deepRedact() before it
+ * reaches the wire so card numbers, CVCs, AGENCY_CARD_* values and inline
+ * card-like strings are masked. Both entry points (sentryCapture and
+ * sentryCaptureException) call this — there is no path for raw card data
+ * to leak via direct callers.
  */
+
+import { deepRedact } from './redact';
 
 interface SentryEvent {
   level?: 'fatal' | 'error' | 'warning' | 'info' | 'debug';
@@ -56,6 +64,11 @@ export function sentryCapture(event: SentryEvent): void {
   const parts = parseDsn(dsn);
   if (!parts) return;
 
+  // Redact sensitive fields from `extra` before forwarding — defence at the
+  // boundary so even direct sentryCapture() callers can't leak card data.
+  // No-op for callers who already redacted via reportBug().
+  const safeExtra = event.extra ? deepRedact(event.extra) : undefined;
+
   const eventId = crypto.randomUUID().replace(/-/g, '');
   const ts = Date.now() / 1000;
   const fullEvent = {
@@ -70,7 +83,7 @@ export function sentryCapture(event: SentryEvent): void {
     message: event.message ? { formatted: event.message } : undefined,
     exception: event.exception,
     tags: event.tags,
-    extra: event.extra,
+    extra: safeExtra,
     user: event.user,
   };
 

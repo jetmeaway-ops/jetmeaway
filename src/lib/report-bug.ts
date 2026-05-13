@@ -25,6 +25,7 @@
  */
 
 import { sentryCapture } from './sentry-edge';
+import { deepRedact } from './redact';
 
 interface ReportContext {
   [key: string]: unknown;
@@ -35,12 +36,21 @@ interface ReportContext {
  * in the background. Also forwards to Sentry when SENTRY_DSN is set so
  * the bug inbox and Sentry stay in lockstep (one place to triage in the
  * inbox; one place with full grouping/UI in Sentry).
+ *
+ * All `context` data is auto-redacted via `deepRedact()` before it touches
+ * Sentry or the bug-monitor endpoint — callers don't need to scrub. Card
+ * numbers, CVCs, AGENCY_CARD_* values, and any inline card-like strings
+ * are masked at the boundary.
  */
 export function reportBug(message: string, context?: ReportContext): void {
+  // Redact sensitive fields BEFORE anything else sees the payload. This is
+  // the defence-at-the-boundary; no downstream caller can leak by mistake.
+  const safeContext = context ? (deepRedact(context) as ReportContext) : undefined;
+
   // Forward to Sentry first — no-ops if SENTRY_DSN unset. We do this
   // BEFORE the bug-monitor check so a missing BUG_MONITOR_SECRET in dev
   // doesn't suppress Sentry signal.
-  sentryCapture({ level: 'error', message, extra: context });
+  sentryCapture({ level: 'error', message, extra: safeContext });
 
   // Skip in dev / when secret is unset. Prod ALWAYS has BUG_MONITOR_SECRET
   // configured (per the env-var checklist).
@@ -59,7 +69,7 @@ export function reportBug(message: string, context?: ReportContext): void {
     {
       level: 'error',
       message,
-      context: context ?? {},
+      context: safeContext ?? {},
       ts: new Date().toISOString(),
     },
   ];
