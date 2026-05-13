@@ -13,7 +13,7 @@ import {
   type Title,
 } from '@/lib/kyte';
 import { upsertBooking, type Booking } from '@/lib/bookings';
-import { notifyBookingConfirmed } from '@/lib/notifications';
+import { notifyBookingConfirmed, notifyOwnerOpsAlert } from '@/lib/notifications';
 import { reportBug } from '@/lib/report-bug';
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -245,6 +245,34 @@ export async function POST(req: NextRequest) {
   if (body.tripContext) {
     internalBookingId = await persistBooking(body, bookingId, amount, paymentIntentId);
   }
+
+  /* ---------- 7. Owner ops alert (Step 6b) ---------- */
+  // Fire-and-forget: owner gets an email + Sentry info event so they
+  // know an agency-card charge is incoming from the airline. Critical
+  // for cash-flow awareness when running on a personal credit card.
+  // No PII (customer email/name) in this alert — destination + IDs only.
+  notifyOwnerOpsAlert({
+    subject: captured
+      ? `Kyte booking confirmed — £${(amount / 100).toFixed(2)} agency card charge incoming`
+      : `URGENT: Kyte booked but Stripe capture failed — manual reconcile needed`,
+    body: captured
+      ? `A Kyte booking just completed. Your agency card will be charged £${(amount / 100).toFixed(2)} by the airline within 1-2 days. Stripe captured the customer's payment successfully — funds will hit your bank in T+2 (covers the card statement).`
+      : `A Kyte booking succeeded BUT Stripe capture failed twice. The airline charged your agency card £${(amount / 100).toFixed(2)} — the customer's Stripe hold is still authorised but NOT captured. Capture manually from the Stripe Dashboard ASAP, or refund within 7 days if you cannot capture.`,
+    tags: {
+      supplier: 'kyte',
+      capture_status: captured ? 'captured' : 'manual-reconcile',
+    },
+    extra: {
+      internalBookingId,
+      kyteBookingId: bookingId,
+      paymentIntentId,
+      amountPence: amount,
+      destination: body.tripContext?.destination,
+      captured,
+    },
+  }).catch((err) => {
+    console.error('[kyte/payment] notifyOwnerOpsAlert failed', (err as Error).message);
+  });
 
   return NextResponse.json({
     status: 'ok',
