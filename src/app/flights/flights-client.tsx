@@ -1836,10 +1836,12 @@ function FlightsContent() {
       }
     };
 
-    // Partition: direct-bookable (Duffel, has offer_id) first, redirect providers second.
-    // Keeps commission-earning bookings at the top of the page regardless of price.
-    const direct = list.filter(f => f.source === 'duffel' && f.offer_id).sort(cmp);
-    const redirect = list.filter(f => !(f.source === 'duffel' && f.offer_id)).sort(cmp);
+    // Partition: direct-bookable (Duffel OR Kyte, has offer_id) first,
+    // redirect providers second. Keeps commission-earning bookings at
+    // the top of the page regardless of price. Uses the shared
+    // isDirectBookable() helper so the rule stays in one place.
+    const direct = list.filter(isDirectBookable).sort(cmp);
+    const redirect = list.filter(f => !isDirectBookable(f)).sort(cmp);
     return [...direct, ...redirect];
   }, [flights, sortBy, stopsFilter, selectedAirlines, flightNumFilter, takeoffMin, takeoffMax, landingMin, landingMax]);
 
