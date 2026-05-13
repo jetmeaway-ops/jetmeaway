@@ -13,8 +13,10 @@
  *   - check app.usefixie.com → kyte-proxy quota
  *   - check inbox for Raquel updates (airline-side sandbox outages)
  *
- * Wizz Air is excluded — Raquel confirmed 2026-05-12 the sandbox is
- * airline-side down. Reinstate once she signals recovery.
+ * Wizz Air (W6) was previously excluded — Raquel had it raised internally
+ * 2026-05-12/13 (airline-side outage). REINSTATED 2026-05-13: Kyte sandbox
+ * now returns offers cleanly on BUD-LTN. If it drops again, the script
+ * fails loudly so we know within 24h instead of hearing from Raquel.
  *
  * Usage:
  *   node scripts/monkey-kyte.mjs                       # all carriers vs prod
@@ -46,6 +48,11 @@ const CARRIERS = [
   // doesn't operate. Treat 0 offers as soft-fail rather than hard.
   { code: 'V7', name: 'Volotea',   from: 'LUX', to: 'NCE', expectMin: 0, softZero: true },
   { code: 'FR', name: 'Ryanair',   from: 'BUD', to: 'DUB', expectMin: 1 },
+  // W6 Wizz Air — back online 2026-05-13 after airline-side outage.
+  // BUD-LTN observed returning 3 offers; LGW-BUD returned 1. Use BUD-LTN
+  // as the more reliable canary. Hard-fail on 0 so we get a Sentry alert
+  // if Wizz drops again rather than silently going dark.
+  { code: 'W6', name: 'Wizz Air',  from: 'BUD', to: 'LTN', expectMin: 1 },
 ];
 
 const departureDate = (() => {
