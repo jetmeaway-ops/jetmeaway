@@ -12,12 +12,18 @@ import { loadStripe, Stripe } from '@stripe/stripe-js';
 /**
  * Merchant-of-record Stripe card form.
  *
- *   clientSecret  — from /api/stripe/payment-intent
- *   returnUrl     — absolute URL Stripe can redirect back to (for 3DS)
- *   onSucceeded   — called when PaymentIntent.status === 'succeeded'
- *   onError       — called on any card decline / network failure
- *   disabled      — lock the Pay button (e.g. fare-ack checkbox unticked)
- *   amountLabel   — label like "£123.45" shown on the Pay button
+ *   clientSecret       — from /api/stripe/payment-intent
+ *   returnUrl          — absolute URL Stripe can redirect back to (for 3DS)
+ *   onSucceeded        — called when PaymentIntent.status is one of acceptableStatuses
+ *   onError            — called on any card decline / network failure
+ *   disabled           — lock the Pay button (e.g. fare-ack checkbox unticked)
+ *   amountLabel        — label like "£123.45" shown on the Pay button
+ *   acceptableStatuses — which PI statuses count as success. Defaults to
+ *                        ['succeeded'] for immediate-capture flows (DOTW
+ *                        hotels). For manual-capture (Kyte agency-card
+ *                        bridge), pass ['requires_capture'] — after a
+ *                        successful Auth + Hold the PI sits in that state
+ *                        until we capture from the server post-Kyte-book.
  */
 
 const STRIPE_PK = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '';
@@ -34,6 +40,10 @@ type Props = {
   onError: (msg: string) => void;
   disabled?: boolean;
   amountLabel?: string;
+  /** Which PaymentIntent statuses count as success. Defaults to
+   *  ['succeeded'] for immediate-capture flows. Pass ['requires_capture']
+   *  for manual-capture (Auth + Hold) flows like the Kyte agency-card bridge. */
+  acceptableStatuses?: string[];
 };
 
 export default function StripeCardForm(props: Props) {
@@ -68,10 +78,23 @@ export default function StripeCardForm(props: Props) {
   );
 }
 
-function InnerForm({ onSucceeded, onError, disabled, amountLabel, returnUrl }: Props) {
+function InnerForm({
+  onSucceeded,
+  onError,
+  disabled,
+  amountLabel,
+  returnUrl,
+  acceptableStatuses,
+}: Props) {
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
+
+  // Default success state = ['succeeded'] for immediate-capture flows.
+  // Kyte (manual capture, Auth + Hold) passes ['requires_capture'].
+  const successStates = acceptableStatuses && acceptableStatuses.length > 0
+    ? acceptableStatuses
+    : ['succeeded'];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,10 +117,10 @@ function InnerForm({ onSucceeded, onError, disabled, amountLabel, returnUrl }: P
         return;
       }
 
-      if (paymentIntent && paymentIntent.status === 'succeeded') {
+      if (paymentIntent && successStates.includes(paymentIntent.status)) {
         onSucceeded();
         // DELIBERATELY do NOT setSubmitting(false) here. Parent transitions
-        // to step='processing' which unmounts this form; if we re-enabled
+        // to a downstream step which unmounts this form; if we re-enabled
         // the Pay button there'd be a window where a frantic customer can
         // double-tap and trigger "PaymentIntent already succeeded" toasts.
         return;

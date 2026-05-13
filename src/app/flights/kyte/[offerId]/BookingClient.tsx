@@ -14,6 +14,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import RyanairConfirmIframe, {
   type RyanairTelemetryPayload,
@@ -21,6 +22,16 @@ import RyanairConfirmIframe, {
 import RyanairTermsCheckbox from '@/components/RyanairTermsCheckbox';
 import { neighbourhoodIntel, genericIntel } from '@/lib/neighbourhood-intel';
 import { scoutGreeting } from '@/lib/scout-greeting';
+
+// Lazy-load StripeCardForm so @stripe/react-stripe-js (and js.stripe.com)
+// only fetch when the user reaches the card step — same pattern as the
+// hotels DOTW checkout.
+const StripeCardForm = dynamic(() => import('@/components/StripeCardForm'), {
+  ssr: false,
+  loading: () => (
+    <div className="text-sm text-[#5C6378] py-4">Loading secure payment form…</div>
+  ),
+});
 
 type StashedOffer = {
   airline: string;
@@ -79,8 +90,17 @@ type Step =
   | 'committing'
   | 'iframe'
   | 'card'
+  | 'paid-pending-bridge'  // Stripe Auth done; awaiting Kyte agency-card book + capture
   | 'success'
   | 'error';
+
+type PriceBreakdown = {
+  airline: number;     // pence
+  kyteFee: number;     // pence
+  processing: number;  // pence
+  total: number;       // pence
+  currency: string;    // ISO code, e.g. "GBP"
+};
 
 type SeatInRow = {
   number: string;
@@ -159,6 +179,15 @@ export default function BookingClient({
   });
   const [chosenSeat, setChosenSeat] = useState<SeatPick | null>(null);
 
+  // Phase 2 — Stripe Auth+Hold state. Created when user reaches `card` step,
+  // confirmed when StripeCardForm signals success, consumed by Phase 3 (the
+  // agency-card bridge) which captures the PI after Kyte's payBooking
+  // returns status:'ok'.
+  const [paymentClientSecret, setPaymentClientSecret] = useState('');
+  const [paymentIntentId, setPaymentIntentId] = useState('');
+  const [priceBreakdown, setPriceBreakdown] = useState<PriceBreakdown | null>(null);
+  const [cardError, setCardError] = useState('');
+
   // Load the offer stashed in sessionStorage when the user clicked through.
   useEffect(() => {
     try {
@@ -177,6 +206,132 @@ export default function BookingClient({
     );
     setStep('error');
   }, [offerId]);
+
+  /* ---------- Phase 2: create Stripe PaymentIntent on entering `card` ---------- */
+  // Fires once when the step becomes 'card'. Creates a manual-capture PI
+  // (Auth + Hold) sized to airline + £0.50 Kyte + Stripe gross-up. We
+  // intentionally don't re-fire on retries within the same step — if the
+  // first call succeeded we already have a clientSecret to reuse, and if
+  // it failed the user gets routed to the error step.
+  useEffect(() => {
+    if (step !== 'card') return;
+    if (paymentClientSecret) return; // already created
+    if (!transactionId) return;
+
+    let cancelled = false;
+    setCardError('');
+
+    (async () => {
+      try {
+        const res = await fetch('/api/flights/kyte/create-payment-intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ offerId, transactionId }),
+        });
+        const data = await res.json();
+        if (cancelled) return;
+        if (!res.ok || !data.clientSecret) {
+          setCardError(
+            data?.error
+              ? `Could not start payment: ${data.error}`
+              : 'Could not start payment. Please try again.',
+          );
+          return;
+        }
+        setPaymentClientSecret(data.clientSecret);
+        setPaymentIntentId(data.paymentIntentId);
+        setPriceBreakdown({
+          airline: data.breakdown?.airline ?? 0,
+          kyteFee: data.breakdown?.kyteFee ?? 0,
+          processing: data.breakdown?.processing ?? 0,
+          total: data.total ?? 0,
+          currency: data.breakdown?.currency || 'GBP',
+        });
+      } catch (e) {
+        if (cancelled) return;
+        setCardError(
+          'Network error preparing payment. Please check your connection and try again.',
+        );
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [step, offerId, transactionId, paymentClientSecret]);
+
+  /* ---------- Phase 3: agency-card bridge on entering `paid-pending-bridge` ---------- */
+  // Customer's card is authorised (Stripe PI = requires_capture). We
+  // now call the server bridge which:
+  //   1. Reads AGENCY_CARD_* env vars
+  //   2. Posts the agency card to Kyte's payBooking
+  //   3. On Kyte success → captures the customer's Stripe PI
+  //   4. On Kyte failure → cancels/refunds the customer's Stripe PI
+  // We DON'T pass card data from the frontend any more — server is
+  // the only place that touches the agency card, server is the only
+  // place that touches Stripe capture/refund. Frontend just observes.
+  useEffect(() => {
+    if (step !== 'paid-pending-bridge') return;
+    if (!paymentIntentId || !bookingId || !transactionId) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch('/api/flights/kyte/payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            transactionId,
+            bookingId,
+            paymentIntentId,
+            amount: currentBalance, // Kyte balance in minor units
+            payer: {
+              firstName: passenger.firstName,
+              lastName: passenger.lastName,
+              title: passenger.title,
+              email: passenger.email,
+              phone: {
+                countryCode: passenger.phoneCountryCode,
+                number: passenger.phoneNumber,
+              },
+            },
+            transactionType: offer?.airlineCode === 'FR' ? 'moto' : undefined,
+            codegen: offer?.airlineCode === 'FR' ? true : undefined,
+            tripContext: {
+              destination: offer?.destinationCity || offer?.destinationCode || '',
+              departureDate: offer?.departure_at || null,
+              returnDate: offer?.return_at || null,
+              passengerCount: 1,
+              title: `${offer?.airline ?? 'Flight'} ${offer?.originCode ?? ''}–${offer?.destinationCode ?? ''}`,
+            },
+          }),
+        });
+        const data = await res.json();
+        if (cancelled) return;
+        if (!res.ok || data.status !== 'ok') {
+          setError(
+            data?.error
+              ? `Booking failed: ${data.error}. Your card hold has been released.`
+              : 'Booking failed. Your card hold has been released. Please try again or contact support.',
+          );
+          setStep('error');
+          return;
+        }
+        setStep('success');
+      } catch (e) {
+        if (cancelled) return;
+        setError(
+          'Network error finalising your booking. If your card shows a pending charge, it will release within 7 days. Please contact support with your reference.',
+        );
+        setStep('error');
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [step, paymentIntentId, bookingId, transactionId, currentBalance, passenger, offer]);
 
   const isRyanair = offer?.airlineCode === 'FR';
   const isEasyJet = offer?.airlineCode === 'U2';
@@ -204,9 +359,18 @@ export default function BookingClient({
       return 'Choose seat';
     if (step === 'terms' || step === 'iframe') return 'Confirm flights (Ryanair)';
     if (step === 'card') return 'Payment';
+    if (step === 'paid-pending-bridge') return 'Payment';
     if (step === 'success') return 'Confirmation';
     return '';
   })();
+
+  // Format minor-unit pence into a user-facing money string.
+  // £101.80 from { 10180, 'GBP' }, etc.
+  const fmtMoney = (pence: number, code: string) => {
+    const major = (Number(pence) || 0) / 100;
+    const symbol = code === 'GBP' ? '£' : code === 'EUR' ? '€' : code === 'USD' ? '$' : '';
+    return symbol ? `${symbol}${major.toFixed(2)}` : `${major.toFixed(2)} ${code}`;
+  };
 
   function passengerValid() {
     return (
@@ -539,32 +703,84 @@ export default function BookingClient({
         )}
 
         {step === 'card' && (
-          <Card title="Payment — securing the final step">
-            <p className="text-sm text-[#5C6378] leading-relaxed">
-              We&apos;re finalising secure card capture with our payment partner. Your booking
-              details are locked in (booking ref <code className="text-xs">{bookingId.slice(0, 16)}…</code>) — we&apos;re just
-              waiting on the last piece of the PCI plumbing before going live.
-            </p>
-            <p className="mt-3 text-sm text-[#5C6378] leading-relaxed">
-              Email{' '}
-              <a
-                href={`mailto:waqar@jetmeaway.co.uk?subject=Complete%20booking%20${bookingId}`}
-                className="text-[#0066FF] font-medium hover:underline"
-              >
-                waqar@jetmeaway.co.uk
-              </a>{' '}
-              with this booking reference and we&apos;ll complete the booking on your behalf today.
-              Or check back shortly — direct booking is days away.
-            </p>
-            <div className="mt-4 text-xs text-[#8E95A9] font-mono bg-[#F8FAFC] border border-[#E8ECF4] rounded-lg px-3 py-2">
-              Booking · {bookingId.slice(0, 28)}… · {offer?.currency || '£'}{(currentBalance / 100).toFixed(2)}
+          <Card title="Payment">
+            {/* Loading state — Stripe PI being created */}
+            {!paymentClientSecret && !cardError && (
+              <p className="text-sm text-[#5C6378] leading-relaxed py-2">
+                Preparing secure payment…
+              </p>
+            )}
+
+            {/* Error state — PI creation failed */}
+            {cardError && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700 font-medium">
+                {cardError}
+                <button
+                  onClick={() => {
+                    setCardError('');
+                    setPaymentClientSecret('');
+                  }}
+                  className="block mt-3 text-xs font-bold text-red-800 underline"
+                >
+                  Try again
+                </button>
+              </div>
+            )}
+
+            {/* Ready state — show breakdown + Stripe Elements */}
+            {paymentClientSecret && priceBreakdown && (
+              <>
+                <div className="bg-[#F8FAFC] border border-[#E8ECF4] rounded-xl p-4 mb-4 text-sm">
+                  <div className="font-bold text-[#1A1D2B] mb-2 text-[.78rem] uppercase tracking-wide">
+                    Price breakdown
+                  </div>
+                  <div className="flex justify-between text-[#5C6378] py-1">
+                    <span>Flight (direct airline rate)</span>
+                    <span>{fmtMoney(priceBreakdown.airline, priceBreakdown.currency)}</span>
+                  </div>
+                  <div className="flex justify-between text-[#5C6378] py-1">
+                    <span>Payment processing</span>
+                    <span>{fmtMoney(priceBreakdown.kyteFee + priceBreakdown.processing, priceBreakdown.currency)}</span>
+                  </div>
+                  <div className="flex justify-between text-[#1A1D2B] font-bold pt-2 mt-2 border-t border-[#E8ECF4]">
+                    <span>Total</span>
+                    <span>{fmtMoney(priceBreakdown.total, priceBreakdown.currency)}</span>
+                  </div>
+                  <p className="mt-3 text-[.72rem] text-[#8E95A9] leading-relaxed">
+                    JetMeAway doesn&apos;t profit from this booking — the processing line covers
+                    Stripe + airline-booking-platform fees only. We earn from optional add-ons
+                    (seat, baggage) if you choose them.
+                  </p>
+                </div>
+
+                <StripeCardForm
+                  clientSecret={paymentClientSecret}
+                  acceptableStatuses={['requires_capture']}
+                  amountLabel={fmtMoney(priceBreakdown.total, priceBreakdown.currency)}
+                  onSucceeded={() => setStep('paid-pending-bridge')}
+                  onError={(msg) => setCardError(msg)}
+                />
+
+                <div className="mt-3 text-xs text-[#8E95A9] font-mono">
+                  Booking · {bookingId.slice(0, 28)}…
+                </div>
+              </>
+            )}
+          </Card>
+        )}
+
+        {step === 'paid-pending-bridge' && (
+          <Card title="Confirming your booking…">
+            <div className="flex items-center gap-3 py-2">
+              <div className="w-5 h-5 rounded-full border-2 border-[#0066FF] border-t-transparent animate-spin" />
+              <p className="text-sm text-[#5C6378]">
+                Your card is held — we&apos;re finalising the ticket with the airline now.
+                Don&apos;t close this page.
+              </p>
             </div>
-            <button
-              onClick={() => setStep('success')}
-              className="mt-4 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg px-5 py-3 text-sm"
-            >
-              Acknowledge — go to confirmation page
-            </button>
+            <div className="mt-4 text-xs text-[#8E95A9] font-mono bg-[#F8FAFC] border border-[#E8ECF4] rounded-lg px-3 py-2">
+              Payment · {paymentIntentId.slice(0, 16)}… · Booking · {bookingId.slice(0, 16)}…
+            </div>
           </Card>
         )}
 
