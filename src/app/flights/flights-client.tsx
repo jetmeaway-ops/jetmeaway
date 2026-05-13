@@ -552,6 +552,24 @@ function currencyToSymbol(code: string): string {
   }
 }
 
+/**
+ * Normalise a Kyte segment time to a strict HH:MM:SS shape so it can be
+ * concatenated into an ISO `YYYY-MM-DDTHH:MM:SS` and parsed by `new Date()`.
+ *
+ * Kyte is inconsistent: Jet2 / easyJet / etc. return `HH:MM`; Ryanair
+ * returns `HH:MM:SS`. Without this normaliser the converter built
+ * "2026-07-15T06:15:00:00" (4 colons) for Ryanair rows → `new Date()`
+ * returned Invalid Date → result rows rendered literal "Invalid Date"
+ * text in place of the times. 2026-05-13.
+ */
+function normalizeKyteTime(t: string): string {
+  if (!t) return t;
+  const parts = t.split(':');
+  if (parts.length === 3) return t;          // already HH:MM:SS — pass through
+  if (parts.length === 2) return `${t}:00`;  // HH:MM → HH:MM:SS
+  return t;                                   // unexpected — leave for caller to handle
+}
+
 function kyteOffersToFlightResults(
   data: KyteRawSearchResponse,
   transactionId: string,
@@ -596,15 +614,15 @@ function kyteOffersToFlightResults(
       duration_back: returnSol?.totalDuration || 0,
       departure_at:
         firstSeg.departure.date && firstSeg.departure.time
-          ? `${firstSeg.departure.date}T${firstSeg.departure.time}:00`
+          ? `${firstSeg.departure.date}T${normalizeKyteTime(firstSeg.departure.time)}`
           : null,
       arrival_at:
         lastSeg.arrival.date && lastSeg.arrival.time
-          ? `${lastSeg.arrival.date}T${lastSeg.arrival.time}:00`
+          ? `${lastSeg.arrival.date}T${normalizeKyteTime(lastSeg.arrival.time)}`
           : null,
       return_at:
         returnFirstSeg?.departure?.date && returnFirstSeg.departure.time
-          ? `${returnFirstSeg.departure.date}T${returnFirstSeg.departure.time}:00`
+          ? `${returnFirstSeg.departure.date}T${normalizeKyteTime(returnFirstSeg.departure.time)}`
           : null,
       flight_number: firstSeg.flightNumber || null,
       offer_id: offerId,
