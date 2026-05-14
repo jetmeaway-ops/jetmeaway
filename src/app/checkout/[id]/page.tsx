@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import StripeCardForm from '@/components/StripeCardForm';
+import FlightCheckoutLegal from '@/components/FlightCheckoutLegal';
 import SeatMapModal, {
   type SeatSelection,
   type SeatSelectionsMap,
@@ -1323,6 +1324,10 @@ export default function CheckoutPage() {
   // Safe-checkout acknowledgement (non-refundable flights only)
   const [fareAcknowledged, setFareAcknowledged] = useState(false);
 
+  // ATOL / agent disclosure acknowledgement — required on EVERY flight
+  // booking (flight-only sales aren't ATOL-protected), gates the Pay button.
+  const [legalAcknowledged, setLegalAcknowledged] = useState(false);
+
   // Phase 2a — selected ancillary service IDs (baggage for now).
   // Quantity is always 1 per selected ID; Duffel's model is one service-id
   // per (pax × scope × kind) so multiple bags = multiple IDs, not qty > 1.
@@ -2237,9 +2242,18 @@ export default function CheckoutPage() {
                     );
                   })()}
 
+                  {/* Section 75 tip + ATOL/agent disclosure — must be ticked
+                      before the card form unlocks. */}
+                  {step === 'payment' && paymentClientSecret && (
+                    <FlightCheckoutLegal
+                      acknowledged={legalAcknowledged}
+                      onAcknowledgedChange={setLegalAcknowledged}
+                    />
+                  )}
+
                   {/* Stripe Payment Element (merchant-of-record) */}
                   {step === 'payment' && paymentClientSecret && (
-                    <div className={`bg-white border border-[#E8ECF4] rounded-2xl p-6 shadow-[0_2px_16px_rgba(0,102,255,0.06)] ${(!offer?.refundable || !offer?.changeable) && !fareAcknowledged ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <div className={`bg-white border border-[#E8ECF4] rounded-2xl p-6 shadow-[0_2px_16px_rgba(0,102,255,0.06)] ${((!offer?.refundable || !offer?.changeable) && !fareAcknowledged) || !legalAcknowledged ? 'opacity-50 pointer-events-none' : ''}`}>
                       <div className="flex items-center gap-2 mb-5">
                         <span className="text-lg">💳</span>
                         <h3 className="font-poppins font-black text-[.92rem] text-[#1A1D2B]">
@@ -2264,7 +2278,7 @@ export default function CheckoutPage() {
                         clientSecret={paymentClientSecret}
                         onSucceeded={handlePaymentSuccess}
                         onError={handlePaymentFailure}
-                        disabled={!offer?.refundable && !fareAcknowledged}
+                        disabled={(!offer?.refundable && !fareAcknowledged) || !legalAcknowledged}
                         amountLabel={`£${grandTotalAll.toFixed(2)}`}
                       />
 

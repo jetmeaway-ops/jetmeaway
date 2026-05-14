@@ -20,6 +20,7 @@ import RyanairConfirmIframe, {
   type RyanairTelemetryPayload,
 } from '@/components/RyanairConfirmIframe';
 import RyanairTermsCheckbox from '@/components/RyanairTermsCheckbox';
+import FlightCheckoutLegal from '@/components/FlightCheckoutLegal';
 import { neighbourhoodIntel, genericIntel } from '@/lib/neighbourhood-intel';
 import { scoutGreeting } from '@/lib/scout-greeting';
 
@@ -187,6 +188,10 @@ export default function BookingClient({
   const [paymentIntentId, setPaymentIntentId] = useState('');
   const [priceBreakdown, setPriceBreakdown] = useState<PriceBreakdown | null>(null);
   const [cardError, setCardError] = useState('');
+
+  // ATOL / agent disclosure acknowledgement — Kyte tickets are direct-agent
+  // sales with no ATOL cover; the customer must tick this to unlock payment.
+  const [legalAcknowledged, setLegalAcknowledged] = useState(false);
 
   // Load the offer stashed in sessionStorage when the user clicked through.
   useEffect(() => {
@@ -753,10 +758,16 @@ export default function BookingClient({
                   </p>
                 </div>
 
+                <FlightCheckoutLegal
+                  acknowledged={legalAcknowledged}
+                  onAcknowledgedChange={setLegalAcknowledged}
+                />
+
                 <StripeCardForm
                   clientSecret={paymentClientSecret}
                   acceptableStatuses={['requires_capture']}
                   amountLabel={fmtMoney(priceBreakdown.total, priceBreakdown.currency)}
+                  disabled={!legalAcknowledged}
                   onSucceeded={() => setStep('paid-pending-bridge')}
                   onError={(msg) => setCardError(msg)}
                 />

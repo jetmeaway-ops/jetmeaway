@@ -7,6 +7,7 @@ import DateRangePicker from '@/components/DateRangePicker';
 import { redirectUrl } from '@/lib/redirect';
 import { PageSchema } from '@/lib/page-schema';
 import { INSURANCE_FAQS } from '@/lib/page-faqs';
+import AppStoreBadges from '@/components/AppStoreBadges';
 
 // Live-affiliate providers — only providers with a confirmed affiliate
 // relationship appear with a working CTA. Ekta is a marketplace itself, so
@@ -196,6 +197,9 @@ export default function InsurancePage() {
           </button>
           <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">Prices from £3/day. Opens Ekta Traveling so you can get a quote.</p>
         </div>
+
+        {/* App-store badge row — sits under the search form on the dark hero. */}
+        <AppStoreBadges variant="dark" className="mt-7" />
       </section>
 
       <section className="max-w-[1100px] mx-auto px-5 pb-10">

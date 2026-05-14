@@ -23,7 +23,47 @@ const AIRLINES: Record<string, string> = {
   U2: 'easyJet', UA: 'United', VS: 'Virgin Atlantic',
   VY: 'Vueling', W6: 'Wizz Air', W9: 'Wizz Air UK',
   JU: 'Air Serbia', '6E': 'IndiGo', PK: 'PIA',
+  // Carriers that surface on London hot-deal routes — added so a real
+  // direct flight never falls through to a raw IATA code (see resolveAirline).
+  W4: 'Wizz Air', T5: 'Turkmenistan Airlines', TG: 'Thai Airways',
+  BR: 'EVA Air', AT: 'Royal Air Maroc', XQ: 'SunExpress',
+  BY: 'TUI Airways', DE: 'Condor', N0: 'Norse Atlantic',
+  B6: 'JetBlue', AI: 'Air India', HV: 'Transavia',
+  TO: 'Transavia France', DY: 'Norwegian', A3: 'Aegean',
+  UX: 'Air Europa', V7: 'Volotea', SN: 'Brussels Airlines',
+  AZ: 'ITA Airways', EW: 'Eurowings', SV: 'Saudia',
+  GF: 'Gulf Air', WY: 'Oman Air', ME: 'Middle East Airlines',
+  RJ: 'Royal Jordanian', ET: 'Ethiopian Airlines', MH: 'Malaysia Airlines',
+  CX: 'Cathay Pacific', QF: 'Qantas', TU: 'Tunisair',
+  AH: 'Air Algérie', OA: 'Olympic Air', BT: 'airBaltic',
+  OK: 'Czech Airlines', RO: 'TAROM', OU: 'Croatia Airlines',
+  FB: 'Bulgaria Air', LG: 'Luxair', EN: 'Air Dolomiti',
+  I2: 'Iberia Express', UK: 'Vistara', SG: 'SpiceJet',
+  UL: 'SriLankan Airlines', WK: 'Edelweiss Air', FZ: 'flydubai',
+  G9: 'Air Arabia', XY: 'flynas', KC: 'Air Astana',
+  HY: 'Uzbekistan Airways', PS: 'Ukraine International',
 };
+
+/**
+ * Resolve the airline label + logo code to show on a deal card.
+ *
+ *  - Multi-stop (transfers >= 1): Travelpayouts' `airline` is only the FIRST
+ *    marketing carrier of a stitched itinerary — frequently implausible
+ *    (Ryanair to Baku, Wizz Air to New York). We can't trust it, so we don't
+ *    name a single carrier and we clear the logo code.
+ *  - Direct: the single carrier IS `code`. Show its full name. If we don't
+ *    have it mapped, return null so the caller drops the card rather than
+ *    rendering a raw IATA code like "T5" or "W4".
+ */
+function resolveAirline(
+  code: string,
+  transfers: number,
+): { name: string; code: string } | null {
+  if (transfers >= 1) return { name: 'Multiple airlines', code: '' };
+  const name = AIRLINES[code];
+  if (!name) return null;
+  return { name, code };
+}
 
 /* Popular routes from London for hot deals */
 const HOT_ROUTES: { dest: string; city: string; country: string; flag: string }[] = [
@@ -97,14 +137,17 @@ export async function GET(req: NextRequest) {
         const data2 = await res2.json();
         if (!data2.data || data2.data.length === 0) return;
         const f = data2.data[0];
+        const resolved = resolveAirline(f.airline, f.transfers);
+        // Unknown direct carrier — skip rather than render a raw IATA code.
+        if (!resolved) return;
         deals.push({
           dest: route.dest,
           city: route.city,
           country: route.country,
           flag: route.flag,
           price: f.price,
-          airline: AIRLINES[f.airline] || f.airline,
-          airlineCode: f.airline,
+          airline: resolved.name,
+          airlineCode: resolved.code,
           departureDate: f.departure_at?.split('T')[0] || '',
           transfers: f.transfers,
           duration: f.duration_to || f.duration || 0,
@@ -112,14 +155,17 @@ export async function GET(req: NextRequest) {
         return;
       }
       const f = data.data[0];
+      const resolved = resolveAirline(f.airline, f.transfers);
+      // Unknown direct carrier — skip rather than render a raw IATA code.
+      if (!resolved) return;
       deals.push({
         dest: route.dest,
         city: route.city,
         country: route.country,
         flag: route.flag,
         price: f.price,
-        airline: AIRLINES[f.airline] || f.airline,
-        airlineCode: f.airline,
+        airline: resolved.name,
+        airlineCode: resolved.code,
         departureDate: f.departure_at?.split('T')[0] || '',
         transfers: f.transfers,
         duration: f.duration_to || f.duration || 0,

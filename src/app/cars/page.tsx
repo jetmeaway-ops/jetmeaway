@@ -8,6 +8,7 @@ import { redirectUrl } from '@/lib/redirect';
 import { PageSchema } from '@/lib/page-schema';
 import { CARS_FAQS } from '@/lib/page-faqs';
 import { saveSticky, loadSticky, type StickyCars } from '@/lib/sticky-search';
+import AppStoreBadges from '@/components/AppStoreBadges';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    LOCATIONS — verified EconomyBookings airports
@@ -649,6 +650,9 @@ function CarsContent() {
           </button>
           <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">Pick from {LOCATIONS.length} verified airports · Compare real live prices on EconomyBookings & Trip.com</p>
         </div>
+
+        {/* App-store badge row — sits under the search form on the dark hero. */}
+        <AppStoreBadges variant="dark" className="mt-7" />
       </section>
 
       {/* ── Loading ── */}

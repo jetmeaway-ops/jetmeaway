@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import DateRangePicker from '@/components/DateRangePicker';
 import { redirectUrl } from '@/lib/redirect';
 import { saveSticky, loadSticky, type StickyPackages } from '@/lib/sticky-search';
+import AppStoreBadges from '@/components/AppStoreBadges';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DESTINATIONS (matches hotels page)
@@ -1021,6 +1022,9 @@ function PackagesContent() {
           </button>
           <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">ATOL-protected options included · Book direct with providers</p>
         </div>
+
+      {/* App-store badge row — sits under the search form on the dark hero. */}
+      <AppStoreBadges variant="dark" className="mt-7 mb-1" />
 
       {/* ── Pre-built family packages (empty state only) ──
             Hidden when the user came in with a search query — the

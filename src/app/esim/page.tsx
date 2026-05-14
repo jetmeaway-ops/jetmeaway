@@ -7,6 +7,7 @@ import DateRangePicker from '@/components/DateRangePicker';
 import { redirectUrl } from '@/lib/redirect';
 import { PageSchema } from '@/lib/page-schema';
 import { ESIM_FAQS } from '@/lib/page-faqs';
+import AppStoreBadges from '@/components/AppStoreBadges';
 
 // ─── Country → ISO-2 code mapping ─────────────────────────────────────────
 const COUNTRY_ISO: Record<string, string> = {
@@ -361,6 +362,9 @@ export default function ESIMPage() {
           </button>
           <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">Instant activation. Works on all eSIM-compatible iPhones & Android devices.</p>
         </div>
+
+        {/* App-store badge row — sits under the search form on the dark hero. */}
+        <AppStoreBadges variant="dark" className="mt-7" />
       </section>
 
       {/* eSIM Results */}

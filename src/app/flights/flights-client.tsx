@@ -8,6 +8,7 @@ import { redirectUrl } from '@/lib/redirect';
 import SaveSearchButton from '@/components/SaveSearchButton';
 import { saveSticky, loadSticky, type StickyFlights } from '@/lib/sticky-search';
 import BackToTopButton from '@/components/BackToTopButton';
+import AppStoreBadges from '@/components/AppStoreBadges';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    AIRPORTS — 20 UK departures + 250+ worldwide destinations
@@ -1995,6 +1996,9 @@ function FlightsContent() {
           })()}
         </div>
 
+      {/* App-store badge row — sits under the search form on the dark hero. */}
+      <AppStoreBadges variant="dark" className="mt-7 mb-1" />
+
       {/* ── Hot Flight Deals (shown before search) ── */}
       {!searched && !loading && (
         <HotDeals onSelect={(code, city) => {
@@ -2092,12 +2096,17 @@ function FlightsContent() {
             />
           )}
 
-          {/* ATOL / flight-only notice */}
+          {/* Price-security value proposition. The flight-only / ATOL legal
+              disclosure now lives on the checkout card step (FlightCheckoutLegal)
+              as a tick-to-confirm — the consumer must be notified before they
+              book, not before they search. */}
           <section className="max-w-[1000px] mx-auto px-5 pb-2">
-            <p className="text-[.62rem] text-[#8E95A9] font-semibold leading-relaxed">
-              <i className="fa-solid fa-circle-info text-[.55rem] mr-1" />
-              Important: This flight-only booking is sold by JetMeAway as an agent for the airline. Your flight is not protected under the ATOL scheme. Many airlines provide their own financial protection; please check your airline&apos;s terms for details. We recommend comprehensive travel insurance.
-            </p>
+            <div className="flex items-center gap-2.5 bg-blue-50 border border-blue-200 rounded-2xl px-5 py-3">
+              <i className="fa-solid fa-shield-halved text-[#0066FF] text-[.95rem]" />
+              <p className="text-[.78rem] text-[#1A1D2B] font-semibold leading-snug">
+                <strong className="font-black">Price security:</strong> the fare you see is the fare you pay — live prices, locked at booking, with no JetMeAway markups or booking fees.
+              </p>
+            </div>
           </section>
 
           {/* Section 2: Sidebar filters + Result cards */}

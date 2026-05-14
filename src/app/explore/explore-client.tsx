@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import DateRangePicker from '@/components/DateRangePicker';
 import { redirectUrl } from '@/lib/redirect';
+import AppStoreBadges from '@/components/AppStoreBadges';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DESTINATIONS
@@ -417,6 +418,9 @@ function ExploreContent() {
             Explore Activities →
           </button>
         </div>
+
+      {/* App-store badge row — sits under the search form. */}
+      <AppStoreBadges variant="light" className="mt-7 mb-1" />
 
       {/* Results */}
       {searched && (

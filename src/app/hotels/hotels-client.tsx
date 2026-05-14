@@ -9,6 +9,7 @@ import { redirectUrl } from '@/lib/redirect';
 import { chooseDefaultTab } from '@/lib/silentScout';
 import { vibeTagsForSearchedCity } from '@/data/destinations';
 import { saveSticky, loadSticky, type StickyHotels } from '@/lib/sticky-search';
+import AppStoreBadges from '@/components/AppStoreBadges';
 
 const ScoutSidebar = dynamic(() => import('@/components/ScoutSidebar'), { ssr: false });
 const HotelMap = dynamic(() => import('@/components/HotelMap'), { ssr: false });
@@ -2928,6 +2929,9 @@ function HotelsContent() {
           </button>
           <p className="text-center text-[11px] leading-snug text-[#8E95A9] font-semibold mt-1.5">Book directly — no redirects, no hidden fees, best price guaranteed</p>
         </div>
+
+      {/* App-store badge row — sits under the search form on the dark hero. */}
+      <AppStoreBadges variant="dark" className="mt-7 mb-1" />
 
       {/* ── Hot Deals ── */}
       {!searched && !loading && (

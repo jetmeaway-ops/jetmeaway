@@ -12,6 +12,7 @@
  */
 
 import { kv } from '@vercel/kv';
+import { reportBug } from './report-bug';
 
 export type BookingType = 'hotel' | 'flight' | 'package' | 'car';
 
@@ -165,7 +166,26 @@ export async function upsertBooking(booking: Booking): Promise<void> {
   try {
     await kv.set(KV_KEY, all);
   } catch (e) {
+    // LOUD by design. A swallowed booking write means the customer paid and
+    // the supplier booking went through, but JetMeAway holds no record — it
+    // vanishes from the admin dashboard, the Twilio IVR lookup, Scout
+    // reminders, promo checks and /api/account. This previously only
+    // console.error'd, so it failed silently.
+    //
+    // Likeliest cause at scale: `bookings:all` is one giant KV array and the
+    // whole thing is rewritten on every booking; once it nears Upstash's
+    // ~1 MB request limit (~1k bookings) the kv.set starts failing. The real
+    // fix is one-key-per-booking — see the build-queue KV-size note — but
+    // until then this at least makes the failure impossible to miss.
     console.error('bookings: KV write failed', e);
+    reportBug('bookings: KV write failed — booking NOT persisted', {
+      bookingId: booking.id,
+      type: booking.type,
+      supplier: booking.supplier,
+      status: booking.status,
+      bookingCount: all.length,
+      error: String(e),
+    });
   }
 }
 
