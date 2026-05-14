@@ -74,10 +74,12 @@ export const metadata = {
     // images: inherited from openGraph (Next auto-wires).
   },
   metadataBase: new URL('https://jetmeaway.co.uk'),
-  // Root canonical — covers the homepage. Without this, any parameterised
-  // variant of `/` (?utm_*, ?ref=…, etc.) is crawled as a separate page and
-  // dilutes PageRank. From the 2026-05-10 daily SEO audit (HIGH-impact).
-  alternates: { canonical: 'https://jetmeaway.co.uk' },
+  // NOTE: deliberately NO `alternates.canonical` here. Next.js merges
+  // metadata down the route tree, so a canonical set in this root layout
+  // cascades to every child page that doesn't override it — silently
+  // telling Google that /about, /contact, /privacy etc. are duplicates of
+  // the homepage. Each page now declares its own canonical instead (the
+  // homepage's lives in page.tsx).
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',

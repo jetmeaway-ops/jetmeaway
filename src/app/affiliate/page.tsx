@@ -4,6 +4,7 @@ import Footer from '@/components/Footer';
 export const metadata = {
   title: 'Affiliate Disclosure | JetMeAway',
   description: 'JetMeAway affiliate partnerships and how we earn revenue. Full transparency on our affiliate relationships.',
+  alternates: { canonical: 'https://jetmeaway.co.uk/affiliate' },
 };
 
 export default function AffiliateDisclosure() {

@@ -4,6 +4,7 @@ import Footer from '@/components/Footer';
 export const metadata = {
   title: 'Financial Protection | JetMeAway',
   description: 'How your bookings are financially protected when you book through JetMeAway. ATOL protection, payment security, and your rights.',
+  alternates: { canonical: 'https://jetmeaway.co.uk/financial-protection' },
 };
 
 export default function FinancialProtection() {

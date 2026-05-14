@@ -6,6 +6,7 @@ export const metadata = {
   title: 'About Us | JetMeAway',
   description:
     'JetMeAway is a UK-based travel technology platform. We cut out the middleman on hotels, pass savings directly to you, and never sell your data to hotel marketing lists.',
+  alternates: { canonical: 'https://jetmeaway.co.uk/about' },
 };
 
 export default function About() {

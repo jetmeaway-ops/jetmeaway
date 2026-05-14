@@ -5,6 +5,7 @@ import { PageSchema } from '@/lib/page-schema';
 export const metadata = {
   title: 'Privacy Policy | JetMeAway',
   description: 'How JetMeAway collects, uses, shares and protects your personal data. UK GDPR and Data Protection Act 2018 compliant.',
+  alternates: { canonical: 'https://jetmeaway.co.uk/privacy' },
 };
 
 export default function Privacy() {

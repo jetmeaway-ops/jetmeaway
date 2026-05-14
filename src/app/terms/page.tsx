@@ -5,6 +5,7 @@ import { PageSchema } from '@/lib/page-schema';
 export const metadata = {
   title: 'Terms & Conditions | JetMeAway',
   description: 'Terms of service, booking terms, payment terms, and affiliate disclosure for the JetMeAway travel comparison and booking platform.',
+  alternates: { canonical: 'https://jetmeaway.co.uk/terms' },
 };
 
 export default function Terms() {
