@@ -92,11 +92,17 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     };
 
     type BagSummary = { quantity: number; weight: string | null };
+    type LayoverSummary = {
+      airportCode: string;       // IATA, e.g. "IST"
+      airportName: string;       // city name preferred, falls back to airport name
+      durationMinutes: number;   // gap between this segment's arrival and the next departure
+    };
     type SliceSummary = {
       direction: 'outbound' | 'return';
       fareBrand: string | null;
       cabinClass: string;
       baggage: { carryOn: BagSummary; checked: BagSummary };
+      layovers: LayoverSummary[];
     };
 
     const summariseSlice = (slice: any, direction: 'outbound' | 'return'): SliceSummary => {
@@ -149,6 +155,28 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           ? (slice?.fare_brand_name || paxOnSeg?.cabin_class_marketing_name || null)
           : (slice?.fare_brand_name || null);
 
+      // Layovers — for a multi-segment slice every segment except the last
+      // ends at a connection airport. The layover length is the gap between
+      // that segment's arrival and the next segment's departure. A direct
+      // slice (0 or 1 segment) yields an empty array.
+      const layovers: LayoverSummary[] = [];
+      for (let i = 0; i < segs.length - 1; i++) {
+        const seg = segs[i];
+        const next = segs[i + 1];
+        const arrMs = seg?.arriving_at ? Date.parse(seg.arriving_at) : NaN;
+        const depMs = next?.departing_at ? Date.parse(next.departing_at) : NaN;
+        const durationMinutes =
+          Number.isFinite(arrMs) && Number.isFinite(depMs) && depMs > arrMs
+            ? Math.round((depMs - arrMs) / 60000)
+            : 0;
+        const dest = seg?.destination || {};
+        layovers.push({
+          airportCode: dest.iata_code || '',
+          airportName: dest.city_name || dest.name || dest.iata_code || '',
+          durationMinutes,
+        });
+      }
+
       return {
         direction,
         fareBrand,
@@ -157,6 +185,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           carryOn: { quantity: minCarry, weight: carryWeight },
           checked: { quantity: minChecked, weight: checkedWeight },
         },
+        layovers,
       };
     };
 

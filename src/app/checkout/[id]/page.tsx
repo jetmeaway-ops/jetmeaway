@@ -19,11 +19,17 @@ export const runtime = 'edge';
    ═══════════════════════════════════════════════════════════════════════════ */
 
 type BagSummary = { quantity: number; weight: string | null };
+type LayoverSummary = {
+  airportCode: string;
+  airportName: string;
+  durationMinutes: number;
+};
 type SliceSummary = {
   direction: 'outbound' | 'return';
   fareBrand: string | null;
   cabinClass: string;
   baggage: { carryOn: BagSummary; checked: BagSummary };
+  layovers: LayoverSummary[];
 };
 
 type BaggageService = {
@@ -125,6 +131,23 @@ function fmtDuration(mins: number): string {
 
 function stopsLabel(n: number): string {
   return n === 0 ? 'Direct' : n === 1 ? '1 stop' : `${n} stops`;
+}
+
+/** "Istanbul (IST) · 2h 15m" — the connection airport(s) and how long each
+ *  layover lasts, derived from the slice's segments. Multiple stops join with
+ *  "  ·  ". Returns '' for a direct slice (no layovers). */
+function layoverText(layovers: LayoverSummary[]): string {
+  return layovers
+    .map((l) => {
+      const place = l.airportCode
+        ? `${l.airportName} (${l.airportCode})`
+        : l.airportName;
+      return l.durationMinutes > 0
+        ? `${place} · ${fmtDuration(l.durationMinutes)}`
+        : place;
+    })
+    .filter(Boolean)
+    .join('  ·  ');
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -237,6 +260,8 @@ function LoadingSkeleton() {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function FlightSummary({ offer, compact }: { offer: OfferData; compact?: boolean }) {
+  const outLayovers = offer.slices?.find((s) => s.direction === 'outbound')?.layovers ?? [];
+  const retLayovers = offer.slices?.find((s) => s.direction === 'return')?.layovers ?? [];
   return (
     <div className="bg-white border border-[#E8ECF4] rounded-2xl p-5">
       <div className="flex items-center gap-3 mb-4">
@@ -263,6 +288,11 @@ function FlightSummary({ offer, compact }: { offer: OfferData; compact?: boolean
           <span className={`text-[.58rem] font-black uppercase ${offer.stopsOut === 0 ? 'text-green-600' : 'text-orange-500'}`}>
             {stopsLabel(offer.stopsOut)}
           </span>
+          {outLayovers.length > 0 && (
+            <div className="text-[.56rem] text-[#8E95A9] font-semibold text-center leading-tight">
+              {layoverText(outLayovers)}
+            </div>
+          )}
         </div>
         <div>
           <div className="font-poppins font-black text-[#1A1D2B]">{fmtTime(offer.arrivalAt)}</div>
@@ -282,6 +312,11 @@ function FlightSummary({ offer, compact }: { offer: OfferData; compact?: boolean
             <span className={`text-[.58rem] font-black uppercase ${offer.stopsBack === 0 ? 'text-green-600' : 'text-orange-500'}`}>
               {stopsLabel(offer.stopsBack)}
             </span>
+            {retLayovers.length > 0 && (
+              <div className="text-[.56rem] text-[#8E95A9] font-semibold text-center leading-tight">
+                {layoverText(retLayovers)}
+              </div>
+            )}
           </div>
           <div>
             <div className="font-poppins font-black text-[#1A1D2B]">{fmtTime(offer.returnArrivalAt)}</div>
