@@ -39,6 +39,8 @@ type AncillaryType = typeof VALID_TYPES[number];
 type Body = {
   transactionId?: string;
   id?: string;
+  bookingId?: string;
+  offerId?: string;
   types?: AncillaryType[];
 };
 
@@ -51,7 +53,7 @@ export async function POST(req: NextRequest) {
   }
 
   const transactionId = (body.transactionId || '').trim();
-  const id = (body.id || '').trim();
+  const id = (body.id || body.bookingId || body.offerId || '').trim();
   if (!transactionId) {
     return NextResponse.json({ error: 'transactionId is required' }, { status: 400 });
   }
