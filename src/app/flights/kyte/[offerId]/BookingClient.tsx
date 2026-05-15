@@ -1214,8 +1214,10 @@ function SeatPickerStep({
                             if (!s) return <span key={si} className="w-4" />;
                             const cat = s.category ? cats[s.category] : undefined;
                             const price = cat?.price ?? 0;
-                            const disabled =
-                              !s.available || s.isEmergencyExit || !!s.isRestrictedFor;
+                            // isRestrictedFor is a passenger-type code (e.g. "INF" = no
+                            // infants). For adult-only bookings those seats are still
+                            // pickable — matches kyte-ryanair-smoke.mjs's selection logic.
+                            const disabled = !s.available || s.isEmergencyExit;
                             const isChosen =
                               chosen?.number === s.number && chosen.segmentId === segmentId;
                             return (
@@ -1245,7 +1247,10 @@ function SeatPickerStep({
                                         : 'bg-white text-[#1A1D2B] border-[#E8ECF4] hover:border-[#0066FF]'
                                 }`}
                               >
-                                {s.number.replace(rn, '')}
+                                {/* Strip leading-zero-padded row prefix — Kyte returns
+                                    "01B" for row 1, "27F" for row 27. Display just the
+                                    letter. */}
+                                {s.number.replace(/^0*\d+/, '')}
                               </button>
                             );
                           })}
