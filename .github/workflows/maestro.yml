@@ -143,6 +143,8 @@ jobs:
       # hierarchies on failure, uploaded as a workflow artifact below.
       - name: Run Maestro flows
         working-directory: mobile
+        env:
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: '300000' # 5-min boot ceiling — GHA Mac runners can lag past the 2m 29s default (see maestro-e2e #7)
         run: maestro test .maestro/ --debug-output ../maestro-debug
 
       - name: Upload debug output on failure
