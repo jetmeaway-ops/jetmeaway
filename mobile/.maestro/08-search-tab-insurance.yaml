@@ -1,0 +1,22 @@
+# Smoke: Search tab → "Travel insurance" row → assert WebView loads /insurance
+# with Ekta supplier copy or cover-type pills visible.
+
+appId: uk.co.jetmeaway.app
+---
+- launchApp:
+    clearState: false
+
+- tapOn: "Search"
+- extendedWaitUntil:
+    visible: "FIND YOUR TRIP"
+    timeout: 10000
+
+- assertVisible: "ALSO IN THE APP"
+- tapOn: "Travel insurance"
+
+# Insurance page shows 4 cover types + Ekta Traveling (via Travelpayouts).
+- extendedWaitUntil:
+    visible: ".*(insurance|cover|Single-trip|Annual|Family|Adventure|Ekta).*"
+    timeout: 20000
+- back
+- assertVisible: "FIND YOUR TRIP"

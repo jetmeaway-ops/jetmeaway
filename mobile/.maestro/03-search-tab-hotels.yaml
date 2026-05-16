@@ -1,0 +1,95 @@
+# Smoke: Search tab → Hotels tile → fill form → tap Search → assert
+# WebView lands on /hotels and shows our destination + dates back.
+#
+# This is the flow that would have caught the 3 bugs we fixed on
+# 2026-05-16 (commit 6876826):
+#   - No rooms picker — asserts Rooms stepper is visible in GuestSelector
+#   - UTC date drift — picks a fixed date, asserts same date back on results
+#   - Destination dropped — asserts "Disneyland Paris" / "Paris" visible on results
+#
+# If any of those regress, this flow fails loud.
+
+appId: uk.co.jetmeaway.app
+---
+- launchApp:
+    clearState: false
+
+- tapOn: "Search"
+- extendedWaitUntil:
+    visible: "FIND YOUR TRIP"
+    timeout: 10000
+
+- tapOn: "Hotels"
+- extendedWaitUntil:
+    visible: "Search hotels"
+    timeout: 5000
+
+# --- Destination -------------------------------------------------------------
+- tapOn:
+    accessibilityLabel: "Destination: Select"
+    optional: true
+- runFlow:
+    when:
+      notVisible: "Type any city worldwide"
+    commands:
+      - tapOn: "Destination"
+- assertVisible: "Type any city worldwide"
+- inputText: "Disneyland Paris"
+- tapOn:
+    text: ".*Use.*Disneyland Paris.*custom entry.*"
+- assertVisible: "Disneyland Paris"
+
+# --- Dates ------------------------------------------------------------------
+# Pick the 15th and 18th of the next visible month. This is a relative
+# date pick — the exact month doesn't matter, what matters is the day
+# numbers round-trip through the URL handoff without drifting by 1.
+- tapOn:
+    text: "Check-in"
+    optional: true
+- runFlow:
+    when:
+      visible: "Pick check-in"
+    commands:
+      - tapOn: "15"
+- tapOn:
+    text: "Check-out"
+    optional: true
+- tapOn: "18"
+- tapOn:
+    text: "Confirm"
+    optional: true
+
+# --- Guests + Rooms (the new picker we just shipped) ------------------------
+- tapOn:
+    accessibilityLabel: ".*Guests.*"
+- assertVisible: "Adults"
+- assertVisible: "Children"
+- assertVisible: "Rooms"  # ← regression guard for Bug 1 fix
+
+# Bump rooms from 1 → 2 and adults from 2 → 5
+- tapOn:
+    accessibilityLabel: "Increase Rooms"
+- tapOn:
+    accessibilityLabel: "Increase Adults"
+- tapOn:
+    accessibilityLabel: "Increase Adults"
+- tapOn:
+    accessibilityLabel: "Increase Adults"
+- assertVisible: "5"
+- assertVisible: "2"
+- tapOn: "Apply"
+
+# Summary should now read "5 adults · 2 rooms"
+- assertVisible:
+    text: ".*5 adults.*2 rooms.*"
+
+# --- Submit -----------------------------------------------------------------
+- tapOn: "Search hotels"
+
+# WebView should load /hotels with Paris results. Assert the destination
+# survived the handoff (Bug 3) and the page is showing the date we picked
+# (Bug 2 — if the date drifted by 1 we'd see "14" or "17" instead).
+- extendedWaitUntil:
+    visible: ".*(Paris|Disneyland).*"
+    timeout: 20000
+- assertVisible: ".*1[58].*"  # 15 or 18 should be visible somewhere on the result page

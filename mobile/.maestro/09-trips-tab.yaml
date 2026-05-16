@@ -1,0 +1,30 @@
+# Smoke: Trips tab renders + segmented control works + Scout Lounge
+# card is tappable. Empty-state copy is fine — the assertion is that
+# the tab navigates without crash and the three segments are present.
+
+appId: uk.co.jetmeaway.app
+---
+- launchApp:
+    clearState: false
+
+- tapOn: "Trips"
+- extendedWaitUntil:
+    visible: "YOUR JOURNEYS"
+    timeout: 10000
+
+- assertVisible: "Trips"
+
+# Segmented control — all 3 segments should be present.
+- assertVisible: "Upcoming"
+- assertVisible: "Past"
+- assertVisible: "Saved Searches"
+
+# Switch to Saved Searches — should render either rows or empty state.
+- tapOn: "Saved Searches"
+
+# Switch back to Upcoming.
+- tapOn: "Upcoming"
+
+# Scout Lounge inline card should be tappable.
+- assertVisible:
+    accessibilityLabel: "Open Scout Lounge"

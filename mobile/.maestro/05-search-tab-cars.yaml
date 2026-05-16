@@ -1,0 +1,57 @@
+# Smoke: Search tab → Car hire tile → fill form → tap Search →
+# assert WebView lands on /cars with pickup location present.
+
+appId: uk.co.jetmeaway.app
+---
+- launchApp:
+    clearState: false
+
+- tapOn: "Search"
+- extendedWaitUntil:
+    visible: "FIND YOUR TRIP"
+    timeout: 10000
+
+- tapOn: "Car hire"
+- extendedWaitUntil:
+    visible: "Search cars"
+    timeout: 5000
+
+# --- Pickup -----------------------------------------------------------------
+- tapOn: "Pickup"
+- assertVisible: "Type any city or airport"
+- inputText: "Malaga"
+- tapOn:
+    text: ".*Malaga.*"
+- assertVisible: "Malaga"
+
+# --- Same-location return (default off) -------------------------------------
+- assertVisible: "Return at different location"
+
+# --- Dates ------------------------------------------------------------------
+- tapOn:
+    text: "Pick-up"
+    optional: true
+- runFlow:
+    when:
+      visible: "Pick"
+    commands:
+      - tapOn: "12"
+- tapOn:
+    text: "Drop-off"
+    optional: true
+- tapOn: "19"
+- tapOn:
+    text: "Confirm"
+    optional: true
+
+# --- Driver age -------------------------------------------------------------
+- assertVisible: "DRIVER AGE"
+- tapOn:
+    accessibilityLabel: "Increase driver age"
+
+# --- Submit -----------------------------------------------------------------
+- tapOn: "Search car hire"
+
+- extendedWaitUntil:
+    visible: ".*(Malaga|EconomyBookings|QEEQ|LocalRent|GetRentaCar|Klook|Expedia).*"
+    timeout: 20000

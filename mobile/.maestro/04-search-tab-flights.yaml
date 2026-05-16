@@ -1,0 +1,70 @@
+# Smoke: Search tab → Flights tile → fill Return form → tap Search →
+# assert WebView lands on /flights with origin + destination present.
+
+appId: uk.co.jetmeaway.app
+---
+- launchApp:
+    clearState: false
+
+- tapOn: "Search"
+- extendedWaitUntil:
+    visible: "FIND YOUR TRIP"
+    timeout: 10000
+
+- tapOn: "Flights"
+- extendedWaitUntil:
+    visible: "Search flights"
+    timeout: 5000
+
+# --- Trip mode default: Return -----------------------------------------------
+- assertVisible: "Return"
+- assertVisible: "One-way"
+
+# --- Origin (defaults to first UK_ORIGINS entry, usually London any) --------
+# Just confirm something is pre-filled — don't change it.
+- assertVisible:
+    accessibilityLabel: ".*From.*"
+
+# --- Destination -------------------------------------------------------------
+- tapOn: "To"
+- assertVisible: "Type any city or airport"
+- inputText: "Barcelona"
+- tapOn:
+    text: ".*Barcelona.*"
+- assertVisible: "Barcelona"
+
+# --- Dates ------------------------------------------------------------------
+- tapOn:
+    text: "Depart"
+    optional: true
+- runFlow:
+    when:
+      visible: "Pick depart"
+    commands:
+      - tapOn: "10"
+- tapOn:
+    text: "Return"
+    optional: true
+- tapOn: "17"
+- tapOn:
+    text: "Confirm"
+    optional: true
+
+# --- Passengers -------------------------------------------------------------
+- tapOn:
+    accessibilityLabel: ".*Passengers.*"
+- assertVisible: "Adults"
+- assertVisible: "Children"
+- assertVisible: "Infants"
+- tapOn: "Apply"
+
+# --- Cabin chip -------------------------------------------------------------
+- assertVisible: "CABIN"
+- tapOn: "Economy"
+
+# --- Submit -----------------------------------------------------------------
+- tapOn: "Search flights"
+
+- extendedWaitUntil:
+    visible: ".*Barcelona.*"
+    timeout: 20000

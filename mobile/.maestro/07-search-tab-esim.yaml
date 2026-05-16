@@ -1,0 +1,23 @@
+# Smoke: Search tab → "eSIM data" row → assert WebView loads /esim
+# with the expected supplier copy (Airalo / Yesim) visible.
+
+appId: uk.co.jetmeaway.app
+---
+- launchApp:
+    clearState: false
+
+- tapOn: "Search"
+- extendedWaitUntil:
+    visible: "FIND YOUR TRIP"
+    timeout: 10000
+
+- assertVisible: "ALSO IN THE APP"
+- tapOn: "eSIM data"
+
+# Owner's strict rule: only suppliers we have affiliate links with.
+# eSIM page should show Airalo + Yesim — both via Travelpayouts.
+- extendedWaitUntil:
+    visible: ".*(eSIM|Airalo|Yesim|150\\+ countries).*"
+    timeout: 20000
+- back
+- assertVisible: "FIND YOUR TRIP"

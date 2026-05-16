@@ -6,7 +6,13 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "test:e2e": "maestro test .maestro/",
+    "test:e2e:hotels": "maestro test .maestro/03-search-tab-hotels.yaml",
+    "test:e2e:flights": "maestro test .maestro/04-search-tab-flights.yaml",
+    "test:e2e:cars": "maestro test .maestro/05-search-tab-cars.yaml",
+    "test:e2e:packages": "maestro test .maestro/06-search-tab-packages.yaml",
+    "test:e2e:onboarding": "maestro test .maestro/01-onboarding.yaml"
   },
   "dependencies": {
     "@expo-google-fonts/poppins": "^0.4.1",

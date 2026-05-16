@@ -1,0 +1,41 @@
+# Smoke: Discover tab renders + key carousels load + a category card
+# is tappable. Catches regressions on the home surface (hero copy,
+# deal feeds not loading, broken nav to WebView categories).
+
+appId: uk.co.jetmeaway.app
+---
+- launchApp:
+    clearState: false
+
+# Make sure we're on Discover (it's the default first tab).
+- tapOn:
+    text: "Discover"
+- extendedWaitUntil:
+    visible: "WHERE NEXT?"
+    timeout: 10000
+- assertVisible: "Discover"
+- assertVisible: "Live prices from sixteen suppliers"
+
+# Hot deals carousels should render. The cards themselves are async
+# (Travelpayouts) so we tolerate either the section header alone or
+# a loading state — owner has flagged that "demo-only" assertions are
+# weak, so we assert the section *header* not a specific deal.
+- assertVisible: "Hot flight deals"
+- assertVisible: "Hot hotel deals"
+
+# More to do section has 5 tappable rows. We assert all 5 are
+# present and then prove navigation works on one of them.
+- assertVisible: "More to do"
+- assertVisible: "Car hire"
+- assertVisible: "Holiday packages"
+- assertVisible: "eSIM data"
+- assertVisible: "Travel insurance"
+- assertVisible: "Tours & activities"
+
+# Tap "Tours & activities" → should open the WebView for /explore.
+- tapOn: "Tours & activities"
+- extendedWaitUntil:
+    visible: ".*(experiences|tours|GetYourGuide|Viator|Klook).*"
+    timeout: 15000
+- back
+- assertVisible: "Discover"
