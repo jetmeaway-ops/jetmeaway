@@ -13,7 +13,7 @@ import { Poppins, Playfair_Display, DM_Sans } from 'next/font/google';
 // DeferredWidgets now so their scripts never compete with LCP/FCP. See
 // components/DeferredWidgets.tsx + components/DeferredAnalytics.tsx.
 import DeferredWidgets from '@/components/DeferredWidgets';
-import ScrollToTop from '@/components/ScrollToTop';
+import BackToTopButton from '@/components/BackToTopButton';
 import ClientErrorReporter from '@/components/ClientErrorReporter';
 import AndroidAppBanner from '@/components/AndroidAppBanner';
 
@@ -266,7 +266,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         {children}
         <ClientErrorReporter />
-        <ScrollToTop />
+        <BackToTopButton />
         <AndroidAppBanner />
         <DeferredWidgets />
         {/* Font Awesome — injected client-side during idle time so it never

@@ -9,7 +9,6 @@ import { PageSchema } from '@/lib/page-schema';
 import { CARS_FAQS } from '@/lib/page-faqs';
 import { saveSticky, loadSticky, type StickyCars } from '@/lib/sticky-search';
 import AppStoreBadges from '@/components/AppStoreBadges';
-import BackToTopButton from '@/components/BackToTopButton';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    LOCATIONS — verified EconomyBookings airports
@@ -830,7 +829,6 @@ function CarsContent() {
       </section>
 
       <Footer />
-      <BackToTopButton />
     </>
   );
 }

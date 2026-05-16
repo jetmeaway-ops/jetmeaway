@@ -10,7 +10,6 @@ import { chooseDefaultTab } from '@/lib/silentScout';
 import { vibeTagsForSearchedCity } from '@/data/destinations';
 import { saveSticky, loadSticky, type StickyHotels } from '@/lib/sticky-search';
 import { decodeFromParams, encodeOccupancy } from '@/lib/occupancy';
-import BackToTopButton from '@/components/BackToTopButton';
 // 2026-05-16: pulled occupancy decoder/encoder up to a STATIC import.
 // They used to load via `import('@/lib/occupancy').then(...)` inside the
 // URL-restore effect and inside handleSearch — and the async resolution
@@ -3634,8 +3633,6 @@ function HotelsContent() {
           }}
         />
       )}
-
-      <BackToTopButton />
     </>
   );
 }

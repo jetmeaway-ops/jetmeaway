@@ -1,24 +1,21 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 /**
  * Floating "back to top" button — appears below the fold, smooth-scrolls
  * to top on tap, AND can be dragged anywhere to a comfortable spot.
  *
- * 2026-05-16 — owner ask: "same way we have created scout bot floating".
- * This file deliberately mirrors `ScoutChat.tsx`'s drag handlers
- * 1-for-1 (`onPointerDown`/`onPointerMove`/`onPointerUp` shape,
- * `justDraggedRef` click-suppression, `{ leftPx, bottomPx }` 2D
- * position anchored bottom-left, 4px movement threshold, localStorage
- * persistence with the same v2 naming convention). Two floating things
- * on the page should feel the same.
+ * Mounted once in the root layout so every page gets exactly one.
+ * Hidden on routes where it would overlap a primary CTA (checkout pay
+ * button, account sign-in stack, success-page CTAs).
  *
- * Free-floating (no snap-to-edge) — matches Scout's behaviour. Where
- * the user puts it is where it stays.
- *
- * Drops in anywhere as `<BackToTopButton />` — self-contained, no props.
+ * Mirrors ScoutChat's drag handlers 1-for-1 — same shape, same 4px
+ * threshold, same click-suppression, same 2D persistence.
  */
+
+const HIDE_ON_PREFIXES = ['/checkout', '/hotels/checkout', '/account', '/success'];
 
 const DEFAULT_LEFT_PX = 20;
 const DEFAULT_BOTTOM_PX = 24; // bottom-6 ≈ 24px — matches the old fixed position
@@ -27,6 +24,8 @@ const MIN_EDGE = 16;
 const BTN_PX = 48; // matches w-12 h-12
 
 export default function BackToTopButton() {
+  const pathname = usePathname();
+  const suppressed = HIDE_ON_PREFIXES.some((p) => pathname?.startsWith(p));
   const [visible, setVisible] = useState(false);
 
   // 2D position, restored from localStorage. Anchored bottom-left
@@ -154,6 +153,8 @@ export default function BackToTopButton() {
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
+
+  if (suppressed) return null;
 
   return (
     <button

@@ -259,14 +259,6 @@ export default function HotelDetailPage() {
   // the sticky nav they're deep in the page and need a one-tap escape hatch
   // back to the hero. Fade in after ~600px of scroll — below that the page
   // header is still in view and the button is redundant.
-  const [showBackToTop, setShowBackToTop] = useState(false);
-  useEffect(() => {
-    const onScroll = () => setShowBackToTop(window.scrollY > 600);
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
   // Phase-4: Room detail modal state. We track the offerId (not the rate
   // object) so the modal always reflects the latest row data if the rates
   // array updates under it.
@@ -1739,24 +1731,6 @@ export default function HotelDetailPage() {
       />
 
       <Footer />
-
-      {/* ── Back to top ──
-          Floating round button, fixed bottom-right, only visible once the
-          user has scrolled past the hero. Uses smooth scroll so the jump
-          doesn't feel jarring. Sits above the mobile category bar (z-[101])
-          but below the header menu (z-[200]) and checkout flows. */}
-      <button
-        type="button"
-        aria-label="Back to top"
-        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        style={{ left: '50%', transform: 'translateX(-50%)' }}
-        className={`fixed bottom-6 z-[150] inline-flex items-center gap-2 px-5 py-3 rounded-full bg-[#0066FF] text-white text-[.85rem] font-bold shadow-[0_6px_20px_rgba(0,102,255,0.45)] transition-opacity duration-200 hover:bg-[#0052d6] ${
-          showBackToTop ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
-      >
-        <i className="fa-solid fa-arrow-up text-[.9rem]" aria-hidden />
-        Back to top
-      </button>
     </>
   );
 }

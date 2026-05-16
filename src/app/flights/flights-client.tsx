@@ -7,7 +7,6 @@ import DateMatrixStrip, { type MatrixOption, type ScoutTip } from '@/components/
 import { redirectUrl } from '@/lib/redirect';
 import SaveSearchButton from '@/components/SaveSearchButton';
 import { saveSticky, loadSticky, type StickyFlights } from '@/lib/sticky-search';
-import BackToTopButton from '@/components/BackToTopButton';
 import AppStoreBadges from '@/components/AppStoreBadges';
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -2601,7 +2600,6 @@ function FlightsContent() {
           </div>
         </div>
       </section>
-      <BackToTopButton />
     </>
   );
 }
