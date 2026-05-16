@@ -13,9 +13,14 @@
 #      so the tab bar becomes available
 #   3. Otherwise no-ops and returns control to the calling flow
 #
-# Files prefixed with `_` are NOT picked up by `maestro test <dir>`,
-# so this won't be run as a top-level flow.
+# Maestro requires `appId:` + `---` in every flow file (even sub-flows
+# called via runFlow), so they're included below. The `_` filename
+# prefix DOES still get this file picked up as a top-level run by
+# `maestro test <dir>` — that's fine, it'll just onboard a fresh app
+# and exit cleanly.
 
+appId: uk.co.jetmeaway.app
+---
 - launchApp:
     clearState: false
     permissions:
