@@ -47,7 +47,7 @@ appId: uk.co.jetmeaway.app
 # --- Driver age -------------------------------------------------------------
 - assertVisible: "DRIVER AGE"
 - tapOn:
-    accessibilityLabel: "Increase driver age"
+    text: "Increase driver age"
 
 # --- Submit -----------------------------------------------------------------
 - tapOn: "Search car hire"

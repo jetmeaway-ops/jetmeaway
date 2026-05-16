@@ -23,7 +23,7 @@ appId: uk.co.jetmeaway.app
 # --- Origin (defaults to first UK_ORIGINS entry, usually London any) --------
 # Just confirm something is pre-filled — don't change it.
 - assertVisible:
-    accessibilityLabel: ".*From.*"
+    text: ".*From.*"
 
 # --- Destination -------------------------------------------------------------
 - tapOn: "To"
@@ -52,7 +52,7 @@ appId: uk.co.jetmeaway.app
 
 # --- Passengers -------------------------------------------------------------
 - tapOn:
-    accessibilityLabel: ".*Passengers.*"
+    text: ".*Passengers.*"
 - assertVisible: "Adults"
 - assertVisible: "Children"
 - assertVisible: "Infants"

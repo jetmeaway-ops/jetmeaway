@@ -27,4 +27,4 @@ appId: uk.co.jetmeaway.app
 
 # Scout Lounge inline card should be tappable.
 - assertVisible:
-    accessibilityLabel: "Open Scout Lounge"
+    text: "Open Scout Lounge"

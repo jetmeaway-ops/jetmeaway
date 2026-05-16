@@ -18,7 +18,7 @@ appId: uk.co.jetmeaway.app
 
 # --- Origin (default UK_ORIGINS first entry) --------------------------------
 - assertVisible:
-    accessibilityLabel: ".*From.*"
+    text: ".*From.*"
 
 # --- Destination -------------------------------------------------------------
 - tapOn: "To"
@@ -47,7 +47,7 @@ appId: uk.co.jetmeaway.app
 
 # --- Guests -----------------------------------------------------------------
 - tapOn:
-    accessibilityLabel: ".*Guests.*"
+    text: ".*Guests.*"
 - assertVisible: "Adults"
 - tapOn: "Apply"
 
