@@ -134,11 +134,15 @@ export default function SearchScreen() {
                 pressed && styles.tilePressed,
               ]}
             >
-              <View style={styles.tileIcon}>
-                <Ionicons name={tile.icon} size={26} color={colors.surface} />
+              <View style={[styles.tileIcon, tile.accent === 'brand' ? styles.tileIconOnBrand : styles.tileIconOnLight]}>
+                <Ionicons
+                  name={tile.icon}
+                  size={26}
+                  color={tile.accent === 'brand' ? colors.surfaceInverse : colors.textInverse}
+                />
               </View>
-              <Text style={styles.tileTitle}>{tile.title}</Text>
-              <Text style={styles.tileSub} numberOfLines={2}>{tile.subtitle}</Text>
+              <Text style={[styles.tileTitle, tile.accent === 'navy' && styles.tileTitleOnLight]}>{tile.title}</Text>
+              <Text style={[styles.tileSub, tile.accent === 'navy' && styles.tileSubOnLight]} numberOfLines={2}>{tile.subtitle}</Text>
             </Pressable>
           ))}
         </View>
@@ -211,18 +215,21 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: radii.lg,
-    backgroundColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  tileIconOnBrand: { backgroundColor: 'rgba(255,255,255,0.18)' },
+  tileIconOnLight: { backgroundColor: 'rgba(15,17,25,0.06)' },
   tileTitle: {
     ...typography.h2,
     color: colors.textOnBrand,
   },
+  tileTitleOnLight: { color: colors.textInverse },
   tileSub: {
     ...typography.caption,
     color: 'rgba(255,255,255,0.85)',
   },
+  tileSubOnLight: { color: 'rgba(15,17,25,0.7)' },
 
   sectionLabel: {
     ...typography.overline,
