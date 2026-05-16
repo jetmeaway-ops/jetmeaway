@@ -9,6 +9,27 @@ import { redirectUrl } from '@/lib/redirect';
 import { chooseDefaultTab } from '@/lib/silentScout';
 import { vibeTagsForSearchedCity } from '@/data/destinations';
 import { saveSticky, loadSticky, type StickyHotels } from '@/lib/sticky-search';
+import { decodeFromParams, encodeOccupancy } from '@/lib/occupancy';
+// 2026-05-16: pulled occupancy decoder/encoder up to a STATIC import.
+// They used to load via `import('@/lib/occupancy').then(...)` inside the
+// URL-restore effect and inside handleSearch — and the async resolution
+// caused the iOS Search-tile → Hotels handoff bug:
+//   - URL effect fires `setAdults(4)`, `setChildCount(2)`, `setRooms(2)`
+//     synchronously
+//   - then `import('...').then(...)` schedules `setRoomsArr([2 rooms])`
+//     asynchronously
+//   - handleSearch is recreated when adults/childCount/rooms flush, BUT
+//     its closure captures `roomsArr` while the import is still pending
+//     (still the default `[1 room, 2 adults]`)
+//   - the auto-search effect fires that recreated handleSearch BEFORE
+//     setRoomsArr has flushed → `encodeOccupancy(roomsArr)` sends
+//     `occ=2` (1 room, 2 adults) to /api/hotels → API returns 1-room
+//     price → card shows £42/night × 3 nights when the user asked for
+//     2 rooms × 3 nights worth.
+// Owner reproduced on Build 29 (Milan, Disneyland Paris, etc.) where
+// the direct-website search showed correct multi-room pricing but the
+// tile-handoff path showed 1-room pricing. Sync import + sync decode in
+// the URL effect closes the race.
 import AppStoreBadges from '@/components/AppStoreBadges';
 
 const ScoutSidebar = dynamic(() => import('@/components/ScoutSidebar'), { ssr: false });
@@ -2353,29 +2374,37 @@ function HotelsContent() {
     // matches what the search form just set above. Either way, the
     // picker's source-of-truth `roomsArr` is reconstructed here so the
     // dropdown opens to the right state.
-    import('@/lib/occupancy').then(({ decodeFromParams }) => {
-      const occParam = p.get('occ') ?? sticky?.occ;
-      const ra = decodeFromParams({
-        occ: occParam,
-        adults: a ?? (sticky?.adults != null ? String(sticky.adults) : null),
-        children: c ?? (typeof sticky?.children === 'number' ? String(sticky.children) : null),
-        rooms: r ?? (sticky?.rooms != null ? String(sticky.rooms) : null),
-        childrenAges:
-          p.get('childrenAges') ??
-          (Array.isArray(sticky?.childrenAges) ? sticky!.childrenAges!.join(',') : null),
-      });
-      setRoomsArr(ra);
-      // Re-derive flat counts from the rebuilt roomsArr so they're in
-      // lockstep (legacy URL params may have set them already, but the
-      // decoder normalises caps and could change things).
-      const flatA = ra.reduce((s, r) => s + r.adults, 0);
-      const flatC = ra.reduce((s, r) => s + r.childAges.length, 0);
-      const flatAges = ra.flatMap((r) => r.childAges);
-      setAdults(flatA);
-      setChildCount(flatC);
-      setRooms(ra.length);
-      setChildrenAges(flatAges);
+    //
+    // 2026-05-16 — switched from `import('@/lib/occupancy').then(...)`
+    // to the STATIC `decodeFromParams` import at the top of the file.
+    // The async resolution used to land AFTER the auto-search effect
+    // fired with a stale `roomsArr=[1 room, 2 adults]` closure, so the
+    // iOS tile-handoff path always priced as 1 room even when the URL
+    // said `rooms=2`. Sync decode means setRoomsArr is batched with
+    // setAdults/setChildCount/setRooms in the same render, and the
+    // handleSearch closure recreated for the next render sees the
+    // correct roomsArr before auto-search fires.
+    const occParam = p.get('occ') ?? sticky?.occ;
+    const ra = decodeFromParams({
+      occ: occParam,
+      adults: a ?? (sticky?.adults != null ? String(sticky.adults) : null),
+      children: c ?? (typeof sticky?.children === 'number' ? String(sticky.children) : null),
+      rooms: r ?? (sticky?.rooms != null ? String(sticky.rooms) : null),
+      childrenAges:
+        p.get('childrenAges') ??
+        (Array.isArray(sticky?.childrenAges) ? sticky!.childrenAges!.join(',') : null),
     });
+    setRoomsArr(ra);
+    // Re-derive flat counts from the rebuilt roomsArr so they're in
+    // lockstep (legacy URL params may have set them already, but the
+    // decoder normalises caps and could change things).
+    const flatA = ra.reduce((s, r) => s + r.adults, 0);
+    const flatC = ra.reduce((s, r) => s + r.childAges.length, 0);
+    const flatAges = ra.flatMap((r) => r.childAges);
+    setAdults(flatA);
+    setChildCount(flatC);
+    setRooms(ra.length);
+    setChildrenAges(flatAges);
   }, []);
 
   // Geolocation auto-fill removed 2026-04-27 — real Clarity recording
@@ -2426,9 +2455,7 @@ function HotelsContent() {
     // Persist sticky search. Include both the flat shape (legacy
     // back-compat — old code paths still read it) AND the new `occ`
     // string so the per-room split survives a reload.
-    const occForSticky = await import('@/lib/occupancy').then((m) =>
-      m.encodeOccupancy(roomsArr),
-    );
+    const occForSticky = encodeOccupancy(roomsArr);
     saveSticky<StickyHotels>('hotels', {
       destination,
       placeId: selectedPlaceId || undefined,
@@ -2528,7 +2555,6 @@ function HotelsContent() {
       // the legacy params so server-side back-compat doesn't have to
       // do anything special; the API decoder prefers `occ` when valid
       // and falls back to flat otherwise.
-      const { encodeOccupancy } = await import('@/lib/occupancy');
       const occEncoded = encodeOccupancy(roomsArr);
       if (occEncoded) params.set('occ', occEncoded);
 
@@ -2596,7 +2622,13 @@ function HotelsContent() {
       setApiError('Could not load hotel prices. Please try again.');
       setLoading(false);
     }
-  }, [destination, selectedPlaceId, checkin, checkout, adults, childCount, rooms, minStars, childrenAges]);
+    // 2026-05-16 — `roomsArr` belongs in the deps. handleSearch reads
+    // it (via encodeOccupancy) but it was missing, so the memoised
+    // closure could capture a stale `roomsArr` while flat counts were
+    // already up-to-date. With the URL effect now decoding synchronously,
+    // adding roomsArr here is belt-and-braces. Auto-search guards on
+    // `autoSearched.current` so refiring is safe.
+  }, [destination, selectedPlaceId, checkin, checkout, adults, childCount, rooms, minStars, childrenAges, roomsArr, selectedPlaceCoords, selectedPlaceRadius]);
 
   /**
    * Strip cell click: shift check-in / check-out (stay-length preserved
