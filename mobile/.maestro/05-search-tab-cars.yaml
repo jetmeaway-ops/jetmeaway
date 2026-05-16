@@ -3,8 +3,7 @@
 
 appId: uk.co.jetmeaway.app
 ---
-- launchApp:
-    clearState: false
+- runFlow: _ensure-onboarded.yaml
 
 - tapOn: "Search"
 - extendedWaitUntil:

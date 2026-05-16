@@ -1,0 +1,46 @@
+# Shared sub-flow — call via `runFlow: _ensure-onboarded.yaml` at the
+# top of every tab-flow so each one is self-sufficient.
+#
+# Why: Maestro #3 (commit 54f9759) ran every tab-flow with
+# `launchApp: clearState: false`, expecting the onboarding state to
+# persist from the 01-onboarding flow. It didn't — 9/11 flows failed
+# trying to tap "Discover" / "Search" / "Trips" / "Profile" because
+# the app was still on the Welcome screen.
+#
+# This sub-flow:
+#   1. Launches the app (preserving any existing state)
+#   2. If the Welcome screen is visible, walks the full onboarding
+#      so the tab bar becomes available
+#   3. Otherwise no-ops and returns control to the calling flow
+#
+# Files prefixed with `_` are NOT picked up by `maestro test <dir>`,
+# so this won't be run as a top-level flow.
+
+- launchApp:
+    clearState: false
+    permissions:
+      all: deny
+
+# If Welcome screen shows, run the full onboarding path. Otherwise skip.
+- runFlow:
+    when:
+      visible: "Get Started"
+    commands:
+      - tapOn: "Get Started"
+      - extendedWaitUntil:
+          visible: "STEP 2 OF 4"
+          timeout: 5000
+      - tapOn: "Continue"
+      - extendedWaitUntil:
+          visible: "STEP 3 OF 4"
+          timeout: 5000
+      - tapOn: "Continue"
+      - extendedWaitUntil:
+          visible: "STEP 4 OF 4"
+          timeout: 5000
+      - tapOn: "Skip for now"
+
+# Wait until the Discover tab is reachable (tab bar visible).
+- extendedWaitUntil:
+    visible: "Discover"
+    timeout: 15000

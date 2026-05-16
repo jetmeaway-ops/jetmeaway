@@ -4,8 +4,7 @@
 
 appId: uk.co.jetmeaway.app
 ---
-- launchApp:
-    clearState: false
+- runFlow: _ensure-onboarded.yaml
 
 # Make sure we're on Discover (it's the default first tab).
 - tapOn:
