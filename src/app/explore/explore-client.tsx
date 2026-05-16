@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import DateRangePicker from '@/components/DateRangePicker';
 import { redirectUrl } from '@/lib/redirect';
 import AppStoreBadges from '@/components/AppStoreBadges';
+import BackToTopButton from '@/components/BackToTopButton';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DESTINATIONS
@@ -658,6 +659,7 @@ function ExploreContent() {
         </div>
       </section>
 
+      <BackToTopButton />
     </>
   );
 }

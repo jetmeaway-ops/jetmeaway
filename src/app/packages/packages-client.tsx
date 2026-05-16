@@ -5,6 +5,7 @@ import DateRangePicker from '@/components/DateRangePicker';
 import { redirectUrl } from '@/lib/redirect';
 import { saveSticky, loadSticky, type StickyPackages } from '@/lib/sticky-search';
 import AppStoreBadges from '@/components/AppStoreBadges';
+import BackToTopButton from '@/components/BackToTopButton';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DESTINATIONS (matches hotels page)
@@ -1258,6 +1259,7 @@ function PackagesContent() {
         </div>
       </section>
 
+      <BackToTopButton />
     </>
   );
 }
