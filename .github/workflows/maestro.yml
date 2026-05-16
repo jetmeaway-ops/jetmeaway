@@ -39,6 +39,17 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 45
 
+    # Mirror the EAS production profile's Sentry envs so the iOS build's
+    # Sentry source-maps post-build step doesn't try to upload (and fail
+    # for lack of SENTRY_ORG / auth token). Maestro runs don't need
+    # crash-symbolicated source maps — those are for real customer crashes
+    # off TestFlight/Store builds. Failure mode here was the workflow
+    # passing xcodebuild then exiting 1 in the Sentry CLI step with
+    # "An organization ID or slug is required". See maestro-e2e #1.
+    env:
+      SENTRY_DISABLE_AUTO_UPLOAD: 'true'
+      SENTRY_ALLOW_FAILURE: 'true'
+
     steps:
       - uses: actions/checkout@v4
 
