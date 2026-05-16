@@ -1,10 +1,14 @@
 /**
- * GuestSelector — adults + children-with-ages, returns a list of room
- * occupancies suitable for /api/hotels (LiteAPI multi-room).
+ * GuestSelector — adults + children + rooms picker. Returns a flat
+ * occupancy shape `{ adults, children, rooms }` for /api/hotels.
  *
- * For Phase 6 v1 we keep it single-room (one occupancy) to match the
- * Discover hot-deal default; multi-room support lands when the native
- * results screen ships.
+ * 2026-05-16 — added `rooms` stepper (1-5) after owner reported
+ * "no room option, can't book for 5 adults across 2 rooms". The
+ * comment that used to say "pick Add room on results" was wrong:
+ * the website's room picker is buried inside the result-page
+ * Guests modal and many users never find it. Fronting rooms here
+ * lets the URL hand-off carry the choice straight to the website
+ * search (the /hotels page already reads `?rooms=`).
  */
 
 import { useCallback, useState } from 'react';
@@ -18,9 +22,14 @@ import { haptics } from '../../hooks/useHaptics';
 export type Guests = {
   adults: number;
   children: number;
+  rooms: number;
 };
 
-const LIMITS = { adults: { min: 1, max: 8 }, children: { min: 0, max: 5 } } as const;
+const LIMITS = {
+  adults: { min: 1, max: 8 },
+  children: { min: 0, max: 5 },
+  rooms: { min: 1, max: 5 },
+} as const;
 
 type Props = {
   value: Guests;
@@ -35,6 +44,9 @@ export default function GuestSelector({ value, onChange }: Props) {
     const parts = [`${value.adults} adult${value.adults === 1 ? '' : 's'}`];
     if (value.children > 0) {
       parts.push(`${value.children} child${value.children === 1 ? '' : 'ren'}`);
+    }
+    if (value.rooms > 1) {
+      parts.push(`${value.rooms} rooms`);
     }
     return parts.join(' · ');
   })();
@@ -107,9 +119,17 @@ export default function GuestSelector({ value, onChange }: Props) {
             onMinus={() => adjust('children', -1)}
             onPlus={() => adjust('children', +1)}
           />
+          <View style={{ height: 1, backgroundColor: colors.border }} />
+          <Stepper
+            label="Rooms"
+            sub="Split a large group across multiple rooms"
+            value={draft.rooms}
+            onMinus={() => adjust('rooms', -1)}
+            onPlus={() => adjust('rooms', +1)}
+          />
 
           <Text style={styles.note}>
-            Need a separate room? Save these and pick "Add room" on results.
+            Each room is priced separately. Most hotels accept up to 4 guests per room.
           </Text>
 
           <View style={styles.actions}>

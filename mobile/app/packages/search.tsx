@@ -38,7 +38,7 @@ export default function PackagesSearchScreen() {
   const [origin, setOrigin] = useState<LocationOption | null>(UK_ORIGINS[0] ?? null);
   const [destination, setDestination] = useState<LocationOption | null>(null);
   const [range, setRange] = useState<DateRange>({ depart: null, return: null });
-  const [guests, setGuests] = useState<Guests>({ adults: 2, children: 0 });
+  const [guests, setGuests] = useState<Guests>({ adults: 2, children: 0, rooms: 1 });
 
   const canSearch = !!(origin && destination && range.depart && range.return);
 

@@ -51,7 +51,7 @@ export type HotelFilters = {
 export type HotelFormState = {
   destination: LocationOption | null;
   range: { departISO: string | null; returnISO: string | null };
-  guests: { adults: number; children: number };
+  guests: { adults: number; children: number; rooms: number };
   refundableOnly: boolean;
 };
 
@@ -63,7 +63,7 @@ const DEFAULT_HOTEL_FILTERS: HotelFilters = {
 const DEFAULT_HOTEL_FORM_STATE: HotelFormState = {
   destination: null,
   range: { departISO: null, returnISO: null },
-  guests: { adults: 2, children: 0 },
+  guests: { adults: 2, children: 0, rooms: 1 },
   refundableOnly: false,
 };
 
@@ -146,15 +146,27 @@ export const useSearchContext = create<SearchContextState>()(
       // drift on an old build), fall back to defaults rather than
       // crash the form. Bumping the `name` suffix is the proper fix
       // for incompatible schema changes; this catches accidental drift.
-      version: 1,
-      migrate: (persistedState) => {
+      version: 2,
+      // v1 → v2 (2026-05-16): added `rooms` to hotelFormState.guests.
+      // Old payloads have `{ adults, children }` only; fill rooms=1 so
+      // the new required field doesn't crash the form on first launch
+      // after upgrade.
+      migrate: (persistedState, version) => {
         if (!persistedState || typeof persistedState !== 'object') {
           return {
             hotelFilters: DEFAULT_HOTEL_FILTERS,
             hotelFormState: DEFAULT_HOTEL_FORM_STATE,
           };
         }
-        return persistedState as Partial<SearchContextState>;
+        const s = persistedState as Partial<SearchContextState>;
+        if (version < 2 && s.hotelFormState?.guests) {
+          const g = s.hotelFormState.guests as { adults: number; children: number; rooms?: number };
+          s.hotelFormState = {
+            ...s.hotelFormState,
+            guests: { adults: g.adults, children: g.children, rooms: g.rooms ?? 1 },
+          };
+        }
+        return s;
       },
     },
   ),

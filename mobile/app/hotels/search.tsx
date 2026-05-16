@@ -52,6 +52,20 @@ import { useSearchContext } from '../../src/store/search-context';
 const RECENT_KEY = 'searches:hotels:v2';
 const MAX_RECENTS = 8;
 
+/**
+ * Format a Date as yyyy-mm-dd using LOCAL fields. Using
+ * `toISOString().slice(0,10)` was a UTC-shift bug — a Date at 2026-11-20
+ * 00:00 local (BST = UTC+1) becomes 2026-11-19T23:00:00Z, sliced to
+ * "2026-11-19" → one day earlier. Owner reported the off-by-one on
+ * 2026-05-16. Local fields preserve the calendar day the user picked.
+ */
+function fmtLocalDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 type RecentSearch = {
   destination: LocationOption;
   range: { checkin: string | null; checkout: string | null };
@@ -80,7 +94,16 @@ export default function HotelSearchScreen() {
     depart: persisted.range.departISO ? new Date(persisted.range.departISO) : null,
     return: persisted.range.returnISO ? new Date(persisted.range.returnISO) : null,
   });
-  const [guests, setGuestsLocal] = useState<Guests>(persisted.guests);
+  // Defensive default for `rooms`: a v1-persisted MMKV payload (from
+  // builds prior to 2026-05-16) has no `rooms` field, and the store
+  // migrate fires on rehydrate — but if rehydrate races the first
+  // render we'd render with `rooms: undefined`. Defaulting here
+  // guarantees the GuestSelector summary never shows `undefined rooms`.
+  const [guests, setGuestsLocal] = useState<Guests>({
+    adults: persisted.guests.adults,
+    children: persisted.guests.children,
+    rooms: persisted.guests.rooms ?? 1,
+  });
   const [refundableOnly, setRefundableOnlyLocal] = useState(persisted.refundableOnly);
   const [recents, setRecents] = useState<RecentSearch[]>([]);
 
@@ -101,8 +124,8 @@ export default function HotelSearchScreen() {
         const resolved = typeof next === 'function' ? next(prev) : next;
         setHotelFormState({
           range: {
-            departISO: resolved.depart ? resolved.depart.toISOString().slice(0, 10) : null,
-            returnISO: resolved.return ? resolved.return.toISOString().slice(0, 10) : null,
+            departISO: resolved.depart ? fmtLocalDate(resolved.depart) : null,
+            returnISO: resolved.return ? fmtLocalDate(resolved.return) : null,
           },
         });
         return resolved;
@@ -138,8 +161,8 @@ export default function HotelSearchScreen() {
     const recent: RecentSearch = {
       destination,
       range: {
-        checkin: range.depart.toISOString().slice(0, 10),
-        checkout: range.return.toISOString().slice(0, 10),
+        checkin: fmtLocalDate(range.depart),
+        checkout: fmtLocalDate(range.return),
       },
       guests,
       refundableOnly,
@@ -154,16 +177,39 @@ export default function HotelSearchScreen() {
 
     donateIntent({ kind: 'find-hotels', city: destination.label }).catch(() => {});
 
+    // Safety net for Bug 3 (2026-05-16): owner reported destination
+    // not carrying to the WebView. The /hotels page reads both
+    // `destination` and `city` (hotels-client.tsx:2262), so we set
+    // both as belt-and-braces — if anything strips one mid-flight,
+    // the other still wakes the auto-search.
+    const destCode = (destination.code || destination.label || '').trim();
+    if (!destCode) {
+      // Should be unreachable because canSearch guards against null
+      // destination, but a LocationPicker custom entry with only
+      // whitespace would slip through. Bail loud so we notice.
+      // eslint-disable-next-line no-alert
+      alert('Please pick a destination');
+      return;
+    }
     const params = new URLSearchParams({
-      destination: destination.code,
+      destination: destCode,
+      city: destCode,
       checkin: recent.range.checkin!,
       checkout: recent.range.checkout!,
       adults: String(guests.adults),
+      rooms: String(guests.rooms),
     });
     if (guests.children > 0) params.set('children', String(guests.children));
     if (refundableOnly) params.set('refundable', '1');
 
-    router.push(`/webview/hotels?${params.toString()}`);
+    const url = `/webview/hotels?${params.toString()}`;
+    if (__DEV__) {
+      // Diagnostic for the "destination not carrying" report — lets
+      // us see in the React Native console what URL is actually
+      // handed to the WebView. Strip once Bug 3 is closed out.
+      console.log('[hotels search]', url);
+    }
+    router.push(url);
   }, [canSearch, destination, range, guests, refundableOnly, recents, router]);
 
   const handleRecent = useCallback(
