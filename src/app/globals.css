@@ -3,6 +3,11 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* Force light scheme — site is light-themed (dark hero/footer use explicit
+     Tailwind classes, not media-query swaps). Without this, iOS Safari + Chrome
+     auto-invert form controls under system dark mode → white text on white
+     cards in checkout (Kyte booking form was unreadable 2026-05-16). */
+  color-scheme: light;
 }
 
 @theme inline {
@@ -33,13 +38,6 @@ html .font-\[var\(--font-dm-sans\)\] {
 }
 html .font-\[var\(--next-poppins\)\] {
   font-family: var(--next-poppins), 'Poppins', sans-serif;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
