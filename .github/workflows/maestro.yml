@@ -1,0 +1,164 @@
+# Maestro E2E for the native iOS app.
+#
+# Runs the YAML flows in `mobile/.maestro/` against an iPhone simulator
+# on a macOS GitHub-hosted runner. Builds the app locally with
+# xcodebuild (no EAS quota burned). Same flows that would catch the
+# three Hotels-form bugs from 2026-05-16 (rooms picker, UTC date drift,
+# destination handoff) — pre-EAS, pre-TestFlight.
+#
+# Why macOS runner: the iOS simulator only runs on macOS, and Maestro
+# drives it via xcrun simctl. Free tier gives 200 effective Mac minutes
+# per month (Mac runners count 10×); each run takes ~15-20 min so you
+# get ~10-13 runs/month free. Plenty for daily build verification.
+#
+# Triggers:
+#   - workflow_dispatch  → manual "Run workflow" button
+#   - PR to ios-native-rebuild → blocks merge if any flow fails
+#   - Push to ios-native-rebuild → smoke after merge
+#
+# Add a Maestro Cloud setup later if 200 min/mo isn't enough. For now,
+# local sim + free runner covers the gap that monkey-* leaves open.
+
+name: maestro-e2e
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ios-native-rebuild]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/maestro.yml'
+  push:
+    branches: [ios-native-rebuild]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/maestro.yml'
+
+jobs:
+  ios-sim:
+    runs-on: macos-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      # The pod-install cache speeds re-runs from ~5 min to ~30 sec.
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: |
+            mobile/ios/Pods
+            ~/.cocoapods
+          key: pods-${{ runner.os }}-${{ hashFiles('mobile/package-lock.json') }}
+          restore-keys: |
+            pods-${{ runner.os }}-
+
+      - name: Install mobile dependencies
+        working-directory: mobile
+        run: npm ci --no-audit --no-fund
+
+      # Install Maestro early — fails fast if the CDN's down.
+      - name: Install Maestro CLI
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+
+      - name: Verify Maestro
+        run: maestro --version
+
+      # Boot an iPhone sim BEFORE the long build so Xcode launching it
+      # later doesn't add another 30s of cold-boot.
+      - name: Boot iOS Simulator
+        run: |
+          # Pick a stable device that ships preinstalled on macos-latest.
+          # iPhone 15 Pro is the safest cross-Xcode default.
+          DEVICE_ID=$(xcrun simctl list devices available | grep -m1 "iPhone 15 Pro" | sed 's/.*(\([0-9A-F-]\{36\}\)).*/\1/')
+          if [ -z "$DEVICE_ID" ]; then
+            # Fallback to the first available iPhone.
+            DEVICE_ID=$(xcrun simctl list devices available | grep -m1 "iPhone" | sed 's/.*(\([0-9A-F-]\{36\}\)).*/\1/')
+          fi
+          echo "Booting simulator $DEVICE_ID"
+          xcrun simctl boot "$DEVICE_ID" || true
+          xcrun simctl list devices booted
+
+      # Expo prebuild generates the native ios/ project from app.json.
+      # `--clean` makes sure stale generated files don't carry across runs.
+      # `--no-install` skips pod install — we run it explicitly so the
+      # cache step above is the source of truth.
+      - name: Expo prebuild (iOS)
+        working-directory: mobile
+        run: npx expo prebuild --platform ios --clean --no-install
+
+      - name: Pod install
+        working-directory: mobile/ios
+        run: pod install
+
+      # Build the app for the booted simulator. Release config catches
+      # production-only bugs (e.g. Hermes optimisations) that Debug
+      # would mask. Code signing off — simulators don't verify.
+      - name: Build app for simulator
+        working-directory: mobile/ios
+        run: |
+          xcodebuild \
+            -workspace JetMeAway.xcworkspace \
+            -scheme JetMeAway \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -derivedDataPath build \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
+            | xcbeautify || true
+
+      - name: Install app on simulator
+        working-directory: mobile/ios
+        run: |
+          APP_PATH=$(find build -name "JetMeAway.app" -type d | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "No .app produced — failing"
+            find build -name "*.app" -type d
+            exit 1
+          fi
+          echo "Installing $APP_PATH"
+          xcrun simctl install booted "$APP_PATH"
+
+      # Maestro flows live in mobile/.maestro/. The config.yaml there
+      # lists run order. `--debug-output` captures screenshots + view
+      # hierarchies on failure, uploaded as a workflow artifact below.
+      - name: Run Maestro flows
+        working-directory: mobile
+        run: maestro test .maestro/ --debug-output ../maestro-debug
+
+      - name: Upload debug output on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-debug-${{ github.run_id }}
+          path: maestro-debug/
+          retention-days: 7
+
+      # Always upload simctl screen recording so successful runs still
+      # surface UI weirdness (frozen frames, layout breakage) that
+      # passing flows could miss.
+      - name: Capture simulator screen recording
+        if: always()
+        continue-on-error: true
+        run: |
+          xcrun simctl io booted recordVideo --codec=h264 maestro-run.mp4 &
+          PID=$!
+          sleep 1
+          kill $PID 2>/dev/null || true
+
+      - name: Upload screen recording
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulator-recording-${{ github.run_id }}
+          path: maestro-run.mp4
+          retention-days: 3
