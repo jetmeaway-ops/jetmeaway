@@ -64,7 +64,7 @@ export default function TabsLayout() {
         options={{
           title: TAB_ICONS.discover.label,
           tabBarTestID: 'tab-discover',
-          tabBarAccessibilityLabel: 'Discover tab',
+          tabBarAccessibilityLabel: 'DiscoverTab',
           tabBarIcon: ({ focused, color, size }) => (
             <Ionicons
               name={focused ? TAB_ICONS.discover.active : TAB_ICONS.discover.inactive}
@@ -79,7 +79,7 @@ export default function TabsLayout() {
         options={{
           title: TAB_ICONS.search.label,
           tabBarTestID: 'tab-search',
-          tabBarAccessibilityLabel: 'Search tab',
+          tabBarAccessibilityLabel: 'SearchTab',
           tabBarIcon: ({ focused, color, size }) => (
             <Ionicons
               name={focused ? TAB_ICONS.search.active : TAB_ICONS.search.inactive}
@@ -94,7 +94,7 @@ export default function TabsLayout() {
         options={{
           title: TAB_ICONS.trips.label,
           tabBarTestID: 'tab-trips',
-          tabBarAccessibilityLabel: 'Trips tab',
+          tabBarAccessibilityLabel: 'TripsTab',
           tabBarIcon: ({ focused, color, size }) => (
             <Ionicons
               name={focused ? TAB_ICONS.trips.active : TAB_ICONS.trips.inactive}
@@ -109,7 +109,7 @@ export default function TabsLayout() {
         options={{
           title: TAB_ICONS.profile.label,
           tabBarTestID: 'tab-profile',
-          tabBarAccessibilityLabel: 'Profile tab',
+          tabBarAccessibilityLabel: 'ProfileTab',
           tabBarIcon: ({ focused, color, size }) => (
             <Ionicons
               name={focused ? TAB_ICONS.profile.active : TAB_ICONS.profile.inactive}

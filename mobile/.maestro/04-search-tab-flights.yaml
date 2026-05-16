@@ -6,7 +6,7 @@ appId: uk.co.jetmeaway.app
 - runFlow: _ensure-onboarded.yaml
 
 - tapOn:
-    id: "tab-search"
+    id: "SearchTab"
 - extendedWaitUntil:
     visible: "FIND YOUR TRIP"
     timeout: 10000
