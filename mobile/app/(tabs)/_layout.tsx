@@ -54,10 +54,17 @@ export default function TabsLayout() {
         tabBarHideOnKeyboard: true,
       }}
     >
+      {/* `tabBarTestID` + `tabBarAccessibilityLabel` give Maestro a
+          stable selector for each bottom tab. Tab labels alone aren't
+          findable in the iOS accessibility tree from text-match
+          alone (see Maestro #5/#6, 2026-05-16). With these set, the
+          flow YAMLs use `tapOn: { id: "tab-search" }` and it works. */}
       <Tabs.Screen
         name="discover"
         options={{
           title: TAB_ICONS.discover.label,
+          tabBarTestID: 'tab-discover',
+          tabBarAccessibilityLabel: 'Discover tab',
           tabBarIcon: ({ focused, color, size }) => (
             <Ionicons
               name={focused ? TAB_ICONS.discover.active : TAB_ICONS.discover.inactive}
@@ -71,6 +78,8 @@ export default function TabsLayout() {
         name="search"
         options={{
           title: TAB_ICONS.search.label,
+          tabBarTestID: 'tab-search',
+          tabBarAccessibilityLabel: 'Search tab',
           tabBarIcon: ({ focused, color, size }) => (
             <Ionicons
               name={focused ? TAB_ICONS.search.active : TAB_ICONS.search.inactive}
@@ -84,6 +93,8 @@ export default function TabsLayout() {
         name="trips"
         options={{
           title: TAB_ICONS.trips.label,
+          tabBarTestID: 'tab-trips',
+          tabBarAccessibilityLabel: 'Trips tab',
           tabBarIcon: ({ focused, color, size }) => (
             <Ionicons
               name={focused ? TAB_ICONS.trips.active : TAB_ICONS.trips.inactive}
@@ -97,6 +108,8 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: TAB_ICONS.profile.label,
+          tabBarTestID: 'tab-profile',
+          tabBarAccessibilityLabel: 'Profile tab',
           tabBarIcon: ({ focused, color, size }) => (
             <Ionicons
               name={focused ? TAB_ICONS.profile.active : TAB_ICONS.profile.inactive}
