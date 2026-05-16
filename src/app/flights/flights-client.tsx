@@ -1418,33 +1418,57 @@ function FlightsContent() {
     // this route (Jet2/easyJet/IndiGo/Wizz/Transavia/Volotea/Ryanair).
     // Kyte rows are direct-bookable (we keep margin) — same tier as
     // Duffel, displayed on top above any TP affiliate redirect.
-    const kytePromise = fetch('/api/flights/kyte/search', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        origin: originCode,
-        destination: destCode,
-        departure: depDate,
-        adults,
-        children,
-        infants,
-        cabin: cabinClass === 'premium_economy' ? 'economy' : cabinClass,
-        return: retDate && tripType === 'return' ? retDate : null,
-      }),
-    })
-      .then(r => r.json())
-      .then((data: KyteRawSearchResponse & { error?: string }) => {
-        if (!data || data.error || !data.offers) return;
-        const txId = data.transactionId || '';
-        if (!txId) return;
-        const rows = kyteOffersToFlightResults(data, txId);
-        for (const f of rows) {
-          const depDay = (f.departure_at || '').slice(0, 10);
-          const key = f.flight_number
-            ? `${f.flight_number}-${depDay}`
-            : `${f.airlineCode}-${depDay}-${f.duration_to}`;
-          mergeFlightRow(mergedByKey, f, key);
+    //
+    // Metro fan-out: Kyte rejects city codes like LON/NYC/PAR with
+    // `MultiAirportCityRequestNotAllowed`. When origin or destination is
+    // a metro code we fan out across all sub-airports in parallel so
+    // Ryanair STN→DUB etc. surface for "London (Any)" searches.
+    const originGroup = CITY_GROUPS.find(g => g.code === originCode);
+    const destGroup = CITY_GROUPS.find(g => g.code === destCode);
+    const kyteOriginAirports = originGroup ? originGroup.airports : [originCode];
+    const kyteDestAirports = destGroup ? destGroup.airports : [destCode];
+    const kyteOdPairs: Array<{ origin: string; destination: string }> = [];
+    for (const o of kyteOriginAirports) {
+      for (const d of kyteDestAirports) {
+        kyteOdPairs.push({ origin: o, destination: d });
+      }
+    }
+
+    const kytePromise = Promise.all(kyteOdPairs.map(({ origin, destination }) =>
+      fetch('/api/flights/kyte/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          origin,
+          destination,
+          departure: depDate,
+          adults,
+          children,
+          infants,
+          cabin: cabinClass === 'premium_economy' ? 'economy' : cabinClass,
+          return: retDate && tripType === 'return' ? retDate : null,
+        }),
+      })
+        .then(r => r.json() as Promise<KyteRawSearchResponse & { error?: string }>)
+        .catch(() => null)
+    ))
+      .then((responses) => {
+        let any = false;
+        for (const data of responses) {
+          if (!data || data.error || !data.offers) continue;
+          const txId = data.transactionId || '';
+          if (!txId) continue;
+          const rows = kyteOffersToFlightResults(data, txId);
+          for (const f of rows) {
+            const depDay = (f.departure_at || '').slice(0, 10);
+            const key = f.flight_number
+              ? `${f.flight_number}-${depDay}`
+              : `${f.airlineCode}-${depDay}-${f.duration_to}`;
+            mergeFlightRow(mergedByKey, f, key);
+            any = true;
+          }
         }
+        if (!any) return;
         const merged = mergeFlightsKeepAllDuffel(Array.from(mergedByKey.values()));
         setFlights(merged);
         setScoutAirlineCount(new Set(merged.map(f => f.airlineCode)).size);
