@@ -62,6 +62,11 @@ scripts/*.local.json
 scripts/broadcast-contacts*.json
 !scripts/broadcast-contacts.example.json
 
+# 3D source assets from CGTrader / Sketchfab — ~1.8 GB of raw FBX/OBJ/MAX
+# files we processed into /public/3d/*.glb deliverables. Keep the .glb,
+# leave the source out (paid licence we don't redistribute + repo bloat).
+public/3d/cgtrader/
+
 # Claude Code memory snapshot — human-readable mirror of ~/.claude/projects/...
 # Contains private notes, customer phone numbers, partner deal terms.
 # NEVER commit. Live source of truth lives in ~/.claude/ (also gitignored above).
