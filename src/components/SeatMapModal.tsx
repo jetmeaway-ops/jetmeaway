@@ -20,6 +20,20 @@
  */
 
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
+import { computeSeatPositions } from '@/lib/cabin3d-mapping';
+import ErrorBoundary from './ErrorBoundary';
+
+// Lazy-loaded 3D cabin preview. Three.js bundle (~600kb gzipped) only ships
+// when the user actually opens the seat-map modal AND a real seat map exists.
+const CabinPreview3D = dynamic(() => import('./CabinPreview3D'), {
+  ssr: false,
+  loading: () => (
+    <div className="rounded-xl border border-[#E8ECF4] bg-[#0a0d14] h-[240px] md:h-[320px] flex items-center justify-center">
+      <div className="w-6 h-6 border-2 border-white/20 border-t-white/70 rounded-full animate-spin" aria-label="Loading 3D preview" />
+    </div>
+  ),
+});
 
 /* ─────────────────────────── Types (mirror API) ─────────────────────────── */
 
@@ -521,6 +535,24 @@ export default function SeatMapModal({
     return map;
   }, [activeSegment]);
 
+  /* 3D positions for CabinPreview3D — derived from the same cabin data the
+     2D grid uses, so 2D and 3D always agree. Rebuilt only when the segment
+     or passenger changes, NOT on every selection flip (selection is passed
+     as `selectedDesignator3D` separately). */
+  const seat3DPositions = useMemo(() => {
+    if (!activeSegment || !activePassenger) return [];
+    return computeSeatPositions(activeSegment.cabins, activePassenger.id);
+  }, [activeSegment, activePassenger]);
+
+  /* The current passenger's selected designator on this segment, or null. */
+  const selectedDesignator3D = useMemo(() => {
+    if (!activeSegment || !activePassenger) return null;
+    return (
+      selections.get(seatKey(activeSegment.segmentId, activePassenger.id))
+        ?.designator ?? null
+    );
+  }, [selections, activeSegment, activePassenger]);
+
   /* ── Seat-click handler ─────────────────────────────────────────────
      Stable across renders (only rebinds when segment/passenger changes).
      Seat components wrapped in React.memo can therefore skip re-rendering
@@ -679,6 +711,20 @@ export default function SeatMapModal({
 
           {!loading && !error && !noSeatMap && activeSegment && activePassenger && (
             <div className="px-5 md:px-7 py-5">
+              {/* 3D cabin preview — clickable, syncs with 2D selection.
+                  Wrapped in ErrorBoundary so if three.js or the GLB pipeline
+                  fails (bad data, WebGL context lost, etc.) the rest of the
+                  modal stays usable — customer never loses the 2D picker. */}
+              <ErrorBoundary fallback={null}>
+                <div className="mb-4">
+                  <CabinPreview3D
+                    seats={seat3DPositions}
+                    selectedDesignator={selectedDesignator3D}
+                    onSeatClick={handleSeatSelect}
+                  />
+                </div>
+              </ErrorBoundary>
+
               {/* Passenger switcher */}
               <div className="flex items-center justify-between mb-4 gap-3">
                 <div className="flex items-center gap-2 flex-wrap">
