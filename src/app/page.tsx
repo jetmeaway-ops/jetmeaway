@@ -2,6 +2,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import RotatingReviews from '@/components/RotatingReviews';
 import AppStoreBadges from '@/components/AppStoreBadges';
+import HeroGlobe3DLoader from '@/components/HeroGlobe3DLoader';
 import { LazyFlightSearch, LazyPopularDestinations, LazyTestimonials } from './homepage-client';
 
 // Homepage canonical. Declared here (not the root layout) so it doesn't
@@ -402,10 +403,12 @@ export default function Home() {
           min-h dropped from 600/700 to 480/620 — content height is
           ~430px so we no longer reserve dead space below the wizard. */}
       <section className="relative pt-32 md:pt-40 pb-12 px-6 overflow-hidden bg-[#0a1628] md:bg-[linear-gradient(160deg,#0a1628_0%,#1a2744_50%,#0f1e36_100%)] min-h-[480px] md:min-h-[620px]">
-        {/* Floating decorations — static geometric shapes only. md:block
-            keeps them off mobile entirely (zero cost on the slow viewport). */}
-        <div className="absolute top-32 right-[15%] w-48 h-48 rounded-2xl border border-white/5 bg-white/5 rotate-12 hidden md:block" aria-hidden="true" />
-        <div className="absolute bottom-20 left-[8%] w-36 h-36 rounded-2xl border border-white/5 bg-white/5 -rotate-6 hidden md:block" aria-hidden="true" />
+        {/* Background 3D globe — desktop-only, pointer-events disabled.
+            Loader is a 'use client' wrapper that does the dynamic import
+            with ssr:false (Next 16 forbids ssr:false dynamic in server
+            components, so the wrapper is required). Three.js (~600KB)
+            stays off the initial bundle and never blocks LCP. */}
+        <HeroGlobe3DLoader />
 
         <div className="max-w-[800px] mx-auto text-center relative z-[1]">
           <p className="font-[var(--font-dm-sans)] text-orange-300 text-[.72rem] font-bold uppercase tracking-[3px] mb-4">UK&apos;s Smartest Travel Comparison</p>
