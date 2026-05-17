@@ -33,7 +33,6 @@ type SearchTile = {
   id: string;
   lottie: number; // require() returns numeric module id
   title: string;
-  subtitle: string;
   route: string;
   accent: 'brand' | 'navy';
 };
@@ -43,7 +42,6 @@ const PRIMARY_TILES: SearchTile[] = [
     id: 'flights',
     lottie: require('../../assets/lottie/flights.json'),
     title: 'Flights',
-    subtitle: 'Direct + connections from 15+ feeds',
     route: '/flights/search',
     accent: 'brand',
   },
@@ -51,15 +49,13 @@ const PRIMARY_TILES: SearchTile[] = [
     id: 'hotels',
     lottie: require('../../assets/lottie/hotels.json'),
     title: 'Hotels',
-    subtitle: 'Live rates, refundable filter, 90s checkout',
     route: '/hotels/search',
     accent: 'navy',
   },
   {
     id: 'cars',
     lottie: require('../../assets/lottie/cars.json'),
-    title: 'Car hire',
-    subtitle: 'Compare 7 providers · one-way OK',
+    title: 'Cars',
     route: '/cars/search',
     accent: 'navy',
   },
@@ -67,7 +63,6 @@ const PRIMARY_TILES: SearchTile[] = [
     id: 'packages',
     lottie: require('../../assets/lottie/packages.json'),
     title: 'Packages',
-    subtitle: 'Flight + hotel bundles, ATOL via partner',
     route: '/packages/search',
     accent: 'brand',
   },
@@ -135,15 +130,20 @@ export default function SearchScreen() {
                 pressed && styles.tilePressed,
               ]}
             >
+              {/* Lottie fills the entire tile as a background layer. */}
               <LottieView
                 source={tile.lottie as never}
                 autoPlay
                 loop
-                style={styles.tileLottie}
+                style={StyleSheet.absoluteFillObject}
                 resizeMode="cover"
               />
-              <Text style={[styles.tileTitle, tile.accent === 'navy' && styles.tileTitleOnLight]}>{tile.title}</Text>
-              <Text style={[styles.tileSub, tile.accent === 'navy' && styles.tileSubOnLight]} numberOfLines={2}>{tile.subtitle}</Text>
+              {/* Bottom scrim so the title stays readable over any Lottie
+                  colour palette. */}
+              <View style={styles.tileScrim} pointerEvents="none" />
+              <View style={styles.tileTextOverlay} pointerEvents="none">
+                <Text style={styles.tileTitleOver}>{tile.title.toUpperCase()}</Text>
+              </View>
             </Pressable>
           ))}
         </View>
@@ -205,30 +205,38 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     aspectRatio: 1.05,
     borderRadius: radii.xl,
-    padding: spacing.md,
-    gap: spacing.sm,
-    justifyContent: 'space-between',
+    overflow: 'hidden', // keep absolute-fill Lottie inside the rounded corners
+    position: 'relative',
   },
   tileBrand: { backgroundColor: colors.brand },
   tileNavy: { backgroundColor: colors.surfaceInverse },
-  tilePressed: { opacity: 0.85 },
-  // Lottie animation replaces the static Ionicon block.
-  // Sized generous so the illustration reads in a half-width tile.
-  tileLottie: {
-    width: 72,
-    height: 72,
-    marginLeft: -6, // bleed slightly left so transparent padding feels balanced
+  tilePressed: { opacity: 0.9 },
+  // Bottom-anchored solid scrim so the title stays legible over any
+  // Lottie palette. Covers the lower ~40% of the tile with a dark
+  // semi-transparent fill — Lottie still visible underneath.
+  tileScrim: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '40%',
+    backgroundColor: 'rgba(10,17,30,0.72)',
   },
-  tileTitle: {
+  tileTextOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    alignItems: 'center',
+  },
+  tileTitleOver: {
     ...typography.h2,
-    color: colors.textOnBrand,
+    color: '#FFFFFF',
+    letterSpacing: 2,
+    textAlign: 'center',
   },
-  tileTitleOnLight: { color: colors.textInverse },
-  tileSub: {
-    ...typography.caption,
-    color: 'rgba(255,255,255,0.85)',
-  },
-  tileSubOnLight: { color: 'rgba(15,17,25,0.7)' },
 
   sectionLabel: {
     ...typography.overline,
