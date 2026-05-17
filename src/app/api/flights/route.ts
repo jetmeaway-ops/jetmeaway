@@ -235,25 +235,34 @@ async function searchTravelpayouts(
     );
   }
 
-  queries.push(
-    fetch(`https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${depDate}&currency=gbp&sorting=price&limit=30&market=gb&one_way=true&token=${TP_TOKEN}`, { headers })
-      .then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] }))
-  );
-  queries.push(
-    fetch(`https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${depDate}&currency=gbp&sorting=price&limit=10&market=gb&one_way=true&direct=true&token=${TP_TOKEN}`, { headers })
-      .then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] }))
-  );
+  // Only fire one-way queries when the user actually wants a one-way.
+  // On return searches these were polluting the pool with cheaper 1-leg
+  // rows that out-priced the 2-leg returns and consumed the 20-row cap,
+  // leaving return searches with only a handful of (often indirect) hits.
+  if (!retDate) {
+    queries.push(
+      fetch(`https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${depDate}&currency=gbp&sorting=price&limit=30&market=gb&one_way=true&token=${TP_TOKEN}`, { headers })
+        .then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] }))
+    );
+    queries.push(
+      fetch(`https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origin}&destination=${destination}&departure_at=${depDate}&currency=gbp&sorting=price&limit=10&market=gb&one_way=true&direct=true&token=${TP_TOKEN}`, { headers })
+        .then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] }))
+    );
+  }
 
   const results = await Promise.all(queries);
 
-  // Deduplicate
+  // Deduplicate. Key MUST include return_at so a one-way row and a
+  // round-trip row on the same flight number / date don't collide
+  // (cheaper one-way would otherwise overwrite the return itinerary).
   const bestByKey = new Map<string, any>();
   for (const res of results) {
     for (const f of (res.data || [])) {
       const depDay = (f.departure_at || '').slice(0, 10);
+      const retDay = (f.return_at || '').slice(0, 10) || 'ow';
       const key = f.flight_number
-        ? `${f.flight_number}-${depDay}`
-        : `${f.airline}-${depDay}-${f.duration_to}`;
+        ? `${f.flight_number}-${depDay}-${retDay}`
+        : `${f.airline}-${depDay}-${f.duration_to}-${retDay}`;
       const existing = bestByKey.get(key);
       if (!existing || f.price < existing.price) {
         bestByKey.set(key, f);
@@ -629,10 +638,11 @@ export async function GET(req: NextRequest) {
   }
 
   // Check cache (include children/infants so mixed-party searches don't collide)
-  // v5 — bumped 2026-04-18 when Travelpayouts limits were raised (10→30)
-  // and a dedicated direct-only pull was added. Old v4 entries would
-  // otherwise serve stale 6-flight results for up to 30 min post-deploy.
-  const kvKey = `flights:v5:${origin}:${destination}:${depDate}:${retDate || 'ow'}:${adults}c${children}i${infants}:${cabinClass}`;
+  // v6 — bumped 2026-05-17 when the dedupe key was extended to include
+  // return_at and one-way TP queries were gated behind !retDate.
+  // Old v5 return-trip entries would otherwise serve stale results where
+  // cheaper one-way rows had overwritten the round-trip itineraries.
+  const kvKey = `flights:v6:${origin}:${destination}:${depDate}:${retDate || 'ow'}:${adults}c${children}i${infants}:${cabinClass}`;
   try {
     const cached = await kv.get<any>(kvKey);
     if (cached) return NextResponse.json({ ...cached, cached: true });
@@ -651,21 +661,28 @@ export async function GET(req: NextRequest) {
 
     const [duffelFlights, tpFlights] = await Promise.all([duffelPromise, tpPromise]);
 
-    // Merge & deduplicate: prefer Duffel (live prices) over Travelpayouts for same flight
+    // Merge & deduplicate: prefer Duffel (live prices) over Travelpayouts for same flight.
+    // Key MUST include return_at — otherwise a one-way row collides with the
+    // round-trip row sharing the same outbound flight number, and the cheaper
+    // one-way silently overwrites the return itinerary.
     const seen = new Map<string, any>();
     for (const f of duffelFlights) {
+      const depDay = (f.departure_at || '').slice(0, 10);
+      const retDay = (f.return_at || '').slice(0, 10) || 'ow';
       const key = f.flight_number
-        ? `${f.flight_number}-${(f.departure_at || '').slice(0, 10)}`
-        : `${f.airlineCode}-${(f.departure_at || '').slice(0, 10)}-${f.duration_to}`;
+        ? `${f.flight_number}-${depDay}-${retDay}`
+        : `${f.airlineCode}-${depDay}-${f.duration_to}-${retDay}`;
       const existing = seen.get(key);
       if (!existing || f.price < existing.price) {
         seen.set(key, f);
       }
     }
     for (const f of tpFlights) {
+      const depDay = (f.departure_at || '').slice(0, 10);
+      const retDay = (f.return_at || '').slice(0, 10) || 'ow';
       const key = f.flight_number
-        ? `${f.flight_number}-${(f.departure_at || '').slice(0, 10)}`
-        : `${f.airlineCode}-${(f.departure_at || '').slice(0, 10)}-${f.duration_to}`;
+        ? `${f.flight_number}-${depDay}-${retDay}`
+        : `${f.airlineCode}-${depDay}-${f.duration_to}-${retDay}`;
       if (!seen.has(key)) {
         seen.set(key, f);
       }

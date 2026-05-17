@@ -1424,9 +1424,10 @@ function FlightsContent() {
         if (!data || data.error || !data.flights) return;
         for (const f of data.flights) {
           const depDay = (f.departure_at || '').slice(0, 10);
+          const retDay = (f.return_at || '').slice(0, 10) || 'ow';
           const key = f.flight_number
-            ? `${f.flight_number}-${depDay}`
-            : `${f.airlineCode}-${depDay}-${f.duration_to}`;
+            ? `${f.flight_number}-${depDay}-${retDay}`
+            : `${f.airlineCode}-${depDay}-${f.duration_to}-${retDay}`;
           mergeFlightRow(mergedByKey, f, key);
         }
         // Render immediately if v1 hasn't surfaced anything yet.
@@ -1486,9 +1487,10 @@ function FlightsContent() {
           const rows = kyteOffersToFlightResults(data, txId);
           for (const f of rows) {
             const depDay = (f.departure_at || '').slice(0, 10);
+            const retDay = (f.return_at || '').slice(0, 10) || 'ow';
             const key = f.flight_number
-              ? `${f.flight_number}-${depDay}`
-              : `${f.airlineCode}-${depDay}-${f.duration_to}`;
+              ? `${f.flight_number}-${depDay}-${retDay}`
+              : `${f.airlineCode}-${depDay}-${f.duration_to}-${retDay}`;
             mergeFlightRow(mergedByKey, f, key);
             any = true;
           }
@@ -1556,9 +1558,10 @@ function FlightsContent() {
         const before = mergedByKey.size;
         for (const f of (pollData.flights || []) as FlightResult[]) {
           const depDay = (f.departure_at || '').slice(0, 10);
+          const retDay = (f.return_at || '').slice(0, 10) || 'ow';
           const key = f.flight_number
-            ? `${f.flight_number}-${depDay}`
-            : `${f.airlineCode}-${depDay}-${f.duration_to}`;
+            ? `${f.flight_number}-${depDay}-${retDay}`
+            : `${f.airlineCode}-${depDay}-${f.duration_to}-${retDay}`;
           // Single source of truth — mergeFlightRow preserves the
           // direct-bookable-tier-wins rule (Duffel + Kyte beat TP
           // affiliate regardless of price). Among same-tier collisions,
