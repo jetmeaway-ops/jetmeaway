@@ -22,6 +22,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import LottieView from 'lottie-react-native';
 import { useRouter } from 'expo-router';
 
 import { Card } from '../../src/components/primitives';
@@ -30,7 +31,7 @@ import { haptics } from '../../src/hooks/useHaptics';
 
 type SearchTile = {
   id: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  lottie: number; // require() returns numeric module id
   title: string;
   subtitle: string;
   route: string;
@@ -40,7 +41,7 @@ type SearchTile = {
 const PRIMARY_TILES: SearchTile[] = [
   {
     id: 'flights',
-    icon: 'airplane',
+    lottie: require('../../assets/lottie/flights.json'),
     title: 'Flights',
     subtitle: 'Direct + connections from 15+ feeds',
     route: '/flights/search',
@@ -48,7 +49,7 @@ const PRIMARY_TILES: SearchTile[] = [
   },
   {
     id: 'hotels',
-    icon: 'bed',
+    lottie: require('../../assets/lottie/hotels.json'),
     title: 'Hotels',
     subtitle: 'Live rates, refundable filter, 90s checkout',
     route: '/hotels/search',
@@ -56,7 +57,7 @@ const PRIMARY_TILES: SearchTile[] = [
   },
   {
     id: 'cars',
-    icon: 'car',
+    lottie: require('../../assets/lottie/cars.json'),
     title: 'Car hire',
     subtitle: 'Compare 7 providers · one-way OK',
     route: '/cars/search',
@@ -64,7 +65,7 @@ const PRIMARY_TILES: SearchTile[] = [
   },
   {
     id: 'packages',
-    icon: 'gift',
+    lottie: require('../../assets/lottie/packages.json'),
     title: 'Packages',
     subtitle: 'Flight + hotel bundles, ATOL via partner',
     route: '/packages/search',
@@ -134,13 +135,13 @@ export default function SearchScreen() {
                 pressed && styles.tilePressed,
               ]}
             >
-              <View style={[styles.tileIcon, tile.accent === 'brand' ? styles.tileIconOnBrand : styles.tileIconOnLight]}>
-                <Ionicons
-                  name={tile.icon}
-                  size={26}
-                  color={tile.accent === 'brand' ? colors.surfaceInverse : colors.textInverse}
-                />
-              </View>
+              <LottieView
+                source={tile.lottie as never}
+                autoPlay
+                loop
+                style={styles.tileLottie}
+                resizeMode="cover"
+              />
               <Text style={[styles.tileTitle, tile.accent === 'navy' && styles.tileTitleOnLight]}>{tile.title}</Text>
               <Text style={[styles.tileSub, tile.accent === 'navy' && styles.tileSubOnLight]} numberOfLines={2}>{tile.subtitle}</Text>
             </Pressable>
@@ -211,15 +212,13 @@ const styles = StyleSheet.create({
   tileBrand: { backgroundColor: colors.brand },
   tileNavy: { backgroundColor: colors.surfaceInverse },
   tilePressed: { opacity: 0.85 },
-  tileIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
+  // Lottie animation replaces the static Ionicon block.
+  // Sized generous so the illustration reads in a half-width tile.
+  tileLottie: {
+    width: 72,
+    height: 72,
+    marginLeft: -6, // bleed slightly left so transparent padding feels balanced
   },
-  tileIconOnBrand: { backgroundColor: 'rgba(255,255,255,0.18)' },
-  tileIconOnLight: { backgroundColor: 'rgba(15,17,25,0.06)' },
   tileTitle: {
     ...typography.h2,
     color: colors.textOnBrand,

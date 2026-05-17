@@ -15,7 +15,8 @@
  * migration finish, so the first navigated frame is correctly typeset.
  */
 
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text } from 'react-native';
 import { Stack } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -25,6 +26,10 @@ import * as SplashScreen from 'expo-splash-screen';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { migrateFromAsyncStorage } from '../src/services/storage';
+
+// Lazy: three.js + R3F + expo-gl (~1MB JS) only loads when the user taps
+// the 3D button. App boot, splash, splash → home, all untouched.
+const NativeCabinModal = lazy(() => import('../src/screens/NativeCabinModal'));
 
 SplashScreen.preventAutoHideAsync().catch(() => {
   /* no-op — splash screen behaviour is best-effort */
@@ -55,6 +60,7 @@ export default function RootLayout() {
     Poppins_900Black: require('../assets/fonts/Poppins_900Black.ttf'),
   });
   const [migrated, setMigrated] = useState(false);
+  const [cabin3dVisible, setCabin3dVisible] = useState(false);
 
   useEffect(() => {
     migrateFromAsyncStorage()
@@ -116,8 +122,55 @@ export default function RootLayout() {
               options={{ headerShown: false }}
             />
           </Stack>
+
+          {/* Floating 3D cabin demo trigger. TODO BEFORE NEXT APP STORE
+              PROMOTION: gate behind a feature flag (expo-constants extra
+              or EXPO_PUBLIC_SHOW_3D env) so end users on production builds
+              don't see this developer-facing entry point. Currently
+              unconditional so Build 32 TestFlight testers can tap it. */}
+          <Pressable
+            onPress={() => setCabin3dVisible(true)}
+            style={styles.devCabinBtn}
+            accessibilityLabel="Open 3D cabin preview"
+          >
+            <Text style={styles.devCabinBtnText}>3D</Text>
+          </Pressable>
+
+          {cabin3dVisible ? (
+            <Suspense fallback={null}>
+              <NativeCabinModal
+                visible
+                onClose={() => setCabin3dVisible(false)}
+              />
+            </Suspense>
+          ) : null}
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  devCabinBtn: {
+    position: 'absolute',
+    top: 56,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(16,185,129,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  devCabinBtnText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+  },
+});
