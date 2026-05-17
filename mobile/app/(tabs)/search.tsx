@@ -201,12 +201,15 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   tile: {
-    flexBasis: '48%',
-    flexGrow: 1,
-    aspectRatio: 1.05,
+    // Explicit width + height so the tile dimensions resolve even when ALL
+    // child views are position:absolute (Lottie absoluteFillObject + scrim +
+    // text overlay). Build 33 used aspectRatio + flexBasis which collapsed
+    // to 0×0 on iOS — Yoga can't anchor aspectRatio without a flex child.
+    // 48% width keeps the 2-up grid; 168px height ≈ 1.05 aspect on iPhone 14.
+    width: '48%',
+    height: 168,
     borderRadius: radii.xl,
     overflow: 'hidden', // keep absolute-fill Lottie inside the rounded corners
-    position: 'relative',
   },
   tileBrand: { backgroundColor: colors.brand },
   tileNavy: { backgroundColor: colors.surfaceInverse },
