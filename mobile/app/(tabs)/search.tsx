@@ -139,7 +139,14 @@ export default function SearchScreen() {
                 resizeMode="cover"
               />
               <View style={styles.tileTextOverlay} pointerEvents="none">
-                <Text style={styles.tileTitleOver}>{tile.title.toUpperCase()}</Text>
+                <Text
+                  style={[
+                    styles.tileTitleOver,
+                    tile.accent === 'navy' && styles.tileTitleOverDark,
+                  ]}
+                >
+                  {tile.title.toUpperCase()}
+                </Text>
               </View>
             </Pressable>
           ))}
@@ -225,6 +232,11 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: 2,
     textAlign: 'center',
+  },
+  // Dark variant for the white tiles (Hotels + Cars). White text is invisible
+  // against the surfaceInverse background; navy900 keeps brand contrast.
+  tileTitleOverDark: {
+    color: colors.palette.navy900,
   },
 
   sectionLabel: {
