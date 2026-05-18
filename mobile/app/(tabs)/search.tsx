@@ -138,9 +138,6 @@ export default function SearchScreen() {
                 style={StyleSheet.absoluteFillObject}
                 resizeMode="cover"
               />
-              {/* Bottom scrim so the title stays readable over any Lottie
-                  colour palette. */}
-              <View style={styles.tileScrim} pointerEvents="none" />
               <View style={styles.tileTextOverlay} pointerEvents="none">
                 <Text style={styles.tileTitleOver}>{tile.title.toUpperCase()}</Text>
               </View>
@@ -214,22 +211,11 @@ const styles = StyleSheet.create({
   tileBrand: { backgroundColor: colors.brand },
   tileNavy: { backgroundColor: colors.surfaceInverse },
   tilePressed: { opacity: 0.9 },
-  // Bottom-anchored solid scrim so the title stays legible over any
-  // Lottie palette. Covers the lower ~40% of the tile with a dark
-  // semi-transparent fill — Lottie still visible underneath.
-  tileScrim: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: '40%',
-    backgroundColor: 'rgba(10,17,30,0.72)',
-  },
   tileTextOverlay: {
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 0,
+    top: 0,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
     alignItems: 'center',
