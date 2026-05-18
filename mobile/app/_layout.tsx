@@ -31,6 +31,13 @@ import { migrateFromAsyncStorage } from '../src/services/storage';
 // the 3D button. App boot, splash, splash → home, all untouched.
 const NativeCabinModal = lazy(() => import('../src/screens/NativeCabinModal'));
 
+// Developer-facing 3D cabin preview button is hidden in production by
+// default. Flip via `EXPO_PUBLIC_SHOW_3D=1` at build time (e.g. in
+// eas.json's `env` block on a dev/preview profile, or in a local .env
+// for `expo start --dev-client`). Unset in production → tree-shakes the
+// button + never invokes the lazy three.js chunk.
+const SHOW_3D_DEV = process.env.EXPO_PUBLIC_SHOW_3D === '1';
+
 SplashScreen.preventAutoHideAsync().catch(() => {
   /* no-op — splash screen behaviour is best-effort */
 });
@@ -123,26 +130,28 @@ export default function RootLayout() {
             />
           </Stack>
 
-          {/* Floating 3D cabin demo trigger. TODO BEFORE NEXT APP STORE
-              PROMOTION: gate behind a feature flag (expo-constants extra
-              or EXPO_PUBLIC_SHOW_3D env) so end users on production builds
-              don't see this developer-facing entry point. Currently
-              unconditional so Build 32 TestFlight testers can tap it. */}
-          <Pressable
-            onPress={() => setCabin3dVisible(true)}
-            style={styles.devCabinBtn}
-            accessibilityLabel="Open 3D cabin preview"
-          >
-            <Text style={styles.devCabinBtnText}>3D</Text>
-          </Pressable>
+          {/* Floating 3D cabin demo trigger — dev-only via EXPO_PUBLIC_SHOW_3D.
+              Hidden in production (App Store + TestFlight) so end users don't
+              see the developer entry point. */}
+          {SHOW_3D_DEV ? (
+            <>
+              <Pressable
+                onPress={() => setCabin3dVisible(true)}
+                style={styles.devCabinBtn}
+                accessibilityLabel="Open 3D cabin preview"
+              >
+                <Text style={styles.devCabinBtnText}>3D</Text>
+              </Pressable>
 
-          {cabin3dVisible ? (
-            <Suspense fallback={null}>
-              <NativeCabinModal
-                visible
-                onClose={() => setCabin3dVisible(false)}
-              />
-            </Suspense>
+              {cabin3dVisible ? (
+                <Suspense fallback={null}>
+                  <NativeCabinModal
+                    visible
+                    onClose={() => setCabin3dVisible(false)}
+                  />
+                </Suspense>
+              ) : null}
+            </>
           ) : null}
         </QueryClientProvider>
       </SafeAreaProvider>
