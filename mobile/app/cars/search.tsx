@@ -29,6 +29,7 @@ import DateRangePicker, {
 import { colors, radii, spacing, typography } from '../../src/theme';
 import { haptics } from '../../src/hooks/useHaptics';
 import { CAR_PICKUPS } from '../../src/lib/popular-locations';
+import { toLocalISO } from '../../src/lib/date';
 
 export default function CarsSearchScreen() {
   const router = useRouter();
@@ -63,8 +64,8 @@ export default function CarsSearchScreen() {
     // does nothing." Fixed in 1.0.8 (2026-05-06).
     const params = new URLSearchParams({
       location: pickup.code,
-      pickup: range.depart.toISOString().slice(0, 10),
-      dropoff: range.return.toISOString().slice(0, 10),
+      pickup: toLocalISO(range.depart),
+      dropoff: toLocalISO(range.return),
       pickupTime: '10:00',
       dropoffTime: '10:00',
       age: String(driverAge),

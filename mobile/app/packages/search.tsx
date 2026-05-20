@@ -32,6 +32,7 @@ import {
 } from '../../src/lib/popular-locations';
 import { colors, radii, spacing, typography } from '../../src/theme';
 import { haptics } from '../../src/hooks/useHaptics';
+import { toLocalISO } from '../../src/lib/date';
 
 export default function PackagesSearchScreen() {
   const router = useRouter();
@@ -63,8 +64,8 @@ export default function PackagesSearchScreen() {
     const params = new URLSearchParams({
       from: origin.code,
       to: destination.label,
-      depart: range.depart.toISOString().slice(0, 10),
-      return: range.return.toISOString().slice(0, 10),
+      depart: toLocalISO(range.depart),
+      return: toLocalISO(range.return),
       adults: String(guests.adults),
     });
     if (guests.children > 0) params.set('children', String(guests.children));

@@ -41,6 +41,7 @@ import { HOTEL_DESTINATIONS } from '../../src/lib/popular-locations';
 import { readJson, writeJson } from '../../src/services/storage';
 import { donateIntent } from '../../src/services/intents';
 import { useSearchContext } from '../../src/store/search-context';
+import { toLocalISO, fromLocalISO } from '../../src/lib/date';
 
 // 2026-05-06: bumped v1 → v2. The previous schema persisted destination
 // `code` strings like "Kerala" / "Bali" / "Tenerife" which LiteAPI can't
@@ -77,8 +78,8 @@ export default function HotelSearchScreen() {
     persisted.destination,
   );
   const [range, setRangeLocal] = useState<DateRange>({
-    depart: persisted.range.departISO ? new Date(persisted.range.departISO) : null,
-    return: persisted.range.returnISO ? new Date(persisted.range.returnISO) : null,
+    depart: persisted.range.departISO ? fromLocalISO(persisted.range.departISO) : null,
+    return: persisted.range.returnISO ? fromLocalISO(persisted.range.returnISO) : null,
   });
   const [guests, setGuestsLocal] = useState<Guests>(persisted.guests);
   const [refundableOnly, setRefundableOnlyLocal] = useState(persisted.refundableOnly);
@@ -101,8 +102,8 @@ export default function HotelSearchScreen() {
         const resolved = typeof next === 'function' ? next(prev) : next;
         setHotelFormState({
           range: {
-            departISO: resolved.depart ? resolved.depart.toISOString().slice(0, 10) : null,
-            returnISO: resolved.return ? resolved.return.toISOString().slice(0, 10) : null,
+            departISO: resolved.depart ? toLocalISO(resolved.depart) : null,
+            returnISO: resolved.return ? toLocalISO(resolved.return) : null,
           },
         });
         return resolved;
@@ -138,8 +139,8 @@ export default function HotelSearchScreen() {
     const recent: RecentSearch = {
       destination,
       range: {
-        checkin: range.depart.toISOString().slice(0, 10),
-        checkout: range.return.toISOString().slice(0, 10),
+        checkin: toLocalISO(range.depart),
+        checkout: toLocalISO(range.return),
       },
       guests,
       refundableOnly,
@@ -171,8 +172,8 @@ export default function HotelSearchScreen() {
       haptics.light();
       setDestination(r.destination);
       setRange({
-        depart: r.range.checkin ? new Date(r.range.checkin) : null,
-        return: r.range.checkout ? new Date(r.range.checkout) : null,
+        depart: r.range.checkin ? fromLocalISO(r.range.checkin) : null,
+        return: r.range.checkout ? fromLocalISO(r.range.checkout) : null,
       });
       setGuests(r.guests);
       setRefundableOnly(r.refundableOnly);

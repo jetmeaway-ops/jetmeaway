@@ -43,6 +43,7 @@ import {
 } from '../../src/lib/popular-locations';
 import { readJson, writeJson } from '../../src/services/storage';
 import { donateIntent } from '../../src/services/intents';
+import { toLocalISO, fromLocalISO } from '../../src/lib/date';
 
 type TripMode = 'return' | 'one-way';
 type Cabin = 'economy' | 'premium' | 'business' | 'first';
@@ -68,9 +69,7 @@ type RecentSearch = {
 };
 
 function todayISO(): string {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString().slice(0, 10);
+  return toLocalISO(new Date());
 }
 
 export default function FlightSearchScreen() {
@@ -97,8 +96,8 @@ export default function FlightSearchScreen() {
       origin,
       destination,
       range: {
-        depart: range.depart.toISOString().slice(0, 10),
-        return: range.return ? range.return.toISOString().slice(0, 10) : null,
+        depart: toLocalISO(range.depart),
+        return: range.return ? toLocalISO(range.return) : null,
       },
       passengers,
       mode,
@@ -117,6 +116,7 @@ export default function FlightSearchScreen() {
     const params = new URLSearchParams({
       from: origin.code,
       to: destination.code,
+      destCity: destination.label,
       departure: recent.range.depart!,
       adults: String(passengers.adults),
     });
@@ -154,8 +154,8 @@ export default function FlightSearchScreen() {
       setOrigin(r.origin);
       setDestination(r.destination);
       setRange({
-        depart: r.range.depart ? new Date(r.range.depart) : null,
-        return: r.range.return ? new Date(r.range.return) : null,
+        depart: r.range.depart ? fromLocalISO(r.range.depart) : null,
+        return: r.range.return ? fromLocalISO(r.range.return) : null,
       });
       setPassengers(r.passengers);
       setMode(r.mode);
