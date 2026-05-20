@@ -747,10 +747,11 @@ function AutocompleteFrom({ value, onChange, initialCode }: {
   );
 }
 
-function AutocompleteTo({ value, onChange, initialCode }: {
+function AutocompleteTo({ value, onChange, initialCode, initialCity }: {
   value: string;
   onChange: (code: string, city: string) => void;
   initialCode: string;
+  initialCity?: string;
 }) {
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
@@ -767,13 +768,25 @@ function AutocompleteTo({ value, onChange, initialCode }: {
 
   useEffect(() => {
     if (!initialCode) return;
-    const d = DESTINATIONS.find(d => d.code === initialCode.toUpperCase());
-    if (d && (!chosen || chosen.code !== d.code)) {
-      setQ(`${d.city} (${d.code})`);
-      setChosen(d);
-      onChangeRef.current(d.code, d.city);
+    const code = initialCode.toUpperCase();
+    const d = DESTINATIONS.find(d => d.code === code);
+    if (d) {
+      if (!chosen || chosen.code !== d.code) {
+        setQ(`${d.city} (${d.code})`);
+        setChosen(d);
+        onChangeRef.current(d.code, d.city);
+      }
+    } else if (!chosen || chosen.code !== code) {
+      // Code isn't in the curated DESTINATIONS list — e.g. a deep-link or the
+      // native app sending a destination we don't hard-code here. Accept it
+      // anyway (with the city name when supplied via initialCity) so the
+      // destination carries over instead of being silently dropped. (2026-05-20)
+      const city = initialCity || code;
+      setQ(initialCity ? `${initialCity} (${code})` : code);
+      setChosen({ code, city, country: '', flag: '' } as Dest);
+      onChangeRef.current(code, city);
     }
-  }, [initialCode]);
+  }, [initialCode, initialCity]);
 
   // Sync when value changes externally (e.g. from Hot Deals click)
   useEffect(() => {
@@ -1964,7 +1977,7 @@ function FlightsContent() {
             </div>
             <div>
               <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">To</label>
-              <AutocompleteTo value={destCode} onChange={(code, city) => { setDestCode(code); setDestCity(city); }} initialCode={initDest} />
+              <AutocompleteTo value={destCode} onChange={(code, city) => { setDestCode(code); setDestCity(city); }} initialCode={initDest} initialCity={destCity} />
             </div>
           </div>
 

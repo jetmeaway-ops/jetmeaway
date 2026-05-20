@@ -40,6 +40,15 @@ import {
 export const runtime = 'nodejs';
 export const maxDuration = 30;
 
+// ── Kyte kill-switch ───────────────────────────────────────────────────────
+// Kyte is OFF until the LIVE API key lands. The sandbox key only covers a
+// handful of fixed routes, so real users mostly get empty/broken Kyte rows —
+// better to show none and let Duffel + Travelpayouts carry the search. The
+// integration is left fully intact; this just stops it being surfaced.
+// Re-enable by setting env KYTE_ENABLED=true (alongside the live KYTE_API_KEY).
+// (Disabled 2026-05-20 — awaiting Kyte live key.)
+const KYTE_ENABLED = process.env.KYTE_ENABLED === 'true';
+
 type Body = {
   origin?: string;
   destination?: string;
@@ -54,6 +63,13 @@ type Body = {
 };
 
 export async function POST(req: NextRequest) {
+  // Disabled until the Kyte live key lands. Return an empty offer set so the
+  // client shows no Kyte rows and the search falls back to Duffel +
+  // Travelpayouts. Flip KYTE_ENABLED above to re-enable.
+  if (!KYTE_ENABLED) {
+    return NextResponse.json({ transactionId: null, offerCount: 0, offers: {} });
+  }
+
   let body: Body;
   try {
     body = (await req.json()) as Body;
