@@ -1,3 +1,7 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+
 /**
  * App-store badge row — links to the JetMeAway iOS + Android apps.
  *
@@ -25,6 +29,17 @@ type Props = {
 };
 
 export default function AppStoreBadges({ variant = 'dark', className = '' }: Props) {
+  // Hide the "Get the app" badges when the page is already running inside the
+  // JetMeAway native app's WebView — the injected bridge sets
+  // window.JetMeAwayNative, so an app user is never told to download the app.
+  const [inApp, setInApp] = useState(false);
+  useEffect(() => {
+    if ((window as unknown as { JetMeAwayNative?: unknown }).JetMeAwayNative) {
+      setInApp(true);
+    }
+  }, []);
+  if (inApp) return null;
+
   const onDark = variant === 'dark';
   const labelColor = onDark ? 'text-white/70' : 'text-[#5C6378]';
 

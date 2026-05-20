@@ -47,6 +47,11 @@ export default function AndroidAppBanner() {
     // Path gate
     if (HIDDEN_PATH_PREFIXES.some((p) => pathname.startsWith(p))) return;
 
+    // In-app gate — the native WebView injects window.JetMeAwayNative. The UA
+    // check below covers this too once the app sends its UA signature, but the
+    // bridge is the reliable signal that's always present inside the app.
+    if ((window as unknown as { JetMeAwayNative?: unknown }).JetMeAwayNative) return;
+
     // UA gate — Android Chrome only, skip in-app WebView
     const ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
     if (!ua) return;
