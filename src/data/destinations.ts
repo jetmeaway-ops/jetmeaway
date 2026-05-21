@@ -962,6 +962,706 @@ export const DESTINATIONS: Destination[] = [
     metaDescription:
       'Compare Barcelona hotels and direct flights from the UK. Gothic, Eixample, Barceloneta \u2014 Scout-grade picks for shoulder-season trips.',
   },
+  {
+    slug: 'delhi',
+    vibeTags: ['urban', 'foodie'],
+    city: 'Delhi',
+    country: 'India',
+    iata: 'DEL',
+    seoTitle: 'Delhi Travel Guide - Cheap Flights, Hotels & Where to Stay | JetMeAway',
+    metaDescription:
+      'Compare Delhi flights and hotels from the UK. Where to stay, India e-visa basics, best time to visit, and the cheapest way to fly London-Delhi.',
+    heroImage: 'https://images.unsplash.com/photo-1705927122615-02dcef3b1465?auto=format&fit=crop&w=1600&q=80',
+    tagline: 'Mughal forts, street-food lanes, and India’s best-connected gateway.',
+    intro:
+      'Delhi is most UK travellers’ first taste of India - a direct overnight from London into a city that swings from the Mughal chaos of Old Delhi to the leafy cafes of the south in a single Metro ride.',
+    whyGo:
+      'Daily direct flights from Heathrow, English widely spoken, a clean and cheap Metro, and unbeatable value - a smart three-star runs under £45/night and a feast costs a few pounds.',
+    bestTime:
+      'October to March - warm, dry days (18-27°C) and cool evenings. Avoid May-June (40°C+) and the humid July-September monsoon.',
+    neighbourhoods: [
+      { name: 'Connaught Place & Central Delhi', blurb: 'The easiest first-time base - colonial-era circle, Metro hub, walkable to India Gate, with mid-range and business hotels.' },
+      { name: 'Hauz Khas & South Delhi', blurb: 'Leafy and upmarket: boutique stays, specialty coffee and rooftop bars around Hauz Khas Village. Quieter and greener.' },
+      { name: 'Old Delhi (Chandni Chowk)', blurb: 'The Mughal heart - Red Fort, Jama Masjid and the best street food. Budget guesthouses; chaotic and unforgettable.' },
+    ],
+    averageNightlyPrice: 45,
+    flightTimeFromLondonHours: 8.5,
+    faqs: [
+      { q: 'Do I need a visa for Delhi from the UK?', a: 'Yes - UK passport holders need an Indian e-Tourist Visa, applied for online a few days before travel. There is no visa on arrival.' },
+      { q: 'Where should I stay in Delhi for the first time?', a: 'Connaught Place is the simplest base - central, Metro-connected and walkable to India Gate. Choose Hauz Khas for cafes and nightlife, or Old Delhi for history and street food.' },
+      { q: 'What is the cheapest way to fly London to Delhi?', a: 'Air India, British Airways and Vistara fly direct from Heathrow in about 8-9 hours; one-stop fares via the Gulf (Emirates, Qatar) are often cheaper. Book 8-10 weeks ahead and skip the Oct-Dec peak.' },
+    ],
+    scout: {
+      morningRitual: 'A sunrise walk through Lodhi Garden among the Mughal tombs before the heat builds, then coffee in Khan Market.',
+      wellness: 'Yoga and Ayurveda are everywhere - many South Delhi studios run early-morning classes.',
+      privacy: 'Base yourself in quiet, tree-lined Nizamuddin East or Hauz Khas rather than the busy centre.',
+    },
+  },
+  {
+    slug: 'mumbai',
+    vibeTags: ['urban', 'foodie'],
+    city: 'Mumbai',
+    country: 'India',
+    iata: 'BOM',
+    seoTitle: 'Mumbai Travel Guide - Flights, Hotels & Where to Stay | JetMeAway',
+    metaDescription:
+      'Compare Mumbai flights and hotels from the UK. Best areas to stay, India e-visa basics, best time to visit, and cheap London-Mumbai fares.',
+    heroImage: 'https://images.unsplash.com/photo-1672313961515-7635e35ffc8e?auto=format&fit=crop&w=1600&q=80',
+    tagline: 'Art-deco seafronts, Bollywood energy, and India’s financial heartbeat.',
+    intro:
+      'Mumbai never stops - colonial-era South Mumbai, the sweep of Marine Drive at dusk, and the cafe-lined lanes of Bandra all packed onto one humid, electric peninsula.',
+    whyGo:
+      'Direct from Heathrow, the gateway to Goa and the south, and a food scene that runs from Irani cafes to fine dining - all at a fraction of UK prices.',
+    bestTime:
+      'November to February - warm, dry and pleasant (20-32°C). Avoid the June-September monsoon, when the city floods.',
+    neighbourhoods: [
+      { name: 'Colaba & South Mumbai', blurb: 'Heritage core - Gateway of India, the Taj, art-deco streets and the best walking. Top-end and characterful mid-range hotels.' },
+      { name: 'Bandra West', blurb: 'Trendy suburb of sea-facing cafes, boutiques and Bollywood buzz. Boutique stays and the city’s best nightlife.' },
+      { name: 'Juhu', blurb: 'Beach suburb close to the airport - mid-to-upscale hotels on the sand, popular with families and first-timers.' },
+    ],
+    averageNightlyPrice: 55,
+    flightTimeFromLondonHours: 9,
+    faqs: [
+      { q: 'Do I need a visa for Mumbai from the UK?', a: 'Yes - apply online for an Indian e-Tourist Visa before you travel. UK passport holders are not eligible for visa on arrival.' },
+      { q: 'Which area is best to stay in Mumbai?', a: 'South Mumbai (Colaba) for sights and heritage, Bandra for cafes and nightlife, or Juhu for the beach and airport access.' },
+      { q: 'How long is the flight from London to Mumbai?', a: 'Around 9 hours direct from Heathrow with British Airways and Air India. One-stop Gulf carriers are often cheaper - book 8-10 weeks ahead.' },
+    ],
+    scout: {
+      morningRitual: 'Walk Marine Drive at dawn before the traffic, then chai and bun maska at a Colaba Irani cafe.',
+      wellness: 'Beachfront yoga at Juhu and Ayurvedic spas across Bandra.',
+      privacy: 'The quieter sea-facing lanes around Bandstand in Bandra over the crowded tourist core.',
+    },
+  },
+  {
+    slug: 'goa',
+    vibeTags: ['spa', 'adventure'],
+    city: 'Goa',
+    country: 'India',
+    iata: 'GOI',
+    seoTitle: 'Goa Travel Guide - Beaches, Flights & Where to Stay | JetMeAway',
+    metaDescription:
+      'Plan Goa from the UK: north vs south beaches, where to stay, best time to visit, India e-visa basics and the cheapest way to fly.',
+    heroImage: 'https://images.unsplash.com/photo-1582972236019-ea4af5ffe587?auto=format&fit=crop&w=1600&q=80',
+    tagline: 'Palm-fringed sands, Portuguese churches, and India’s easiest beach break.',
+    intro:
+      'Goa is India at half speed - Portuguese-era towns, beach shacks and yoga retreats strung along a coastline that splits neatly into the buzzing north and the calm, luxurious south.',
+    whyGo:
+      'Winter sun while the UK freezes, a relaxed first-India trip, beaches for every budget, and a yoga and wellness scene that is among the best in Asia.',
+    bestTime:
+      'November to February - dry, sunny and around 30°C. The June-September monsoon shuts many beach shacks; avoid it.',
+    neighbourhoods: [
+      { name: 'North Goa (Calangute, Baga, Anjuna)', blurb: 'Busy beaches, markets and nightlife with the widest range of hotels - best if you want buzz and convenience.' },
+      { name: 'South Goa (Palolem, Colva)', blurb: 'Calmer, palm-backed and prettier - boutique cabanas and luxury resorts. Best for couples and quiet.' },
+      { name: 'Panjim (Panaji)', blurb: 'The Portuguese-era capital and the Latin Quarter of Fontainhas - heritage guesthouses and the real local Goa.' },
+    ],
+    averageNightlyPrice: 40,
+    flightTimeFromLondonHours: 10,
+    faqs: [
+      { q: 'Do I need a visa for Goa from the UK?', a: 'Yes - an Indian e-Tourist Visa, applied for online before travel, covers Goa like the rest of India.' },
+      { q: 'North or South Goa - which is better?', a: 'North (Baga, Anjuna) for nightlife, markets and convenience; South (Palolem, Agonda) for quiet, cleaner beaches and boutique stays.' },
+      { q: 'What is the cheapest way to get to Goa from the UK?', a: 'There are usually no year-round direct flights - fly one-stop via the Gulf or Mumbai (around 11-13 hours total), or look for seasonal winter charters. Book early for Christmas and New Year.' },
+    ],
+    scout: {
+      morningRitual: 'Sunrise on Palolem or Mandrem before the loungers fill, fresh fruit and a pour-over after.',
+      wellness: 'Goa is India’s yoga capital - Ashtanga schools and retreats cluster around Arambol and Patnem.',
+      privacy: 'Skip Calangute and Baga; the south (Palolem, Agonda) and inland villages stay far calmer.',
+    },
+  },
+  {
+    slug: 'amritsar',
+    vibeTags: ['foodie', 'urban'],
+    city: 'Amritsar',
+    country: 'India',
+    iata: 'ATQ',
+    seoTitle: 'Amritsar Travel Guide - Golden Temple, Flights & Hotels | JetMeAway',
+    metaDescription:
+      'Visit Amritsar from the UK: the Golden Temple, where to stay, best time to go, India e-visa basics and direct vs one-stop flights.',
+    heroImage: 'https://images.unsplash.com/photo-1623059508779-2542c6e83753?auto=format&fit=crop&w=1600&q=80',
+    tagline: 'The Golden Temple, the langar, and the spiritual heart of Punjab.',
+    intro:
+      'Amritsar is a homecoming for much of the UK’s Punjabi community and a moving first stop for everyone else - the gold-leaf Harmandir Sahib glowing over its sacred pool, and the world’s largest free kitchen feeding tens of thousands a day.',
+    whyGo:
+      'Deep family and heritage ties to the UK, the unforgettable Golden Temple, the Wagah border ceremony, and Punjab’s legendary food - at very low cost.',
+    bestTime:
+      'October to March for cool, comfortable days. Summers are punishingly hot; the monsoon arrives July-September.',
+    neighbourhoods: [
+      { name: 'Golden Temple & Old City', blurb: 'Steps from Harmandir Sahib - budget-to-mid hotels, the langar and the bustling bazaars. The place to be at dawn.' },
+      { name: 'Ranjit Avenue', blurb: 'Modern, leafy and quieter - mid-range hotels, malls and restaurants. A calm base a short ride from the Temple.' },
+      { name: 'Lawrence Road', blurb: 'Central dining and shopping strip - classic dhabas, sweet shops and reliable hotels.' },
+    ],
+    averageNightlyPrice: 32,
+    flightTimeFromLondonHours: 9,
+    faqs: [
+      { q: 'Do I need a visa for Amritsar from the UK?', a: 'Yes - an Indian e-Tourist Visa, applied for online before you fly. It covers arrival at Amritsar (ATQ).' },
+      { q: 'Can I fly direct from the UK to Amritsar?', a: 'Air India has operated direct services from the UK to Amritsar; otherwise one-stop via Delhi or the Gulf is usually cheaper. Demand peaks around weddings and holidays, so book early.' },
+      { q: 'How long should I spend in Amritsar?', a: 'Two nights is enough for the Golden Temple (visit at dawn and after dark), Jallianwala Bagh and the Wagah border ceremony.' },
+    ],
+    scout: {
+      morningRitual: 'Be at the Golden Temple before 7am for the early prayers and the calm before the crowds - then the langar.',
+      wellness: 'Simple, vegetarian and home-style - the Temple’s langar is the ritual itself.',
+      privacy: 'Ranjit Avenue is a greener, quieter base than the packed old-city lanes.',
+    },
+  },
+  {
+    slug: 'jaipur',
+    vibeTags: ['urban', 'foodie'],
+    city: 'Jaipur',
+    country: 'India',
+    iata: 'JAI',
+    seoTitle: 'Jaipur Travel Guide - The Pink City, Flights & Hotels | JetMeAway',
+    metaDescription:
+      'Plan Jaipur from the UK: forts and palaces, where to stay, best time to visit, India e-visa basics and how to get there.',
+    heroImage: 'https://images.unsplash.com/photo-1706961121783-4ae6c933983a?auto=format&fit=crop&w=1600&q=80',
+    tagline: 'Pink-walled palaces, hilltop forts, and the gateway to Rajasthan.',
+    intro:
+      'Jaipur is the easy first stop on India’s Golden Triangle - a pink-washed old city of palaces and bazaars, ringed by honey-coloured forts, three hours by fast road from Delhi.',
+    whyGo:
+      'Spectacular forts and palaces, superb heritage hotels in restored havelis, world-class shopping for textiles and jewellery, and a gentle introduction to Rajasthan.',
+    bestTime:
+      'October to March for clear, cool days. April-June is fiercely hot; the monsoon runs July-September.',
+    neighbourhoods: [
+      { name: 'Pink City (Old City)', blurb: 'The walled heart - Hawa Mahal, City Palace and the bazaars. Atmospheric heritage havelis, busy and central.' },
+      { name: 'C-Scheme & Civil Lines', blurb: 'Leafy and upmarket - boutique hotels, cafes and galleries. A calm, central base.' },
+      { name: 'Amer (Amber)', blurb: 'By the great Amber Fort - heritage resorts and hilltop views, quieter and scenic on the city’s edge.' },
+    ],
+    averageNightlyPrice: 38,
+    flightTimeFromLondonHours: 9.5,
+    faqs: [
+      { q: 'Do I need a visa for Jaipur from the UK?', a: 'Yes - apply online for an Indian e-Tourist Visa before travelling.' },
+      { q: 'How do I get to Jaipur from the UK?', a: 'There are no direct flights - fly one-stop via Delhi or the Gulf, or fly into Delhi and take the 3-hour expressway or a fast train.' },
+      { q: 'Is Jaipur worth visiting on its own?', a: 'Yes - two nights covers the City Palace, Hawa Mahal, Amber Fort and the bazaars, and it pairs naturally with Delhi and Agra on the Golden Triangle.' },
+    ],
+    scout: {
+      morningRitual: 'Sunrise from Nahargarh Fort over the Pink City, then coffee in C-Scheme.',
+      wellness: 'Heritage-hotel spas and rooftop yoga; Ayurveda is widely available.',
+      privacy: 'Stay in a restored haveli in Civil Lines or C-Scheme rather than the busy bazaars.',
+    },
+  },
+  {
+    slug: 'kochi',
+    vibeTags: ['spa', 'foodie'],
+    city: 'Kochi',
+    country: 'India',
+    iata: 'COK',
+    seoTitle: 'Kochi Travel Guide - Kerala Backwaters, Flights & Hotels | JetMeAway',
+    metaDescription:
+      'Plan Kochi (Cochin) from the UK: Fort Kochi, Kerala backwaters, Ayurveda, where to stay, best time to visit and how to fly.',
+    heroImage: 'https://images.unsplash.com/photo-1696966358360-f64c761e0cb5?auto=format&fit=crop&w=1600&q=80',
+    tagline: 'Chinese fishing nets, spice-trade history, and the gateway to Kerala.',
+    intro:
+      'Kochi is the calm, green counterpoint to India’s big metros - layered Fort Kochi colonial streets, spice warehouses, and the backwaters and Ayurveda of Kerala an hour down the road.',
+    whyGo:
+      'The easiest entry to Kerala’s backwaters and beaches, the home of authentic Ayurveda, a gentler pace, and a fascinating Portuguese-Dutch-British heritage trail.',
+    bestTime:
+      'October to March - dry and pleasant. June-September brings the heavy monsoon (though some come specifically for Ayurveda treatments then).',
+    neighbourhoods: [
+      { name: 'Fort Kochi', blurb: 'The heritage heart - Chinese fishing nets, colonial churches, cafes and characterful homestays. The place to stay.' },
+      { name: 'Mattancherry', blurb: 'Jew Town, the spice markets, antique shops and the Dutch Palace - walkable from Fort Kochi.' },
+      { name: 'Ernakulam', blurb: 'The modern mainland - malls, transport links and cheaper business hotels, a short ferry from Fort Kochi.' },
+    ],
+    averageNightlyPrice: 40,
+    flightTimeFromLondonHours: 11,
+    faqs: [
+      { q: 'Do I need a visa for Kochi from the UK?', a: 'Yes - apply online for an Indian e-Tourist Visa before you travel.' },
+      { q: 'Is Kochi a good base for the Kerala backwaters?', a: 'Yes - the classic houseboat backwaters around Alleppey (Alappuzha) and Kumarakom are 1-2 hours south, easily done as an overnight from Kochi.' },
+      { q: 'How do I fly to Kochi from the UK?', a: 'There are no direct flights - fly one-stop via the Gulf (Emirates, Qatar, Etihad) or via a major Indian metro, around 12-14 hours total.' },
+    ],
+    scout: {
+      morningRitual: 'Watch the Chinese fishing nets at sunrise on Fort Kochi beach, then filter coffee in a Mattancherry cafe.',
+      wellness: 'Kerala is the home of Ayurveda - authentic, doctor-led clinics are easy to find around Fort Kochi.',
+      privacy: 'Stay in a Fort Kochi heritage homestay rather than the mainland Ernakulam high-rises.',
+    },
+  },
+  {
+    slug: 'bangalore',
+    vibeTags: ['urban', 'foodie'],
+    city: 'Bangalore',
+    country: 'India',
+    iata: 'BLR',
+    seoTitle: 'Bangalore Travel Guide - Flights, Hotels & Where to Stay | JetMeAway',
+    metaDescription:
+      'Plan Bangalore (Bengaluru) from the UK: where to stay, the city’s mild climate, best time to visit, e-visa basics and direct flights.',
+    heroImage: 'https://images.unsplash.com/photo-1687158266872-fd2773fa76c6?auto=format&fit=crop&w=1600&q=80',
+    tagline: 'Garden city, craft-beer capital, and India’s laid-back tech hub.',
+    intro:
+      'Bangalore is India’s most relaxed metro - cooled by its altitude, green with parks, and packed with cafes, breweries and a young, English-speaking crowd. It is the natural gateway to the south.',
+    whyGo:
+      'A pleasant climate year-round, India’s best cafe and craft-beer scene, direct flights from Heathrow, and an easy base for Mysore, Coorg and the Western Ghats.',
+    bestTime:
+      'Pleasant most of the year thanks to the altitude; October to February is the driest and coolest. June-September brings monsoon showers.',
+    neighbourhoods: [
+      { name: 'Indiranagar', blurb: 'The hippest base - tree-lined streets, specialty coffee, craft-beer bars and boutique hotels.' },
+      { name: 'MG Road & Central', blurb: 'Business hotels, shopping and the easiest transport links - central and convenient.' },
+      { name: 'Koramangala', blurb: 'Startup-and-student energy - some of the city’s best restaurants, breweries and cafes.' },
+    ],
+    averageNightlyPrice: 48,
+    flightTimeFromLondonHours: 10,
+    faqs: [
+      { q: 'Do I need a visa for Bangalore from the UK?', a: 'Yes - apply online for an Indian e-Tourist Visa before travelling.' },
+      { q: 'Can I fly direct from the UK to Bangalore?', a: 'Yes - British Airways flies direct from Heathrow to Bengaluru (BLR) in around 10 hours; one-stop Gulf carriers are often cheaper.' },
+      { q: 'Why visit Bangalore?', a: 'For its mild climate, food and nightlife, and as a comfortable base for South India - Mysore palace, Coorg coffee country and the Western Ghats.' },
+    ],
+    scout: {
+      morningRitual: 'A dawn loop of Cubbon Park or Lalbagh Botanical Garden, then South Indian filter coffee.',
+      wellness: 'Yoga studios and wellness cafes cluster in Indiranagar and Koramangala.',
+      privacy: 'Leafy, low-rise Indiranagar over the busy MG Road core.',
+    },
+  },
+  {
+    slug: 'ahmedabad',
+    vibeTags: ['foodie', 'urban'],
+    city: 'Ahmedabad',
+    country: 'India',
+    iata: 'AMD',
+    seoTitle: 'Ahmedabad Travel Guide - Flights, Hotels & Where to Stay | JetMeAway',
+    metaDescription:
+      'Plan Ahmedabad from the UK: India’s first UNESCO World Heritage City, where to stay, the food, best time to visit and how to fly.',
+    heroImage: 'https://images.unsplash.com/photo-1741207730591-79ec31061e62?auto=format&fit=crop&w=1600&q=80',
+    tagline: 'India’s first UNESCO World Heritage City - textiles, stepwells and street food.',
+    intro:
+      'Ahmedabad is the heritage capital of Gujarat and a homecoming for much of the UK’s Gujarati community - a walled old city of carved wooden houses, the Sabarmati riverfront, Gandhi’s ashram, and some of India’s best vegetarian street food.',
+    whyGo:
+      'Deep UK-Gujarati family ties, India’s first UNESCO-listed city, the legendary Manek Chowk night food market, and a gateway to Gujarat - the Gir lions, the white Rann of Kutch and the Statue of Unity.',
+    bestTime:
+      'November to February for mild, dry weather. April-June is very hot; the spectacular Navratri festival lands in September or October.',
+    neighbourhoods: [
+      { name: 'Old City (Walled City)', blurb: 'The UNESCO heart - the pols (historic lanes), Manek Chowk and the morning heritage walk. Atmospheric and central.' },
+      { name: 'Sabarmati Riverfront & Ashram Road', blurb: 'The modern riverside - Gandhi’s Sabarmati Ashram, promenades and mid-range hotels.' },
+      { name: 'Satellite & SG Highway', blurb: 'New Ahmedabad - malls, restaurants and the city’s business and four-star hotels.' },
+    ],
+    averageNightlyPrice: 35,
+    flightTimeFromLondonHours: 10.5,
+    faqs: [
+      { q: 'Do I need a visa for Ahmedabad from the UK?', a: 'Yes - apply online for an Indian e-Tourist Visa before you fly.' },
+      { q: 'Is alcohol available in Ahmedabad?', a: 'Gujarat is a dry state, so alcohol is prohibited - visitors can apply for a temporary liquor permit, and some high-end hotels have permit shops. The city is famously vegetarian, too.' },
+      { q: 'How do I get to Ahmedabad from the UK?', a: 'Usually one-stop via the Gulf (Emirates, Qatar, Etihad) or a major Indian metro, around 11-13 hours total. Book early around Navratri and Diwali.' },
+    ],
+    scout: {
+      morningRitual: 'Join the early-morning heritage walk through the old city’s pols, starting near the Swaminarayan Temple.',
+      wellness: 'Vegetarian-by-default Gujarati thali culture, and quiet morning time at the Sabarmati Ashram.',
+      privacy: 'A restored heritage haveli stay in the old city beats the SG Highway business hotels.',
+    },
+  },
+  {
+    slug: 'karachi',
+    vibeTags: ['urban', 'foodie'],
+    city: 'Karachi',
+    country: 'Pakistan',
+    iata: 'KHI',
+    seoTitle: 'Karachi Travel Guide - Flights, Hotels & Where to Stay | JetMeAway',
+    metaDescription:
+      'Compare Karachi flights and hotels from the UK. Where to stay, Pakistan visa basics, best time to visit and the cheapest London-Karachi fares.',
+    heroImage: 'https://images.unsplash.com/photo-1752731904224-618b504783e3?auto=format&fit=crop&w=1600&q=80',
+    tagline: 'Arabian Sea megacity - beaches, bazaars and Pakistan’s commercial heart.',
+    intro:
+      'Karachi is Pakistan’s biggest city and a homecoming for many British-Pakistani families - a sprawling, 24-hour port on the Arabian Sea, famous for its food, its beaches and its sheer relentless energy.',
+    whyGo:
+      'Strong family ties to the UK, direct flights from London, the country’s best street food and seafood, and a launch point for the wider south of Pakistan.',
+    bestTime:
+      'November to February - warm, dry and pleasant. Avoid the intense heat and humidity of April-June and the monsoon showers in July-August.',
+    neighbourhoods: [
+      { name: 'Clifton & DHA', blurb: 'Upmarket and seafront - malls, restaurants, the best hotels and Clifton beach. The easiest base for visitors.' },
+      { name: 'Saddar', blurb: 'The old commercial heart - colonial architecture, Empress Market and budget hotels. Busy and central.' },
+      { name: 'PECHS & Tariq Road', blurb: 'Central, residential and famous for shopping and food - well-priced mid-range stays.' },
+    ],
+    averageNightlyPrice: 35,
+    flightTimeFromLondonHours: 9,
+    faqs: [
+      { q: 'Do I need a visa for Karachi from the UK?', a: 'UK passport holders need a visa - Pakistan’s online e-visa is straightforward. Many British-Pakistani travellers use a NICOP/POC card instead, which removes the need for a visa.' },
+      { q: 'Can I fly direct from London to Karachi?', a: 'Yes - PIA flies direct from Heathrow, and Gulf carriers (Emirates, Qatar, Etihad) offer frequent, often cheaper one-stop options. Book early around Eid and the winter holidays.' },
+      { q: 'Is Karachi good for a beach trip?', a: 'Clifton and French Beach (Hawke’s Bay) are the local favourites, though Karachi is more a food-and-city destination than a resort beach break.' },
+    ],
+    scout: {
+      morningRitual: 'An early walk along Clifton’s Seaview promenade before the heat, then chai and a paratha at a local dhaba.',
+      wellness: 'Seafront hotel spas in Clifton and DHA; the city’s wellness scene is small but growing.',
+      privacy: 'Stay in leafy DHA rather than the busy old-city core for a calmer base.',
+    },
+  },
+  {
+    slug: 'sialkot',
+    vibeTags: ['urban', 'foodie'],
+    city: 'Sialkot',
+    country: 'Pakistan',
+    iata: 'SKT',
+    seoTitle: 'Sialkot Travel Guide - Flights, Hotels & Where to Stay | JetMeAway',
+    metaDescription:
+      'Compare Sialkot flights and hotels from the UK. A homecoming hub for British-Pakistani families - where to stay, visa basics and how to fly.',
+    heroImage: 'https://images.unsplash.com/photo-1715251642839-4929ae23eaf3?auto=format&fit=crop&w=1600&q=80', // representative Punjab shot - Unsplash has no Sialkot inventory; swap if a better image is available
+    tagline: 'Pakistan’s export heart and a homecoming for British Punjab and Kashmir.',
+    intro:
+      'Sialkot is one of the most-flown routes for the UK’s Pakistani community - the industrial city that makes the world’s footballs and surgical instruments, and the gateway to Punjab’s heartland and Azad Kashmir.',
+    whyGo:
+      'Deep family ties to the UK, its own international airport with direct services, and an easy base for visiting Gujranwala, Gujrat and the Mirpur district of Azad Kashmir.',
+    bestTime:
+      'October to March for mild, comfortable weather. Summers (May-July) are very hot before the monsoon arrives.',
+    neighbourhoods: [
+      { name: 'Cantt (Cantonment)', blurb: 'The leafy, orderly district - the best hotels, quiet streets and the most comfortable base.' },
+      { name: 'Kashmir Road & City Centre', blurb: 'The commercial core - bazaars, banks and mid-range hotels, close to everything.' },
+      { name: 'Old City', blurb: 'The historic, bustling heart - the clock tower, traditional bazaars and the city’s famous sports-goods workshops.' },
+    ],
+    averageNightlyPrice: 30,
+    flightTimeFromLondonHours: 9,
+    faqs: [
+      { q: 'Do I need a visa for Sialkot from the UK?', a: 'UK passport holders need a Pakistan visa (the online e-visa is straightforward); British-Pakistani travellers can instead use a NICOP/POC card, which needs no visa.' },
+      { q: 'Can I fly direct from the UK to Sialkot?', a: 'Sialkot (SKT) has its own international airport with direct and one-stop services from the UK via PIA and Gulf carriers - demand peaks around weddings, Eid and the summer holidays, so book early.' },
+      { q: 'Is Sialkot a good base for visiting Kashmir?', a: 'Yes - it is the usual arrival point for families heading to Mirpur and the wider Azad Kashmir region, a few hours away by road.' },
+    ],
+    scout: {
+      morningRitual: 'Early chai and freshly fried naan at a Cantt-area dhaba before the day heats up.',
+      wellness: 'A quiet, family-focused city - wellness is found in home kitchens more than spas.',
+      privacy: 'The Cantonment is the calmest, greenest place to stay, away from the busy bazaars.',
+    },
+  },
+  {
+    slug: 'multan',
+    vibeTags: ['urban', 'foodie'],
+    city: 'Multan',
+    country: 'Pakistan',
+    iata: 'MUX',
+    seoTitle: 'Multan Travel Guide - Flights, Hotels & Where to Stay | JetMeAway',
+    metaDescription:
+      'Compare Multan flights and hotels from the UK. The City of Saints - Sufi shrines, where to stay, visa basics and how to get there.',
+    heroImage: 'https://images.unsplash.com/photo-1610015586724-661cbafc561f?auto=format&fit=crop&w=1600&q=80',
+    tagline: 'The City of Saints - Sufi shrines and the heart of southern Punjab.',
+    intro:
+      'Multan is one of the oldest living cities on earth and a homecoming for many British-Pakistani families - a place of blue-tiled Sufi shrines, mango orchards and a deep, slow-burning history in Pakistan’s south.',
+    whyGo:
+      'Family ties to the UK, the great Sufi shrines of Shah Rukn-e-Alam and Bahauddin Zakariya, the famous mangoes and handicrafts, and a gateway to southern Punjab.',
+    bestTime:
+      'November to February for cooler, comfortable days. Summers are among the hottest in Pakistan - avoid May-July.',
+    neighbourhoods: [
+      { name: 'Cantt (Cantonment)', blurb: 'Leafy and quiet - the best hotels and the most comfortable base for visitors.' },
+      { name: 'Old City & the Shrines', blurb: 'The historic heart - the blue-tiled tombs, the fort mound and the bustling bazaars.' },
+      { name: 'Bosan Road', blurb: 'Modern Multan - the university, newer restaurants and mid-range hotels.' },
+    ],
+    averageNightlyPrice: 28,
+    flightTimeFromLondonHours: 9.5,
+    faqs: [
+      { q: 'Do I need a visa for Multan from the UK?', a: 'UK passport holders need a Pakistan visa (the online e-visa is simple); British-Pakistani travellers can use a NICOP/POC card instead, which needs no visa.' },
+      { q: 'How do I fly to Multan from the UK?', a: 'Multan (MUX) has direct services from the UK at peak times, but most travellers fly one-stop via the Gulf (Emirates, Qatar, Etihad) - around 11-13 hours total.' },
+      { q: 'What is Multan known for?', a: 'Its Sufi shrines and the title "City of Saints", its sweltering summers, and its mangoes, blue pottery and camel-skin handicrafts.' },
+    ],
+    scout: {
+      morningRitual: 'Visit the Shah Rukn-e-Alam shrine early, when the light hits the blue tiles and the crowds are thin.',
+      wellness: 'Traditional and home-style - the city’s rhythm is its own slow wellness.',
+      privacy: 'The Cantonment offers the quietest, greenest stays away from the old-city bustle.',
+    },
+  },
+  {
+    slug: 'paris',
+    vibeTags: ['urban', 'foodie'],
+    city: 'Paris',
+    country: 'France',
+    iata: 'CDG',
+    seoTitle: 'Paris Travel Guide - Flights, Eurostar, Hotels & Where to Stay | JetMeAway',
+    metaDescription:
+      'Plan Paris from the UK: fly or take the Eurostar, where to stay, best time to visit and how to do Europe’s most-visited city on a budget.',
+    heroImage: 'https://images.unsplash.com/photo-1645573324217-17cd62e55151?auto=format&fit=crop&w=1600&q=80',
+    tagline: 'The Eiffel Tower, grand boulevards, and Europe’s most-visited city.',
+    intro:
+      'Paris is the easiest big city break from the UK - barely over an hour by air, or city-centre to city-centre on the Eurostar - and a place that rewards slow mornings, long lunches and walking one beautiful arrondissement into the next.',
+    whyGo:
+      'Eurostar straight into the centre, no time difference, world-class museums and food, and shoulder-season deals that make a long weekend genuinely affordable.',
+    bestTime:
+      'April to June and September to October - mild, lighter crowds and open terraces. August is hot and half the city is shut; winter is cold but festive and cheaper.',
+    neighbourhoods: [
+      { name: 'Le Marais', blurb: 'Historic, central and stylish - medieval streets, boutiques and the best base for first-timers who want to walk everywhere.' },
+      { name: 'Saint-Germain-des-Pres', blurb: 'Classic Left Bank - cafes, bookshops and galleries, walkable to the Louvre and Notre-Dame.' },
+      { name: 'Montmartre', blurb: 'Hilltop, artsy and villagey around Sacre-Coeur - characterful and a little quieter, with great views.' },
+    ],
+    averageNightlyPrice: 150,
+    flightTimeFromLondonHours: 1.25,
+    faqs: [
+      { q: 'Do I need a visa for Paris from the UK?', a: 'No - UK visitors can travel to France visa-free for up to 90 days in any 180-day period across the Schengen area.' },
+      { q: 'Is it better to fly or take the Eurostar to Paris?', a: 'The Eurostar runs city-centre to city-centre (London St Pancras to Paris Gare du Nord) in about 2h20 - usually quicker door-to-door than flying once you add airport transfers.' },
+      { q: 'Where should I stay in Paris for the first time?', a: 'Le Marais or Saint-Germain put you within walking distance of most sights. Montmartre is more characterful and a touch cheaper.' },
+    ],
+    scout: {
+      morningRitual: 'A croissant and espresso standing at a zinc counter, then the Tuileries before the Louvre crowds arrive.',
+      wellness: 'Riverside runs along the car-free Seine banks and the Canal Saint-Martin.',
+      privacy: 'Stay in the quieter upper Marais or the 7th rather than the tourist-packed streets by the Eiffel Tower.',
+    },
+  },
+  {
+    slug: 'amsterdam',
+    vibeTags: ['urban', 'foodie'],
+    city: 'Amsterdam',
+    country: 'Netherlands',
+    iata: 'AMS',
+    seoTitle: 'Amsterdam Travel Guide - Flights, Hotels & Where to Stay | JetMeAway',
+    metaDescription:
+      'Plan Amsterdam from the UK: where to stay, getting in from Schiphol, best time to visit and a long-weekend of canals, museums and bikes.',
+    heroImage: 'https://images.unsplash.com/photo-1534203137048-137aa03c692e?auto=format&fit=crop&w=1600&q=80',
+    tagline: 'Canals, world-class museums, and bikes - a long-weekend classic.',
+    intro:
+      'Amsterdam is a perfect long weekend - a compact ring of 17th-century canals you can walk or cycle end to end, packed with the Rijksmuseum, the Van Gogh, brown cafes and some of Europe’s prettiest streets.',
+    whyGo:
+      'An hour from the UK, English spoken everywhere, a 15-minute train from the airport to the centre, and a flat, walkable, bike-friendly city you can see in two or three days.',
+    bestTime:
+      'April to May for the tulips and mild weather, or September. Summer is busy and dear; winter is cold but quiet and atmospheric.',
+    neighbourhoods: [
+      { name: 'Jordaan', blurb: 'The prettiest district - narrow canals, indie shops, brown cafes and a calm, local feel a short walk from the centre.' },
+      { name: 'Canal Ring & Centre', blurb: 'The UNESCO heart - most museums and sights within walking distance. Central but busiest.' },
+      { name: 'De Pijp', blurb: 'Trendy and lively - the Albert Cuyp market, great restaurants and a younger crowd, just south of the centre.' },
+    ],
+    averageNightlyPrice: 160,
+    flightTimeFromLondonHours: 1.25,
+    faqs: [
+      { q: 'Do I need a visa for Amsterdam from the UK?', a: 'No - UK visitors can travel visa-free for up to 90 days in any 180-day period across the Schengen area.' },
+      { q: 'How do I get from Schiphol airport to the centre?', a: 'A direct train runs from the airport to Amsterdam Centraal in about 15-20 minutes, several times an hour - far easier than a taxi.' },
+      { q: 'Where should I stay in Amsterdam?', a: 'The Jordaan and Canal Ring for charm and walkability, or De Pijp for food and nightlife. All are close to the centre.' },
+    ],
+    scout: {
+      morningRitual: 'Cycle the empty Jordaan canals before 9am, then coffee and apple tart at a brown cafe.',
+      wellness: 'Runs and rides through the vast Vondelpark; the city is built for cycling.',
+      privacy: 'Base yourself in the Jordaan or west rather than the crowded Red Light District end of the centre.',
+    },
+  },
+  {
+    slug: 'malaga',
+    vibeTags: ['foodie', 'urban'],
+    city: 'Malaga',
+    country: 'Spain',
+    iata: 'AGP',
+    seoTitle: 'Malaga Travel Guide - Flights, Hotels & Where to Stay | JetMeAway',
+    metaDescription:
+      'Plan Malaga from the UK: the Costa del Sol gateway and a tapas-and-art city in its own right. Where to stay, the airport train and best time to visit.',
+    heroImage: 'https://images.unsplash.com/photo-1620134913685-0f4dcd1fa26f?auto=format&fit=crop&w=1600&q=80',
+    tagline: 'Costa del Sol gateway - and an art-and-tapas city in its own right.',
+    intro:
+      'Most UK travellers pass through Malaga on the way to the Costa del Sol, but the city itself is the surprise - a Moorish fortress over the old town, Picasso’s birthplace, a buzzing tapas scene and a sandy city beach.',
+    whyGo:
+      'Year-round sun, a 12-minute train from the airport to the centre, the gateway to the whole Costa del Sol, and winter temperatures that still hit the high teens.',
+    bestTime:
+      'April to June and September to October for warm, comfortable days. July-August is hot and packed; winter is mild (17°C) and the cheapest the city gets.',
+    neighbourhoods: [
+      { name: 'Centro Historico', blurb: 'The old town - the cathedral, the Alcazaba, the Picasso Museum and the best tapas streets. Walkable and central.' },
+      { name: 'La Malagueta', blurb: 'The city beach and marina - seafront hotels and the palm-lined promenade, a short walk from the old town.' },
+      { name: 'Soho', blurb: 'The arts district - street-art murals, design hotels and a younger, creative scene between the centre and the port.' },
+    ],
+    averageNightlyPrice: 110,
+    flightTimeFromLondonHours: 2.75,
+    faqs: [
+      { q: 'Do I need a visa for Malaga from the UK?', a: 'No - UK visitors can stay visa-free for up to 90 days in any 180-day period across the Schengen area.' },
+      { q: 'How do I get from Malaga airport to the city?', a: 'The C1 commuter train reaches the centre in about 12 minutes and runs every 20 minutes - cheaper and faster than a taxi.' },
+      { q: 'Is Malaga a good winter-sun destination?', a: 'Yes - winter days average a sunny 17°C, making it one of Europe’s best off-season city breaks.' },
+    ],
+    scout: {
+      morningRitual: 'Coffee on the Plaza de la Merced, then the climb to the Gibralfaro castle for the view before the heat.',
+      wellness: 'The Hammam Al Andalus Moorish baths in the old town, and flat seafront runs along the Paseo Maritimo.',
+      privacy: 'Stay in Soho or the upper old town rather than right on the beach strip.',
+    },
+  },
+  {
+    slug: 'alicante',
+    vibeTags: ['spa', 'foodie'],
+    city: 'Alicante',
+    country: 'Spain',
+    iata: 'ALC',
+    seoTitle: 'Alicante Travel Guide - Flights, Hotels & Where to Stay | JetMeAway',
+    metaDescription:
+      'Plan Alicante from the UK: the Costa Blanca gateway. Where to stay, the airport, the best beaches and the day trip to Benidorm.',
+    heroImage: 'https://images.unsplash.com/photo-1680537732093-a4cde73479af?auto=format&fit=crop&w=1600&q=80',
+    tagline: 'Costa Blanca sun, a marble esplanade, and a castle on the hill.',
+    intro:
+      'Alicante is the gateway to the Costa Blanca and an easy, sunny city break in its own right - a palm-lined seafront, a golden city beach and the Santa Barbara castle looking down over it all.',
+    whyGo:
+      'Reliable sun, a 15-minute hop from the airport, the launch point for the whole Costa Blanca (Benidorm, Calpe, Javea), and great-value seafood and rice dishes.',
+    bestTime:
+      'May to June and September to October for warm sea and fewer crowds. July-August is peak; winters are mild and quiet.',
+    neighbourhoods: [
+      { name: 'El Barrio (Santa Cruz)', blurb: 'The old town below the castle - whitewashed lanes, tapas bars and the city’s nightlife.' },
+      { name: 'Playa de San Juan', blurb: 'The big sandy beach a tram-ride north - resort hotels and a long promenade, calmer than the centre.' },
+      { name: 'Centro & Explanada', blurb: 'The marble-tiled seafront esplanade and marina - central hotels and easy access to the port beach.' },
+    ],
+    averageNightlyPrice: 95,
+    flightTimeFromLondonHours: 2.5,
+    faqs: [
+      { q: 'Do I need a visa for Alicante from the UK?', a: 'No - UK visitors can stay visa-free for up to 90 days in any 180-day period across the Schengen area.' },
+      { q: 'How far is Alicante airport from the city?', a: 'About 15 minutes by taxi, or 20 minutes on the frequent C6 airport bus into the centre.' },
+      { q: 'Can I get to Benidorm from Alicante easily?', a: 'Yes - the scenic TRAM light railway runs up the Costa Blanca coast to Benidorm in about an hour.' },
+    ],
+    scout: {
+      morningRitual: 'An early swim off Postiguet beach, then coffee under the palms on the Explanada de Espana.',
+      wellness: 'Beachfront yoga at Playa de San Juan and the climb up to Santa Barbara castle for a workout with a view.',
+      privacy: 'Tram a few stops north to El Campello for quieter beaches than the city centre.',
+    },
+  },
+  {
+    slug: 'palma',
+    vibeTags: ['spa', 'foodie'],
+    city: 'Palma',
+    country: 'Spain',
+    iata: 'PMI',
+    seoTitle: 'Palma de Mallorca Travel Guide - Flights, Hotels & Where to Stay | JetMeAway',
+    metaDescription:
+      'Plan Palma, Mallorca from the UK: the island capital. Where to stay, the airport, beaches near the city and the best time to visit.',
+    heroImage: 'https://images.unsplash.com/photo-1692698746104-7f1465fbad9b?auto=format&fit=crop&w=1600&q=80',
+    tagline: 'Mallorca’s capital - a Gothic cathedral over a yacht-filled bay.',
+    intro:
+      'Palma is far more than the gateway to Mallorca’s resorts - a genuinely beautiful island capital with a vast Gothic cathedral, a maze of an old town, a marina of superyachts and a foodie quarter that rivals the mainland.',
+    whyGo:
+      'A 15-minute drive from a huge, well-connected airport, a walkable historic city, beaches and the Tramuntana mountains within easy reach, and a long season from spring to autumn.',
+    bestTime:
+      'May to June and September to October for warm sea and quieter streets. July-August is peak season; winter is mild and very calm.',
+    neighbourhoods: [
+      { name: 'Old Town (La Seu)', blurb: 'The historic core around the cathedral - boutique hotels in restored palaces and the prettiest streets to wander.' },
+      { name: 'Santa Catalina', blurb: 'The foodie district - a buzzing market, cafes and bars in a former fishermen’s quarter just west of the centre.' },
+      { name: 'Portixol', blurb: 'A relaxed seaside neighbourhood - a former fishing harbour with a sea-view promenade, a short walk or cycle along the bay.' },
+    ],
+    averageNightlyPrice: 130,
+    flightTimeFromLondonHours: 2.3,
+    faqs: [
+      { q: 'Do I need a visa for Palma from the UK?', a: 'No - UK visitors can stay visa-free for up to 90 days in any 180-day period across the Schengen area.' },
+      { q: 'How far is Palma airport from the city?', a: 'Just 8km - about 15 minutes by taxi, or a frequent airport bus straight into the centre.' },
+      { q: 'Are there beaches in Palma itself?', a: 'Yes - the city beaches of Can Pere Antoni and Cala Major are close, and the whole bay is lined with sand within a short drive.' },
+    ],
+    scout: {
+      morningRitual: 'A pour-over in Santa Catalina, then the seafront cycle path along the bay before the day boats leave.',
+      wellness: 'Palma is a base for road cycling and running into the Tramuntana mountains; spas hide inside the old-town palace hotels.',
+      privacy: 'Stay in Santa Catalina or Portixol rather than the package resorts east along the bay.',
+    },
+  },
+  {
+    slug: 'faro',
+    vibeTags: ['spa', 'foodie'],
+    city: 'Faro',
+    country: 'Portugal',
+    iata: 'FAO',
+    seoTitle: 'Faro Travel Guide - Algarve Flights, Hotels & Where to Stay | JetMeAway',
+    metaDescription:
+      'Plan Faro and the Algarve from the UK: where to stay, the gateway to the beach resorts, the old town and the best time to visit.',
+    heroImage: 'https://images.unsplash.com/photo-1707862639375-52804b656c21?auto=format&fit=crop&w=1600&q=80',
+    tagline: 'The capital of the Algarve - walled old town and golden-beach gateway.',
+    intro:
+      'Faro is the gateway to the Algarve, and a calm, walled old town worth a night or two of its own - storks nesting on the cathedral, a marina onto the Ria Formosa lagoon, and boats out to near-empty sandbar beaches.',
+    whyGo:
+      'The arrival point for the entire Algarve coast, a relaxed and authentic old town away from the resorts, the wildlife of the Ria Formosa, and some of Europe’s most reliable sun.',
+    bestTime:
+      'May to June and September to October for warm sea and space on the beaches. July-August is the resort peak; winter is mild and golf-season busy.',
+    neighbourhoods: [
+      { name: 'Cidade Velha (Old Town)', blurb: 'The walled historic core - cobbled lanes, the cathedral and characterful guesthouses inside the gates.' },
+      { name: 'Marina & Centre', blurb: 'The waterfront and pedestrian centre - restaurants, the boats to the islands and the easiest hotels.' },
+      { name: 'Praia de Faro', blurb: 'The city’s beach - a long sandbar island reached by bridge or ferry, with seafood shacks on the sand.' },
+    ],
+    averageNightlyPrice: 90,
+    flightTimeFromLondonHours: 2.75,
+    faqs: [
+      { q: 'Do I need a visa for Faro from the UK?', a: 'No - UK visitors can stay visa-free for up to 90 days in any 180-day period across the Schengen area.' },
+      { q: 'Is Faro a good base for the Algarve?', a: 'Yes - it is the region’s airport and transport hub, with easy buses and trains west to Albufeira, Lagos and Portimao, and east to Tavira.' },
+      { q: 'Are there good beaches near Faro?', a: 'The Ria Formosa islands - Praia de Faro, Ilha Deserta and Ilha da Culatra - are reached by a short ferry and are far quieter than the big resorts.' },
+    ],
+    scout: {
+      morningRitual: 'An early ferry to Ilha Deserta for a near-empty beach walk, back for grilled fish at lunch.',
+      wellness: 'Walks and birdwatching in the Ria Formosa nature park; flat coastal cycling along the lagoon.',
+      privacy: 'Stay inside the old-town walls or out on the sandbar rather than in the resort strips west of the city.',
+    },
+  },
+  {
+    slug: 'bangkok',
+    vibeTags: ['urban', 'foodie'],
+    city: 'Bangkok',
+    country: 'Thailand',
+    iata: 'BKK',
+    seoTitle: 'Bangkok Travel Guide - Flights, Hotels & Where to Stay | JetMeAway',
+    metaDescription:
+      'Plan Bangkok from the UK: where to stay, visa-free entry, best time to visit, and the gateway to Thailand’s islands and beaches.',
+    heroImage: 'https://images.unsplash.com/photo-1586098311406-f28d3b90fa66?auto=format&fit=crop&w=1600&q=80',
+    tagline: 'Golden temples, street food, and Southeast Asia’s friendliest chaos.',
+    intro:
+      'Bangkok is the great gateway to Southeast Asia - glittering temples and the Grand Palace on the river, the world’s best street food on every corner, rooftop bars, and a sky-train gliding over the traffic.',
+    whyGo:
+      'Visa-free for UK tourists, superb value (a luxury hotel costs what a budget one does at home), unbeatable food, and the launch pad for Thailand’s islands and the wider region.',
+    bestTime:
+      'November to February - the cool, dry season and the most comfortable time. March-May is very hot; June-October brings the monsoon rains.',
+    neighbourhoods: [
+      { name: 'Sukhumvit', blurb: 'Modern Bangkok - hotels for every budget, malls, rooftop bars and nightlife, all on the BTS sky-train.' },
+      { name: 'Riverside & Old City (Rattanakosin)', blurb: 'The Grand Palace, Wat Pho and Wat Arun - historic, atmospheric and best for first-time sightseeing.' },
+      { name: 'Silom', blurb: 'The business-and-night district - street food by day, markets and bars by night, well connected by BTS and metro.' },
+    ],
+    averageNightlyPrice: 45,
+    flightTimeFromLondonHours: 11.5,
+    faqs: [
+      { q: 'Do I need a visa for Bangkok from the UK?', a: 'No - UK passport holders can currently enter Thailand visa-free for tourism (up to 60 days). Check the latest rules before you fly.' },
+      { q: 'When is the best time to visit Bangkok?', a: 'November to February, when it is cooler and dry. Avoid the fierce heat of April and the heaviest monsoon months.' },
+      { q: 'Is Bangkok a good gateway to the Thai islands?', a: 'Yes - it is the hub for cheap domestic flights and trains to Phuket, Krabi, Koh Samui and the rest of the country.' },
+    ],
+    scout: {
+      morningRitual: 'Be at Wat Pho or Wat Arun at opening, before the heat and the tour buses, then iced coffee by the river.',
+      wellness: 'Traditional Thai massage everywhere from £6, and riverside yoga and rooftop pools across Sukhumvit.',
+      privacy: 'Stay riverside or in quieter Thonglor rather than the backpacker crush of Khao San Road.',
+    },
+  },
+  {
+    slug: 'tenerife',
+    vibeTags: ['adventure', 'spa'],
+    city: 'Tenerife',
+    country: 'Spain',
+    iata: 'TFS',
+    seoTitle: 'Tenerife Travel Guide - Flights, Hotels & Where to Stay | JetMeAway',
+    metaDescription:
+      'Plan Tenerife from the UK: year-round Canary Islands sun. Which airport, where to stay, Mount Teide and the best time to visit.',
+    heroImage: 'https://images.unsplash.com/photo-1665565648249-c1d1a30a7e87?auto=format&fit=crop&w=1600&q=80',
+    tagline: 'Canary Islands sun all year, Spain’s highest peak, and black-sand beaches.',
+    intro:
+      'Tenerife is the UK’s favourite year-round sun spot - winter warmth four and a half hours from home, the volcanic moonscape of Mount Teide in the middle, and a split personality between the busy southern resorts and the green, cultured north.',
+    whyGo:
+      'Reliable sun every month of the year, no time difference, the dramatic Teide national park, and a resort for every budget - from family beach hotels to adults-only spa retreats.',
+    bestTime:
+      'Any time - the climate is spring-like all year. November to March is peak winter-sun season; the south stays driest and warmest.',
+    neighbourhoods: [
+      { name: 'Costa Adeje', blurb: 'The upmarket south - the best beaches, smart resorts and spa hotels, and the calmest base for families and couples.' },
+      { name: 'Los Cristianos & Playa de las Americas', blurb: 'The lively southern resorts - beaches, nightlife and the widest range of package hotels.' },
+      { name: 'Santa Cruz & La Laguna', blurb: 'The cultured north - the capital, the UNESCO old town of La Laguna, and the gateway to the Anaga forest trails.' },
+    ],
+    averageNightlyPrice: 85,
+    flightTimeFromLondonHours: 4.5,
+    faqs: [
+      { q: 'Do I need a visa for Tenerife from the UK?', a: 'No - Tenerife is part of Spain, so UK visitors can stay visa-free for up to 90 days in any 180-day period.' },
+      { q: 'Which Tenerife airport should I fly into?', a: 'Tenerife South (TFS) is best for the resorts of Costa Adeje and Los Cristianos. Tenerife North (TFN) is closer to Santa Cruz and the mountains.' },
+      { q: 'When is the best time to visit Tenerife?', a: 'Year-round - it is famous for spring-like weather every month. The south is the sunniest and driest in winter.' },
+    ],
+    scout: {
+      morningRitual: 'Drive up to the Teide national park early for the high-altitude light before the cloud rolls in.',
+      wellness: 'Costa Adeje is full of thalassotherapy and spa resorts; the seafront promenades are made for morning runs.',
+      privacy: 'The quieter north and the smaller west-coast bays beat the packed southern resort strips.',
+    },
+  },
+  {
+    slug: 'athens',
+    vibeTags: ['urban', 'foodie'],
+    city: 'Athens',
+    country: 'Greece',
+    iata: 'ATH',
+    seoTitle: 'Athens Travel Guide - Flights, Hotels & Where to Stay | JetMeAway',
+    metaDescription:
+      'Plan Athens from the UK: the Acropolis, where to stay, getting in from the airport, and the gateway to the Greek islands.',
+    heroImage: 'https://images.unsplash.com/photo-1679681414017-9a3ea5538eb3?auto=format&fit=crop&w=1600&q=80',
+    tagline: 'The Acropolis, ancient ruins, and the gateway to the Greek islands.',
+    intro:
+      'Athens packs five thousand years of history under the Acropolis - then surprises you with a buzzing food and bar scene in its old neighbourhoods, and ferries from nearby Piraeus to the islands the moment you want the sea.',
+    whyGo:
+      'World-changing ancient sites, a warm and walkable centre, great-value food and wine, and the easiest springboard to the Cyclades and the rest of the Greek islands.',
+    bestTime:
+      'April to June and September to October - warm, clear and comfortable. July-August is very hot and busy; winter is mild and quiet.',
+    neighbourhoods: [
+      { name: 'Plaka', blurb: 'The old town under the Acropolis - neoclassical lanes, tavernas and the most central, walkable base.' },
+      { name: 'Monastiraki & Psyrri', blurb: 'Markets, street art and the liveliest nightlife and food - lively and central, a step grittier than Plaka.' },
+      { name: 'Koukaki', blurb: 'A trendy, local neighbourhood by the Acropolis Museum - boutique hotels and great restaurants, quieter at night.' },
+    ],
+    averageNightlyPrice: 100,
+    flightTimeFromLondonHours: 3.75,
+    faqs: [
+      { q: 'Do I need a visa for Athens from the UK?', a: 'No - UK visitors can stay visa-free for up to 90 days in any 180-day period across the Schengen area.' },
+      { q: 'How do I get from Athens airport to the centre?', a: 'The metro (Line 3) runs from the airport to Syntagma in the centre in about 40 minutes; the X95 express bus runs 24 hours.' },
+      { q: 'Can I visit the Greek islands from Athens?', a: 'Yes - ferries leave the port of Piraeus (a 30-minute metro ride) for the Cyclades, including Mykonos and Santorini, all summer.' },
+    ],
+    scout: {
+      morningRitual: 'Climb to the Acropolis at opening or up Lycabettus Hill for sunrise, before the heat and the crowds.',
+      wellness: 'Runs through the National Garden and up the pine-covered Lycabettus and Filopappou hills.',
+      privacy: 'Stay in residential Koukaki or Pangrati rather than the busiest Plaka tourist lanes.',
+    },
+  },
 ];
 
 export function getDestination(slug: string): Destination | undefined {
