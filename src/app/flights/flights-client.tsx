@@ -759,6 +759,9 @@ function AutocompleteTo({ value, onChange, initialCode, initialCity }: {
   const ref = useRef<HTMLDivElement>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  // Tracks which carried-in code we've already applied, so the prefill effect
+  // below runs once per distinct code instead of re-firing on every keystroke.
+  const appliedInitialRef = useRef<string | null>(null);
 
   useEffect(() => {
     const fn = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
@@ -768,15 +771,19 @@ function AutocompleteTo({ value, onChange, initialCode, initialCity }: {
 
   useEffect(() => {
     if (!initialCode) return;
+    // Apply a carried-in destination (URL param / sticky search / deep link)
+    // ONCE per distinct code. `initialCity` is bound to the live `destCity`, so
+    // without this guard the effect re-fired on every keystroke and overwrote
+    // the user's edit — making the To field impossible to clear. (2026-05-21)
+    if (appliedInitialRef.current === initialCode) return;
+    appliedInitialRef.current = initialCode;
     const code = initialCode.toUpperCase();
     const d = DESTINATIONS.find(d => d.code === code);
     if (d) {
-      if (!chosen || chosen.code !== d.code) {
-        setQ(`${d.city} (${d.code})`);
-        setChosen(d);
-        onChangeRef.current(d.code, d.city);
-      }
-    } else if (!chosen || chosen.code !== code) {
+      setQ(`${d.city} (${d.code})`);
+      setChosen(d);
+      onChangeRef.current(d.code, d.city);
+    } else {
       // Code isn't in the curated DESTINATIONS list — e.g. a deep-link or the
       // native app sending a destination we don't hard-code here. Accept it
       // anyway (with the city name when supplied via initialCity) so the
