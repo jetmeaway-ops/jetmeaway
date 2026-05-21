@@ -54,16 +54,18 @@ export default function TabsLayout() {
         tabBarHideOnKeyboard: true,
       }}
     >
-      {/* `tabBarTestID` + `tabBarAccessibilityLabel` give Maestro a
-          stable selector for each bottom tab. Tab labels alone aren't
-          findable in the iOS accessibility tree from text-match
-          alone (see Maestro #5/#6, 2026-05-16). With these set, the
-          flow YAMLs use `tapOn: { id: "tab-search" }` and it works. */}
+      {/* `tabBarButtonTestID` sets each bottom tab's testID (-> iOS
+          accessibilityIdentifier), which is what Maestro `id:` matches.
+          NOTE: in @react-navigation/bottom-tabs v7 the option is
+          `tabBarButtonTestID` — plain `tabBarTestID` does NOT exist and is
+          silently ignored, which is why maestro-e2e #1-#8 + the 2026-05-21
+          run all failed "Element not found" at the tab tap. With this set,
+          the flow YAMLs use `tapOn: { id: "tab-search" }` and it works. */}
       <Tabs.Screen
         name="discover"
         options={{
           title: TAB_ICONS.discover.label,
-          tabBarTestID: 'tab-discover',
+          tabBarButtonTestID: 'tab-discover',
           tabBarAccessibilityLabel: 'DiscoverTab',
           tabBarIcon: ({ focused, color, size }) => (
             <Ionicons
@@ -78,7 +80,7 @@ export default function TabsLayout() {
         name="search"
         options={{
           title: TAB_ICONS.search.label,
-          tabBarTestID: 'tab-search',
+          tabBarButtonTestID: 'tab-search',
           tabBarAccessibilityLabel: 'SearchTab',
           tabBarIcon: ({ focused, color, size }) => (
             <Ionicons
@@ -93,7 +95,7 @@ export default function TabsLayout() {
         name="trips"
         options={{
           title: TAB_ICONS.trips.label,
-          tabBarTestID: 'tab-trips',
+          tabBarButtonTestID: 'tab-trips',
           tabBarAccessibilityLabel: 'TripsTab',
           tabBarIcon: ({ focused, color, size }) => (
             <Ionicons
@@ -108,7 +110,7 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: TAB_ICONS.profile.label,
-          tabBarTestID: 'tab-profile',
+          tabBarButtonTestID: 'tab-profile',
           tabBarAccessibilityLabel: 'ProfileTab',
           tabBarIcon: ({ focused, color, size }) => (
             <Ionicons
