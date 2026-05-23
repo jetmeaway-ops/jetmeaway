@@ -191,6 +191,8 @@ function transformDuffelOffers(offers: any[], paxCount: number): any[] {
       departure_at: depTime,
       arrival_at: arrTime,
       return_at: retSlice?.segments?.[0]?.departing_at || null,
+      origin_airport: outSlice?.origin?.iata_code || firstSeg?.origin?.iata_code || null,
+      destination_airport: outSlice?.destination?.iata_code || lastOutSeg?.destination?.iata_code || null,
       flight_number: firstSeg?.marketing_carrier_flight_number
         ? `${airlineCode}${firstSeg.marketing_carrier_flight_number}`
         : null,
@@ -276,6 +278,8 @@ async function searchTravelpayouts(
     duration_back: f.duration_back || 0,
     departure_at: f.departure_at || null,
     return_at: f.return_at || null,
+    origin_airport: f.origin_airport || null,
+    destination_airport: f.destination_airport || null,
     flight_number: f.flight_number || null,
     offer_id: null,
     source: 'travelpayouts',

@@ -437,6 +437,10 @@ type FlightResult = {
   departure_at: string | null;
   arrival_at?: string | null;
   return_at: string | null;
+  /** Real per-flight airport codes (e.g. SEN, LGW) — distinct from the
+   *  searched metro code (LON). Fall back to the searched code when absent. */
+  origin_airport?: string | null;
+  destination_airport?: string | null;
   flight_number: string | null;
   offer_id?: string | null;
   source?: 'duffel' | 'travelpayouts' | 'kyte';
@@ -624,6 +628,8 @@ function kyteOffersToFlightResults(
         returnFirstSeg?.departure?.date && returnFirstSeg.departure.time
           ? `${returnFirstSeg.departure.date}T${normalizeKyteTime(returnFirstSeg.departure.time)}`
           : null,
+      origin_airport: firstSeg.departure.airport?.code || null,
+      destination_airport: lastSeg.arrival.airport?.code || null,
       flight_number: firstSeg.flightNumber || null,
       offer_id: offerId,
       source: 'kyte',
@@ -2401,7 +2407,7 @@ function FlightsContent() {
                         <div className="flex items-center gap-3">
                           <div className="text-center min-w-[50px]">
                             <div className="font-poppins font-black text-[1.05rem] text-[#1A1D2B]">{depTime}</div>
-                            <div className="text-[.62rem] text-[#8E95A9] font-semibold">{originCode}</div>
+                            <div className="text-[.62rem] text-[#8E95A9] font-semibold">{f.origin_airport || originCode}</div>
                           </div>
                           <div className="flex-1 flex flex-col items-center gap-0.5 min-w-[80px]">
                             <div className="text-[.65rem] text-[#8E95A9] font-semibold">{duration}</div>
@@ -2416,7 +2422,7 @@ function FlightsContent() {
                           </div>
                           <div className="text-center min-w-[50px]">
                             <div className="font-poppins font-black text-[1.05rem] text-[#1A1D2B]">{arrTime}</div>
-                            <div className="text-[.62rem] text-[#8E95A9] font-semibold">{destCode}</div>
+                            <div className="text-[.62rem] text-[#8E95A9] font-semibold">{f.destination_airport || destCode}</div>
                           </div>
                         </div>
 
