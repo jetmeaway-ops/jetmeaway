@@ -1,27 +1,36 @@
 'use client';
 
 /**
- * HeroGlobe3D — slowly rotating globe behind the home-page hero.
+ * HeroGlobe3D — Earth behind the home hero that matches the VISITOR'S local
+ * time of day: daytime Blue Marble while it's daytime on their clock, glowing
+ * night city-lights after sunset.
  *
- * Background-layer only: pointer-events disabled so the search wizard /
- * stats / CTA stay fully interactive. The canvas sits absolutely behind
- * the hero content (z-0 vs hero content at z-1).
+ * Background-layer only: pointer-events disabled so the search wizard / stats
+ * / CTA stay fully interactive. Canvas sits absolutely behind the hero content
+ * (hero content is z-[1]).
  *
- * Visual brief: calm + premium. Wireframe icosphere in muted blue at low
- * opacity, six glowing dots at the same cities as the quick-pill row
- * (Barcelona / Dubai / Tenerife / Palma / Antalya / London). Slow
- * auto-rotate so the eye catches motion without distraction.
+ * Textures are NASA Blue Marble (day) + Earth-at-night city lights (night),
+ * public domain, optimised to 2K WebP in /public/textures. Only the relevant
+ * one is downloaded — we pick from the local hour at mount, so a daytime
+ * visitor never fetches the night texture and vice-versa. Faint blue
+ * atmosphere rim, Earth-like axial tilt, slow auto-rotate, six quick-pill
+ * cities as warm markers.
  *
- * Mobile is hidden via parent `hidden md:block` — globe paint cost on
- * slow mobile devices isn't worth the visual delta in a 480px-tall hero.
+ * (A real-time day/night-terminator variant is kept at
+ * HeroGlobe3D.daynight.tsx.bak.)
+ *
+ * Shown on mobile too. Kept cheap by the load-on-engagement gate (loader),
+ * a capped device-pixel-ratio, the small texture, and the WebGL error
+ * boundary so weak GPUs that fail just fall back to the plain hero.
  */
 
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { Suspense, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
 const GLOBE_RADIUS = 1.6;
-const DOT_RADIUS = 0.035;
+const CITY_DOT_RADIUS = 0.028;
+const AXIAL_TILT = 0.41; // ~23.4°
 
 const DESTINATIONS: { name: string; lat: number; lng: number }[] = [
   { name: 'London', lat: 51.51, lng: -0.13 },
@@ -32,7 +41,11 @@ const DESTINATIONS: { name: string; lat: number; lng: number }[] = [
   { name: 'Antalya', lat: 36.9, lng: 30.71 },
 ];
 
-/* ─────────────────────────── Lat/lng → 3D vector ─────────────────────── */
+/** Daytime if the visitor's local clock is roughly 7am–7pm. */
+function isLocalDaytime(): boolean {
+  const h = new Date().getHours();
+  return h >= 7 && h < 19;
+}
 
 function latLngToVec3(lat: number, lng: number, radius: number): THREE.Vector3 {
   const phi = (90 - lat) * (Math.PI / 180);
@@ -44,56 +57,108 @@ function latLngToVec3(lat: number, lng: number, radius: number): THREE.Vector3 {
   );
 }
 
-/* ─────────────────────────── Globe + markers group ───────────────────── */
+/* ─────────────────────────── Atmosphere shader ───────────────────────── */
 
-function Globe() {
-  const groupRef = useRef<THREE.Group>(null);
+const atmosphereVertex = /* glsl */ `
+  varying vec3 vNormal;
+  void main() {
+    vNormal = normalize(normalMatrix * normal);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const atmosphereFragment = /* glsl */ `
+  uniform float uStrength;
+  varying vec3 vNormal;
+  void main() {
+    float rim = pow(1.0 - abs(dot(vNormal, vec3(0.0, 0.0, 1.0))), 3.0);
+    gl_FragColor = vec4(vec3(0.30, 0.55, 1.0) * rim, rim * uStrength);
+  }
+`;
+
+/* ─────────────────────────── Globe group ─────────────────────────────── */
+
+function Globe({ day }: { day: boolean }) {
+  const spinRef = useRef<THREE.Group>(null);
+
+  const tex = useLoader(
+    THREE.TextureLoader,
+    day ? '/textures/earth-day.webp' : '/textures/earth-night.webp',
+  );
+  useMemo(() => {
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 4;
+  }, [tex]);
+
+  const atmosUniforms = useMemo(
+    () => ({ uStrength: { value: day ? 0.9 : 0.55 } }),
+    [day],
+  );
 
   const markers = useMemo(
     () =>
       DESTINATIONS.map((d) => ({
         ...d,
-        pos: latLngToVec3(d.lat, d.lng, GLOBE_RADIUS + 0.01),
+        pos: latLngToVec3(d.lat, d.lng, GLOBE_RADIUS + 0.012).toArray(),
       })),
     [],
   );
 
   useFrame((_, delta) => {
-    if (!groupRef.current) return;
-    // Very slow Y-axis spin — eye registers motion, doesn't get distracted.
-    groupRef.current.rotation.y += delta * 0.08;
+    if (spinRef.current) spinRef.current.rotation.y += delta * 0.06;
   });
 
   return (
-    <group ref={groupRef}>
-      {/* Wireframe icosphere — the "globe" silhouette */}
-      <mesh>
-        <icosahedronGeometry args={[GLOBE_RADIUS, 3]} />
-        <meshBasicMaterial
-          color={0x6aa9ff}
-          wireframe
-          transparent
-          opacity={0.28}
-        />
-      </mesh>
+    <group rotation={[0, 0, AXIAL_TILT]}>
+      {/* Day needs lighting for dimension; night is self-lit city lights. */}
+      {day && (
+        <>
+          <ambientLight intensity={1.15} />
+          <directionalLight position={[3, 1.5, 4]} intensity={0.9} />
+        </>
+      )}
 
-      {/* Filled inner sphere — soft translucent fill gives the globe weight */}
-      <mesh>
-        <sphereGeometry args={[GLOBE_RADIUS * 0.99, 32, 32]} />
-        <meshBasicMaterial
-          color={0x0a1f44}
-          transparent
-          opacity={0.55}
-        />
-      </mesh>
-
-      {/* Destination markers — small emissive dots at lat/lng */}
-      {markers.map((m) => (
-        <mesh key={m.name} position={m.pos.toArray()}>
-          <sphereGeometry args={[DOT_RADIUS, 12, 12]} />
-          <meshBasicMaterial color={0xffb066} transparent opacity={0.95} />
+      <group ref={spinRef}>
+        <mesh>
+          <sphereGeometry args={[GLOBE_RADIUS, 64, 64]} />
+          {day ? (
+            <meshStandardMaterial
+              map={tex}
+              roughness={1}
+              metalness={0}
+              emissiveMap={tex}
+              emissive={0xffffff}
+              emissiveIntensity={0.18}
+            />
+          ) : (
+            // Unlit so the city lights glow at full brightness on the dark
+            // oceans, regardless of scene lighting.
+            <meshBasicMaterial map={tex} />
+          )}
         </mesh>
-      ))}
+
+        {/* Destination markers — warm pins for the brand cities */}
+        {markers.map((m) => (
+          <mesh key={m.name} position={m.pos as [number, number, number]}>
+            <sphereGeometry args={[CITY_DOT_RADIUS, 12, 12]} />
+            <meshBasicMaterial color={0xffd27a} transparent opacity={0.95} />
+          </mesh>
+        ))}
+      </group>
+
+      {/* Atmosphere rim */}
+      <mesh scale={1.045}>
+        <sphereGeometry args={[GLOBE_RADIUS, 48, 48]} />
+        <shaderMaterial
+          vertexShader={atmosphereVertex}
+          fragmentShader={atmosphereFragment}
+          uniforms={atmosUniforms}
+          transparent
+          blending={THREE.AdditiveBlending}
+          side={THREE.BackSide}
+          depthWrite={false}
+        />
+      </mesh>
     </group>
   );
 }
@@ -101,23 +166,22 @@ function Globe() {
 /* ─────────────────────────── Public component ─────────────────────────── */
 
 export default function HeroGlobe3D() {
+  // Decided once at mount from the visitor's clock.
+  const day = useMemo(() => isLocalDaytime(), []);
+
   return (
     <div
-      // Absolutely positioned background layer. Pointer events off so the
-      // hero search wizard / stats / pills stay fully clickable.
-      className="absolute inset-0 pointer-events-none hidden md:block"
+      className="absolute inset-0 pointer-events-none"
       aria-hidden
     >
       <Canvas
-        dpr={[1, 1.5]}
+        dpr={[1, 1.25]}
         camera={{ position: [0, 0, 5], fov: 35, near: 0.1, far: 100 }}
         gl={{ alpha: true, antialias: true }}
         style={{ background: 'transparent' }}
       >
-        <ambientLight intensity={0.6} />
-        <directionalLight position={[5, 3, 5]} intensity={0.8} />
         <Suspense fallback={null}>
-          <Globe />
+          <Globe day={day} />
         </Suspense>
       </Canvas>
     </div>
