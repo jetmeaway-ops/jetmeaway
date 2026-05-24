@@ -6,6 +6,7 @@ import Footer from '@/components/Footer';
 import MidArticleCta from '@/components/blog/MidArticleCta';
 import DownloadPdfCard from '@/components/blog/DownloadPdfCard';
 import HotelPhoto from '@/components/blog/HotelPhoto';
+import CheapestMonthsTable from '@/components/blog/CheapestMonthsTable';
 import { getAllPostSlugs, getPostBySlug, formatPostDate } from '@/lib/blog';
 import type { Metadata } from 'next';
 
@@ -145,6 +146,8 @@ const mdxComponents = {
   // Per-hotel hero image pulled from Google Places — usable inside any
   // hotel city blog post as `<HotelPhoto hotelName="…" city="…" />`.
   HotelPhoto,
+  // Original-data fare table for the "Cheapest Months to Fly" flagship post.
+  CheapestMonthsTable,
 };
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
