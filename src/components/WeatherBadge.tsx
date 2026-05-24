@@ -119,32 +119,19 @@ export default function WeatherBadge() {
 
   return (
     <div
-      className={`${wrapperClass} flex flex-col items-start gap-0.5 rounded-2xl border border-white/10 bg-[#0F1119]/85 pl-2 pr-2.5 py-1.5 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)] backdrop-blur-md`}
+      className={`${wrapperClass} inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-[#0F1119]/85 px-3 py-1.5 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)] backdrop-blur-md`}
     >
       {state === 'locating' && !weather ? (
-        <span className="text-[11px] font-medium text-white/70">Locating…</span>
+        <span className="text-[12px] font-medium text-white/70">Locating…</span>
       ) : weather ? (
         <>
-          {/* Top line: condition glyph + temperature, like the Apple Maps pill. */}
-          <span className="flex items-center gap-0.5 leading-none">
-            <span className="text-[15px] leading-none" aria-hidden>
-              {weather.emoji}
-            </span>
-            <span className="text-[15px] font-semibold text-white" title={weather.condition}>
-              {weather.tempC}°
-            </span>
+          {/* Condition glyph + current temperature — clean single-line pill. */}
+          <span className="text-[15px] leading-none" aria-hidden>
+            {weather.emoji}
           </span>
-          {/* Bottom line: AQI band + status dot — flush left under the glyph. */}
-          {weather.aqiBand != null ? (
-            <span className="flex items-center gap-1 text-[10px] font-semibold leading-none text-white/70">
-              AQI {weather.aqiBand}
-              <span
-                className="h-1.5 w-1.5 rounded-full"
-                style={{ backgroundColor: weather.aqiColor ?? '#16A34A' }}
-                aria-hidden
-              />
-            </span>
-          ) : null}
+          <span className="text-[15px] font-semibold leading-none text-white" title={weather.condition}>
+            {weather.tempC}°
+          </span>
         </>
       ) : null}
     </div>
