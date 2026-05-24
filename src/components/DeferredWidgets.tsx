@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 
 const ScoutChat = dynamic(() => import('@/components/ScoutChat'), { ssr: false });
+const WeatherBadge = dynamic(() => import('@/components/WeatherBadge'), { ssr: false });
 const ServiceWorkerRegistration = dynamic(() => import('@/components/ServiceWorkerRegistration'), { ssr: false });
 const PushNotificationPrompt = dynamic(() => import('@/components/PushNotificationPrompt'), { ssr: false });
 // Vercel Analytics moved here so its script never competes with LCP/FCP.
@@ -42,6 +43,7 @@ export default function DeferredWidgets() {
   return (
     <>
       <Analytics />
+      <WeatherBadge />
       <ScoutChat />
       <ServiceWorkerRegistration />
       <PushNotificationPrompt />
