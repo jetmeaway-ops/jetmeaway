@@ -99,7 +99,9 @@ export default function WeatherBadge() {
     return () => abortRef.current?.abort();
   }, [locate]);
 
-  const wrapperClass = 'fixed right-4 top-20 z-[90] select-none';
+  // Floats at the vertical middle of the left edge — clear of the header and
+  // mobile category bar (top), Scout (bottom-left) and Back-to-top (bottom-right).
+  const wrapperClass = 'fixed left-3 top-1/2 -translate-y-1/2 z-[90] select-none';
 
   if (state === 'idle' || state === 'error') {
     return (
@@ -107,36 +109,40 @@ export default function WeatherBadge() {
         type="button"
         onClick={locate}
         aria-label="Show local weather"
-        className={`${wrapperClass} inline-flex items-center gap-1.5 rounded-full border border-[#E2E8F0] bg-white/95 px-3 py-2 text-xs font-medium text-[#1A1D2B] shadow-[0_10px_30px_-12px_rgba(15,17,25,0.35)] backdrop-blur transition-transform hover:scale-[1.04]`}
+        className={`${wrapperClass} inline-flex items-center gap-1.5 rounded-2xl border border-white/10 bg-[#0F1119]/85 px-2.5 py-1.5 text-[11px] font-medium text-white/90 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)] backdrop-blur-md transition-transform hover:scale-[1.04]`}
       >
         <span aria-hidden>📍</span>
-        Local weather
+        Weather
       </button>
     );
   }
 
   return (
     <div
-      className={`${wrapperClass} inline-flex items-center gap-2 rounded-2xl border border-[#E2E8F0] bg-white/95 px-3 py-2 shadow-[0_10px_30px_-12px_rgba(15,17,25,0.35)] backdrop-blur`}
+      className={`${wrapperClass} flex flex-col items-start gap-0.5 rounded-2xl border border-white/10 bg-[#0F1119]/85 px-2.5 py-1.5 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)] backdrop-blur-md`}
     >
       {state === 'locating' && !weather ? (
-        <span className="text-xs font-medium text-[#5C6378]">Locating…</span>
+        <span className="text-[11px] font-medium text-white/70">Locating…</span>
       ) : weather ? (
         <>
-          <span className="text-base leading-none" aria-hidden>
-            {weather.emoji}
+          {/* Top line: condition glyph + temperature, like the Apple Maps pill. */}
+          <span className="flex items-center gap-1 leading-none">
+            <span className="text-[15px] leading-none" aria-hidden>
+              {weather.emoji}
+            </span>
+            <span className="text-[15px] font-semibold text-white" title={weather.condition}>
+              {weather.tempC}°
+            </span>
           </span>
-          <span className="text-sm font-semibold text-[#1A1D2B]" title={weather.condition}>
-            {weather.tempC}°
-          </span>
+          {/* Bottom line: AQI band + status dot. */}
           {weather.aqiBand != null ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#F1F5F9] px-1.5 py-0.5 text-[10px] font-semibold text-[#5C6378]">
+            <span className="flex items-center gap-1 text-[10px] font-semibold leading-none text-white/70">
+              AQI {weather.aqiBand}
               <span
                 className="h-1.5 w-1.5 rounded-full"
                 style={{ backgroundColor: weather.aqiColor ?? '#16A34A' }}
                 aria-hidden
               />
-              AQI {weather.aqiBand}
             </span>
           ) : null}
         </>
