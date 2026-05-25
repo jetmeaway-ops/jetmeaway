@@ -7,7 +7,8 @@ import MidArticleCta from '@/components/blog/MidArticleCta';
 import DownloadPdfCard from '@/components/blog/DownloadPdfCard';
 import HotelPhoto from '@/components/blog/HotelPhoto';
 import CheapestMonthsTable from '@/components/blog/CheapestMonthsTable';
-import { getAllPostSlugs, getPostBySlug, formatPostDate } from '@/lib/blog';
+import RelatedPosts from '@/components/blog/RelatedPosts';
+import { getAllPosts, getAllPostSlugs, getPostBySlug, formatPostDate } from '@/lib/blog';
 import type { Metadata } from 'next';
 
 /**
@@ -156,6 +157,16 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const post = getPostBySlug(slug);
   if (!post) notFound();
 
+  // "Read next" picks — same-category posts first (most relevant), then the
+  // most recent others to fill 3 slots. getAllPosts() is already date-sorted.
+  // This gives every article inbound contextual internal links from siblings.
+  const relatedPosts = (() => {
+    const others = getAllPosts().filter((p) => p.slug !== post.slug);
+    const sameCategory = others.filter((p) => p.category === post.category);
+    const rest = others.filter((p) => p.category !== post.category);
+    return [...sameCategory, ...rest].slice(0, 3);
+  })();
+
   // Compile the MDX body in two halves so we can drop the in-body CTA
   // between them. If the post has <2 H2 headings, splitMdxAtMiddleH2
   // returns second=null and we fall back to single-compile + CTA after.
@@ -290,6 +301,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           <MidArticleCta city={post.ctaCity ?? null} flightCode={post.ctaFlightsTo ?? null} />
           {secondContent}
         </div>
+
+        {/* "Read next" — contextual internal links to sibling articles. */}
+        <RelatedPosts posts={relatedPosts} />
 
         {/* End-of-post CTA */}
         <div className="max-w-[760px] mx-auto px-5 mt-16">
