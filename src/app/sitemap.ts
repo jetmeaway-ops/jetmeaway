@@ -29,6 +29,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/explore`,     lastModified: now, changeFrequency: 'weekly',  priority: 0.7 },
     { url: `${BASE}/blog`,        lastModified: now, changeFrequency: 'weekly',  priority: 0.8 },
     { url: `${BASE}/destinations`, lastModified: now, changeFrequency: 'weekly',  priority: 0.85 },
+    { url: `${BASE}/travel-data`, lastModified: now, changeFrequency: 'weekly',  priority: 0.7 },
   ];
 
   // Programmatic SEO — one page per destination city
