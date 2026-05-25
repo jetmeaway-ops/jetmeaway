@@ -7,6 +7,7 @@ import MidArticleCta from '@/components/blog/MidArticleCta';
 import DownloadPdfCard from '@/components/blog/DownloadPdfCard';
 import HotelPhoto from '@/components/blog/HotelPhoto';
 import CheapestMonthsTable from '@/components/blog/CheapestMonthsTable';
+import BestValueTable from '@/components/blog/BestValueTable';
 import RelatedPosts from '@/components/blog/RelatedPosts';
 import { getAllPosts, getAllPostSlugs, getPostBySlug, formatPostDate } from '@/lib/blog';
 import type { Metadata } from 'next';
@@ -149,6 +150,8 @@ const mdxComponents = {
   HotelPhoto,
   // Original-data fare table for the "Cheapest Months to Fly" flagship post.
   CheapestMonthsTable,
+  // Ranked fare table for the "Cheapest UK destinations right now" post.
+  BestValueTable,
 };
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
