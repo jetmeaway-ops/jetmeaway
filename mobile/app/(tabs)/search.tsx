@@ -1,15 +1,21 @@
 /**
- * Search tab — unified entry to every search category. Phase 7b.
+ * Search tab — native home hero mirroring the website landing page.
  *
- * Layout:
- *   Hero greeting
- *   2×2 grid of native search tiles (Flights / Hotels / Cars / Packages)
- *     — each pushes to its native search form
- *   Row of affiliate / info categories (eSIM / Insurance / Tours)
- *     — each pushes to /webview/<slug> via the native-chrome shell
+ * Replaces the old 2×2 category-tile grid (which testers found confusing:
+ * "we don't understand what to do" — and the white Hotels/Cars tiles had
+ * invisible labels). The new layout matches jetmeaway.co.uk's homepage so
+ * the app feels familiar to anyone who has seen the site:
+ *   eyebrow → headline ("Find Your Perfect Trip for Less") → stats band →
+ *   a prominent search bar (origin chip + "Where will Scout take you?" + GO)
+ *   → quick-destination chips → category switch row → also-in-the-app rows.
  *
- * Tiles use brand-blue accent gradients (solid colour for v1; gradient
- * polish in Phase 9) so the grid reads at a glance.
+ * The search bar and category pills push into the existing native search
+ * forms (/flights/search etc.) — those forms keep their LocationPicker,
+ * date range and passenger UI, and post to the results webview. This screen
+ * is the entry, not a duplicate of the form.
+ *
+ * Note: the app is currently hardcoded to the dark navy theme (see
+ * src/theme). Light/auto theming is a separate app-wide change.
  */
 
 import { useCallback } from 'react';
@@ -22,51 +28,39 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import LottieView from 'lottie-react-native';
 import { useRouter } from 'expo-router';
 
 import { Card } from '../../src/components/primitives';
 import { colors, radii, spacing, typography } from '../../src/theme';
 import { haptics } from '../../src/hooks/useHaptics';
 
-type SearchTile = {
-  id: string;
-  lottie: number; // require() returns numeric module id
-  title: string;
-  route: string;
-  accent: 'brand' | 'navy';
-};
+// Website hero accents — gold headline highlight + orange search CTA.
+// These mirror jetmeaway.co.uk's homepage exactly (brand blue stays #0066FF).
+const GOLD = '#F5A623';
+const ORANGE = '#F97316';
 
-const PRIMARY_TILES: SearchTile[] = [
-  {
-    id: 'flights',
-    lottie: require('../../assets/lottie/flights.json'),
-    title: 'Flights',
-    route: '/flights/search',
-    accent: 'brand',
-  },
-  {
-    id: 'hotels',
-    lottie: require('../../assets/lottie/hotels.json'),
-    title: 'Hotels',
-    route: '/hotels/search',
-    accent: 'navy',
-  },
-  {
-    id: 'cars',
-    lottie: require('../../assets/lottie/cars.json'),
-    title: 'Cars',
-    route: '/cars/search',
-    accent: 'navy',
-  },
-  {
-    id: 'packages',
-    lottie: require('../../assets/lottie/packages.json'),
-    title: 'Packages',
-    route: '/packages/search',
-    accent: 'brand',
-  },
+type Stat = { value: string; label: string };
+const STATS: Stat[] = [
+  { value: '15+', label: 'Providers' },
+  { value: '2M+', label: 'Hotels' },
+  { value: '90s', label: 'Avg. Checkout' },
+  { value: '24/7', label: 'AI Assistant' },
 ];
+
+type Category = {
+  id: string;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  route: string;
+};
+const CATEGORIES: Category[] = [
+  { id: 'flights', label: 'Flights', icon: 'airplane', route: '/flights/search' },
+  { id: 'hotels', label: 'Hotels', icon: 'bed', route: '/hotels/search' },
+  { id: 'cars', label: 'Cars', icon: 'car-sport', route: '/cars/search' },
+  { id: 'packages', label: 'Packages', icon: 'cube', route: '/packages/search' },
+];
+
+const QUICK_DESTINATIONS = ['Barcelona', 'Dubai', 'Tenerife', 'Palma', 'Antalya'];
 
 type AffiliateRow = {
   slug: string;
@@ -74,7 +68,6 @@ type AffiliateRow = {
   title: string;
   body: string;
 };
-
 const AFFILIATE_ROWS: AffiliateRow[] = [
   {
     slug: 'esim',
@@ -99,7 +92,7 @@ const AFFILIATE_ROWS: AffiliateRow[] = [
 export default function SearchScreen() {
   const router = useRouter();
 
-  const handleNavigate = useCallback(
+  const go = useCallback(
     (route: string) => {
       haptics.light();
       router.push(route);
@@ -109,55 +102,98 @@ export default function SearchScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.eyebrow}>FIND YOUR TRIP</Text>
-        <Text style={styles.heading}>Search</Text>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Hero — mirrors the website homepage */}
+        <Text style={styles.eyebrow}>UK&apos;S SMARTEST TRAVEL COMPARISON</Text>
+        <Text style={styles.headline}>
+          Find Your Perfect Trip for{' '}
+          <Text style={styles.headlineGold}>Less</Text>
+        </Text>
         <Text style={styles.lede}>
-          Compare flights, hotels, cars, and packages across our partner network —
-          plus eSIM, insurance, and experiences alongside.
+          Compare flights, hotels, car hire and more from 15+ trusted providers.
+          Real prices, in seconds.
         </Text>
 
-        <View style={styles.grid}>
-          {PRIMARY_TILES.map((tile) => (
+        {/* Stats band */}
+        <View style={styles.stats}>
+          {STATS.map((s) => (
+            <View key={s.label} style={styles.statItem}>
+              <Text style={styles.statValue}>{s.value}</Text>
+              <Text style={styles.statLabel}>{s.label}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Primary search bar → flight search form */}
+        <Pressable
+          onPress={() => go('/flights/search')}
+          accessibilityRole="button"
+          accessibilityLabel="Search flights"
+          style={({ pressed }) => [styles.searchBar, pressed && styles.pressed]}
+        >
+          <View style={styles.originChip}>
+            <Ionicons name="airplane" size={14} color={colors.textPrimary} />
+            <Text style={styles.originText}>LON</Text>
+            <Ionicons name="chevron-down" size={13} color={colors.textMuted} />
+          </View>
+          <Text style={styles.searchPlaceholder} numberOfLines={1}>
+            Where will Scout take you?
+          </Text>
+          <View style={styles.goButton}>
+            <Ionicons name="search" size={15} color="#FFFFFF" />
+            <Text style={styles.goText}>GO</Text>
+          </View>
+        </Pressable>
+
+        {/* Quick destination chips */}
+        <View style={styles.chips}>
+          {QUICK_DESTINATIONS.map((city) => (
             <Pressable
-              key={tile.id}
-              onPress={() => handleNavigate(tile.route)}
+              key={city}
+              onPress={() => go('/flights/search')}
               accessibilityRole="button"
-              accessibilityLabel={tile.title}
-              style={({ pressed }) => [
-                styles.tile,
-                tile.accent === 'brand' ? styles.tileBrand : styles.tileNavy,
-                pressed && styles.tilePressed,
-              ]}
+              accessibilityLabel={`Search trips to ${city}`}
+              style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
             >
-              {/* Lottie fills the entire tile as a background layer. */}
-              <LottieView
-                source={tile.lottie as never}
-                autoPlay
-                loop
-                style={StyleSheet.absoluteFillObject}
-                resizeMode="cover"
-              />
-              <View style={styles.tileTextOverlay} pointerEvents="none">
-                <Text
-                  style={[
-                    styles.tileTitleOver,
-                    tile.accent === 'navy' && styles.tileTitleOverDark,
-                  ]}
-                >
-                  {tile.title.toUpperCase()}
-                </Text>
-              </View>
+              <Ionicons name="location-outline" size={13} color={colors.textSecondary} />
+              <Text style={styles.chipText}>{city}</Text>
+            </Pressable>
+          ))}
+          <Pressable
+            onPress={() => go('/flights/search')}
+            accessibilityRole="button"
+            accessibilityLabel="Surprise me"
+            style={({ pressed }) => [styles.chip, styles.chipAccent, pressed && styles.pressed]}
+          >
+            <Ionicons name="shuffle" size={13} color={GOLD} />
+            <Text style={[styles.chipText, { color: GOLD }]}>Surprise me</Text>
+          </Pressable>
+        </View>
+
+        {/* Category switch — quick access to the other search forms */}
+        <Text style={styles.sectionLabel}>SEARCH BY CATEGORY</Text>
+        <View style={styles.categoryRow}>
+          {CATEGORIES.map((cat) => (
+            <Pressable
+              key={cat.id}
+              onPress={() => go(cat.route)}
+              accessibilityRole="button"
+              accessibilityLabel={cat.label}
+              style={({ pressed }) => [styles.categoryPill, pressed && styles.pressed]}
+            >
+              <Ionicons name={cat.icon} size={20} color={colors.brand} />
+              <Text style={styles.categoryLabel}>{cat.label}</Text>
             </Pressable>
           ))}
         </View>
 
+        {/* Also in the app */}
         <Text style={styles.sectionLabel}>ALSO IN THE APP</Text>
-        <Card style={[styles.affiliateCard, styles.padNone]}>
+        <Card style={styles.padNone}>
           {AFFILIATE_ROWS.map((row, i) => (
             <Pressable
               key={row.slug}
-              onPress={() => handleNavigate(`/webview/${row.slug}`)}
+              onPress={() => go(`/webview/${row.slug}`)}
               accessibilityRole="link"
               accessibilityLabel={row.title}
               style={({ pressed }) => [
@@ -179,9 +215,9 @@ export default function SearchScreen() {
         </Card>
 
         <Text style={styles.footnote}>
-          Flight + hotel bookings stay on-device through Apple Pay (rolling out).
-          Cars, packages, eSIM, and insurance redirect to partners with your
-          search prefilled — no markup.
+          Prices locked at booking — we never call or email you for extra payment.
+          Cars, packages, eSIM and insurance redirect to partners with your search
+          prefilled, no markup.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -189,63 +225,125 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.surfaceAlt },
-  content: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
-  eyebrow: { ...typography.overline, color: colors.brand },
-  heading: { ...typography.display, color: colors.textPrimary },
+  root: { flex: 1, backgroundColor: colors.surface },
+  content: { padding: spacing.lg, paddingBottom: spacing.xxxl },
+
+  eyebrow: { ...typography.overline, color: GOLD, marginBottom: spacing.xs },
+  headline: { ...typography.display, color: colors.textPrimary },
+  headlineGold: { color: GOLD },
   lede: {
     ...typography.body,
     color: colors.textSecondary,
-    marginBottom: spacing.md,
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
   },
 
-  grid: {
+  stats: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
+    justifyContent: 'space-between',
+    marginBottom: spacing.lg,
   },
-  tile: {
-    // Explicit width + height so the tile dimensions resolve even when ALL
-    // child views are position:absolute (Lottie absoluteFillObject + scrim +
-    // text overlay). Build 33 used aspectRatio + flexBasis which collapsed
-    // to 0×0 on iOS — Yoga can't anchor aspectRatio without a flex child.
-    // 48% width keeps the 2-up grid; 168px height ≈ 1.05 aspect on iPhone 14.
-    width: '48%',
-    height: 168,
-    borderRadius: radii.xl,
-    overflow: 'hidden', // keep absolute-fill Lottie inside the rounded corners
+  statItem: { alignItems: 'center', flex: 1 },
+  statValue: {
+    fontFamily: 'Poppins_800ExtraBold',
+    fontSize: 22,
+    color: colors.textPrimary,
   },
-  tileBrand: { backgroundColor: colors.brand },
-  tileNavy: { backgroundColor: colors.surfaceInverse },
-  tilePressed: { opacity: 0.9 },
-  tileTextOverlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    alignItems: 'center',
-  },
-  tileTitleOver: {
-    ...typography.h2,
-    color: '#FFFFFF',
-    letterSpacing: 2,
+  statLabel: {
+    ...typography.caption,
+    color: colors.textMuted,
+    marginTop: 2,
     textAlign: 'center',
   },
-  // Dark variant for the white tiles (Hotels + Cars). White text is invisible
-  // against the surfaceInverse background; navy900 keeps brand contrast.
-  tileTitleOverDark: {
-    color: colors.palette.navy900,
+
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radii.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.xs,
+    paddingLeft: spacing.sm,
+    gap: spacing.sm,
+  },
+  originChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: colors.surfaceMuted,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: radii.md,
+  },
+  originText: {
+    fontFamily: 'Poppins_700Bold',
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+  searchPlaceholder: {
+    ...typography.body,
+    color: colors.textMuted,
+    flex: 1,
+  },
+  goButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: ORANGE,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: radii.lg,
+  },
+  goText: { fontFamily: 'Poppins_800ExtraBold', fontSize: 14, color: '#FFFFFF' },
+
+  chips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginTop: spacing.md,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: radii.pill,
+  },
+  chipAccent: { borderColor: 'rgba(245,166,35,0.5)' },
+  chipText: {
+    ...typography.bodySm,
+    fontFamily: 'Poppins_600SemiBold',
+    color: colors.textSecondary,
   },
 
   sectionLabel: {
     ...typography.overline,
     color: colors.textMuted,
-    marginTop: spacing.lg,
-    paddingHorizontal: spacing.xs,
+    marginTop: spacing.xl,
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.xxs,
   },
-  affiliateCard: {},
+  categoryRow: { flexDirection: 'row', gap: spacing.sm },
+  categoryPill: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: spacing.md,
+    borderRadius: radii.lg,
+  },
+  categoryLabel: {
+    ...typography.caption,
+    color: colors.textPrimary,
+  },
+
   padNone: { padding: 0 },
   affiliateRow: {
     flexDirection: 'row',
@@ -272,15 +370,14 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontFamily: 'Poppins_700Bold',
   },
-  affiliateBody: {
-    ...typography.caption,
-    color: colors.textSecondary,
-  },
+  affiliateBody: { ...typography.caption, color: colors.textSecondary },
+
+  pressed: { opacity: 0.85 },
 
   footnote: {
     ...typography.caption,
     color: colors.textMuted,
-    paddingHorizontal: spacing.xs,
-    marginTop: spacing.md,
+    paddingHorizontal: spacing.xxs,
+    marginTop: spacing.lg,
   },
 });
