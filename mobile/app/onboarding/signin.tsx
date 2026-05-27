@@ -41,7 +41,7 @@ export default function SignInOnboardingScreen() {
 
   const finishOnboarding = () => {
     storage.set(ONBOARDED_KEY, true);
-    router.replace('/(tabs)/discover');
+    router.replace('/(tabs)/search');
   };
 
   const handleApple = async () => {

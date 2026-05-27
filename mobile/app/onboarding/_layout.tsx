@@ -1,7 +1,7 @@
 /**
  * Onboarding stack — 4 sequential screens with native push transitions.
  *
- * Order: welcome → location → notifications → signin → /(tabs)/discover
+ * Order: welcome → location → notifications → signin → /(tabs)/search
  *
  * Gestures are disabled — onboarding is a forward-only flow. Users can
  * always come back later via the in-app Profile / Settings screens to

@@ -3,7 +3,7 @@
  * migration finish in `_layout.tsx`. Reads the `jma:onboarded:v1` MMKV
  * flag synchronously and redirects:
  *
- *   - flag === true  → /(tabs)/discover
+ *   - flag === true  → /(tabs)/search
  *   - flag === false → /onboarding/welcome
  *
  * No UI — this component renders only a Redirect. Subsequent navigations
@@ -19,6 +19,6 @@ const ONBOARDED_KEY = 'jma:onboarded:v1';
 export default function Index() {
   const onboarded = storage.getBoolean(ONBOARDED_KEY) ?? false;
   return (
-    <Redirect href={onboarded ? '/(tabs)/discover' : '/onboarding/welcome'} />
+    <Redirect href={onboarded ? '/(tabs)/search' : '/onboarding/welcome'} />
   );
 }

@@ -9,10 +9,11 @@
  *   a prominent search bar (origin chip + "Where will Scout take you?" + GO)
  *   → quick-destination chips → category switch row → also-in-the-app rows.
  *
- * The search bar and category pills push into the existing native search
- * forms (/flights/search etc.) — those forms keep their LocationPicker,
- * date range and passenger UI, and post to the results webview. This screen
- * is the entry, not a duplicate of the form.
+ * The search bar and category pills go STRAIGHT to the real comparison
+ * pages (/webview/flights, /hotels, /cars, /packages → jetmeaway.co.uk/<x>)
+ * — no intermediate native form to fill. Those pages already have the full
+ * search form + live results, and the webview shell shows the native
+ * "scouting" overlay so the hand-off still reads as native (Apple 4.2).
  *
  * Note: the app is currently hardcoded to the dark navy theme (see
  * src/theme). Light/auto theming is a separate app-wide change.
@@ -54,10 +55,10 @@ type Category = {
   route: string;
 };
 const CATEGORIES: Category[] = [
-  { id: 'flights', label: 'Flights', icon: 'airplane', route: '/flights/search' },
-  { id: 'hotels', label: 'Hotels', icon: 'bed', route: '/hotels/search' },
-  { id: 'cars', label: 'Cars', icon: 'car-sport', route: '/cars/search' },
-  { id: 'packages', label: 'Packages', icon: 'cube', route: '/packages/search' },
+  { id: 'flights', label: 'Flights', icon: 'airplane', route: '/webview/flights' },
+  { id: 'hotels', label: 'Hotels', icon: 'bed', route: '/webview/hotels' },
+  { id: 'cars', label: 'Cars', icon: 'car-sport', route: '/webview/cars' },
+  { id: 'packages', label: 'Packages', icon: 'cube', route: '/webview/packages' },
 ];
 
 const QUICK_DESTINATIONS = ['Barcelona', 'Dubai', 'Tenerife', 'Palma', 'Antalya'];
@@ -126,7 +127,7 @@ export default function SearchScreen() {
 
         {/* Primary search bar → flight search form */}
         <Pressable
-          onPress={() => go('/flights/search')}
+          onPress={() => go('/webview/flights')}
           accessibilityRole="button"
           accessibilityLabel="Search flights"
           style={({ pressed }) => [styles.searchBar, pressed && styles.pressed]}
@@ -150,7 +151,7 @@ export default function SearchScreen() {
           {QUICK_DESTINATIONS.map((city) => (
             <Pressable
               key={city}
-              onPress={() => go('/flights/search')}
+              onPress={() => go('/webview/flights')}
               accessibilityRole="button"
               accessibilityLabel={`Search trips to ${city}`}
               style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
@@ -160,7 +161,7 @@ export default function SearchScreen() {
             </Pressable>
           ))}
           <Pressable
-            onPress={() => go('/flights/search')}
+            onPress={() => go('/webview/flights')}
             accessibilityRole="button"
             accessibilityLabel="Surprise me"
             style={({ pressed }) => [styles.chip, styles.chipAccent, pressed && styles.pressed]}

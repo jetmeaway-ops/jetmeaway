@@ -72,7 +72,7 @@ const CATEGORY_ROWS: CategoryRow[] = [
     slug: 'packages',
     icon: 'gift-outline',
     title: 'Holiday packages',
-    body: 'Flight + hotel bundles across Expedia, Trip.com, Booking, and Klook.',
+    body: 'Flight + hotel bundles across Expedia, Trip.com, and Klook.',
   },
   {
     slug: 'esim',
