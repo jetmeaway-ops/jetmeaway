@@ -1,20 +1,24 @@
 /**
- * Search tab — premium native home, mirroring the website hero with a
- * high-graphics treatment (gradient "sunset" hero, glassmorphic search bar,
- * gradient category cards, trending-destination cards, glass info rows).
+ * Search tab — premium "galaxy" native home.
  *
- * Navigation: the search bar, category cards, quick chips and trending
- * cards go STRAIGHT to the real comparison pages
- * (/webview/{flights,hotels,cars,packages} → jetmeaway.co.uk/<x>) — no
- * intermediate native form. The webview shell shows the native scouting
- * overlay so the hand-off still reads as native (Apple 4.2).
+ * Built from real Gemini-generated artwork (assets/galaxy/*): a drifting
+ * galaxy + golden jet hero, a glass search bar, quick chips, and a 2×2
+ * category grid where each tile is a slowly-swirling energy orb with a
+ * centred frosted-glass medallion icon.
  *
- * Graphics: expo-linear-gradient (no radial in RN, so the sunset hero is
- * layered linear gradients + a soft sun disc) and expo-blur (BlurView) for
- * the frosted search bar. App is dark-only by design (see src/theme).
+ * Motion is all Reanimated (no live 3D engine — deliberately, to stay fast
+ * and light): orbs rotate + breathe, the galaxy does a slow Ken-Burns
+ * drift, the jet gently bobs.
+ *
+ * Navigation: search bar, chips and category tiles go straight to the real
+ * comparison pages (/webview/{flights,hotels,cars,packages}). The webview
+ * opens empty in-app (sticky last-search is suppressed when running inside
+ * the native shell — see web src/lib/sticky-search.ts).
+ *
+ * App is dark-only by design (see src/theme).
  */
 
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -26,53 +30,54 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { Image } from 'expo-image';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  withSequence,
+  cancelAnimation,
+  Easing,
+} from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 
-import { spacing, radii, typography } from '../../src/theme';
+import { spacing, radii } from '../../src/theme';
 import { haptics } from '../../src/hooks/useHaptics';
 
-// Premium palette — deeper than the base theme for a richer hero.
 const C = {
-  bg: '#0A0C14',
-  card: '#141826',
-  line: 'rgba(255,255,255,0.08)',
+  bg: '#06070e',
   txt: '#FFFFFF',
   txt2: '#AEB6CE',
-  txt3: '#6F7896',
-  blue: '#2F81FF',
+  txt3: '#7C86A2',
   gold: '#FFC24B',
+  blue: '#2F81FF',
 };
 
-type Category = {
+const HERO = require('../../assets/galaxy/galaxy-hero.png');
+const JET = require('../../assets/galaxy/jet.png');
+
+type Cat = {
   id: string;
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
   route: string;
-  grad: [string, string];
+  img: ReturnType<typeof require>;
+  ring: string;
+  glow: string;
+  tint: string;
+  dur: number;
+  reverse?: boolean;
 };
-const CATEGORIES: Category[] = [
-  { id: 'flights', label: 'Flights', icon: 'airplane', route: '/webview/flights', grad: ['#3B8CFF', '#0052CC'] },
-  { id: 'hotels', label: 'Hotels', icon: 'bed', route: '/webview/hotels', grad: ['#FF8A3D', '#FF5E62'] },
-  { id: 'cars', label: 'Cars', icon: 'car-sport', route: '/webview/cars', grad: ['#2BD4A6', '#119C7A'] },
-  { id: 'packages', label: 'Packages', icon: 'cube', route: '/webview/packages', grad: ['#B57BFF', '#7C3AED'] },
-];
 
-const STATS = [
-  { v: '15+', l: 'Providers' },
-  { v: '2M+', l: 'Hotels' },
-  { v: '90s', l: 'Checkout' },
-  { v: '24/7', l: 'AI Scout' },
+const CATEGORIES: Cat[] = [
+  { id: 'flights',  label: 'Flights',  icon: 'airplane',  route: '/webview/flights',  img: require('../../assets/galaxy/cloud-flights-blue.png'),    ring: 'rgba(96,165,250,0.9)',  glow: '#3B82F6', tint: '#08152b', dur: 46000 },
+  { id: 'hotels',   label: 'Hotels',   icon: 'bed',       route: '/webview/hotels',   img: require('../../assets/galaxy/cloud-hotels-orange.png'),   ring: 'rgba(255,138,61,0.95)', glow: '#FF5E62', tint: '#1a0c05', dur: 54000, reverse: true },
+  { id: 'cars',     label: 'Cars',     icon: 'car-sport', route: '/webview/cars',     img: require('../../assets/galaxy/cloud-cars-green.png'),      ring: 'rgba(52,211,153,0.95)', glow: '#119C7A', tint: '#06160f', dur: 50000 },
+  { id: 'packages', label: 'Packages', icon: 'cube',      route: '/webview/packages', img: require('../../assets/galaxy/cloud-packages-purple.png'), ring: 'rgba(192,132,252,0.95)',glow: '#7C3AED', tint: '#100a1e', dur: 58000, reverse: true },
 ];
 
 const QUICK = ['Barcelona', 'Dubai', 'Tenerife', 'Antalya'];
-
-type Trend = { city: string; price: string; meta: string; grad: [string, string] };
-const TRENDING: Trend[] = [
-  { city: 'Barcelona', price: '£19', meta: 'Direct · 2h 15m', grad: ['#FF7E5F', '#7C3AED'] },
-  { city: 'Dubai', price: '£42', meta: 'Direct · 7h', grad: ['#2BC0E4', '#1A2980'] },
-  { city: 'Tenerife', price: '£21', meta: 'Direct · 4h 20m', grad: ['#F7971E', '#e96443'] },
-  { city: 'Antalya', price: '£29', meta: 'Direct · 4h', grad: ['#43cea2', '#185a9d'] },
-];
 
 type AffiliateRow = { slug: string; icon: keyof typeof Ionicons.glyphMap; title: string; body: string };
 const AFFILIATE_ROWS: AffiliateRow[] = [
@@ -81,11 +86,53 @@ const AFFILIATE_ROWS: AffiliateRow[] = [
   { slug: 'explore', icon: 'compass-outline', title: 'Tours & experiences', body: 'GetYourGuide and Viator' },
 ];
 
-const STARS = [
-  { left: '12%', top: 18 }, { left: '28%', top: 9 }, { left: '46%', top: 24 },
-  { left: '67%', top: 12 }, { left: '82%', top: 30 }, { left: '90%', top: 16 },
-  { left: '20%', top: 40 }, { left: '58%', top: 7 },
-];
+/** One category tile: a slowly swirling + breathing energy orb with a
+ *  centred glass medallion. Each tile owns its own animation. */
+function OrbTile({ cat, onPress }: { cat: Cat; onPress: () => void }) {
+  const rot = useSharedValue(0);
+  const sc = useSharedValue(1);
+
+  useEffect(() => {
+    rot.value = withRepeat(
+      withTiming(cat.reverse ? -360 : 360, { duration: cat.dur, easing: Easing.linear }),
+      -1,
+      false,
+    );
+    sc.value = withRepeat(
+      withSequence(
+        withTiming(1.05, { duration: cat.dur / 2, easing: Easing.inOut(Easing.quad) }),
+        withTiming(1, { duration: cat.dur / 2, easing: Easing.inOut(Easing.quad) }),
+      ),
+      -1,
+      false,
+    );
+    return () => {
+      cancelAnimation(rot);
+      cancelAnimation(sc);
+    };
+  }, [cat.dur, cat.reverse, rot, sc]);
+
+  const orbStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rot.value}deg` }, { scale: sc.value }],
+  }));
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={cat.label}
+      style={({ pressed }) => [styles.cat, { backgroundColor: cat.tint }, pressed && styles.pressed]}
+    >
+      <Animated.View style={[styles.orbWrap, orbStyle]} pointerEvents="none">
+        <Image source={cat.img} style={styles.orbImg} contentFit="contain" />
+      </Animated.View>
+      <BlurView intensity={24} tint="dark" style={[styles.medallion, { borderColor: cat.ring, shadowColor: cat.glow }]}>
+        <Ionicons name={cat.icon} size={30} color="#fff" />
+      </BlurView>
+      <Text style={styles.catLabel}>{cat.label}</Text>
+    </Pressable>
+  );
+}
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -97,38 +144,61 @@ export default function SearchScreen() {
     [router],
   );
 
+  // Slow Ken-Burns drift on the galaxy hero.
+  const drift = useSharedValue(0);
+  // Gentle bob on the jet.
+  const bob = useSharedValue(0);
+
+  useEffect(() => {
+    drift.value = withRepeat(withTiming(1, { duration: 60000, easing: Easing.inOut(Easing.quad) }), -1, true);
+    bob.value = withRepeat(withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.quad) }), -1, true);
+    return () => {
+      cancelAnimation(drift);
+      cancelAnimation(bob);
+    };
+  }, [drift, bob]);
+
+  const galaxyStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: 1.06 + drift.value * 0.06 },
+      { rotate: `${drift.value * 1.4}deg` },
+      { translateX: drift.value * -6 },
+      { translateY: drift.value * 4 },
+    ],
+  }));
+
+  const jetStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: '-7deg' }, { translateY: -6 * bob.value }],
+  }));
+
   return (
     <SafeAreaView style={styles.root} edges={[]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* ── HERO ── */}
         <View style={styles.hero}>
-          <LinearGradient
-            colors={['#0b1330', '#0d1126', C.bg]}
-            locations={[0, 0.55, 1]}
-            style={StyleSheet.absoluteFill}
-          />
-          {/* warm horizon glow */}
-          <LinearGradient
-            colors={['rgba(255,160,50,0)', 'rgba(255,150,40,0.32)']}
-            style={styles.horizon}
-          />
-          {/* soft sun disc */}
-          <View style={styles.sunOuter} />
-          <View style={styles.sunInner} />
-          {/* blue + purple corner tints */}
-          <View style={[styles.tint, { backgroundColor: 'rgba(47,129,255,0.30)', left: -40, top: -20 }]} />
-          <View style={[styles.tint, { backgroundColor: 'rgba(168,85,247,0.28)', right: -40, top: -30 }]} />
-          {STARS.map((s, i) => (
-            <View key={i} style={[styles.star, { left: s.left as `${number}%`, top: s.top }]} />
-          ))}
+          <Animated.View style={[StyleSheet.absoluteFill, galaxyStyle]} pointerEvents="none">
+            <Image source={HERO} style={StyleSheet.absoluteFill} contentFit="cover" />
+          </Animated.View>
+          <Animated.View style={[styles.jet, jetStyle]} pointerEvents="none">
+            <Image source={JET} style={styles.jetImg} contentFit="contain" />
+          </Animated.View>
+          <LinearGradient colors={['transparent', C.bg]} style={styles.heroFade} pointerEvents="none" />
 
-          <View style={styles.heroContent}>
+          {/* slim brand row */}
+          <View style={styles.brand} pointerEvents="none">
+            <View style={styles.brandMark}>
+              <Ionicons name="paper-plane" size={14} color="#0b1020" />
+            </View>
+            <Text style={styles.brandText}>JetMeAway</Text>
+          </View>
+
+          <View style={styles.heroText} pointerEvents="none">
             <Text style={styles.eyebrow}>UK&apos;S SMARTEST TRAVEL COMPARISON</Text>
             <Text style={styles.h1}>
               Find Your{'\n'}Perfect Trip{'\n'}for <Text style={styles.h1gold}>Less</Text>
             </Text>
             <Text style={styles.sub}>
-              Compare flights, hotels, cars & more from 15+ trusted providers — real prices, in seconds.
+              Compare flights, hotels, cars &amp; more from 15+ trusted providers.
             </Text>
           </View>
         </View>
@@ -148,7 +218,7 @@ export default function SearchScreen() {
                 <Ionicons name="chevron-down" size={12} color={C.txt3} />
               </View>
               <Text style={styles.ph} numberOfLines={1}>Where will Scout take you?</Text>
-              <LinearGradient colors={['#FF9A3C', '#FF6A00']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.go}>
+              <LinearGradient colors={['#FF9A3C', '#FF5E00']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.go}>
                 <Ionicons name="search" size={15} color="#fff" />
                 <Text style={styles.goText}>GO</Text>
               </LinearGradient>
@@ -170,59 +240,15 @@ export default function SearchScreen() {
           ))}
         </ScrollView>
 
-        {/* ── CATEGORIES ── */}
+        {/* ── CATEGORY GRID ── */}
         <Text style={styles.h2}>What are you booking?</Text>
-        <View style={styles.cats}>
-          {CATEGORIES.map((cat) => (
-            <Pressable
-              key={cat.id}
-              onPress={() => go(cat.route)}
-              accessibilityRole="button"
-              accessibilityLabel={cat.label}
-              style={({ pressed }) => [styles.cat, pressed && styles.pressed]}
-            >
-              <LinearGradient colors={cat.grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.catIco}>
-                <Ionicons name={cat.icon} size={22} color="#fff" />
-              </LinearGradient>
-              <Text style={styles.catLabel}>{cat.label}</Text>
-            </Pressable>
-          ))}
+        <View style={styles.gridWrap}>
+          <View style={styles.cats}>
+            {CATEGORIES.map((cat) => (
+              <OrbTile key={cat.id} cat={cat} onPress={() => go(cat.route)} />
+            ))}
+          </View>
         </View>
-
-        {/* ── STATS ── */}
-        <LinearGradient
-          colors={['rgba(47,129,255,0.14)', 'rgba(124,58,237,0.12)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.stats}
-        >
-          {STATS.map((s, i) => (
-            <View key={s.l} style={[styles.stat, i > 0 && styles.statBorder]}>
-              <Text style={styles.statV}>{s.v}</Text>
-              <Text style={styles.statL}>{s.l}</Text>
-            </View>
-          ))}
-        </LinearGradient>
-
-        {/* ── TRENDING ── */}
-        <View style={styles.secRow}>
-          <Text style={styles.h2flat}>Trending now 🔥</Text>
-          <Text style={styles.seeAll}>See all</Text>
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.trending}>
-          {TRENDING.map((t) => (
-            <Pressable key={t.city} onPress={() => go('/webview/flights')} style={({ pressed }) => [pressed && styles.pressed]}>
-              <LinearGradient colors={t.grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.dest}>
-                <View style={styles.priceTag}><Text style={styles.priceText}>{t.price}</Text></View>
-                <LinearGradient colors={['transparent', 'rgba(0,0,0,0.55)']} style={styles.destScrim} />
-                <View style={styles.destText}>
-                  <Text style={styles.destCity}>{t.city}</Text>
-                  <Text style={styles.destMeta}>{t.meta}</Text>
-                </View>
-              </LinearGradient>
-            </Pressable>
-          ))}
-        </ScrollView>
 
         {/* ── MORE ── */}
         <Text style={styles.h2}>More in the app</Text>
@@ -258,69 +284,86 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   content: { paddingBottom: spacing.xxxl },
+  pressed: { opacity: 0.85 },
 
   // hero
-  hero: { height: 360, paddingTop: 64, paddingHorizontal: 22, overflow: 'hidden' },
-  horizon: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 180 },
-  sunOuter: { position: 'absolute', bottom: -70, alignSelf: 'center', left: '50%', marginLeft: -130, width: 260, height: 260, borderRadius: 130, backgroundColor: 'rgba(255,190,90,0.16)' },
-  sunInner: { position: 'absolute', bottom: -30, alignSelf: 'center', left: '50%', marginLeft: -80, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,205,120,0.22)' },
-  tint: { position: 'absolute', width: 180, height: 180, borderRadius: 90 },
-  star: { position: 'absolute', width: 2, height: 2, borderRadius: 1, backgroundColor: '#fff', opacity: 0.7 },
-  heroContent: { position: 'relative', zIndex: 5 },
-  eyebrow: { color: C.gold, fontSize: 11, fontFamily: 'Poppins_800ExtraBold', letterSpacing: 2 },
-  h1: { color: '#fff', fontFamily: 'Poppins_900Black', fontSize: 40, lineHeight: 42, letterSpacing: -1, marginTop: 8 },
+  hero: { height: 392, overflow: 'hidden' },
+  jet: { position: 'absolute', left: 6, top: 206, zIndex: 6 },
+  jetImg: { width: 210, height: 120 },
+  heroFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 120 },
+  brand: { position: 'absolute', top: 52, left: 20, zIndex: 8, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  brandMark: { width: 26, height: 26, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFB347' },
+  brandText: { color: '#fff', fontSize: 18, fontFamily: 'Poppins_800ExtraBold', letterSpacing: -0.3, textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8 },
+  heroText: { position: 'absolute', left: 22, top: 96, zIndex: 8 },
+  eyebrow: { color: C.gold, fontSize: 11, fontFamily: 'Poppins_800ExtraBold', letterSpacing: 2, textShadowColor: 'rgba(0,0,0,0.8)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 10 },
+  h1: { color: '#fff', fontFamily: 'Poppins_900Black', fontSize: 41, lineHeight: 42, letterSpacing: -1, marginTop: 8, textShadowColor: 'rgba(0,0,0,0.9)', textShadowOffset: { width: 0, height: 3 }, textShadowRadius: 18 },
   h1gold: { color: C.gold },
-  sub: { color: '#D6DCEE', fontSize: 14.5, lineHeight: 21, marginTop: 12, maxWidth: 300, fontFamily: 'Poppins_400Regular' },
+  sub: { color: '#D6DCEE', fontSize: 13.5, lineHeight: 20, marginTop: 12, maxWidth: 250, fontFamily: 'Poppins_400Regular', textShadowColor: 'rgba(0,0,0,1)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 12 },
 
   // search bar
-  searchWrap: { paddingHorizontal: 18, marginTop: -34, zIndex: 10 },
-  searchBlur: { borderRadius: 22, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)' },
-  searchBar: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 9, paddingLeft: 12, backgroundColor: 'rgba(26,30,46,0.55)' },
-  origin: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.08)', paddingVertical: 9, paddingHorizontal: 11, borderRadius: 14 },
+  searchWrap: { paddingHorizontal: 18, marginTop: -26, zIndex: 12 },
+  searchBlur: { borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(120,160,255,0.22)' },
+  searchBar: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 9, paddingLeft: 12, backgroundColor: 'rgba(14,18,32,0.62)' },
+  origin: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.08)', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 14 },
   originText: { fontFamily: 'Poppins_700Bold', fontSize: 14, color: '#fff' },
-  ph: { flex: 1, color: '#9AA2BE', fontSize: 14.5, fontFamily: 'Poppins_400Regular' },
-  go: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 13, paddingHorizontal: 18, borderRadius: 16 },
+  ph: { flex: 1, color: '#9AA2BE', fontSize: 14, fontFamily: 'Poppins_400Regular' },
+  go: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 13, paddingHorizontal: 18, borderRadius: 15 },
   goText: { fontFamily: 'Poppins_800ExtraBold', fontSize: 14, color: '#fff' },
 
   // chips
-  chips: { gap: 8, paddingHorizontal: 18, paddingTop: 16, paddingBottom: 2 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 8, paddingHorizontal: 13, borderRadius: radii.pill, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.09)' },
-  chipGold: { borderColor: 'rgba(255,194,75,0.45)', backgroundColor: 'rgba(255,194,75,0.08)' },
-  chipText: { fontSize: 13, fontFamily: 'Poppins_600SemiBold', color: '#C7CDE2' },
+  chips: { gap: 9, paddingHorizontal: 18, paddingTop: 16, paddingBottom: 2 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 14, borderRadius: radii.pill, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
+  chipGold: { borderColor: 'rgba(255,194,75,0.4)', backgroundColor: 'rgba(255,194,75,0.08)' },
+  chipText: { fontSize: 13, fontFamily: 'Poppins_600SemiBold', color: '#D2D8EC' },
 
-  // section headings
+  // headings
   h2: { color: '#fff', fontSize: 18, fontFamily: 'Poppins_800ExtraBold', letterSpacing: -0.3, paddingHorizontal: 22, marginTop: 26 },
-  h2flat: { color: '#fff', fontSize: 18, fontFamily: 'Poppins_800ExtraBold', letterSpacing: -0.3 },
-  secRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', paddingHorizontal: 22, marginTop: 28 },
-  seeAll: { color: C.blue, fontSize: 13, fontFamily: 'Poppins_600SemiBold' },
 
-  // categories
-  cats: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingHorizontal: 18, marginTop: 14 },
-  cat: { width: '47%', flexGrow: 1, height: 96, borderRadius: 20, padding: 16, justifyContent: 'space-between', backgroundColor: C.card, borderWidth: 1, borderColor: C.line },
-  catIco: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  catLabel: { color: '#fff', fontSize: 15, fontFamily: 'Poppins_700Bold' },
-
-  // stats
-  stats: { flexDirection: 'row', marginHorizontal: 18, marginTop: 16, paddingVertical: 16, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  stat: { flex: 1, alignItems: 'center' },
-  statBorder: { borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.1)' },
-  statV: { fontFamily: 'Poppins_800ExtraBold', fontSize: 21, color: '#fff' },
-  statL: { fontSize: 10.5, fontFamily: 'Poppins_600SemiBold', color: C.txt3, marginTop: 2 },
-
-  // trending
-  trending: { gap: 14, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 2 },
-  dest: { width: 158, height: 200, borderRadius: 22, padding: 14, justifyContent: 'flex-end', overflow: 'hidden' },
-  destScrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 110 },
-  destText: { zIndex: 2 },
-  destCity: { color: '#fff', fontFamily: 'Poppins_800ExtraBold', fontSize: 17 },
-  destMeta: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontFamily: 'Poppins_600SemiBold', marginTop: 1 },
-  priceTag: { position: 'absolute', top: 12, right: 12, zIndex: 3, backgroundColor: 'rgba(10,12,20,0.55)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', paddingVertical: 5, paddingHorizontal: 10, borderRadius: radii.pill },
-  priceText: { color: '#fff', fontFamily: 'Poppins_800ExtraBold', fontSize: 13 },
+  // category grid
+  gridWrap: {
+    marginHorizontal: 18,
+    marginTop: 14,
+    padding: 14,
+    borderRadius: 24,
+    backgroundColor: 'rgba(10,13,24,0.5)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,194,75,0.22)',
+  },
+  cats: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  cat: {
+    width: '47%',
+    flexGrow: 1,
+    height: 158,
+    borderRadius: 20,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  orbWrap: { position: 'absolute', top: '-42%', left: '-42%', right: '-42%', bottom: '-42%', alignItems: 'center', justifyContent: 'center' },
+  orbImg: { width: '100%', height: '100%' },
+  medallion: {
+    zIndex: 3,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    shadowOpacity: 0.55,
+    shadowRadius: 13,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 8,
+  },
+  catLabel: { zIndex: 3, color: '#fff', fontSize: 15, fontFamily: 'Poppins_800ExtraBold', letterSpacing: 0.2, textShadowColor: 'rgba(0,0,0,1)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 12 },
 
   // rows
-  rows: { marginHorizontal: 18, marginTop: 14, borderRadius: 20, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: C.line },
+  rows: { marginHorizontal: 18, marginTop: 14, borderRadius: 20, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 14, paddingHorizontal: 15 },
-  rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.line },
+  rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.08)' },
   rowPressed: { backgroundColor: 'rgba(255,255,255,0.04)' },
   rowIco: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(47,129,255,0.16)' },
   rowText: { flex: 1 },
@@ -328,6 +371,4 @@ const styles = StyleSheet.create({
   rowBody: { color: C.txt3, fontSize: 11.5, fontFamily: 'Poppins_400Regular', marginTop: 1 },
 
   foot: { color: '#5C6378', fontSize: 11, fontFamily: 'Poppins_400Regular', lineHeight: 16, textAlign: 'center', marginHorizontal: 24, marginTop: 18 },
-
-  pressed: { opacity: 0.85 },
 });
