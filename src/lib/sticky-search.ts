@@ -23,6 +23,20 @@ function ns(vertical: string): string {
   return `jma_sticky_search:${vertical}`;
 }
 
+/**
+ * True when the site is running inside the JetMeAway native app's WebView.
+ * The native bridge sets `window.JetMeAwayNative.isNative` before page
+ * content loads (see mobile webview-bridge). Inside the app the category
+ * pages open the website directly and the owner wants them to open EMPTY,
+ * so we suppress sticky last-search restore here. Regular-browser web keeps
+ * last-search prefill untouched.
+ */
+function isNativeApp(): boolean {
+  if (typeof window === 'undefined') return false;
+  return !!(window as unknown as { JetMeAwayNative?: { isNative?: boolean } })
+    .JetMeAwayNative?.isNative;
+}
+
 export function saveSticky<T>(vertical: string, data: T): void {
   if (typeof window === 'undefined') return;
   try {
@@ -35,6 +49,8 @@ export function saveSticky<T>(vertical: string, data: T): void {
 
 export function loadSticky<T>(vertical: string): T | null {
   if (typeof window === 'undefined') return null;
+  // In-app: always start empty — never restore last search. (Web keeps it.)
+  if (isNativeApp()) return null;
   try {
     const raw = window.localStorage.getItem(ns(vertical));
     if (!raw) return null;
