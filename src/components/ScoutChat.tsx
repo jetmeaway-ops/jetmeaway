@@ -7,7 +7,7 @@ type Msg = { role: 'user' | 'assistant'; content: string };
 const GREETING: Msg = {
   role: 'assistant',
   content:
-    "Hi, I'm Scout 👋 Ask me anything about travel — destinations, packing, weather, visas, culture. For prices, head to our search pages.",
+    "Hi, I'm JetMeAway Scout 👋 Ask me anything about travel — destinations, packing, weather, visas, culture. For prices, head to our search pages.",
 };
 
 // Default position of the Scout button. Anchored from the bottom-left so
@@ -254,7 +254,7 @@ export default function ScoutChat() {
               <i className="fa-solid fa-compass"></i>
             </div>
             <div>
-              <p className="font-poppins font-extrabold text-[.95rem] leading-tight">Scout</p>
+              <p className="font-poppins font-extrabold text-[.95rem] leading-tight">JetMeAway Scout</p>
               <p className="text-[.7rem] text-white/80 leading-tight">Your travel assistant</p>
             </div>
           </div>
