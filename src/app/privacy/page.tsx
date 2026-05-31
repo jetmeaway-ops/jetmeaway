@@ -16,7 +16,7 @@ export default function Privacy() {
       <section className="pt-36 pb-10 px-5 text-center">
         <h1 className="font-poppins text-[2.4rem] font-black tracking-tight mb-2.5">🔒 <span className="text-[#0066FF]">Privacy</span> Policy</h1>
         <p className="text-[.95rem] text-[#8E95A9] max-w-[500px] mx-auto">Your privacy matters. This policy explains what data we collect, how we use it, who we share it with, and what rights you have.</p>
-        <p className="text-[.72rem] text-[#8E95A9] mt-2">Last updated: April 2026</p>
+        <p className="text-[.72rem] text-[#8E95A9] mt-2">Last updated: May 2026</p>
       </section>
 
       <div className="max-w-[760px] mx-auto px-5 pb-16">
@@ -44,7 +44,7 @@ export default function Privacy() {
           <p className="font-bold text-[#1A1D2B] mt-3">c. Direct Bookings (flights &amp; hotels booked through our checkout)</p>
           <ul className="list-disc ml-5 space-y-1">
             <li><strong>Passenger &amp; lead-guest details</strong> — title, full name, date of birth, gender where required, nationality, passport or travel-document number and expiry, frequent-flyer number, contact email and phone. Where a Travel Provider requires additional information (e.g. redress number, known-traveller number, meal preference) we collect that too.</li>
-            <li><strong>Payment data</strong> — your card details are entered directly into a secure payment field hosted by <strong>Stripe Payments Europe, Ltd.</strong>, our PCI-DSS Level 1 certified payment processor. Jetmeaway <em>never sees, stores or transmits</em> your full card number or CVC. We retain only the Stripe PaymentIntent reference, billing name, billing email, the last four digits and brand of the card, and the amount and currency charged. This is the minimum we need to identify the transaction, process refunds, and respond to chargebacks.</li>
+            <li><strong>Payment data</strong> — your card details are entered directly into a secure payment field hosted by a PCI-DSS Level 1 certified payment processor: <strong>Stripe Payments Europe, Ltd.</strong> handles flight bookings (Duffel), and <strong>LiteAPI / Nuitee</strong> handles hotel bookings made through our direct hotel checkout. Jetmeaway <em>never sees, stores or transmits</em> your full card number or CVC. We retain only the processor&apos;s payment reference, billing name, billing email, the last four digits and brand of the card, and the amount and currency charged. This is the minimum we need to identify the transaction, process refunds, and respond to chargebacks.</li>
             <li><strong>Booking record</strong> — booking reference, itinerary, dates, room type / fare class, price paid, supplier confirmation code, booking status.</li>
             <li><strong>Special requirements</strong> — if you tell us about a dietary need, mobility requirement or medical condition relevant to your travel, this constitutes <em>special-category data</em> under UK GDPR and we will process it only with your explicit consent for the purpose of arranging the booking.</li>
           </ul>
@@ -81,7 +81,7 @@ export default function Privacy() {
           <ul className="list-disc ml-5 space-y-1 mt-2">
             <li><strong>Travel Providers</strong> — airlines, hotels, car-hire companies, tour operators, activity operators, insurers, eSIM providers. They receive the traveller information needed to deliver the booked service and become independent controllers of that data.</li>
             <li><strong>Wholesalers &amp; aggregators</strong> — including LiteAPI/Nuitee, DOTW (Webbeds FZ-LLC), Duffel, Travelpayouts, RateHawk, Hotellook, and similar partners whose APIs source or fulfil the inventory.</li>
-            <li><strong>Payment processor</strong> — <strong>Stripe Payments Europe, Ltd.</strong> for card processing, refunds and chargebacks.</li>
+            <li><strong>Payment processors</strong> — <strong>Stripe Payments Europe, Ltd.</strong> for flight (Duffel) bookings, refunds and chargebacks; <strong>LiteAPI / Nuitee</strong> for direct hotel-checkout card processing.</li>
             <li><strong>Hosting &amp; infrastructure</strong> — <strong>Vercel Inc.</strong> (hosting and edge compute) and <strong>Vercel KV / Upstash Redis</strong> (short-term booking state, subscriber lists). <strong>Google Cloud / Anthropic</strong> where AI-assistant features are used.</li>
             <li><strong>Email, SMS &amp; voice providers</strong> — including <strong>Twilio</strong> for SMS and voice, and our transactional-email provider for booking notifications and alerts.</li>
             <li><strong>Analytics &amp; performance</strong> — privacy-respecting analytics and error-reporting tools used to understand and improve the Platform.</li>
@@ -111,7 +111,7 @@ export default function Privacy() {
           </ul>
 
           <h2 className="font-poppins text-[.95rem] font-bold text-[#0066FF] mt-5">8. Data Security</h2>
-          <p>We use appropriate technical and organisational measures to protect your data, including TLS encryption in transit, encryption at rest for booking records, strict role-based access controls, secrets management, regular patching, and PCI-DSS Level 1 certified payment processing via Stripe. We review our security posture regularly. No online service is completely secure; please use a strong, unique password and tell us immediately if you suspect unauthorised access.</p>
+          <p>We use appropriate technical and organisational measures to protect your data, including TLS encryption in transit, encryption at rest for booking records, strict role-based access controls, secrets management, regular patching, and PCI-DSS Level 1 certified payment processing via Stripe (flights) and LiteAPI (direct hotels). We review our security posture regularly. No online service is completely secure; please use a strong, unique password and tell us immediately if you suspect unauthorised access.</p>
 
           <h2 className="font-poppins text-[.95rem] font-bold text-[#0066FF] mt-5">9. Your Rights Under UK GDPR and the Data Protection Act 2018</h2>
           <p>You have the right to:</p>
