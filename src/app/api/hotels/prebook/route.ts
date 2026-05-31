@@ -169,6 +169,29 @@ export async function POST(req: NextRequest) {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Prebook failed';
     console.error('[hotels/prebook]', message);
+
+    // Ghost-inventory race — LiteAPI returns 4xx with code 2001 ("no prebook
+    // availability") or 5000 ("unable to process") when the rate the customer
+    // clicked has already sold or expired (rates are valid ~15-30 min). This
+    // is normal supplier behaviour, NOT a code bug — skip the Sentry alert
+    // and return a clean 409 so the checkout page shows its existing
+    // "rate just sold" UI instead of a generic 500. Frontend already keys
+    // off these codes in stepError detection at /checkout/[ref].
+    if (
+      message.includes('"code":2001') ||
+      message.includes('"code":5000') ||
+      /\bLiteAPI 4\d\d\b/.test(message)
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'rate_unavailable',
+          message: 'This rate just sold out or expired. Please search again to see current availability.',
+        },
+        { status: 409 },
+      );
+    }
+
     reportBug('Hotel prebook failed', { ref, error: message, stack: err instanceof Error ? err.stack?.slice(0, 800) : undefined });
     return NextResponse.json(
       { success: false, error: message },
