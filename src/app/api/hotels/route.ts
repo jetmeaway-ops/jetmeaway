@@ -127,6 +127,9 @@ const AIRPORT_COORDS_RAW: Array<{ keys: string[]; lat: number; lng: number; radi
   { keys: ['ber', 'berlin airport', 'brandenburg airport', 'berlin brandenburg'], lat: 52.3667, lng: 13.5033, radiusKm: 30 },
   { keys: ['goi', 'goa airport', 'dabolim', 'dabolim airport'], lat: 15.3808, lng: 73.8311, radiusKm: 35 },
   { keys: ['her', 'heraklion airport', 'crete airport', 'nikos kazantzakis'], lat: 35.3397, lng: 25.1802, radiusKm: 25 },
+  // Marseille Provence is 25 km north of Marseille centre, so radius 15
+  // from the airport coords lands entirely outside the city hotel cluster.
+  { keys: ['mrs', 'marseille airport', 'marseille provence'], lat: 43.4393, lng: 5.2214, radiusKm: 30 },
 ];
 
 const AIRPORT_COORDS: Record<string, { lat: number; lng: number; radiusKm?: number }> = {};
@@ -192,6 +195,9 @@ const AIRPORT_TO_CITY: Record<string, string> = {
   // Nominatim and returns 80+ live hotels.)
   'lyon airport': 'lyon',
   'lys': 'lyon',
+  'marseille airport': 'marseille',
+  'marseille provence': 'marseille',
+  'mrs': 'marseille',
   'berlin airport': 'berlin',
   'ber': 'berlin',
   'goa airport': 'goa',
@@ -1829,16 +1835,19 @@ export async function GET(req: NextRequest) {
   // cityName search LiteAPI couldn't satisfy, then the fetchLiteApi
   // path bailed at "no countryCode, no centroid" → 0 hotels.
   const haveExplicitCentre = !!autocompleteCentre;
+  // Radius precedence: when an airport coord entry exists, use it as the
+  // FLOOR — the curated radius is sized to the airport-to-city distance
+  // (Lyon Saint-Exupéry 25 km, Marseille Provence 25 km, Berlin Brandenburg
+  // 25 km) and the search bar's blanket 15 km is too narrow for those.
+  // The URL radius can still extend it (e.g. a landmark click sends 75 km).
   const liteApiCentroid =
     (isAliasedSearchEarly || isAirportSearch || haveExplicitCentre) && preResolvedCentre
       ? {
           lat: preResolvedCentre.lat,
           lng: preResolvedCentre.lng,
-          radiusKm:
-            autocompleteCentre?.radiusKm ??
-            airportCentre?.radiusKm ??
-            CITY_RADIUS_KM[rawCityKey] ??
-            15,
+          radiusKm: airportCentre?.radiusKm
+            ? Math.max(airportCentre.radiusKm, autocompleteCentre?.radiusKm ?? 0)
+            : (autocompleteCentre?.radiusKm ?? CITY_RADIUS_KM[rawCityKey] ?? 15),
         }
       : undefined;
 
