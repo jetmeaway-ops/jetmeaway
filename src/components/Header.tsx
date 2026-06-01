@@ -62,7 +62,7 @@ export default function Header() {
               className={`flex items-center gap-1 px-2 md:px-2.5 py-2 rounded-xl text-[.68rem] md:text-[.72rem] font-extrabold uppercase tracking-[1.2px] transition-all ${
                 isActive('/blog')
                   ? 'bg-[#0066FF] text-white shadow-[0_4px_12px_rgba(0,102,255,0.3)]'
-                  : 'text-slate-500 hover:text-[#0066FF] hover:bg-blue-50'
+                  : 'text-slate-700 hover:text-[#0066FF] hover:bg-blue-50'
               }`}
               aria-label="JetMeAway Blog"
             >
@@ -85,7 +85,7 @@ export default function Header() {
               className={`flex items-center gap-1 px-2 md:px-2.5 py-2 rounded-xl text-[.68rem] md:text-[.72rem] font-extrabold uppercase tracking-[1.2px] transition-all ${
                 isActive('/account')
                   ? 'bg-[#FAF3E6] border border-[#E8D8A8] text-[#8a6d00]'
-                  : 'text-slate-500 hover:text-[#0066FF] hover:bg-blue-50'
+                  : 'text-slate-700 hover:text-[#0066FF] hover:bg-blue-50'
               }`}
               aria-label="My Trips"
             >
@@ -105,7 +105,7 @@ export default function Header() {
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[.72rem] font-extrabold uppercase tracking-[1.2px] transition-all ${
                     active
                       ? 'bg-[#0066FF] text-white shadow-[0_4px_12px_rgba(0,102,255,0.3)]'
-                      : 'text-slate-400 hover:text-[#0066FF] hover:bg-blue-50'
+                      : 'text-slate-700 hover:text-[#0066FF] hover:bg-blue-50'
                   }`}
                 >
                   <span className="text-sm leading-none">{item.icon}</span>
@@ -127,7 +127,7 @@ export default function Header() {
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[.72rem] font-extrabold uppercase tracking-[1.2px] transition-all ${
                   discoverActive
                     ? 'bg-[#0066FF] text-white shadow-[0_4px_12px_rgba(0,102,255,0.3)]'
-                    : 'text-slate-400 group-hover:text-[#0066FF] group-hover:bg-blue-50'
+                    : 'text-slate-700 group-hover:text-[#0066FF] group-hover:bg-blue-50'
                 }`}
                 aria-controls="discover-menu"
               >
@@ -231,7 +231,7 @@ export default function Header() {
                 className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[.65rem] font-extrabold uppercase tracking-[0.8px] whitespace-nowrap transition-all flex-shrink-0 ${
                   active
                     ? 'bg-[#0066FF] text-white shadow-sm'
-                    : 'text-slate-500 bg-slate-50 hover:text-[#0066FF] hover:bg-blue-50'
+                    : 'text-slate-700 bg-slate-50 hover:text-[#0066FF] hover:bg-blue-50'
                 }`}
               >
                 <span className="text-xs">{item.icon}</span>
