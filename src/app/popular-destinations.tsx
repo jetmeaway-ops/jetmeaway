@@ -22,18 +22,28 @@ export default function PopularDestinations() {
   const [paused, setPaused] = useState(false);
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef({ x: 0, scrollLeft: 0 });
+  // Sub-pixel accumulator. WebKit (iOS WebView, Safari) rounds Element.scrollLeft
+  // to whole pixels on every set, so `scrollLeft += 0.5` floors to 0 each tick
+  // and the carousel never drifts. We accumulate fractional pixels here at full
+  // precision and only commit Math.floor() to scrollLeft. Desktop Chrome keeps
+  // fractional scrollLeft natively, so this is harmless there too.
+  const scrollPos = useRef(0);
 
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     let raf: number;
     const speed = 0.5;
+    // Resync accumulator to actual scroll position when the loop (re)starts,
+    // so user drags don't get reverted on the next auto-tick.
+    scrollPos.current = el.scrollLeft;
     const tick = () => {
       if (!paused && !dragging && el) {
-        el.scrollLeft += speed;
-        if (el.scrollLeft >= el.scrollWidth / 2) {
-          el.scrollLeft = 0;
+        scrollPos.current += speed;
+        if (scrollPos.current >= el.scrollWidth / 2) {
+          scrollPos.current = 0;
         }
+        el.scrollLeft = Math.floor(scrollPos.current);
       }
       raf = requestAnimationFrame(tick);
     };
