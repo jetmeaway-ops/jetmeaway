@@ -92,7 +92,11 @@ export default function PopularDestinations() {
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
           touchAction: 'pan-x',
-          WebkitOverflowScrolling: 'touch',
+          // Note: -webkit-overflow-scrolling: touch is intentionally NOT set.
+          // It creates an iOS scroll layer that rounds scrollLeft to whole
+          // pixels, which kills the auto-scroll loop's 0.5px-per-frame
+          // increment (rounds to 0 → no movement). Modern iOS (13+) gives
+          // momentum natively with plain overflow-x: auto.
           overscrollBehaviorX: 'contain',
         }}
       >
