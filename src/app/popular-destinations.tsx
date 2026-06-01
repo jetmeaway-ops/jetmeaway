@@ -41,6 +41,8 @@ export default function PopularDestinations() {
     return () => cancelAnimationFrame(raf);
   }, [paused, dragging]);
 
+  // Mouse handlers — desktop drag-to-scroll. Kept because mouse events don't
+  // fire on touch devices, so this is mouse-only by design.
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     setDragging(true);
     dragStart.current = { x: e.clientX, scrollLeft: scrollRef.current?.scrollLeft || 0 };
@@ -52,16 +54,12 @@ export default function PopularDestinations() {
   }, [dragging]);
   const onMouseUp = useCallback(() => setDragging(false), []);
 
-  const onTouchStart = useCallback((e: React.TouchEvent) => {
-    setDragging(true);
-    dragStart.current = { x: e.touches[0].clientX, scrollLeft: scrollRef.current?.scrollLeft || 0 };
-  }, []);
-  const onTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!dragging || !scrollRef.current) return;
-    const dx = e.touches[0].clientX - dragStart.current.x;
-    scrollRef.current.scrollLeft = dragStart.current.scrollLeft - dx;
-  }, [dragging]);
-  const onTouchEnd = useCallback(() => setDragging(false), []);
+  // Touch handlers — only pause the auto-scroll. Native iOS scroll (enabled by
+  // overflow-x-auto + touch-action: pan-x below) does the actual panning with
+  // momentum. The old JS drag handler fought iOS native scroll and felt sticky
+  // in the WebView; letting native do it is much smoother.
+  const onTouchStart = useCallback(() => setPaused(true), []);
+  const onTouchEnd = useCallback(() => setPaused(false), []);
 
   const cards = [...DESTINATIONS, ...DESTINATIONS];
 
@@ -86,10 +84,17 @@ export default function PopularDestinations() {
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
         onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        className="flex gap-5 overflow-x-hidden px-6 select-none"
-        style={{ cursor: dragging ? 'grabbing' : 'grab', scrollbarWidth: 'none' }}
+        onTouchCancel={onTouchEnd}
+        className="flex gap-5 overflow-x-auto overflow-y-hidden px-6 select-none popular-dest-scroller"
+        style={{
+          cursor: dragging ? 'grabbing' : 'grab',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          touchAction: 'pan-x',
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehaviorX: 'contain',
+        }}
       >
         {cards.map((d, i) => (
           <a key={`${d.name}-${i}`} href={`/hotels?city=${encodeURIComponent(d.name)}`}
@@ -130,6 +135,7 @@ export default function PopularDestinations() {
       <style>{`
         @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
         .animate-bob { animation: bob 3s ease-in-out infinite; }
+        .popular-dest-scroller::-webkit-scrollbar { display: none; }
       `}</style>
     </section>
   );
