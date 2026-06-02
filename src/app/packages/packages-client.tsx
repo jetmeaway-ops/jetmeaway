@@ -394,7 +394,10 @@ export function calculateNights(checkIn: string, checkOut: string): number {
  */
 const EXPEDIA_ORIGIN_REGION: Record<string, number> = {
   // London airports all map to the "All London Airports" aggregate
-  // (LON, regionId 6139104) in Expedia's package flow.
+  // (LON, regionId 6139104) in Expedia's package flow. `LON` itself is
+  // included so the curated family packages can depart from "London (LON)"
+  // (all airports) rather than a single airport — see FAMILY_FROM_AIRPORT.
+  LON: 6139104,
   LHR: 6139104, LGW: 6139104, STN: 6139104, LTN: 6139104, LCY: 6139104, SEN: 6139104,
 };
 type ExpediaDest = { city: number; airport: number; iata: string; display: string };
@@ -641,7 +644,11 @@ const POPULAR_DESTS = [
    buildExpediaUrl helpers (proven in production after a manual search).
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const FAMILY_FROM_AIRPORT = 'London Heathrow (LHR)';
+// All-London-airports origin (LON) rather than a single airport, so the
+// curated deep links search every London airport. buildTripUrl reads the
+// `(LON)` code → Trip.com city `LON`; buildExpediaUrl reads `LON` →
+// EXPEDIA_ORIGIN_REGION[LON] (the "All London Airports" aggregate).
+const FAMILY_FROM_AIRPORT = 'London (LON)';
 const FAMILY_ADULTS = 4;
 
 const FAMILY_PACKAGES = [
@@ -666,7 +673,7 @@ function FamilyPackages() {
           Pre-Built Summer Packages
         </h2>
         <p className="text-[.85rem] text-[#8E95A9] font-semibold max-w-[560px] mx-auto">
-          7 nights from London Heathrow · Click any deal to see live prices on Trip.com or Expedia — all dates &amp; travellers pre-filled
+          7 nights from London · Click any deal to see live prices on Trip.com or Expedia — all dates &amp; travellers pre-filled
         </p>
       </div>
 
