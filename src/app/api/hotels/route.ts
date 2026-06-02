@@ -225,6 +225,28 @@ const AIRPORT_TO_CITY: Record<string, string> = {
   'kenley': 'london',
   'whyteleafe': 'london',
   'warlingham': 'london',
+  // More SW/Greater-London towns LiteAPI's /data/hotels has no city entry
+  // for — bare-keyword searches (no autocomplete placeId) returned 0 because
+  // without an alias `liteApiCentroid` stays undefined and the existing
+  // CITY_COORDS + CITY_RADIUS_KM entries for these towns never reach LiteAPI.
+  // Aliasing to "london" surfaces Greater-London inventory which the geo
+  // filter then narrows to each town's 12-15km radius (Coulsdon pattern).
+  // Found by monkey-search 2026-06-02 (Twickenham/Wimbledon returned 0 in
+  // ~1-3s — fast, deterministic, not an upstream timeout). Bare "kingston"/
+  // "richmond" already resolve to the UK Thames coords in CITY_COORDS, so a
+  // Kingston-Jamaica / Richmond-Virginia visitor uses the autocomplete
+  // placeId path, which already works.
+  'richmond': 'london',
+  'twickenham': 'london',
+  'wimbledon': 'london',
+  'kingston': 'london',
+  'kingston upon thames': 'london',
+  'sutton': 'london',
+  // Hove sits in the Brighton metro, ~80km south of London — aliasing it to
+  // "london" would put every result outside its 10km radius. Alias to
+  // "brighton" (adjacent) so LiteAPI returns Brighton-area inventory that the
+  // geo filter keeps near Hove. Found by monkey-search 2026-06-02.
+  'hove': 'brighton',
   // EU
   'cdg': 'paris', 'paris cdg': 'paris', 'charles de gaulle': 'paris', 'paris charles de gaulle': 'paris', 'roissy': 'paris',
   'orly': 'paris', 'paris orly': 'paris', 'ory': 'paris',
