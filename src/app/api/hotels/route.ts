@@ -329,6 +329,16 @@ const AIRPORT_TO_CITY: Record<string, string> = {
   // /hotels?destination=Sal CTA in the Cabo Verde blog returned 0 results.
   'sal': 'santa maria', 'cape verde': 'santa maria', 'cabo verde': 'santa maria',
   'cape-verde': 'santa maria', 'cabo-verde': 'santa maria',
+  // Crete — Heraklion is the island's capital but LiteAPI's live inventory
+  // for the city (and its Greek/alt spellings) is sparse-to-empty, so a bare
+  // "Heraklion" search returned 0 hotels (monkey-landmark 2026-05-30). Alias
+  // to "crete" so it resolves country GR + the Crete centroid AND falls
+  // through to the existing Crete curated set (which already lists Galaxy
+  // Hotel Heraklion + Lato Boutique) instead of an empty state. The site UI
+  // surfaces "Crete" as the destination, so this only catches direct
+  // city-name searches.
+  'heraklion': 'crete', 'iraklio': 'crete', 'iraklion': 'crete',
+  'herakleion': 'crete', 'heraclion': 'crete',
 };
 
 /** City → ISO-3166 alpha-2 country code for LiteAPI lookups */
@@ -745,6 +755,11 @@ async function fetchLiteApiHotels(
     }));
   }
 
+  // Hard ceiling for the whole fetchLiteApiHotels call (parallel block +
+  // any cityName fallback). Sits comfortably under Vercel's 30s function
+  // timeout so a slow landmark fallback can't tip the route into a
+  // platform-level FUNCTION_INVOCATION_TIMEOUT.
+  const FETCH_HARD_CAP_MS = 24000;
   const t0 = Date.now();
   try {
     // Two-track parallel fetch:
@@ -896,7 +911,22 @@ async function fetchLiteApiHotels(
     // LiteAPI-indexed inventory but whose searchAs city (Athens, Zagreb)
     // does have hotels. Without this, the landmark autocomplete row sends
     // users to "No live rates" even when the gateway city works fine.
+    //
+    // IMPORTANT: this fallback gets its OWN fresh timer. The `fetchTimeout`
+    // above started ticking when the parallel block kicked off, so by the
+    // time we reach this fallback it may already have fired (or be a few ms
+    // from firing) — racing the fallback against that spent timer rejected
+    // it instantly and the remote-landmark rescue silently returned 0
+    // hotels (Stonehenge / Meteora / Mt Rushmore / Antelope Canyon, caught
+    // by monkey-landmark 2026-05-30). Give it the real remaining budget,
+    // floored so it can never be near-zero and capped via FETCH_HARD_CAP_MS
+    // so the two phases together stay well under Vercel's 30s function
+    // ceiling.
     if (merged.length === 0 && centroid && resolvedCity && resolvedCountry) {
+      const fallbackBudgetMs = Math.max(4000, FETCH_HARD_CAP_MS - (Date.now() - t0));
+      const fallbackTimeout = new Promise<HotelOffer[]>((_, reject) =>
+        setTimeout(() => reject(new Error('LiteAPI cityName-fallback timeout')), fallbackBudgetMs),
+      );
       try {
         const cityFallback = await Promise.race([
           liteapiGetHotels({
@@ -909,7 +939,7 @@ async function fetchLiteApiHotels(
             guestNationality: 'GB',
             limit: primaryLimit,
           }),
-          fetchTimeout,
+          fallbackTimeout,
         ]).catch(() => [] as HotelOffer[]);
         for (const h of cityFallback) {
           if (!h.hotelId || seenIds.has(h.hotelId)) continue;
@@ -1854,7 +1884,13 @@ export async function GET(req: NextRequest) {
   // Kick off LiteAPI + RateHawk + DOTW in parallel (triple API racing).
   // DOTW uses mocked fixtures when DOTW_USERNAME is unset — still gives us a
   // Giata-tagged result set to exercise the de-dupe path in dev.
-  const liteApiPromise = fetchLiteApiHotels(cityKey, checkin, checkout, adultsNum, childrenNum, roomsNum, childAges, 12000, placeId || undefined, liteApiCentroid, roomsArr, searchType);
+  // Landmark searches fan out into up to 3 parallel LiteAPI calls (primary +
+  // budget + placeId cluster) and then a cityName fallback for remote POIs —
+  // 12s was too tight and the fallback for places like Meteora / Antelope
+  // Canyon ran out of budget before the gateway city answered. Give landmark
+  // searches 18s; everything else keeps the proven 12s.
+  const liteApiTimeoutMs = searchType === 'landmark' ? 18000 : 12000;
+  const liteApiPromise = fetchLiteApiHotels(cityKey, checkin, checkout, adultsNum, childrenNum, roomsNum, childAges, liteApiTimeoutMs, placeId || undefined, liteApiCentroid, roomsArr, searchType);
   const rateHawkPromise = fetchRateHawkHotels(cityKey, checkin, checkout, adultsNum, roomsNum);
   // Absolute-origin proxy to the nodejs DOTW sub-route — Vercel requires
   // absolute URLs for edge → node internal fetches.
