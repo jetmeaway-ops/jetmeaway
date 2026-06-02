@@ -408,6 +408,21 @@ const EXPEDIA_DEST: Record<string, ExpediaDest> = {
   // structure). Add a row by repeating that flow.
   TFS: { city: 6047194, airport: 5457492, iata: 'TFS', display: 'Tenerife, Canary Islands, Spain' },
   AYT: { city: 481,     airport: 5527873, iata: 'AYT', display: 'Antalya, Antalya Region, Türkiye' },
+  // Captured 2026-06-03 by submitting the /Holidays form for each curated
+  // family-package destination from London (LON-All Airports) and reading
+  // regionId from the result URL + decoding the misId suffix. These were
+  // captured via the city/island suggestion (not the airport pin), so
+  // Expedia encodes the city regionId as the destination region — i.e.
+  // airport === city for these rows. They are Expedia's own package URLs
+  // (each loaded a flight+hotel results page), so they trigger the bundle
+  // flow correctly. Airport IATA verified in the misId: PMI/HER/FAO/ACE/
+  // AGP/RHO respectively.
+  PMI: { city: 2829,   airport: 2829,   iata: 'PMI', display: 'Palma de Mallorca, Balearic Islands, Spain' },
+  HER: { city: 180100, airport: 180100, iata: 'HER', display: 'Crete, Greece' },
+  FAO: { city: 1193,   airport: 1193,   iata: 'FAO', display: 'Faro, Faro District, Portugal' },
+  ACE: { city: 282,    airport: 282,    iata: 'ACE', display: 'Lanzarote, Canary Islands, Spain' },
+  AGP: { city: 312,    airport: 312,    iata: 'AGP', display: 'Málaga, Andalusia, Spain' },
+  RHO: { city: 11286,  airport: 11286,  iata: 'RHO', display: 'Rhodes, South Aegean, Greece' },
 };
 
 function varintBytes(n: number): number[] {
