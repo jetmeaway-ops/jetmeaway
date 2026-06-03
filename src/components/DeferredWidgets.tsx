@@ -4,10 +4,6 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 
 const ScoutChat = dynamic(() => import('@/components/ScoutChat'), { ssr: false });
-// WeatherBadge unmounted 2026-06-03 per owner — the floating "23°" pill
-// was cluttering the hero on every page. The component file is kept
-// at src/components/WeatherBadge.tsx so it can be re-enabled in one
-// line if needed, but it no longer renders anywhere on the site.
 const ServiceWorkerRegistration = dynamic(() => import('@/components/ServiceWorkerRegistration'), { ssr: false });
 const PushNotificationPrompt = dynamic(() => import('@/components/PushNotificationPrompt'), { ssr: false });
 // Vercel Analytics moved here so its script never competes with LCP/FCP.
