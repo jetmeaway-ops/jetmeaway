@@ -19,45 +19,67 @@ const Analytics = dynamic(() => import('@vercel/analytics/react').then(m => m.An
 const DeferredAnalytics = dynamic(() => import('@/components/DeferredAnalytics'), { ssr: false });
 // Bundle-diet pass 2026-06-03: BackToTopButton + AndroidAppBanner moved
 // here from layout.tsx. Both are chrome that only matters AFTER the
-// user has engaged with the page (scrolled below 600px for B2T, or
-// landed on Android Chrome for the banner) — well beyond the 6s
-// LCP/TBT measurement window. Keeping their JS off the initial bundle
-// shaves a few KiB and removes their hydration cost from the critical
-// path.
+// user has engaged with the page.
 const BackToTopButton = dynamic(() => import('@/components/BackToTopButton'), { ssr: false });
 const AndroidAppBanner = dynamic(() => import('@/components/AndroidAppBanner'), { ssr: false });
 
 /**
- * Delays mounting of non-critical widgets (chat, SW, push prompt, analytics,
- * GA, Clarity, back-to-top, android banner) until 6s after hydration so they
- * never compete with LCP paint on simulated mobile 4G (Lighthouse measurement
- * window).
+ * Delays mounting of non-critical widgets in three staggered phases so no
+ * single render tick has to hydrate the whole pile at once.
  *
- * Bumped 3000→6000ms on 2026-05-11 when GA + Clarity moved here — the old
- * 3s timeout was landing inside the LCP measurement window on synthetic
- * mobile runs. Real users start scrolling ~8-10s after page open, so 6s
- * still fires well before any interaction; Ads conversion + Clarity session
- * recording aren't affected because both are interaction-driven.
+ * History:
+ *   - 2026-05-11: 3000→6000ms single-shot mount (GA/Clarity moved here).
+ *   - 2026-06-03 (early): added B2T + AndroidAppBanner to the same +6s tick.
+ *     Lighthouse desktop TBT regressed 5.2s → 9.2s → 15.0s across runs and
+ *     "Avoid long main-thread tasks" jumped to 26. Root cause: 7 dynamic
+ *     mounts in one render created one enormous long task instead of
+ *     several smaller ones.
+ *   - 2026-06-03 (later): split into three phases so each tick only fires
+ *     2–3 mounts, breaking the long task up.
+ *
+ * Phasing rationale (TBT is dominated by long single tasks, not total work):
+ *   Phase 1 @ +6000ms — lightest stuff that's measurement-sensitive:
+ *     Vercel Analytics (own SDK, ~5KB) + ServiceWorker (no UI).
+ *   Phase 2 @ +8000ms — heavy analytics scripts:
+ *     DeferredAnalytics (GA Ads + GA4 + Microsoft Clarity scripts).
+ *   Phase 3 @ +10000ms — UI chrome the user only engages with later:
+ *     ScoutChat (full React tree + textarea + state) +
+ *     BackToTopButton (drag handlers + localStorage) +
+ *     AndroidAppBanner (UA gate + path gate) +
+ *     PushNotificationPrompt (user-triggered, no rush).
+ *
+ * All three phases still fire well before the user's real interaction
+ * window (real-world scroll/click averages ~8–10s). Ads conversion + Clarity
+ * session recording aren't affected because both are interaction-driven.
  */
 export default function DeferredWidgets() {
-  const [ready, setReady] = useState(false);
+  const [phase, setPhase] = useState(0);
 
   useEffect(() => {
-    const id = setTimeout(() => setReady(true), 6000);
-    return () => clearTimeout(id);
+    const t1 = setTimeout(() => setPhase(1), 6000);
+    const t2 = setTimeout(() => setPhase(2), 8000);
+    const t3 = setTimeout(() => setPhase(3), 10000);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
   }, []);
 
-  if (!ready) return null;
+  if (phase === 0) return null;
 
   return (
     <>
-      <Analytics />
-      <ScoutChat />
-      <ServiceWorkerRegistration />
-      <PushNotificationPrompt />
-      <DeferredAnalytics />
-      <BackToTopButton />
-      <AndroidAppBanner />
+      {/* Phase 1 — lightest, measurement-sensitive */}
+      {phase >= 1 && <Analytics />}
+      {phase >= 1 && <ServiceWorkerRegistration />}
+      {/* Phase 2 — heavy analytics scripts */}
+      {phase >= 2 && <DeferredAnalytics />}
+      {/* Phase 3 — UI chrome */}
+      {phase >= 3 && <ScoutChat />}
+      {phase >= 3 && <BackToTopButton />}
+      {phase >= 3 && <AndroidAppBanner />}
+      {phase >= 3 && <PushNotificationPrompt />}
     </>
   );
 }
