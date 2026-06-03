@@ -40,10 +40,12 @@ const AndroidAppBanner = dynamic(() => import('@/components/AndroidAppBanner'), 
  * Phasing rationale (TBT is dominated by long single tasks, not total work):
  *   Phase 1 @ +6000ms — lightest stuff that's measurement-sensitive:
  *     Vercel Analytics (own SDK, ~5KB) + ServiceWorker (no UI).
- *   Phase 2 @ +8000ms — heavy analytics scripts:
- *     DeferredAnalytics (GA Ads + GA4 + Microsoft Clarity scripts).
+ *   Phase 2 @ +8000ms — heavy analytics scripts + Scout chat:
+ *     DeferredAnalytics (GA Ads + GA4 + Microsoft Clarity scripts) +
+ *     ScoutChat (owner feedback 2026-06-03: chat was appearing late
+ *     when paired with the slow globe; moved one phase earlier so the
+ *     "Ask Scout" affordance lands within the typical 8s read window).
  *   Phase 3 @ +10000ms — UI chrome the user only engages with later:
- *     ScoutChat (full React tree + textarea + state) +
  *     BackToTopButton (drag handlers + localStorage) +
  *     AndroidAppBanner (UA gate + path gate) +
  *     PushNotificationPrompt (user-triggered, no rush).
@@ -73,10 +75,10 @@ export default function DeferredWidgets() {
       {/* Phase 1 — lightest, measurement-sensitive */}
       {phase >= 1 && <Analytics />}
       {phase >= 1 && <ServiceWorkerRegistration />}
-      {/* Phase 2 — heavy analytics scripts */}
+      {/* Phase 2 — heavy analytics scripts + Scout chat */}
       {phase >= 2 && <DeferredAnalytics />}
+      {phase >= 2 && <ScoutChat />}
       {/* Phase 3 — UI chrome */}
-      {phase >= 3 && <ScoutChat />}
       {phase >= 3 && <BackToTopButton />}
       {phase >= 3 && <AndroidAppBanner />}
       {phase >= 3 && <PushNotificationPrompt />}
