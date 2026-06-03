@@ -709,7 +709,7 @@ function AutocompleteFrom({ value, onChange, initialCode }: {
       <input type="text" placeholder="City or airport — e.g. London, DXB, MAN" value={q} autoComplete="off"
         onChange={e => { setQ(e.target.value); setChosen(null); onChange('', ''); setOpen(true); }}
         onFocus={() => setOpen(true)}
-        className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-[#0066FF] focus:bg-white transition-all placeholder:text-[#B0B8CC]" />
+        className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-base md:text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-[#0066FF] focus:bg-white transition-all placeholder:text-[#B0B8CC]" />
       {chosen && (
         <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
           <span className="text-[.7rem] font-black text-[#0066FF] bg-blue-50 px-2 py-0.5 rounded-md">{chosen.code}</span>
@@ -833,7 +833,7 @@ function AutocompleteTo({ value, onChange, initialCode, initialCity }: {
       <input type="text" placeholder="City or airport — e.g. Barcelona, BCN, DXB" value={q} autoComplete="off"
         onChange={e => { setQ(e.target.value); setChosen(null); onChange('', ''); setOpen(true); }}
         onFocus={() => setOpen(true)}
-        className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-[#0066FF] focus:bg-white transition-all placeholder:text-[#B0B8CC]" />
+        className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-base md:text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-[#0066FF] focus:bg-white transition-all placeholder:text-[#B0B8CC]" />
       {chosen && (
         <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
           <span className="text-[.7rem] font-black text-[#0066FF] bg-blue-50 px-2 py-0.5 rounded-md">{chosen.code}</span>

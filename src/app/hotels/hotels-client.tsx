@@ -949,7 +949,7 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
             if (value.length >= 2) fetchPlaces(value);
             e.currentTarget.select();
           }}
-          className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-orange-400 focus:bg-white transition-all placeholder:text-[#B0B8CC] pr-10" />
+          className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-base md:text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-orange-400 focus:bg-white transition-all placeholder:text-[#B0B8CC] pr-10" />
         {open && searching && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
             <div className="w-4 h-4 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
