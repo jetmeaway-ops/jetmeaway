@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
+import { track } from '@vercel/analytics';
 import DateRangePicker from '@/components/DateRangePicker';
 import DateMatrixStrip, { type MatrixOption } from '@/components/DateMatrixStrip';
 import SaveSearchButton from '@/components/SaveSearchButton';
@@ -2432,6 +2433,22 @@ function HotelsContent() {
     if (!destination) { alert('Please enter a destination'); return; }
     if (!checkin) { alert('Please select a check-in date'); return; }
     if (!checkout) { alert('Please select a check-out date'); return; }
+
+    // Track the search submission so we can see which destinations get
+    // searched most, how many nights/rooms/guests are typical, and which
+    // searches actually convert downstream to /redirect affiliate clicks.
+    // Best-effort wrapped in try/catch — analytics failure must never
+    // block the actual search.
+    try {
+      track('hotel_search', {
+        destination: destination.slice(0, 60),
+        nights: getNights(),
+        rooms: roomsArr.length,
+        guests: roomsArr.reduce((sum, r) => sum + r.adults + r.childAges.length, 0),
+      });
+    } catch {
+      /* swallow */
+    }
 
     setHotels(null);
     setApiError('');

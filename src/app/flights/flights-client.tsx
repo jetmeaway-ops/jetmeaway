@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { ShieldCheck } from 'lucide-react';
+import { track } from '@vercel/analytics';
 import DateRangePicker from '@/components/DateRangePicker';
 import DateMatrixStrip, { type MatrixOption, type ScoutTip } from '@/components/DateMatrixStrip';
 import { redirectUrl } from '@/lib/redirect';
@@ -1363,6 +1364,23 @@ function FlightsContent() {
     if (tripType === 'return' && !retDate) {
       alert('Please select a return date — or switch to one-way.');
       return;
+    }
+
+    // Track the search submission so we can see which routes get the
+    // most demand, return vs one-way mix, and which searches actually
+    // convert downstream to /redirect affiliate clicks. Best-effort
+    // wrapped in try/catch — analytics failure must never block the
+    // actual search.
+    try {
+      track('flight_search', {
+        origin: originCode,
+        destination: destCode,
+        trip_type: tripType,
+        dep_date: depDate,
+        return_date: retDate || 'none',
+      });
+    } catch {
+      /* swallow */
     }
 
     setFlights(null);
