@@ -29,34 +29,36 @@ class GlobeErrorBoundary extends Component<{ children: ReactNode }, { failed: bo
 }
 
 /**
- * HeroGlobe3DLoader — desktop-only, deferred past the Lighthouse measurement
- * window so the Three.js chunk fetch + parse don't drag Total Blocking Time.
+ * HeroGlobe3DLoader — desktop-only globe loader, prioritising fast VISUAL
+ * appearance over an extra Lighthouse point.
  *
  * Three.js (~600KB raw / ~250KB gzipped) stays off the initial bundle and
- * loads only on the FIRST of:
- *   - any genuine post-warm-up engagement (registered at +5s), OR
- *   - a 10s floor timer.
+ * loads on the FIRST of:
+ *   - any engagement (scroll / pointer / touch / key / wheel), OR
+ *   - a 600ms floor timer.
  *
- * Why the 5s warm-up before registering listeners (2026-06-03 desktop diet):
- *   Lighthouse simulates a brief scroll during its measurement window (~5-7s
- *   wall clock on desktop). With listeners armed from t=0, that simulated
- *   scroll triggered Three.js inside the TBT window — which is exactly what
- *   we want to avoid. Holding listener registration until +5s lets Lighthouse
- *   finish its synthetic engagement before we arm. Real users who scroll
- *   before 5s lose nothing visible (the globe is decorative; they're already
- *   reading the hero copy). After 5s, scroll/click arm it normally, and the
- *   10s floor catches anyone who's still idle.
+ * History 2026-06-03:
+ *   - Bundle-diet pass added a mobile gate (matchMedia ≥768px) so the chunk
+ *     never ships on mobile. That alone took mobile TBT 5,180ms → 110ms.
+ *   - Tried bumping the desktop floor to 10s + a 5s engagement-listener
+ *     warm-up to push Three.js fetch past the Lighthouse measurement window
+ *     (commit 8b3be86). That build failed (unrelated Vercel git/auth glitch)
+ *     and owner feedback flagged the globe felt slow — TBT-induced hydration
+ *     delays were already pushing the visible globe past 5s. Reverted.
+ *
+ * Trade-off now sealed: snappy globe (~600ms floor) at the cost of a desktop
+ * PSI ceiling around 60. Mobile (the SEO metric Google ranks on) still flies
+ * at Perf 90 + TBT 110ms because the mobile gate is the bigger win.
  *
  * Mobile gate (2026-06-03 bundle-diet pass):
  *   The hero on mobile is solid #0a1628 navy (no gradient) and a sphere
  *   wider than the viewport doesn't add visible value behind the search
- *   wizard. Mobile users never fetch the Three.js / react-three-fiber chunk
- *   at all — saves ~250KB gzip.
+ *   wizard. Mobile users never fetch the Three.js / react-three-fiber chunk.
  *
  * The floor uses setTimeout, not requestIdleCallback: rIC is paused
  * indefinitely by Chrome in a background/unfocused tab (which made the globe
  * appear to "take a minute" when the tab wasn't focused). setTimeout still
- * fires in the background, so the globe reliably shows ~10s after load.
+ * fires in the background, so the globe reliably shows ~600ms after load.
  */
 export default function HeroGlobe3DLoader() {
   const [shouldMount, setShouldMount] = useState(false);
@@ -74,11 +76,12 @@ export default function HeroGlobe3DLoader() {
 
     const events = ['scroll', 'pointermove', 'touchstart', 'keydown', 'wheel'] as const;
     const opts: AddEventListenerOptions = { passive: true };
-    let armed = false;
-    let warmupTimer: number | undefined;
-    let floorTimer: number | undefined;
-    let listenersAttached = false;
 
+    const cleanup = () => {
+      events.forEach((e) => window.removeEventListener(e, arm, opts));
+      clearTimeout(timer);
+    };
+    let armed = false;
     function arm() {
       if (armed) return;
       armed = true;
@@ -86,28 +89,14 @@ export default function HeroGlobe3DLoader() {
       setShouldMount(true);
     }
 
-    function attachListeners() {
-      if (listenersAttached) return;
-      listenersAttached = true;
-      events.forEach((e) => window.addEventListener(e, arm, opts));
-    }
-
-    function cleanup() {
-      if (listenersAttached) {
-        events.forEach((e) => window.removeEventListener(e, arm, opts));
-      }
-      if (warmupTimer) clearTimeout(warmupTimer);
-      if (floorTimer) clearTimeout(floorTimer);
-    }
-
-    // Warm-up — attach engagement listeners only after 5s so Lighthouse's
-    // simulated scroll during its measurement window doesn't arm us inside
-    // the TBT window. Real users who scroll before 5s just see the static
-    // hero a moment longer.
-    warmupTimer = window.setTimeout(attachListeners, 5000);
-    // Hard floor — guarantees the globe eventually appears even for users
-    // who never engage. 10s pushes well past the Lighthouse window.
-    floorTimer = window.setTimeout(arm, 10000);
+    // Attach engagement listeners immediately — real users typically scroll
+    // or move the pointer within a second of landing, so the globe arms
+    // almost instantly.
+    events.forEach((e) => window.addEventListener(e, arm, opts));
+    // Hard floor — fast fallback for users who don't move (idle tabs).
+    // 600ms is enough to keep LCP off the critical-path queue but quick
+    // enough that the globe doesn't visibly lag behind the rest of the hero.
+    const timer = window.setTimeout(arm, 600);
 
     return cleanup;
   }, []);
