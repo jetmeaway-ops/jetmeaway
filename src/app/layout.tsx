@@ -20,6 +20,15 @@ import { Poppins, Playfair_Display, DM_Sans } from 'next/font/google';
 // the page was paintable.
 import DeferredWidgets from '@/components/DeferredWidgets';
 import ClientErrorReporter from '@/components/ClientErrorReporter';
+// Vercel Speed Insights — real-user Core Web Vitals telemetry (LCP, FCP,
+// CLS, INP, TTFB). Mounted EAGERLY (not in DeferredWidgets) because CLS
+// is a continuous measurement: a buffered PerformanceObserver can
+// backfill LCP/FCP/INP that fired before observation started, but layout
+// shifts that happened before the observer attached are lost forever.
+// The component is small (~5KB) and uses Vercel's queue-stub pattern so
+// the actual telemetry POST is still async — eager mount only costs us
+// the queue init, not the network or heavy lifting.
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 const poppins = Poppins({
   // Weight diet 2026-06-03: was [400, 700, 900]. Codebase grep showed
@@ -313,6 +322,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             other chrome (BackToTopButton, AndroidAppBanner) now mounts
             via DeferredWidgets at +6s. */}
         <ClientErrorReporter />
+        {/* SpeedInsights also eager — see import comment. CLS observation
+            must start before any layout shift fires. */}
+        <SpeedInsights />
         <DeferredWidgets />
         {/* Font Awesome — injected client-side during idle time so it never
             blocks first paint. Icons (star ratings, step icons, etc) appear
