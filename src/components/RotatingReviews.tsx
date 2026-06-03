@@ -41,9 +41,52 @@ export default function RotatingReviews() {
       setInNativeApp(true);
       return;
     }
-    if (widgetRef.current && typeof window !== 'undefined' && window.Trustpilot?.loadFromElement) {
-      window.Trustpilot.loadFromElement(widgetRef.current, true);
+
+    // Defer the Trustpilot widget init until it enters the viewport.
+    // 2026-06-03 bundle-diet: the previous code called loadFromElement
+    // on mount, which kicked off Trustpilot's ~70KB widget script during
+    // the LCP window even though the carousel sits right under the hero
+    // and most mobile users never scrolled to it. IntersectionObserver
+    // pushes the init to "when the user is actually going to see it",
+    // which on mobile is typically several seconds after first paint —
+    // outside the Lighthouse TBT window entirely.
+    const el = widgetRef.current;
+    if (!el || typeof window === 'undefined') return;
+
+    let initialized = false;
+    const initWidget = () => {
+      if (initialized) return;
+      if (window.Trustpilot?.loadFromElement) {
+        initialized = true;
+        window.Trustpilot.loadFromElement(el, true);
+      }
+    };
+
+    // IntersectionObserver is supported everywhere we care about (iOS
+    // 12.2+, Android Chrome 51+, Edge 15+). Fallback below for legacy.
+    if ('IntersectionObserver' in window) {
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              initWidget();
+              io.disconnect();
+              break;
+            }
+          }
+        },
+        { rootMargin: '200px' }, // 200px lead so init starts just before view
+      );
+      io.observe(el);
+      return () => io.disconnect();
     }
+
+    // Legacy fallback — fire after 4s so it still loads but doesn't
+    // compete with LCP. Mirrors DeferredWidgets' 6s defer pattern.
+    // setTimeout used unqualified so TS doesn't narrow window to never
+    // inside the IntersectionObserver-absent branch.
+    const t = setTimeout(initWidget, 4000);
+    return () => clearTimeout(t);
   }, []);
 
   return (

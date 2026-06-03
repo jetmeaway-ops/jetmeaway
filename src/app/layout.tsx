@@ -13,13 +13,23 @@ import { Poppins, Playfair_Display, DM_Sans } from 'next/font/google';
 // Vercel Analytics + GA Ads + GA4 + Microsoft Clarity all live inside
 // DeferredWidgets now so their scripts never compete with LCP/FCP. See
 // components/DeferredWidgets.tsx + components/DeferredAnalytics.tsx.
+//
+// BackToTopButton + AndroidAppBanner moved into DeferredWidgets too on
+// 2026-06-03 — neither is needed in the LCP window, so loading them
+// eagerly was paying for chrome that wouldn't fire until well after
+// the page was paintable.
 import DeferredWidgets from '@/components/DeferredWidgets';
-import BackToTopButton from '@/components/BackToTopButton';
 import ClientErrorReporter from '@/components/ClientErrorReporter';
-import AndroidAppBanner from '@/components/AndroidAppBanner';
 
 const poppins = Poppins({
-  weight: ['400', '700', '900'],
+  // Weight diet 2026-06-03: was [400, 700, 900]. Codebase grep showed
+  // `font-poppins font-normal` (400) had ZERO usages, while
+  // `font-poppins font-semibold` (600) appears in 17 places — the
+  // browser was synthesizing 600 from the 700 face on every paint,
+  // which both looked slightly off and added paint-time CPU. Swapping
+  // 400 → 600 keeps the WOFF2 download count the same (3 weights)
+  // while removing the synthesis tax.
+  weight: ['600', '700', '900'],
   subsets: ['latin'],
   display: 'swap',
   variable: '--next-poppins',
@@ -40,7 +50,11 @@ const playfair = Playfair_Display({
 });
 
 const dmSans = DM_Sans({
-  weight: ['400', '500', '700'],
+  // Weight diet 2026-06-03: was [400, 500, 700]. Grep showed no
+  // `font-[var(--font-dm-sans)] font-normal` usages (400) but several
+  // `font-semibold` (600) calls were synthesizing from 700. Swapping
+  // 400 → 600 keeps the 3-weight WOFF2 budget intact.
+  weight: ['500', '600', '700'],
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-dm-sans',
@@ -294,9 +308,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         {children}
+        {/* ClientErrorReporter stays eager — it has to catch first-paint
+            errors before any deferred mount could pick them up. The
+            other chrome (BackToTopButton, AndroidAppBanner) now mounts
+            via DeferredWidgets at +6s. */}
         <ClientErrorReporter />
-        <BackToTopButton />
-        <AndroidAppBanner />
         <DeferredWidgets />
         {/* Font Awesome — injected client-side during idle time so it never
             blocks first paint. Icons (star ratings, step icons, etc) appear

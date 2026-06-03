@@ -17,11 +17,21 @@ const Analytics = dynamic(() => import('@vercel/analytics/react').then(m => m.An
 // paint and kept LCP from settling). Lazy import keeps them out of the
 // initial JS bundle.
 const DeferredAnalytics = dynamic(() => import('@/components/DeferredAnalytics'), { ssr: false });
+// Bundle-diet pass 2026-06-03: BackToTopButton + AndroidAppBanner moved
+// here from layout.tsx. Both are chrome that only matters AFTER the
+// user has engaged with the page (scrolled below 600px for B2T, or
+// landed on Android Chrome for the banner) — well beyond the 6s
+// LCP/TBT measurement window. Keeping their JS off the initial bundle
+// shaves a few KiB and removes their hydration cost from the critical
+// path.
+const BackToTopButton = dynamic(() => import('@/components/BackToTopButton'), { ssr: false });
+const AndroidAppBanner = dynamic(() => import('@/components/AndroidAppBanner'), { ssr: false });
 
 /**
  * Delays mounting of non-critical widgets (chat, SW, push prompt, analytics,
- * GA, Clarity) until 6s after hydration so they never compete with LCP paint
- * on simulated mobile 4G (Lighthouse measurement window).
+ * GA, Clarity, back-to-top, android banner) until 6s after hydration so they
+ * never compete with LCP paint on simulated mobile 4G (Lighthouse measurement
+ * window).
  *
  * Bumped 3000→6000ms on 2026-05-11 when GA + Clarity moved here — the old
  * 3s timeout was landing inside the LCP measurement window on synthetic
@@ -46,6 +56,8 @@ export default function DeferredWidgets() {
       <ServiceWorkerRegistration />
       <PushNotificationPrompt />
       <DeferredAnalytics />
+      <BackToTopButton />
+      <AndroidAppBanner />
     </>
   );
 }
