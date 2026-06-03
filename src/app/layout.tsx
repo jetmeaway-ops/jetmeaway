@@ -6,6 +6,7 @@
 // Fluid Compute is enabled on the Vercel project, so Node functions
 // get near-Edge cold-start performance anyway.
 
+import type { Viewport } from 'next';
 import './globals.css';
 import Script from 'next/script';
 import { Poppins, Playfair_Display, DM_Sans } from 'next/font/google';
@@ -50,6 +51,34 @@ const dmSans = DM_Sans({
   // adjusted fallback metrics keep CLS unchanged.
   preload: false,
 });
+
+/**
+ * Viewport — required for correct mobile rendering. Without an explicit
+ * viewport tag, iOS Safari falls back to a default ~980px desktop
+ * viewport and shrinks the whole page to fit, which:
+ *   - made the entire site render at ~30-40% scale on first paint
+ *   - triggered iOS's auto-zoom-on-input quirk when a focused <input>
+ *     fell below the 16px threshold (every form input in the site
+ *     hits this — see hotels-client.tsx:952, flights-client.tsx:709,833,
+ *     packages-client.tsx:165,206)
+ *   - prevented `viewport-fit=cover` so the safe-area-insets we depend
+ *     on for the iOS notch on the dark hero didn't apply
+ *
+ * 40% of traffic is iOS (per Vercel Analytics). Without this tag every
+ * one of those visitors saw a broken page on first paint.
+ *
+ * Notes:
+ *  - Next.js 16's viewport export auto-emits the <meta> in <head>.
+ *  - Deliberately NOT setting maximumScale / userScalable=false — those
+ *    block accessibility pinch-zoom and violate WCAG 1.4.4.
+ *  - themeColor is left as a manual <meta> below (already there); moving
+ *    it here too would emit it twice.
+ */
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+};
 
 export const metadata = {
   // Title trimmed 2026-05-09 from 79 → 60 chars per the daily SEO audit.
