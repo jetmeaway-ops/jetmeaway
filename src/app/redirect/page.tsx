@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { track } from '@vercel/analytics';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    CROSS-SELL CONFIG
@@ -107,10 +108,34 @@ export default function RedirectPage() {
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     const rawUrl = p.get('url') || '';
+    const prov = p.get('provider') || 'the provider';
+    const dst = p.get('dest') || '';
+    const cate = p.get('cat') || '';
     setUrl(rawUrl);
-    setProvider(p.get('provider') || 'the provider');
-    setDest(p.get('dest') || '');
-    setCat(p.get('cat') || '');
+    setProvider(prov);
+    setDest(dst);
+    setCat(cate);
+
+    // Track the affiliate click in Vercel Analytics so we can see which
+    // providers / destinations / categories actually drive booking-intent
+    // clicks. Without this the dashboard only shows /redirect pageviews
+    // (currently 71 in last 3 months) with no segmentation possible —
+    // we couldn't tell whether the Trip.com or Expedia row was firing,
+    // which destinations users actually click, or whether packages vs
+    // hotels vs flights affiliates were behaving differently.
+    // Best-effort: wrapped in try/catch so analytics failures never
+    // break the redirect itself.
+    if (rawUrl) {
+      try {
+        track('affiliate_click', {
+          provider: prov,
+          destination: dst || 'none',
+          category: cate || 'none',
+        });
+      } catch {
+        /* swallow — best-effort */
+      }
+    }
   }, []);
 
   // Progress bar + auto-redirect
