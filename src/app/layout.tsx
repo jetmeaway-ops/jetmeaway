@@ -20,6 +20,7 @@ import { Poppins, Playfair_Display, DM_Sans } from 'next/font/google';
 // the page was paintable.
 import DeferredWidgets from '@/components/DeferredWidgets';
 import ClientErrorReporter from '@/components/ClientErrorReporter';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 const poppins = Poppins({
   // Weight diet 2026-06-03: was [400, 700, 900]. Codebase grep showed
@@ -308,6 +309,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         {children}
+        <SpeedInsights />
         {/* ClientErrorReporter stays eager — it has to catch first-paint
             errors before any deferred mount could pick them up. The
             other chrome (BackToTopButton, AndroidAppBanner) now mounts
