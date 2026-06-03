@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -36,7 +36,29 @@ const MOBILE_STICKY_NAV = [
 
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Discover dropdown — needs to work on touch devices, not just hover.
+  // The old pure-CSS group-hover approach broke on iPad Air landscape
+  // (≥lg breakpoint, no real hover) and any Windows touchscreen. Now the
+  // button toggles open state on click; we keep group-hover as a
+  // secondary affordance for true mouse-only devices.
+  const [discoverOpen, setDiscoverOpen] = useState(false);
+  const discoverRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+
+  // Close Discover when clicking outside it (touch/click flow).
+  useEffect(() => {
+    if (!discoverOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (discoverRef.current && !discoverRef.current.contains(e.target as Node)) {
+        setDiscoverOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [discoverOpen]);
+
+  // Close Discover when route changes (after a Link navigation).
+  useEffect(() => { setDiscoverOpen(false); }, [pathname]);
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + '/');
@@ -121,22 +143,36 @@ export default function Header() {
                 aria-haspopup — those would require arrow-key handling we don't
                 have. Screen readers announce it as "list of links" which is
                 exactly what it is. */}
-            <div className="relative group">
+            <div ref={discoverRef} className="relative group">
               <button
                 type="button"
+                onClick={() => setDiscoverOpen(o => !o)}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[.72rem] font-extrabold uppercase tracking-[1.2px] transition-all ${
                   discoverActive
                     ? 'bg-[#0066FF] text-white shadow-[0_4px_12px_rgba(0,102,255,0.3)]'
                     : 'text-slate-700 group-hover:text-[#0066FF] group-hover:bg-blue-50'
                 }`}
                 aria-controls="discover-menu"
+                aria-expanded={discoverOpen}
+                aria-haspopup="true"
               >
                 <span className="text-sm leading-none" aria-hidden="true">🧭</span>
                 Discover
                 <span className="text-[.6rem] opacity-60" aria-hidden="true">▾</span>
               </button>
-              {/* Dropdown panel. pt-1 creates a hover-bridge so the mouse can move from button → panel without leaving the group hover zone. */}
-              <div id="discover-menu" className="absolute top-full right-0 pt-1 invisible opacity-0 translate-y-1 group-hover:visible group-hover:opacity-100 group-hover:translate-y-0 focus-within:visible focus-within:opacity-100 focus-within:translate-y-0 transition-all duration-150 min-w-[180px]">
+              {/* Dropdown panel. pt-1 creates a hover-bridge so the mouse
+                  can move from button → panel without leaving the group
+                  hover zone. Click-state takes priority over hover, so a
+                  touch-tap opens it cleanly while a desktop hover still
+                  reveals it without requiring a click. */}
+              <div
+                id="discover-menu"
+                className={`absolute top-full right-0 pt-1 transition-all duration-150 min-w-[180px] ${
+                  discoverOpen
+                    ? 'visible opacity-100 translate-y-0'
+                    : 'invisible opacity-0 translate-y-1 group-hover:visible group-hover:opacity-100 group-hover:translate-y-0 focus-within:visible focus-within:opacity-100 focus-within:translate-y-0'
+                }`}
+              >
                 <div className="bg-white border border-[#E8ECF4] rounded-2xl shadow-[0_24px_48px_-12px_rgba(0,0,0,0.18)] p-2">
                   {DISCOVER_ITEMS.map(item => (
                     <Link
