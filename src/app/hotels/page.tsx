@@ -1,5 +1,6 @@
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import TrustBar from '@/components/TrustBar';
 import { LazyHotelsContent } from './hotels-lazy';
 import { PageSchema } from '@/lib/page-schema';
 import { HOTELS_FAQS } from '@/lib/page-faqs';
@@ -46,6 +47,12 @@ export default function HotelsPage() {
         </div>
 
         <LazyHotelsContent />
+
+        {/* Trust pills — visible directly under the search form so first-
+            time visitors landing here via Google see verifiable signals
+            (Companies House link, Trustpilot, secure payments) before
+            they decide whether to type a destination. */}
+        <TrustBar />
       </section>
       </main>
 

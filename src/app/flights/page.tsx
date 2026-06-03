@@ -1,5 +1,6 @@
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import TrustBar from '@/components/TrustBar';
 import { LazyFlightsContent } from './flights-lazy';
 import { PageSchema } from '@/lib/page-schema';
 import { FLIGHTS_FAQS } from '@/lib/page-faqs';
@@ -38,6 +39,12 @@ export default function FlightsPage() {
 
         {/* Search form + results — lazy-loaded */}
         <LazyFlightsContent />
+
+        {/* Trust pills — visible directly under the search form so first-
+            time visitors landing here via Google see verifiable signals
+            (Companies House link, Trustpilot, secure payments) before
+            they decide whether to enter origin and destination. */}
+        <TrustBar />
       </section>
       </main>
 
