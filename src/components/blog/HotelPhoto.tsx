@@ -4,18 +4,19 @@
  * Renders a single Google Places hero photo for a named hotel. The photo
  * URL is resolved via Text Search → Photo Media (one combined Text Search
  * call returns the first photo `name`, then a Photo Media call resolves
- * the CDN URL). KV-cached for 30 days positive / 6 hours negative so blog
- * posts only burn Google quota on the first cold render after a deploy.
+ * the CDN URL). KV-cached for 30 days positive / 30 minutes negative so
+ * blog posts only burn Google quota on the first cold render after a
+ * deploy.
  *
  * Wired into `mdxComponents` in src/app/blog/[slug]/page.tsx so authors
  * can drop `<HotelPhoto hotelName="…" city="…" />` straight into MDX.
  *
- * SEO: always emits an `<img>` tag. If Google Places returns nothing
- * (smaller riads, brand-new properties, API key missing in preview),
- * the component falls back to a deterministic city-themed Unsplash photo
- * so crawlers (and the on-page.ai entity audit) always see an image.
- * Previously this returned `null` on Google miss, which caused
- * `image_count: 0` on the 2026-06-04 Marrakech SEO audit.
+ * SEO + UX: always emits an `<img>` tag. If Google Places returns nothing
+ * the component falls back to a deterministic hash-rotated pick from a
+ * pool of generic luxury-hotel Unsplash photos. Different hotels on the
+ * same page get different fallback images so the page doesn't render
+ * 10 copies of the same city skyline (the bug the 2026-06-04 evening
+ * survey caught — 106 fallback firings across 13 posts).
  *
  * Cost is roughly $0.04 per cold hotel render on Google's Places API
  * (New) SKU pricing as of 2026-05.
@@ -34,81 +35,71 @@ interface Props {
 }
 
 const POSITIVE_TTL = 60 * 60 * 24 * 30; // 30 days
-const NEGATIVE_TTL = 60 * 60 * 6;       // 6 hours
+// Negative TTL was 6h, which was too punishing — when Google's first
+// response timed out during the original render the post then served
+// the same fallback for 6h afterwards. Dropped to 30 min so the next
+// visitor after a transient Google blip pulls fresh.
+const NEGATIVE_TTL = 60 * 30;
 
 type CachedPhoto = { url: string } | { miss: true };
 
+// v2 bump (2026-06-04 evening): forces all prior KV cache entries to
+// be ignored. The v1 keys held a wave of `{miss:true}` rows from the
+// initial render of the 10 hotel posts shipped today, which were then
+// serving the city-fallback image for every hotel.
 function cacheKey(hotelName: string, city: string) {
   const slug = `${hotelName}::${city}`.toLowerCase().replace(/[^a-z0-9: ]+/g, '').trim();
-  return `blog-hotel-photo:v1:${slug}`;
+  return `blog-hotel-photo:v2:${slug}`;
 }
 
 /**
- * Deterministic Unsplash fallback per city — used when Google Places has
- * no record of the hotel (smaller riads, newly-opened properties, the
- * crawler's User-Agent gets refused, the KV layer is cold, etc.). Each
- * ID has been verified to appear in its city's Unsplash search results
- * so an SEO crawler reading the rendered HTML sees a city-relevant image.
+ * Pool of generic luxury-hotel Unsplash photos used as the fallback
+ * when Google Places returns nothing. We hash the hotel name and pick
+ * deterministically so:
+ *   1. The same hotel always shows the same fallback image (stable URL
+ *      for browser caches + reproducible audit results).
+ *   2. Different hotels on the same page show different images — no
+ *      more "10 copies of the city skyline" rendering.
  *
- * The match key is lowercased and stripped of non-alphanumerics so
- * "Las Vegas", "las-vegas", "lasvegas" all resolve to the same fallback.
- *
- * Where a city isn't in this map we drop through to GENERIC_FALLBACK
- * (a luxury-hotel-interior shot) so we never return null.
+ * Mix of suite interiors, lobbies, pools, dining rooms, spas, beds,
+ * façades, rooftop terraces — every photo reads as "a luxury hotel"
+ * regardless of city.
  */
-const CITY_FALLBACKS: Record<string, string> = {
-  // 10 hero images shipped 2026-06-04 (verified against Unsplash search)
-  marrakech: '1597212618440-806262de4f6b',
-  budapest: '1541343672885-9be56236302a',
-  prague: '1541849546-216549ae216d',
-  rome: '1525874684015-58379d421a52',
-  vienna: '1516550893923-42d28e5677af',
-  berlin: '1560969184-10fe8719e047',
-  munich: '1595867818082-083862f3d630',
-  edinburgh: '1506377585622-bedcbb027afc',
-  dublin: '1549918864-48ac978761a4',
-  lasvegas: '1581351721010-8cf859cb14a4',
-  // Existing hotel-post hero images (carried over from each post's
-  // own frontmatter, verified at file-write time)
-  dubai: '1512453979798-5ea266f8880c',
-  bangkok: '1508009603885-50cf7c579365',
-  amsterdam: '1534351590666-13e3e96c5017',
-  athens: '1555993539-1732b0258235',
-  barcelona: '1583422409516-2895a77efded',
-  istanbul: '1541432901042-2d8bd64b4a9b',
-  lisbon: '1555881400-74d7acaacd8b',
-  milan: '1520440229-6469a149ac24',
-  seville: '1559535332-db9971090158',
-  granada: '1591101761702-d5e8e98c6c0e',
-  valencia: '1599282114097-eba4b81e2123',
-  goa: '1512343879784-a960bf40e7f2',
-  jaipur: '1599661046289-e31897846e41',
-  kerala: '1602216056096-3b40cc0c9944',
-  udaipur: '1567606404787-5ad7d8e15ba0',
-  victoriafalls: '1516026672322-bc52d61a55d5',
-  tajmahal: '1564507592333-c60657eea523',
-  turkey: '1541432901042-2d8bd64b4a9b',
-};
+const HOTEL_POOL: string[] = [
+  '1566073771259-6a8506099945', // luxury suite interior
+  '1582719508461-905c673771fd', // hotel pool deck at dusk
+  '1551882547-ff40c63fe5fa',    // grand hotel lobby
+  '1564501049412-61c2a3083791', // suite with view
+  '1571896349842-33c89424de2d', // luxury bedroom
+  '1542314831-068cd1dbfeeb',    // hotel dining room
+  '1590490360182-c33d57733427', // hotel courtyard
+  '1611892440504-42a792e24d32', // marble bathroom
+  '1576675784201-0e142b423952', // rooftop terrace
+  '1455587734955-081b22074882', // boutique hotel façade
+  '1578683010236-d716f9a3f461', // spa interior
+  '1568084680786-a84f91d1153c', // sunlit bed with linens
+];
 
 /**
- * Final fallback when neither Google Places nor the city map has anything.
- * A generic luxury-hotel-interior shot — still relevant to "best hotels"
- * blog posts, still gives the crawler a real `<img>` to count.
+ * djb2 string hash → integer in [0, HOTEL_POOL.length). Deterministic
+ * across server restarts, no Math.random() drift between renders.
  */
-const GENERIC_FALLBACK = '1566073771259-6a8506099945';
-
-function normaliseCity(city: string): string {
-  return city.toLowerCase().replace(/[^a-z0-9]/g, '');
+function hashIndex(input: string, mod: number): number {
+  let h = 5381;
+  for (let i = 0; i < input.length; i++) {
+    h = ((h << 5) + h + input.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h) % mod;
 }
 
 function buildUnsplashUrl(photoId: string): string {
   return `https://images.unsplash.com/photo-${photoId}?q=80&w=1200&h=600&fit=crop`;
 }
 
-function fallbackUrlFor(city: string): string {
-  const key = normaliseCity(city);
-  const id = CITY_FALLBACKS[key] ?? GENERIC_FALLBACK;
-  return buildUnsplashUrl(id);
+function fallbackUrlFor(hotelName: string, city: string): string {
+  const seed = `${hotelName}::${city}`;
+  const idx = hashIndex(seed, HOTEL_POOL.length);
+  return buildUnsplashUrl(HOTEL_POOL[idx]);
 }
 
 export default async function HotelPhoto({ hotelName, city, alt, className }: Props) {
@@ -117,13 +108,12 @@ export default async function HotelPhoto({ hotelName, city, alt, className }: Pr
     'w-full h-[260px] md:h-[320px] object-cover rounded-2xl shadow-[0_12px_40px_-12px_rgba(0,102,255,0.18)] my-6';
   const altText = alt ?? `${hotelName || 'Hotel'}${city ? `, ${city}` : ''}`;
 
-  // No data to query Google with — emit a generic fallback so we still
-  // contribute to image_count for crawlers.
+  // No data to query Google with — pick a deterministic pool photo.
   if (!hotelName || !city) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={buildUnsplashUrl(GENERIC_FALLBACK)}
+        src={fallbackUrlFor(hotelName || 'unknown', city || 'unknown')}
         alt={altText}
         className={cls}
         loading="lazy"
@@ -145,13 +135,17 @@ export default async function HotelPhoto({ hotelName, city, alt, className }: Pr
         url = cached.url;
       }
     }
-  } catch { /* KV miss — continue to live fetch */ }
+  } catch { /* KV unreachable — continue to live fetch */ }
 
   // Only call Google if we have no cached result at all (positive or negative).
   if (!url && !cachedMiss) {
-    // 4-second hard cap so a slow Google response can't block page render.
+    // 8-second hard cap (was 4s, which mis-fired during Google's slower
+    // cold responses and seeded a 6-hour negative cache on the entire
+    // post). Google's p99 for Text Search + Photo Media combined sits
+    // around 5-6s under load, so 8s clears the long tail without making
+    // the page perceptibly slower (the photos lazy-load anyway).
     const ctrl = new AbortController();
-    const timeout = setTimeout(() => ctrl.abort(), 4000);
+    const timeout = setTimeout(() => ctrl.abort(), 8000);
     try {
       url = await googleHotelFirstPhoto(`${hotelName} ${city}`, ctrl.signal);
     } catch {
@@ -169,9 +163,10 @@ export default async function HotelPhoto({ hotelName, city, alt, className }: Pr
     } catch { /* KV write fail — still return result for this render */ }
   }
 
-  // Always emit an <img>. If Google had nothing (and our negative cache
-  // confirmed it), fall back to a deterministic city Unsplash photo.
-  const finalUrl = url ?? fallbackUrlFor(city);
+  // Always emit an <img>. If Google had nothing, the fallback is a
+  // hash-rotated pick from the luxury-hotel pool — each hotel on the
+  // page gets a different image, not 10 copies of the city skyline.
+  const finalUrl = url ?? fallbackUrlFor(hotelName, city);
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
