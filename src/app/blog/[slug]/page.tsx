@@ -187,11 +187,13 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       })).content
     : null;
 
-  // JSON-LD Article schema — gives Google the rich-result signal and
-  // helps establish topical authority for the travel niche.
+  // JSON-LD BlogPosting schema — more specific than Article (its parent
+  // type), which Google's structured-data documentation specifically
+  // recommends for blog content. Helps establish topical authority for
+  // the travel niche and unlocks the article rich result.
   const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'Article',
+    '@type': 'BlogPosting',
     headline: post.title,
     description: post.excerpt,
     image: post.heroImage,
@@ -216,6 +218,42 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       '@type': 'WebPage',
       '@id': `https://jetmeaway.co.uk/blog/${post.slug}`,
     },
+    // articleSection signals the topical category to crawlers (per Google's
+    // BlogPosting docs) and gives the page a stronger semantic anchor than
+    // the @type alone. Mirrors the visible category pill.
+    articleSection: post.category,
+  };
+
+  // JSON-LD BreadcrumbList — Home → Blog → Post. Google uses this to
+  // render the breadcrumb trail in the SERP result instead of the bare
+  // URL, and on-page.ai's 2026-06-04 audit flagged it as missing on
+  // every blog post (top-3 competitors all carry it). Single edit here
+  // gives every post the schema. The ListItem children are first-class
+  // items per https://schema.org/BreadcrumbList — they don't need their
+  // own JSON-LD blocks. Position is 1-indexed.
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: 'https://jetmeaway.co.uk',
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Blog',
+        item: 'https://jetmeaway.co.uk/blog',
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: post.title,
+        item: `https://jetmeaway.co.uk/blog/${post.slug}`,
+      },
+    ],
   };
 
   // Optional FAQPage JSON-LD — emitted only when the post declares
@@ -242,6 +280,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
       {faqJsonLd && (
         <script
