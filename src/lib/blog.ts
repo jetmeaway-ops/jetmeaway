@@ -39,6 +39,12 @@ export interface BlogPostFrontmatter {
    *  timestamp (e.g. "April 17, 2026 — 21:00 BST"). Rendered as a red
    *  pill near the article header and used as `dateModified` in JSON-LD. */
   liveAlert?: string;
+  /** Optional — last meaningful content edit. When set, this drives
+   *  the sitemap `lastModified` field and the BlogPosting `dateModified`
+   *  JSON-LD property, giving Google a "fresh content" signal independent
+   *  of the original publish date. Use ISO-8601 (e.g. "2026-06-04") for
+   *  edits that aren't a real-time liveAlert. */
+  dateModified?: string;
   /** Optional — populates the in-body MidArticleCta with a city-specific
    *  hotel CTA. e.g. `ctaCity: "Dubai"` → "Compare Hotels in Dubai" → /hotels?city=Dubai.
    *  Posts without this still show a generic CTA. */
@@ -75,6 +81,7 @@ export function getAllPosts(): BlogPost[] {
       author: data.author as string | undefined,
       faqs: Array.isArray(data.faqs) ? (data.faqs as FAQ[]) : undefined,
       liveAlert: (data.liveAlert as string | undefined) ?? undefined,
+      dateModified: (data.dateModified as string | undefined) ?? undefined,
       ctaCity: (data.ctaCity as string | undefined) ?? undefined,
       ctaFlightsTo: (data.ctaFlightsTo as string | undefined) ?? undefined,
       content,

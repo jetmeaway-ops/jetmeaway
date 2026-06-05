@@ -198,9 +198,13 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     description: post.excerpt,
     image: post.heroImage,
     datePublished: post.date,
-    // If a post has a liveAlert timestamp, treat it as the most recent
-    // modification — this tells Google/LLMs the content was freshly updated.
-    dateModified: post.liveAlert ? new Date().toISOString() : post.date,
+    // dateModified preference (Google freshness signal):
+    //   1. liveAlert → now (real-time updated post)
+    //   2. dateModified frontmatter field → that date (substantive re-edit)
+    //   3. fall through to publish date
+    dateModified: post.liveAlert
+      ? new Date().toISOString()
+      : (post.dateModified || post.date),
     author: {
       '@type': 'Organization',
       name: post.author ?? 'JetMeAway',

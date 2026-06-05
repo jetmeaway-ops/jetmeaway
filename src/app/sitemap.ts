@@ -66,12 +66,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // in the sitemap automatically on the next build.
   let posts: MetadataRoute.Sitemap = [];
   try {
-    posts = getAllPosts().map(post => ({
-      url: `${BASE}/blog/${post.slug}`,
-      lastModified: post.date ? new Date(post.date) : now,
-      changeFrequency: 'monthly' as const,
-      priority: 0.7,
-    }));
+    // Prefer post.dateModified (set in frontmatter when a post is
+    // substantively re-edited after first publish) over post.date.
+    // This lets Google see the freshness signal even when we don't
+    // want to fake the original publish date for "What's new" UX.
+    posts = getAllPosts().map(post => {
+      const lastModSource = post.dateModified || post.date;
+      return {
+        url: `${BASE}/blog/${post.slug}`,
+        lastModified: lastModSource ? new Date(lastModSource) : now,
+        changeFrequency: 'monthly' as const,
+        priority: 0.7,
+      };
+    });
   } catch {
     // If the filesystem read fails for any reason (unlikely at
     // build time), fall back to an empty list — better to ship
