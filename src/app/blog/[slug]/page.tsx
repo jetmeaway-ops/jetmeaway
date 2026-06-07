@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { compileMDX } from 'next-mdx-remote/rsc';
+import remarkGfm from 'remark-gfm';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -132,6 +133,22 @@ const mdxComponents = {
     />
   ),
   hr: () => <hr className="my-12 border-[#E8ECF4]" />,
+  // GFM tables (via remark-gfm) — e.g. the "At a glance" hotel comparison
+  // matrix at the top of every hotel post. Wrapped for horizontal scroll on
+  // mobile so wide tables never break the layout.
+  table: (props: any) => (
+    <div className="my-8 overflow-x-auto rounded-2xl border border-[#E8ECF4] shadow-[0_12px_40px_-12px_rgba(0,102,255,0.10)]">
+      <table className="w-full border-collapse text-left text-[0.92rem] md:text-[0.98rem]" {...props} />
+    </div>
+  ),
+  thead: (props: any) => <thead className="bg-[#F1F5FF]" {...props} />,
+  th: (props: any) => (
+    <th className="px-4 py-3 font-poppins font-bold text-[#1A1D2B] border-b border-[#E8ECF4] whitespace-nowrap" {...props} />
+  ),
+  td: (props: any) => (
+    <td className="px-4 py-3 align-top text-[#374151] border-b border-[#EEF1F6] font-medium" {...props} />
+  ),
+  tr: (props: any) => <tr className="even:bg-[#FAFBFD]" {...props} />,
   img: (props: any) => (
     // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
     <img
@@ -177,13 +194,13 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const { content: firstContent } = await compileMDX({
     source: firstSource,
     components: mdxComponents,
-    options: { parseFrontmatter: false },
+    options: { parseFrontmatter: false, mdxOptions: { remarkPlugins: [remarkGfm] } },
   });
   const secondContent = secondSource
     ? (await compileMDX({
         source: secondSource,
         components: mdxComponents,
-        options: { parseFrontmatter: false },
+        options: { parseFrontmatter: false, mdxOptions: { remarkPlugins: [remarkGfm] } },
       })).content
     : null;
 
