@@ -10,6 +10,18 @@ const nextConfig: NextConfig = {
     ],
     formats: ['image/avif', 'image/webp'],
   },
+  async redirects() {
+    return [
+      // Old slug contained "booking-com"; Booking.com is not a partner so the
+      // brand was purged from the URL too. 308 permanent redirect preserves the
+      // page's indexing/backlinks on the clean slug.
+      {
+        source: '/blog/is-it-cheaper-to-book-hotel-direct-vs-booking-com-vs-expedia',
+        destination: '/blog/is-it-cheaper-to-book-hotel-direct-vs-otas',
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {
