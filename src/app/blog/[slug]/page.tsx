@@ -10,6 +10,7 @@ import HotelPhoto from '@/components/blog/HotelPhoto';
 import CheapestMonthsTable from '@/components/blog/CheapestMonthsTable';
 import BestValueTable from '@/components/blog/BestValueTable';
 import RelatedPosts from '@/components/blog/RelatedPosts';
+import CityBlogBackdrop from '@/components/CityBlogBackdrop';
 import { getAllPosts, getAllPostSlugs, getPostBySlug, formatPostDate } from '@/lib/blog';
 import type { Metadata } from 'next';
 
@@ -297,6 +298,11 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     <>
       <Header />
 
+      {/* City photo slideshow behind the article — cross-fades through this
+          destination's images. The article below is a frosted-white sheet so
+          the imagery glows through while the text stays readable. */}
+      <CityBlogBackdrop city={post.ctaCity ?? ''} seed={post.heroImage} />
+
       {/* JSON-LD structured data — Google reads this for rich snippets */}
       <script
         type="application/ld+json"
@@ -313,7 +319,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         />
       )}
 
-      <article className="pt-32 pb-16 bg-white">
+      <article className="pt-32 pb-16 bg-white/68 backdrop-blur-md">
         {/* Article header */}
         <div className="max-w-[760px] mx-auto px-5 text-center mb-10">
           <Link

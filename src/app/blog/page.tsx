@@ -38,7 +38,7 @@ export default function BlogListingPage() {
         style={{
           zIndex: -1,
           backgroundImage:
-            'linear-gradient(180deg, rgba(235,243,255,0.58) 0%, rgba(255,255,255,0.62) 50%, rgba(248,250,252,0.66) 100%), url("https://commons.wikimedia.org/wiki/Special:FilePath/A_large_blank_world_map_with_oceans_marked_in_blue.svg?width=2560")',
+            'linear-gradient(180deg, rgba(235,243,255,0.60) 0%, rgba(255,255,255,0.64) 50%, rgba(248,250,252,0.68) 100%), url("https://commons.wikimedia.org/wiki/Special:FilePath/Political_map_of_the_World_%28January_2015%29.svg?width=2560")',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',

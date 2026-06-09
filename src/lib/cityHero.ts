@@ -221,3 +221,78 @@ export async function fetchCityImage(city?: string | null): Promise<string | nul
 export function cityHeroImage(city?: string | null): string {
   return curatedCityImage(city) ?? neutralCityImage(city);
 }
+
+// Scenic-filename whitelist for picking extra city photos off Wikipedia's
+// media-list (used only to enrich the blog slideshow — the first images are
+// always the guaranteed-good seed + curated/lead photo).
+const SCENIC_RE =
+  /skyline|panorama|aerial|old.?town|cathedral|bridge|square|castle|cityscape|\bnight\b|\bview\b|harbou?r|palace|river|sunset|old.?city|downtown|waterfront|beach|temple|fort|mosque|basilica/i;
+
+const cityImagesCache = new Map<string, string[]>();
+
+/**
+ * Resolve MULTIPLE real photos for a destination, for the blog-post backdrop
+ * slideshow. Order: seed (the post's own hero) → curated/Wikipedia lead photo
+ * → up to `max` scenic photos from the city's Wikipedia media-list (strictly
+ * filtered to skip flags/maps/portraits/historical scans). De-duplicated.
+ * Always returns at least the seed/lead when available. Memoised per session.
+ */
+export async function fetchCityImages(
+  city?: string | null,
+  seed?: string | null,
+  max = 5,
+): Promise<string[]> {
+  const key = `${(city || '').toLowerCase()}|${seed || ''}`;
+  if (cityImagesCache.has(key)) return cityImagesCache.get(key)!;
+
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const add = (u?: string | null) => {
+    if (u && !seen.has(u)) {
+      seen.add(u);
+      out.push(u);
+    }
+  };
+
+  add(seed);
+  add(curatedCityImage(city));
+  add(await fetchCityImage(city));
+
+  if (city && out.length < max) {
+    try {
+      const title = WIKI_TITLE_ALIASES[city.trim().toLowerCase()] || city;
+      const res = await fetch(
+        `https://en.wikipedia.org/api/rest_v1/page/media-list/${encodeURIComponent(title)}`,
+        { headers: { accept: 'application/json' } },
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const imgs = (data?.items || []).filter(
+          (i: { type?: string; title?: string }) =>
+            i.type === 'image' &&
+            !!i.title &&
+            /\.(jpe?g)$/i.test(i.title) &&
+            !isBadWikiImage(i.title),
+        );
+        // Scenic first, then the rest as filler.
+        const ranked = [
+          ...imgs.filter((i: { title: string }) => SCENIC_RE.test(i.title)),
+          ...imgs.filter((i: { title: string }) => !SCENIC_RE.test(i.title)),
+        ];
+        for (const it of ranked as Array<{ srcset?: Array<{ src?: string }> }>) {
+          if (out.length >= max) break;
+          const raw = it.srcset?.[0]?.src;
+          if (!raw) continue;
+          const abs = raw.startsWith('//') ? `https:${raw}` : raw;
+          add(upsizeWikiThumb(abs, 1280));
+        }
+      }
+    } catch {
+      /* media-list is best-effort enrichment only */
+    }
+  }
+
+  const result = out.slice(0, max);
+  cityImagesCache.set(key, result);
+  return result;
+}
