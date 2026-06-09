@@ -319,7 +319,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         />
       )}
 
-      <article className="pt-32 pb-16 bg-white/68 backdrop-blur-md">
+      <article className="pt-32 pb-16 px-4 sm:px-5">
+        {/* White "paper" sheet so the long-form text stays fully readable while
+            the clear city slideshow shows boldly in the margins around it. */}
+        <div className="relative z-[1] mx-auto max-w-[900px] bg-white rounded-[28px] shadow-[0_40px_90px_-35px_rgba(0,0,0,0.55)] pt-10 sm:pt-12 pb-14">
         {/* Article header */}
         <div className="max-w-[760px] mx-auto px-5 text-center mb-10">
           <Link
@@ -393,6 +396,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               Start Searching <i className="fa-solid fa-arrow-right text-[.8rem]" />
             </Link>
           </div>
+        </div>
         </div>
       </article>
 

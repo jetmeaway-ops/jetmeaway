@@ -81,8 +81,12 @@ export default function CityBlogBackdrop({
           }}
         />
       ))}
-      {/* Faint wash — the frosted article does most of the readability work. */}
-      <div className="absolute inset-0" style={{ background: 'rgba(248,250,252,0.15)' }} />
+      {/* Very light vignette for depth — kept minimal so the city images stay
+          clear and vivid (the white article sheet handles text readability). */}
+      <div
+        className="absolute inset-0"
+        style={{ background: 'linear-gradient(180deg, rgba(10,14,26,0.18) 0%, rgba(10,14,26,0.06) 40%, rgba(10,14,26,0.22) 100%)' }}
+      />
       <style>{`@keyframes cityFade{from{opacity:0}to{opacity:1}}`}</style>
     </div>
   );
