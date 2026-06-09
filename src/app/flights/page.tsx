@@ -24,10 +24,18 @@ export default function FlightsPage() {
       <Header />
 
       <main>
+      {/* Always-dark anti-flash base. The flights client paints the searched
+          destination city's image as a second fixed layer (z-index -10) on
+          top of this one once a search runs — see DestinationBackdrop. */}
+      <div
+        aria-hidden
+        className="fixed inset-0 pointer-events-none"
+        style={{ zIndex: -20, background: 'linear-gradient(160deg, #051327 0%, #0b2342 50%, #03101f 100%)' }}
+      />
       {/* Hero — server-rendered for instant LCP */}
       <section
         className="relative pt-36 pb-12 px-5 min-h-[600px] md:min-h-[700px]"
-        style={{ background: 'linear-gradient(160deg, #051327 0%, #0b2342 50%, #03101f 100%)' }}
+        style={{ background: 'transparent' }}
       >
         <div className="max-w-[860px] mx-auto text-center mb-8 relative z-[1]">
           <span className="inline-flex items-center gap-1.5 backdrop-blur-md bg-gradient-to-r from-sky-500/15 to-cyan-500/15 border border-cyan-300/30 text-cyan-300 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4 shadow-[0_4px_20px_rgba(34,211,238,0.25)]"><span className="text-base leading-none">✈</span> Flight Comparison</span>

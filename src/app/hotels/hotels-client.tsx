@@ -32,6 +32,7 @@ import { decodeFromParams, encodeOccupancy } from '@/lib/occupancy';
 // tile-handoff path showed 1-room pricing. Sync import + sync decode in
 // the URL effect closes the race.
 import AppStoreBadges from '@/components/AppStoreBadges';
+import DestinationBackdrop from '@/components/DestinationBackdrop';
 
 const ScoutSidebar = dynamic(() => import('@/components/ScoutSidebar'), { ssr: false });
 const HotelMap = dynamic(() => import('@/components/HotelMap'), { ssr: false });
@@ -2865,6 +2866,9 @@ function HotelsContent() {
 
   return (
     <>
+        {/* Full-page destination backdrop — the searched city's image fades in
+            behind the results once a search runs. Lazy (post-search only). */}
+        <DestinationBackdrop city={searchedDest} active={searched} theme="hotels" />
         <div className="max-w-[860px] mx-auto bg-white border border-white/20 rounded-3xl p-6 shadow-[0_30px_70px_-20px_rgba(0,0,0,0.6),0_8px_24px_-8px_rgba(245,158,11,0.3),0_0_0_1px_rgba(252,211,77,0.08)] relative z-[1]">
 
         {/* Animations for ambient blobs, glass squares and sparkles */}

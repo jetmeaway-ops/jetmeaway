@@ -2,7 +2,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import RotatingReviews from '@/components/RotatingReviews';
 import AppStoreBadges from '@/components/AppStoreBadges';
-import HeroGlobe3DLoader from '@/components/HeroGlobe3DLoader';
+import LondonHeroBackdrop from '@/components/LondonHeroBackdrop';
 import { LazyFlightSearch, LazyPopularDestinations, LazyTestimonials } from './homepage-client';
 
 // Homepage canonical. Declared here (not the root layout) so it doesn't
@@ -403,12 +403,11 @@ export default function Home() {
           min-h dropped from 600/700 to 480/620 — content height is
           ~430px so we no longer reserve dead space below the wizard. */}
       <section className="relative pt-32 md:pt-40 pb-12 px-6 overflow-hidden bg-[#0a1628] md:bg-[linear-gradient(160deg,#0a1628_0%,#1a2744_50%,#0f1e36_100%)] min-h-[480px] md:min-h-[620px]">
-        {/* Background 3D globe — desktop-only, pointer-events disabled.
-            Loader is a 'use client' wrapper that does the dynamic import
-            with ssr:false (Next 16 forbids ssr:false dynamic in server
-            components, so the wrapper is required). Three.js (~600KB)
-            stays off the initial bundle and never blocks LCP. */}
-        <HeroGlobe3DLoader />
+        {/* Background — rotating lively London photo (replaced the Three.js
+            globe). Client-only: the solid navy section background is the
+            instant LCP surface and the photo fades in on top after hydration,
+            so LCP is untouched. A fresh random London shot loads each visit. */}
+        <LondonHeroBackdrop />
 
         <div className="max-w-[800px] mx-auto text-center relative z-[1]">
           <p className="font-[var(--font-dm-sans)] text-orange-300 text-[.72rem] font-bold uppercase tracking-[3px] mb-4">UK&apos;s Smartest Travel Comparison</p>

@@ -9,6 +9,7 @@ import { redirectUrl } from '@/lib/redirect';
 import SaveSearchButton from '@/components/SaveSearchButton';
 import { saveSticky, loadSticky, type StickyFlights } from '@/lib/sticky-search';
 import AppStoreBadges from '@/components/AppStoreBadges';
+import DestinationBackdrop from '@/components/DestinationBackdrop';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    AIRPORTS — 20 UK departures + 250+ worldwide destinations
@@ -1962,6 +1963,9 @@ function FlightsContent() {
 
   return (
     <>
+        {/* Full-page destination backdrop — the searched destination city's
+            image fades in behind the results once a search runs. Lazy. */}
+        <DestinationBackdrop city={destCity || destCode} active={searched} theme="flights" />
         <div className="max-w-[860px] mx-auto bg-white border border-white/20 rounded-3xl p-6 shadow-[0_30px_70px_-20px_rgba(0,0,0,0.6),0_8px_24px_-8px_rgba(34,211,238,0.3),0_0_0_1px_rgba(165,243,252,0.08)] relative z-[1]">
 
         {/* Animations for ambient blobs, glass squares and sparkles */}

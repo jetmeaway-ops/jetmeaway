@@ -24,9 +24,17 @@ export default function HotelsPage() {
       <Header />
 
       <main>
+      {/* Always-dark anti-flash base. The hotels client paints the searched
+          city's image as a second fixed layer (z-index -10) on top of this
+          one once a search runs — see DestinationBackdrop in hotels-client. */}
+      <div
+        aria-hidden
+        className="fixed inset-0 pointer-events-none"
+        style={{ zIndex: -20, background: 'linear-gradient(160deg, #1f1410 0%, #2c1a18 50%, #160a08 100%)' }}
+      />
       <section
         className="relative pt-36 pb-12 px-5 min-h-[600px] md:min-h-[700px]"
-        style={{ background: 'linear-gradient(160deg, #1f1410 0%, #2c1a18 50%, #160a08 100%)' }}
+        style={{ background: 'transparent' }}
       >
         <div className="max-w-[860px] mx-auto text-center mb-8 relative z-[1]">
           {/* Value-prop banner — sits above the page badge so it's the
