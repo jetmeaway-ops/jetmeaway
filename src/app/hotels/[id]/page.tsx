@@ -9,6 +9,7 @@ import { redirectUrl } from '@/lib/redirect';
 import RoomsTable, { type RoomRate } from './RoomsTable';
 import RoomsSkeleton from './RoomsSkeleton';
 import RoomDetailModal from './RoomDetailModal';
+import HotelBackdrop from '@/components/HotelBackdrop';
 import { chooseDefaultTab } from '@/lib/silentScout';
 import { vibeTagsForSearchedCity } from '@/data/destinations';
 
@@ -668,6 +669,10 @@ export default function HotelDetailPage() {
   return (
     <>
       <Header />
+      {/* Hotel's own photos as a soft backdrop — carries the chosen hotel
+          visually through the detail page and on into checkout. Reuses the
+          already-fetched gallery images. */}
+      <HotelBackdrop photos={gallery} />
       <script
         type="application/ld+json"
         // eslint-disable-next-line react/no-danger

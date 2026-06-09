@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+import HotelBackdrop from '@/components/HotelBackdrop';
 
 // Lazy-load StripeCardForm so @stripe/react-stripe-js (and js.stripe.com)
 // is NEVER pulled in on LiteAPI checkouts. If loaded eagerly, Stripe's new
@@ -432,6 +433,10 @@ export default function HotelCheckoutPage() {
   }
 
   return (
+    <>
+    {/* Carry the hotel's photo through checkout — same backdrop as the detail
+        page so the booking flow stays visually tied to the chosen hotel. */}
+    <HotelBackdrop photos={[booking.thumbnail]} />
     <main className="max-w-[860px] mx-auto px-4 sm:px-5 py-6 sm:py-10">
       <a href={`/hotels?destination=${encodeURIComponent(booking.city)}&checkin=${booking.checkIn}&checkout=${booking.checkOut}&adults=${booking.adults}`} className="text-[.78rem] font-bold text-[#0066FF] hover:underline">← Back to search</a>
       <h1 className="font-poppins font-black text-[1.4rem] sm:text-[1.8rem] text-[#1A1D2B] mt-3 mb-1">Confirm your booking</h1>
@@ -971,5 +976,6 @@ export default function HotelCheckoutPage() {
         </aside>
       </div>
     </main>
+    </>
   );
 }
