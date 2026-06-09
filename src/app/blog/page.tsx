@@ -27,7 +27,25 @@ export default function BlogListingPage() {
     <>
       <Header />
 
-      <main className="pt-36 pb-20 px-5 min-h-screen bg-[radial-gradient(ellipse_at_top,#EBF3FF_0%,#fff_55%,#F8FAFC_100%)]">
+      {/* Full-page world-map backdrop — high-res Wikimedia world map (SVG
+          rendered at 2560px so it stays razor-sharp). Fixed behind the content
+          at z-index -1: above the white body, below the in-flow blog cards
+          (which are opaque) so all text stays readable. A light tint keeps the
+          original airy feel while the map reads as a travel-themed backdrop. */}
+      <div
+        aria-hidden
+        className="fixed inset-0 pointer-events-none"
+        style={{
+          zIndex: -1,
+          backgroundImage:
+            'linear-gradient(180deg, rgba(235,243,255,0.58) 0%, rgba(255,255,255,0.62) 50%, rgba(248,250,252,0.66) 100%), url("https://commons.wikimedia.org/wiki/Special:FilePath/A_large_blank_world_map_with_oceans_marked_in_blue.svg?width=2560")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        }}
+      />
+
+      <main className="pt-36 pb-20 px-5 min-h-screen">
         <div className="max-w-[1200px] mx-auto">
           {/* Hero */}
           <div className="text-center mb-14">
