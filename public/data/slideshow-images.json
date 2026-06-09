@@ -1,0 +1,86 @@
+{
+  "rome": [
+    "https://images.pexels.com/photos/36396954/pexels-photo-36396954.jpeg",
+    "https://images.pexels.com/photos/30877365/pexels-photo-30877365.jpeg",
+    "https://images.pexels.com/photos/22391732/pexels-photo-22391732.jpeg",
+    "https://images.pexels.com/photos/29706230/pexels-photo-29706230.jpeg",
+    "https://images.pexels.com/photos/17646629/pexels-photo-17646629.jpeg",
+    "https://images.pexels.com/photos/12907018/pexels-photo-12907018.jpeg",
+    "https://images.pexels.com/photos/36368092/pexels-photo-36368092.jpeg",
+    "https://images.pexels.com/photos/36369384/pexels-photo-36369384.jpeg",
+    "https://images.pexels.com/photos/36595952/pexels-photo-36595952.jpeg",
+    "https://images.pexels.com/photos/34875154/pexels-photo-34875154.jpeg"
+  ],
+  "vienna": [
+    "https://images.pexels.com/photos/37931462/pexels-photo-37931462.jpeg",
+    "https://images.pexels.com/photos/16632363/pexels-photo-16632363.jpeg",
+    "https://images.pexels.com/photos/13132363/pexels-photo-13132363.jpeg",
+    "https://images.pexels.com/photos/34498127/pexels-photo-34498127.jpeg",
+    "https://images.pexels.com/photos/31238464/pexels-photo-31238464.jpeg",
+    "https://images.pexels.com/photos/25484763/pexels-photo-25484763.jpeg",
+    "https://images.pexels.com/photos/16567494/pexels-photo-16567494.jpeg",
+    "https://images.pexels.com/photos/31725342/pexels-photo-31725342.jpeg",
+    "https://images.pexels.com/photos/37696939/pexels-photo-37696939.jpeg",
+    "https://images.pexels.com/photos/34928475/pexels-photo-34928475.jpeg"
+  ],
+  "marrakech": [
+    "https://images.pexels.com/photos/36658849/pexels-photo-36658849.jpeg",
+    "https://images.pexels.com/photos/34793906/pexels-photo-34793906.jpeg",
+    "https://images.pexels.com/photos/6634054/pexels-photo-6634054.jpeg",
+    "https://images.pexels.com/photos/37818899/pexels-photo-37818899.jpeg",
+    "https://images.pexels.com/photos/28390796/pexels-photo-28390796.jpeg",
+    "https://images.pexels.com/photos/36966423/pexels-photo-36966423.jpeg",
+    "https://images.pexels.com/photos/15260633/pexels-photo-15260633.jpeg",
+    "https://images.pexels.com/photos/30142699/pexels-photo-30142699.jpeg",
+    "https://images.pexels.com/photos/998650/pexels-photo-998650.jpeg",
+    "https://images.pexels.com/photos/18687094/pexels-photo-18687094.jpeg"
+  ],
+  "las-vegas": [
+    "https://images.pexels.com/photos/29121434/pexels-photo-29121434.jpeg",
+    "https://images.pexels.com/photos/32946419/pexels-photo-32946419.jpeg",
+    "https://images.pexels.com/photos/15116208/pexels-photo-15116208.jpeg",
+    "https://images.pexels.com/photos/30837175/pexels-photo-30837175.jpeg",
+    "https://images.pexels.com/photos/6039244/pexels-photo-6039244.jpeg",
+    "https://images.pexels.com/photos/18318725/pexels-photo-18318725.png",
+    "https://images.pexels.com/photos/36496331/pexels-photo-36496331.jpeg",
+    "https://images.pexels.com/photos/33431229/pexels-photo-33431229.jpeg",
+    "https://images.pexels.com/photos/18533398/pexels-photo-18533398.jpeg",
+    "https://images.pexels.com/photos/9687791/pexels-photo-9687791.jpeg"
+  ],
+  "edinburgh": [
+    "https://images.pexels.com/photos/28776205/pexels-photo-28776205.jpeg",
+    "https://images.pexels.com/photos/37889534/pexels-photo-37889534.jpeg",
+    "https://images.pexels.com/photos/30118131/pexels-photo-30118131.jpeg",
+    "https://images.pexels.com/photos/11276637/pexels-photo-11276637.jpeg",
+    "https://images.pexels.com/photos/30341443/pexels-photo-30341443.jpeg",
+    "https://images.pexels.com/photos/6906502/pexels-photo-6906502.jpeg",
+    "https://images.pexels.com/photos/14437295/pexels-photo-14437295.jpeg",
+    "https://images.pexels.com/photos/30653366/pexels-photo-30653366.jpeg",
+    "https://images.pexels.com/photos/37882714/pexels-photo-37882714.jpeg",
+    "https://images.pexels.com/photos/6906499/pexels-photo-6906499.jpeg"
+  ],
+  "prague": [
+    "https://images.pexels.com/photos/35157232/pexels-photo-35157232.jpeg",
+    "https://images.pexels.com/photos/15112647/pexels-photo-15112647.jpeg",
+    "https://images.pexels.com/photos/12273825/pexels-photo-12273825.jpeg",
+    "https://images.pexels.com/photos/30580665/pexels-photo-30580665.jpeg",
+    "https://images.pexels.com/photos/33732443/pexels-photo-33732443.jpeg",
+    "https://images.pexels.com/photos/13881307/pexels-photo-13881307.jpeg",
+    "https://images.pexels.com/photos/16922425/pexels-photo-16922425.jpeg",
+    "https://images.pexels.com/photos/25631122/pexels-photo-25631122.jpeg",
+    "https://images.pexels.com/photos/20191671/pexels-photo-20191671.jpeg",
+    "https://images.pexels.com/photos/8494424/pexels-photo-8494424.jpeg"
+  ],
+  "munich": [
+    "https://images.pexels.com/photos/24878940/pexels-photo-24878940.jpeg",
+    "https://images.pexels.com/photos/18533642/pexels-photo-18533642.jpeg",
+    "https://images.pexels.com/photos/33808950/pexels-photo-33808950.jpeg",
+    "https://images.pexels.com/photos/18693465/pexels-photo-18693465.jpeg",
+    "https://images.pexels.com/photos/27419357/pexels-photo-27419357.jpeg",
+    "https://images.pexels.com/photos/31520644/pexels-photo-31520644.jpeg",
+    "https://images.pexels.com/photos/11030393/pexels-photo-11030393.jpeg",
+    "https://images.pexels.com/photos/27330548/pexels-photo-27330548.jpeg",
+    "https://images.pexels.com/photos/30256067/pexels-photo-30256067.jpeg",
+    "https://images.pexels.com/photos/37602495/pexels-photo-37602495.jpeg"
+  ]
+}

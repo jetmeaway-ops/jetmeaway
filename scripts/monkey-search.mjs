@@ -198,12 +198,20 @@ function assertResponse(s, status, body) {
   }
 
   // Proximity assertion — only when the search city is a known canary.
-  // Sample the first 10 hotels with coords; if any sit outside the radius
-  // it means the geo filter let through a Greater-region match (the exact
-  // bug Coulsdon hit on 2026-05-03). Hotels missing lat/lng are skipped
+  // Sample the first 10 hotels with coords; if any sit GROSSLY outside the
+  // radius it means the geo filter let through a Greater-region match (the
+  // exact bug Coulsdon hit on 2026-05-03). Hotels missing lat/lng are skipped
   // because the API filter skips them too — we'd false-positive.
+  //
+  // 1.5x tolerance over the configured radius: route.ts deliberately EXPANDS
+  // its geo radius (insideRadius fallback, radiusKm → ×2 → ×3) when a suburb +
+  // occupancy combo returns too few hotels, so it can legitimately surface
+  // central-London stays a little past the base radius on sparse searches
+  // (e.g. Sutton + 2a3c → Victoria/Knightsbridge at ~15-16km). The original
+  // bug class (Zone-1 stays 20-40km from an 8km suburb) still trips this.
   const canary = PROXIMITY_CANARIES[s.city];
   if (canary && Array.isArray(body.hotels) && body.hotels.length > 0) {
+    const limitKm = canary.radiusKm * 1.5;
     const sample = body.hotels.slice(0, 10);
     const offenders = [];
     for (const h of sample) {
@@ -211,12 +219,12 @@ function assertResponse(s, status, body) {
       const lng = h.lng ?? h.longitude;
       if (typeof lat !== 'number' || typeof lng !== 'number') continue;
       const km = haversineKm(canary, { lat, lng });
-      if (km > canary.radiusKm) {
+      if (km > limitKm) {
         offenders.push(`${h.name || h.id} ${km.toFixed(1)}km`);
       }
     }
     if (offenders.length > 0) {
-      errs.push(`proximity drift (>${canary.radiusKm}km from ${s.city}): ${offenders.slice(0, 3).join(', ')}`);
+      errs.push(`proximity drift (>${limitKm.toFixed(0)}km from ${s.city}): ${offenders.slice(0, 3).join(', ')}`);
     }
   }
   return errs;
