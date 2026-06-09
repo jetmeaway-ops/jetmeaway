@@ -37,8 +37,12 @@ export default function BlogListingPage() {
         className="fixed inset-0 pointer-events-none"
         style={{
           zIndex: -1,
+          // Realistic NASA "Blue Marble" satellite Earth (equirectangular — a
+          // full rectangle, so cover fills every corner with no gaps). A light
+          // dark scrim adds depth and makes the white post cards pop.
+          backgroundColor: '#0a1020',
           backgroundImage:
-            'linear-gradient(180deg, rgba(235,243,255,0.60) 0%, rgba(255,255,255,0.64) 50%, rgba(248,250,252,0.68) 100%), url("https://commons.wikimedia.org/wiki/Special:FilePath/Political_map_of_the_World_%28January_2015%29.svg?width=2560")',
+            'linear-gradient(180deg, rgba(7,11,22,0.45) 0%, rgba(7,11,22,0.30) 45%, rgba(7,11,22,0.55) 100%), url("https://commons.wikimedia.org/wiki/Special:FilePath/Whole_world_-_land_and_oceans_12000.jpg?width=2560")',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
@@ -49,13 +53,13 @@ export default function BlogListingPage() {
         <div className="max-w-[1200px] mx-auto">
           {/* Hero */}
           <div className="text-center mb-14">
-            <span className="inline-block bg-blue-50 text-[#0066FF] text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4">
+            <span className="inline-block bg-white/15 backdrop-blur-sm text-white border border-white/25 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4">
               📝 Travel Blog
             </span>
-            <h1 className="font-poppins text-[2.6rem] md:text-[3.8rem] font-black text-[#1A1D2B] leading-[1.05] tracking-tight mb-3">
-              Travel Tips & <em className="italic bg-gradient-to-br from-[#0066FF] to-[#0052CC] bg-clip-text text-transparent">Guides</em>
+            <h1 className="font-poppins text-[2.6rem] md:text-[3.8rem] font-black text-white leading-[1.05] tracking-tight mb-3 [text-shadow:0_2px_24px_rgba(0,0,0,0.45)]">
+              Travel Tips & <em className="italic bg-gradient-to-br from-cyan-300 to-blue-400 bg-clip-text text-transparent">Guides</em>
             </h1>
-            <p className="text-[1rem] text-[#8E95A9] font-semibold max-w-[560px] mx-auto">
+            <p className="text-[1rem] text-white/85 font-semibold max-w-[560px] mx-auto [text-shadow:0_1px_12px_rgba(0,0,0,0.5)]">
               Expert insights from your personal travel scout — destinations, deals, and tactics for 2026.
             </p>
           </div>
