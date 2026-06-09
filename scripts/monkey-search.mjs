@@ -39,19 +39,31 @@ const CITIES = [
  * Proximity canaries — small towns where LiteAPI is known to return
  * Greater-region hotels (Coulsdon → all of London, Hove → all of Brighton+
  * Worthing, etc). The monkey randomly picks one each run; if returned
- * hotels with lat/lng land >RADIUS_KM from the centroid the run fails.
+ * hotels with lat/lng land >radiusKm from the centroid the run fails.
  *
- * Reference centroids match src/app/api/hotels/route.ts CITY_COORDS.
+ * SOURCE OF TRUTH: both `lat`/`lng` and `radiusKm` MUST match the values in
+ * src/app/api/hotels/route.ts (CITY_COORDS + CITY_RADIUS_KM). The canary's job
+ * is to assert the API kept its OWN promised radius — so the radius here has to
+ * equal the radius the API actually filters with. If the test radius is tighter
+ * than the API's, legitimately in-radius hotels get flagged as drift (which is
+ * exactly what happened with kingston/richmond/twickenham: the API uses 15km
+ * for these sparse SW-London suburbs but this table still said 12km, so hotels
+ * at 12–15km — e.g. South Kensington for a Kingston search — false-failed).
+ * When you change a radius in route.ts, change it here too.
  */
 const PROXIMITY_CANARIES = {
-  'coulsdon':  { lat: 51.3193, lng: -0.1393, radiusKm: 12 },
-  'purley':    { lat: 51.3370, lng: -0.1106, radiusKm: 12 },
-  'sutton':    { lat: 51.3618, lng: -0.1945, radiusKm: 12 },
-  'bromley':   { lat: 51.4039, lng:  0.0149, radiusKm: 12 },
-  'kingston':  { lat: 51.4123, lng: -0.3007, radiusKm: 12 },
-  'richmond':  { lat: 51.4613, lng: -0.3037, radiusKm: 12 },
-  'twickenham':{ lat: 51.4467, lng: -0.3320, radiusKm: 12 },
+  // SW-London / Croydon-borough suburbs — API uses 15km (sparse local
+  // inventory; bumped 8→15km after the 2026-05-03 Coulsdon Zone-1 bug).
+  'coulsdon':  { lat: 51.3193, lng: -0.1393, radiusKm: 15 },
+  'purley':    { lat: 51.3370, lng: -0.1106, radiusKm: 15 },
+  'sutton':    { lat: 51.3618, lng: -0.1945, radiusKm: 15 },
+  'bromley':   { lat: 51.4039, lng:  0.0149, radiusKm: 15 },
+  'kingston':  { lat: 51.4123, lng: -0.3007, radiusKm: 15 },
+  'richmond':  { lat: 51.4613, lng: -0.3037, radiusKm: 15 },
+  'twickenham':{ lat: 51.4467, lng: -0.3320, radiusKm: 15 },
   'wimbledon': { lat: 51.4214, lng: -0.2064, radiusKm: 12 },
+  // Home-counties / coastal — API uses 10km; keep a small extra cushion so a
+  // sparse-inventory radius-expansion fallback doesn't false-fail.
   'hove':      { lat: 50.8285, lng: -0.1671, radiusKm: 12 },
   'watford':   { lat: 51.6565, lng: -0.3903, radiusKm: 14 },
   'slough':    { lat: 51.5105, lng: -0.5950, radiusKm: 14 },
