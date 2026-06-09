@@ -1,44 +1,82 @@
 import { DESTINATIONS } from '@/data/destinations';
 
 /**
- * Resolve a wide (≈1600px) hero/background image for a searched city.
+ * Resolve a wide (~1400px) place photo for a searched city, used as the
+ * full-page backdrop behind hotel + flight RESULTS. Loads only AFTER a search
+ * fires, so it never touches initial-paint perf (mobile 90 / LCP).
  *
- * Used as the full-page backdrop behind hotel + flight RESULTS so a search
- * for "Lahore" opens against a Lahore skyline, "Bangkok" against Bangkok,
- * etc. The image only loads AFTER a search fires, so it never touches the
- * initial-paint performance budget (mobile Perf 90 / LCP).
+ * Resolution order:
+ *   1. curatedCityImage() (sync) — URL/Commons overrides + Destination.heroImage.
+ *   2. fetchCityImage() (async) — the real Wikipedia lead photo for ANY other
+ *      destination (Antalya → beach, Leukerbad → alps, Bangkok → skyline).
+ *      Programmatic, so it covers all ~250 searchable cities + future ones.
+ *   3. neutralCityImage() — deterministic travel pool, last resort only.
  *
- * Resolution order (mirrors the curated → fallback pattern already used by
- * src/components/blog/HotelPhoto.tsx):
- *   1. Curated `Destination.heroImage` — hand-picked, correct city photo.
- *      Covers ~41 cities (Lahore, Islamabad, Dubai, Bangkok, …). Matched
- *      case-insensitively against `city` / `slug`, with a startsWith pass so
- *      "London Heathrow" / "Paris CDG" still resolve.
- *   2. Neutral travel pool — a deterministic, city-seeded pick of premium
- *      travel imagery for the ~120 search cities / 250 airports that aren't
- *      curated yet. Deliberately city-NEUTRAL (no recognisable skyline) so we
- *      never show a wrong landmark; the heavy scrim renders it as ambient
- *      texture. Promote popular cities into DESTINATIONS over time.
+ * The Wikipedia lookup runs client-side (its REST API sends CORS headers): no
+ * new API route, no edge concern, no KV. All image URLs resolve to
+ * upload.wikimedia.org / images.unsplash.com — stable CDNs already in use.
  *
- * Safe to call with any string; empty/unknown input returns a stable
- * neutral image.
+ * WHY the override + alias maps exist: most proper cities have a good Wikipedia
+ * "page image" (a cityscape). But ISLANDS/REGIONS/small countries infobox a
+ * FLAG or locator MAP (Maldives, Bali, Sicily…), and some names are
+ * DISAMBIGUATION pages (Queenstown, Newcastle, Split…). Those two classes can't
+ * be resolved programmatically, so they get hand-verified Commons photos
+ * (COMMONS_FILES / URL_OVERRIDES) or a more specific Wikipedia title
+ * (WIKI_TITLE_ALIASES). Everything else flows through fetchCityImage.
  */
 
-// Daytime backdrop overrides — used ONLY for the full-page results backdrop,
-// NOT for the destination-page hero (where a darker shot helps overlaid text
-// contrast). Keyed by lowercase city name / slug. Add here whenever a curated
-// heroImage is a dusk/night shot that reads too dark as a bright backdrop.
-// Every URL is verified to load + confirmed daytime before being added.
-const BACKDROP_OVERRIDES: Record<string, string> = {
-  // Lahore's curated heroImage is a dusk aerial of Badshahi Mosque — too dark
-  // as a backdrop. Bright daytime Lahore Fort (Alamgiri Gate), blue sky.
-  lahore:
-    'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Lahore_Fort_view_from_Baradari.jpg/1280px-Lahore_Fort_view_from_Baradari.jpg',
+// Hand-verified Wikimedia Commons filenames for island/region destinations
+// whose Wikipedia infobox image is a flag/map. Served via Special:FilePath
+// (stable redirect — no fragile hash path). Keyed by lowercase city name/slug.
+const COMMONS_FILES: Record<string, string> = {
+  // Lahore — bright daytime Fort (its heroImage is a dusk aerial; too dark).
+  lahore: 'Lahore_Fort_view_from_Baradari.jpg',
+  // Islands / regions (flag/map infobox → curated scenery instead).
+  seychelles: 'Anse_Lazio_beach_Praslin_Seychelles.jpg',
+  madagascar: 'Landscape_Madagascar_04.jpg',
+  'st lucia': 'At_the_top_of_Pigeon_Island.jpg',
+  azores: 'Ribeira_Grande,_São_Miguel_Island,_Azores_-_panoramio_(7)_(cropped).jpg',
+  bali: 'Bali_panorama.jpg',
+  sardinia: 'Sardegna,_Italy.jpg',
+  sicily: 'Messina_harbour_AK.jpg',
+  fiji: 'Shangri-La_Fijian_Resort_15.jpg',
+  zanzibar: 'Zanzibar_Panorama.jpg',
+  jamaica: 'Doctors-Cave-Beach.jpg',
+  'punta cana': 'Cap_Cana_Marina_Dominican_Republic.jpg',
+  'turks and caicos': 'Turks_and_Caicos_Islands_sunset.jpg',
+  antigua: 'TurnerBeachAntigua.JPG',
+  trinidad: 'Pigeon_Point_beach.jpg',
+  goa: 'GOA_Colva_Beach_-_panoramio.jpg',
+  malta: 'Mellieha_Bay_beach_Malta_1.jpg',
 };
 
-// Verified Unsplash IDs (already in production use via HotelPhoto's pool) —
-// premium, city-neutral travel/interior shots. Deterministic seeding keeps a
-// given city on a stable image (good for browser caching + no flicker).
+// Full-URL overrides (Unsplash) where Commons had no clean scenic file.
+const URL_OVERRIDES: Record<string, string> = {
+  // Iconic turquoise overwater-villa lagoon (the Commons lead was a moody,
+  // overcast shot — wrong vibe for the Maldives).
+  maldives:
+    'https://images.unsplash.com/photo-1758717152007-6a2eb7299409?w=1600&q=75&fit=crop&fm=webp',
+  barbados:
+    'https://images.unsplash.com/photo-1682289570915-5d6e41ade8bc?w=1600&q=75&fit=crop&fm=webp',
+  aruba:
+    'https://images.unsplash.com/photo-1678449784319-423c621569b9?w=1600&q=75&fit=crop&fm=webp',
+};
+
+// Disambiguation / region→city aliases — query a more specific Wikipedia title
+// so the programmatic lookup lands on the right scenic page.
+const WIKI_TITLE_ALIASES: Record<string, string> = {
+  queenstown: 'Queenstown, New Zealand',
+  newcastle: 'Newcastle upon Tyne',
+  bath: 'Bath, Somerset',
+  split: 'Split, Croatia',
+  'gold coast': 'Gold Coast, Queensland',
+  madeira: 'Funchal',
+  mauritius: 'Port Louis',
+  monaco: 'Monte Carlo',
+};
+
+// Premium, city-neutral travel/interior shots (verified Unsplash IDs reused
+// from HotelPhoto's pool). Deterministic seeding keeps a given city stable.
 const NEUTRAL_POOL: string[] = [
   '1566073771259-6a8506099945', // luxury suite interior
   '1582719508461-905c673771fd', // pool deck at dusk
@@ -59,38 +97,112 @@ function hashIndex(input: string, mod: number): number {
   return Math.abs(h) % mod;
 }
 
-export function cityHeroImage(city?: string | null): string {
+/** Wikimedia Commons Special:FilePath URL — stable redirect to a thumb. */
+function commonsFile(name: string, width = 1600): string {
+  return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(name)}?width=${width}`;
+}
+
+/**
+ * Curated image (override → Commons file → Destination.heroImage). Synchronous;
+ * returns null when the city isn't curated (caller then tries Wikipedia).
+ */
+export function curatedCityImage(city?: string | null): string | null {
   const needle = (city || '').trim().toLowerCase();
+  if (!needle) return null;
 
-  if (needle) {
-    // 0. Daytime backdrop override by raw input (city name / slug / iata).
-    if (BACKDROP_OVERRIDES[needle]) return BACKDROP_OVERRIDES[needle];
+  if (URL_OVERRIDES[needle]) return URL_OVERRIDES[needle];
+  if (COMMONS_FILES[needle]) return commonsFile(COMMONS_FILES[needle]);
 
-    // 1. Exact curated match on city name, slug, or IATA code (flights may
-    //    pass just an airport code like "BKK" / "LHE").
-    let match = DESTINATIONS.find(
-      (d) =>
-        d.city.toLowerCase() === needle ||
-        d.slug === needle ||
-        d.iata.toLowerCase() === needle,
-    );
-    // 2. startsWith pass — "London Heathrow" → London, "Paris CDG" → Paris.
-    if (!match) {
-      match = DESTINATIONS.find((d) => {
-        const c = d.city.toLowerCase();
-        return needle.startsWith(c) || c.startsWith(needle);
-      });
-    }
-    if (match) {
-      // A matched destination may still have a daytime override keyed by its
-      // slug (e.g. an IATA / "London Heathrow" input that resolved to Lahore).
-      if (BACKDROP_OVERRIDES[match.slug]) return BACKDROP_OVERRIDES[match.slug];
-      if (match.heroImage) return match.heroImage;
-    }
+  let match = DESTINATIONS.find(
+    (d) =>
+      d.city.toLowerCase() === needle ||
+      d.slug === needle ||
+      d.iata.toLowerCase() === needle,
+  );
+  if (!match) {
+    match = DESTINATIONS.find((d) => {
+      const c = d.city.toLowerCase();
+      return needle.startsWith(c) || c.startsWith(needle);
+    });
   }
+  if (match) {
+    if (URL_OVERRIDES[match.slug]) return URL_OVERRIDES[match.slug];
+    if (COMMONS_FILES[match.slug]) return commonsFile(COMMONS_FILES[match.slug]);
+    if (match.heroImage) return match.heroImage;
+  }
+  return null;
+}
 
-  // 3. Neutral, deterministic fallback.
-  const seed = needle || 'travel';
+/** Deterministic neutral fallback — last resort only. */
+export function neutralCityImage(city?: string | null): string {
+  const seed = (city || '').trim().toLowerCase() || 'travel';
   const id = NEUTRAL_POOL[hashIndex(seed, NEUTRAL_POOL.length)];
   return `https://images.unsplash.com/photo-${id}?w=1600&h=1000&fit=crop&fm=webp&q=70`;
+}
+
+// Reject Wikimedia files that aren't scenery photos. `.svg` matched anywhere
+// catches Wikimedia's `Flag_of_X.svg/…X.svg.png` raster renders of flags /
+// locator maps / coats of arms. `dimos`/`marker` catch Greek-municipality
+// locator PNGs (e.g. "2011 Dimos Thiras.png").
+function isBadWikiImage(url: string): boolean {
+  return /\.svg|\.gif|\.ogv|flag|coat[_ ]?of[_ ]?arms|wappen|locator|location[_ ]?map|\bmap\b|\bseal\b|emblem|\blogo\b|\bicon\b|\bmarker\b|\bdimos\b|special[_ ]?marker/i.test(
+    url,
+  );
+}
+
+// Wikimedia thumbnails look like .../thumb/a/ab/Name.jpg/320px-Name.jpg — bump
+// the width segment so the backdrop is sharp. Non-thumb URLs pass through.
+function upsizeWikiThumb(url: string, px: number): string {
+  return /\/\d+px-[^/]+$/.test(url) ? url.replace(/\/\d+px-/, `/${px}px-`) : url;
+}
+
+const wikiCache = new Map<string, string | null>();
+
+/**
+ * Fetch a destination's real lead photo from Wikipedia (client-side). Applies
+ * WIKI_TITLE_ALIASES so disambiguation/region names hit the right article.
+ * Returns null on miss / disambiguation / non-photo lead image (caller falls
+ * back to neutralCityImage). Memoised per session.
+ */
+export async function fetchCityImage(city?: string | null): Promise<string | null> {
+  const key = (city || '').trim();
+  if (!key) return null;
+  const cacheKey = key.toLowerCase();
+  if (wikiCache.has(cacheKey)) return wikiCache.get(cacheKey) ?? null;
+
+  const queryTitle = WIKI_TITLE_ALIASES[cacheKey] || key;
+  let result: string | null = null;
+  try {
+    const title = encodeURIComponent(queryTitle.replace(/\s+/g, ' '));
+    const res = await fetch(
+      `https://en.wikipedia.org/api/rest_v1/page/summary/${title}`,
+      { headers: { accept: 'application/json' } },
+    );
+    if (res.ok) {
+      const d = await res.json();
+      if (d && d.type !== 'disambiguation') {
+        const raw: string | null =
+          d?.thumbnail?.source || d?.originalimage?.source || null;
+        if (raw && !isBadWikiImage(raw)) {
+          // Cap requested width at the original — Wikimedia 400s on upscale.
+          const maxW: number =
+            Number(d?.originalimage?.width) || Number(d?.thumbnail?.width) || 0;
+          const targetW = maxW ? Math.min(1280, maxW) : 1280;
+          result = upsizeWikiThumb(raw, targetW);
+        }
+      }
+    }
+  } catch {
+    result = null;
+  }
+  wikiCache.set(cacheKey, result);
+  return result;
+}
+
+/**
+ * Synchronous best-effort image (curated → neutral). Kept for any caller that
+ * can't await; the live backdrop path uses curatedCityImage + fetchCityImage.
+ */
+export function cityHeroImage(city?: string | null): string {
+  return curatedCityImage(city) ?? neutralCityImage(city);
 }

@@ -1,6 +1,7 @@
 'use client';
 
-import { cityHeroImage } from '@/lib/cityHero';
+import { useEffect, useState } from 'react';
+import { curatedCityImage, fetchCityImage, neutralCityImage } from '@/lib/cityHero';
 
 /**
  * Full-page destination backdrop for hotel + flight RESULTS.
@@ -12,9 +13,13 @@ import { cityHeroImage } from '@/lib/cityHero';
  * top and fully readable. The image is loaded lazily (only after a search
  * fires) so it never affects initial-paint performance.
  *
- * The scrim is a heavy dark gradient tinted to the page theme; it keeps text
- * legible and renders the neutral-fallback imagery (for non-curated cities)
- * as ambient texture rather than a literal place claim.
+ * Image resolution (see src/lib/cityHero.ts):
+ *   curated override/heroImage (sync) → Wikipedia lead photo (async) → neutral
+ * fallback. So every destination — Antalya beaches, Leukerbad alps, Santorini
+ * caldera — gets a real place photo, not a generic hotel room.
+ *
+ * The scrim is a light theme-tinted gradient; the white result cards are
+ * opaque so card legibility never depends on it.
  */
 export default function DestinationBackdrop({
   city,
@@ -25,15 +30,53 @@ export default function DestinationBackdrop({
   active: boolean;
   theme?: 'hotels' | 'flights';
 }) {
-  if (!active || !city) return null;
+  const [img, setImg] = useState<string | null>(null);
 
-  const img = cityHeroImage(city);
+  useEffect(() => {
+    if (!active || !city) {
+      setImg(null);
+      return;
+    }
+    let cancelled = false;
+    setImg(null);
 
-  // Theme-matched scrim — warm for hotels, cool/navy for flights — echoing
-  // each hero's existing gradient so the swap reads as intentional. Kept light
+    // Preload before revealing so a failed CDN load (404 / transient 429)
+    // degrades to the neutral photo instead of a blank/dark backdrop — and we
+    // never show a half-painted image.
+    const reveal = (url: string, allowFallback: boolean) => {
+      const pre = new Image();
+      pre.onload = () => {
+        if (!cancelled) setImg(url);
+      };
+      pre.onerror = () => {
+        if (cancelled || !allowFallback) return;
+        const fallback = neutralCityImage(city);
+        if (fallback === url) return;
+        reveal(fallback, false);
+      };
+      pre.src = url;
+      if (pre.complete && pre.naturalWidth > 0 && !cancelled) setImg(url);
+    };
+
+    const curated = curatedCityImage(city);
+    if (curated) {
+      reveal(curated, true);
+    } else {
+      // Resolve the real place photo from Wikipedia; neutral only on miss.
+      fetchCityImage(city).then((url) => {
+        if (!cancelled) reveal(url || neutralCityImage(city), true);
+      });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [city, active]);
+
+  if (!active || !city || !img) return null;
+
+  // Theme-matched scrim — warm for hotels, cool/navy for flights. Kept light
   // so the photo reads bright/daytime; just enough darkening toward the bottom
-  // to seat the long results list. The white result cards are opaque, so card
-  // legibility never depends on the scrim.
+  // to seat the long results list.
   const scrim =
     theme === 'flights'
       ? 'linear-gradient(180deg, rgba(5,19,39,0.34) 0%, rgba(3,16,31,0.42) 55%, rgba(3,16,31,0.58) 100%)'
@@ -41,6 +84,7 @@ export default function DestinationBackdrop({
 
   return (
     <div
+      key={img}
       aria-hidden
       className="fixed inset-0 pointer-events-none animate-[backdropFade_0.7s_ease-out]"
       style={{
