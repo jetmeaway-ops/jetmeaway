@@ -48,6 +48,16 @@ const COMMONS_FILES: Record<string, string> = {
   trinidad: 'Pigeon_Point_beach.jpg',
   goa: 'GOA_Colva_Beach_-_panoramio.jpg',
   malta: 'Mellieha_Bay_beach_Malta_1.jpg',
+  // City/resort destinations whose Wikipedia infobox is a flag (Singapore,
+  // Hong Kong, Bahrain) or whose lead image isn't scenic (Ibiza, Marmaris,
+  // Cape-Verde islands).
+  singapore: 'Marina_Bay_Sands_20250903_(1).jpg',
+  'hong kong': 'Yick_Cheong_Building_View_2015.jpg',
+  bahrain: 'Avenues_coastline,_Bahrain.jpg',
+  ibiza: 'O_Beach_Ibiza-Ibiza_Spain-Andres_Larin.jpg',
+  marmaris: 'Marmaris_harbor_(aerial_view),_Muğla_Province,_southwest_Turkey,_Mediterranean.jpg',
+  sal: 'SantaMariaSal.jpg',
+  'boa vista': 'Aerial-Sal-Reis-Cape-Verde-2012.JPG',
 };
 
 // Full-URL overrides (Unsplash) where Commons had no clean scenic file.
@@ -73,6 +83,11 @@ const WIKI_TITLE_ALIASES: Record<string, string> = {
   madeira: 'Funchal',
   mauritius: 'Port Louis',
   monaco: 'Monte Carlo',
+  'new york': 'New York City',
+  orlando: 'Orlando, Florida',
+  fez: 'Fez, Morocco',
+  hammamet: 'Hammamet, Tunisia',
+  cartagena: 'Cartagena, Colombia',
 };
 
 // Premium, city-neutral travel/interior shots (verified Unsplash IDs reused
