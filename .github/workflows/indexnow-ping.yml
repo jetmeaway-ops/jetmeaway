@@ -1,0 +1,38 @@
+# IndexNow ping — fires after every successful PRODUCTION deploy so Bing
+# (and therefore ChatGPT / Copilot retrieval, which read Bing's index)
+# recrawls new and updated pages within hours instead of weeks.
+#
+# Trigger: Vercel's GitHub integration emits deployment_status events; we
+# act only on state=success for the Production environment, AFTER the
+# deploy is live — required because scripts/indexnow-ping.mjs reads the
+# LIVE sitemap.xml to build its URL list.
+#
+# Context: ChatGPT became the site's #1 referrer (2026-06-10) and Bing's
+# AI Performance report shows 1.7K citations/3mo, but the manual ping had
+# gone quiet since 26 May. This makes it automatic.
+#
+# Cost: ~10s per production deploy. IndexNow is idempotent — re-pinging
+# unchanged URLs is harmless and Bing dedupes server-side.
+name: indexnow-ping
+
+on:
+  deployment_status:
+
+jobs:
+  ping:
+    if: >-
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment_status.environment == 'Production'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    concurrency:
+      # Rapid back-to-back deploys only need the newest ping.
+      group: indexnow-ping
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Ping IndexNow with all sitemap URLs
+        run: node scripts/indexnow-ping.mjs
