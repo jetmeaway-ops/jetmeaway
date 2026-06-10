@@ -29,7 +29,7 @@ const PILLS = [
     icon: '🔒',
     label: 'Secure Payments',
     href: null,
-    ariaLabel: 'Payments processed by Stripe and LiteAPI',
+    ariaLabel: 'Secure encrypted payments — JetMeAway never stores your card details',
   },
   {
     icon: '⭐',

@@ -670,7 +670,7 @@ export default function HotelCheckoutPage() {
                 <p className="text-[.72rem] font-bold text-red-600 mt-2 text-center">{stepError}</p>
               )}
               <p className="text-[.68rem] text-[#8E95A9] mt-3 font-semibold text-center">
-                You&apos;ll pay securely on the next step via {isDotw ? 'Stripe' : 'LiteAPI'}.
+                You&apos;ll pay securely on the next step{isDotw ? ' via Stripe' : ''} — your card details are fully encrypted.
               </p>
             </>
           )}
@@ -688,7 +688,7 @@ export default function HotelCheckoutPage() {
             <>
               <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-1">Secure payment</h2>
               <p className="text-[.78rem] text-[#5C6378] font-semibold mb-4">
-                Enter your card details below. Payment is processed securely by {isDotw ? 'Stripe' : 'LiteAPI'}.
+                Enter your card details below. Your payment is encrypted and processed securely{isDotw ? ' by Stripe' : ''}.
               </p>
               {paymentError && (
                 <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4 flex items-start gap-2.5">
