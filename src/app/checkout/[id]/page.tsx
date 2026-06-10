@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import StripeCardForm from '@/components/StripeCardForm';
 import FlightCheckoutLegal from '@/components/FlightCheckoutLegal';
+import PaymentTrustStrip from '@/components/PaymentTrustStrip';
 import SeatMapModal, {
   type SeatSelection,
   type SeatSelectionsMap,
@@ -2317,9 +2318,7 @@ export default function CheckoutPage() {
                         amountLabel={`£${grandTotalAll.toFixed(2)}`}
                       />
 
-                      <div className="mt-4 pt-4 border-t border-[#F1F3F7] flex items-center gap-2 text-[.65rem] text-[#8E95A9] font-semibold">
-                        <span>🔒</span> Payments are securely processed via Stripe. JetMeAway never sees your card number.
-                      </div>
+                      <PaymentTrustStrip />
                     </div>
                   )}
 

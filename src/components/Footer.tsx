@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import DealAlertForm from './DealAlertForm';
 import AppStoreBadges from './AppStoreBadges';
+import PaymentTrustStrip from './PaymentTrustStrip';
 
 export default function Footer() {
   return (
@@ -114,6 +115,11 @@ export default function Footer() {
         <div className="mb-6 flex justify-start">
           <AppStoreBadges variant="dark" />
         </div>
+
+        {/* Payment trust strip — Stripe is the MoR rail for direct bookings
+            (Duffel + Kyte flights, DOTW hotels). Card-network logos signal
+            checkout safety site-wide; requested by owner 2026-06-10. */}
+        <PaymentTrustStrip variant="footer" />
 
         <div className="flex justify-between items-center flex-wrap gap-3">
           <p className="text-[.6rem] text-white/75">© 2026 JETMEAWAY LTD (Company No: 17140522 · DUNS: 234726109 · ICO: ZC125217). 66 Paul Street, EC2A 4NA, London. All rights reserved.</p>

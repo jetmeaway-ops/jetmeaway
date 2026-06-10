@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import HotelBackdrop from '@/components/HotelBackdrop';
+import PaymentTrustStrip from '@/components/PaymentTrustStrip';
 
 // Lazy-load StripeCardForm so @stripe/react-stripe-js (and js.stripe.com)
 // is NEVER pulled in on LiteAPI checkouts. If loaded eagerly, Stripe's new
@@ -698,11 +699,12 @@ export default function HotelCheckoutPage() {
                   </div>
                 </div>
               )}
-              <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-4 flex items-start gap-2.5">
-                <i className="fa-solid fa-shield-halved text-green-600 text-sm mt-0.5" />
-                <p className="text-[.78rem] text-green-800 font-semibold leading-snug">
-                  Your card details are handled directly by {isDotw ? 'Stripe' : 'LiteAPI'} — JetMeAway never sees or stores your card number.
-                </p>
+              {/* Trust strip instead of naming the wholesale supplier — "handled
+                  by LiteAPI" meant nothing to customers and read as a red flag
+                  (owner, 2026-06-10). Stripe wording only on the DOTW path,
+                  where Stripe actually processes the charge. */}
+              <div className="mb-4">
+                <PaymentTrustStrip stripe={isDotw} />
               </div>
               {/* Safe Checkout — non-refundable acknowledgement (above payment form) */}
               {booking.refundable === false && (
