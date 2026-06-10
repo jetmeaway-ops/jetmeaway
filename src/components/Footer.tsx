@@ -88,10 +88,12 @@ export default function Footer() {
         <div className="flex flex-wrap items-center gap-2.5 mb-6">
           <span className="text-[.55rem] uppercase tracking-[2.5px] font-extrabold text-white/75 mr-1">Follow JetMeAway</span>
           {[
-            { name: 'LinkedIn',  href: 'https://www.linkedin.com/company/115094573', icon: 'fa-linkedin-in', hover: 'hover:bg-[#0A66C2]' },
-            { name: 'Instagram', href: 'https://www.instagram.com/jetmeaway/',       icon: 'fa-instagram',  hover: 'hover:bg-[#E1306C]' },
-            { name: 'TikTok',    href: 'https://www.tiktok.com/@jetmeaway',          icon: 'fa-tiktok',     hover: 'hover:bg-[#000000]' },
-            { name: 'X',         href: 'https://x.com/jetmeawayy',                   icon: 'fa-x-twitter',  hover: 'hover:bg-[#000000]' },
+            { name: 'LinkedIn',  href: 'https://www.linkedin.com/company/115094573', icon: 'fa-brands fa-linkedin-in', hover: 'hover:bg-[#0A66C2]' },
+            { name: 'Instagram', href: 'https://www.instagram.com/jetmeaway/',       icon: 'fa-brands fa-instagram',  hover: 'hover:bg-[#E1306C]' },
+            { name: 'TikTok',    href: 'https://www.tiktok.com/@jetmeaway',          icon: 'fa-brands fa-tiktok',     hover: 'hover:bg-[#000000]' },
+            { name: 'X',         href: 'https://x.com/jetmeawayy',                   icon: 'fa-brands fa-x-twitter',  hover: 'hover:bg-[#000000]' },
+            // Trustpilot has no Font Awesome brand glyph — star in TP green.
+            { name: 'Trustpilot', href: 'https://uk.trustpilot.com/review/jetmeaway.co.uk', icon: 'fa-solid fa-star', hover: 'hover:bg-[#00B67A]' },
           ].map(s => (
             <a
               key={s.name}
@@ -101,7 +103,7 @@ export default function Footer() {
               aria-label={`JetMeAway on ${s.name}`}
               className={`w-9 h-9 inline-flex items-center justify-center rounded-full bg-white/[.08] border border-white/15 text-white text-[.95rem] transition-all ${s.hover} hover:border-transparent hover:-translate-y-0.5`}
             >
-              <i className={`fa-brands ${s.icon}`} aria-hidden="true" />
+              <i className={s.icon} aria-hidden="true" />
             </a>
           ))}
         </div>
