@@ -1571,8 +1571,15 @@ function FlightsContent() {
         if (Date.now() - startedAt > 20000) break;
 
         const pollRes = await fetch(`/api/flights/results?searchId=${encodeURIComponent(initData.searchId)}`);
-        const pollData = await pollRes.json();
         if (!pollRes.ok) continue;
+        let pollData: { flights?: FlightResult[]; complete?: boolean };
+        try {
+          pollData = await pollRes.json();
+        } catch {
+          // Transient non-JSON body (edge 502 page etc.) — skip this tick
+          // rather than aborting the whole poll and losing GDS stragglers.
+          continue;
+        }
 
         const before = mergedByKey.size;
         for (const f of (pollData.flights || []) as FlightResult[]) {
@@ -1650,32 +1657,41 @@ function FlightsContent() {
     }
 
     async function searchV3Fallback() {
-      const params = new URLSearchParams({
-        origin: originCode,
-        destination: destCode,
-        departure: depDate,
-        adults: String(adults),
-      });
-      if (children > 0) params.set('children', String(children));
-      if (infants > 0) params.set('infants', String(infants));
-      if (cabinClass !== 'economy') params.set('cabin', cabinClass);
-      if (retDate && tripType === 'return') params.set('return', retDate);
+      // Last line of defence — this runs from inside the v1 catch block, so
+      // it must NEVER throw. An unhandled rejection here would leave
+      // `loading` stuck true and the user on skeleton cards forever.
+      try {
+        const params = new URLSearchParams({
+          origin: originCode,
+          destination: destCode,
+          departure: depDate,
+          adults: String(adults),
+        });
+        if (children > 0) params.set('children', String(children));
+        if (infants > 0) params.set('infants', String(infants));
+        if (cabinClass !== 'economy') params.set('cabin', cabinClass);
+        if (retDate && tripType === 'return') params.set('return', retDate);
 
-      const res = await fetch(`/api/flights?${params}`);
-      const data = await res.json();
+        const res = await fetch(`/api/flights?${params}`);
+        const data = await res.json();
 
-      if (data.error) {
-        setApiError(data.error);
+        if (!res.ok || data.error) {
+          setApiError(data.error || 'Could not load flights. Please try again.');
+          setLoading(false);
+          setScoutActive(false);
+          return;
+        }
+
+        setFlights(data.flights || []);
         setLoading(false);
         setScoutActive(false);
-        return;
+        void loadDateStrip((data.flights && data.flights.length > 0) ? data.flights[0].price : null);
+        setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+      } catch {
+        setApiError('Could not load flights. Please check your connection and try again.');
+        setLoading(false);
+        setScoutActive(false);
       }
-
-      setFlights(data.flights || []);
-      setLoading(false);
-      setScoutActive(false);
-      void loadDateStrip((data.flights && data.flights.length > 0) ? data.flights[0].price : null);
-      setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
     }
 
     async function loadDateStrip(baseHint: number | null) {
