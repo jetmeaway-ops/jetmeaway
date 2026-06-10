@@ -52,6 +52,7 @@ export default function PaymentTrustStrip({
             <span
               key={m.label}
               title={m.label}
+              role="img"
               aria-label={m.label}
               className="inline-flex items-center justify-center bg-white rounded-full px-3 py-1.5 shadow-sm"
             >
@@ -78,6 +79,7 @@ export default function PaymentTrustStrip({
           <span
             key={m.label}
             title={m.label}
+            role="img"
             aria-label={m.label}
             className="inline-flex items-center justify-center bg-white border border-[#E8ECF4] rounded-full px-2.5 py-1"
           >
