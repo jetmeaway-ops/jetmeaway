@@ -4,11 +4,11 @@
  * Rendered with Font Awesome brand icons (already loaded site-wide via CDN)
  * instead of an image so it stays crisp, themeable and zero-asset.
  *
- * `stripe` wording rule: only claim "powered by Stripe" where Stripe is the
- * actual processor (Duffel/Kyte flight checkouts, DOTW hotel checkout, and
- * the footer as a site-wide statement). The LiteAPI hotel payment step is
- * NOT Stripe — pass stripe={false} there so the strip stays truthful; a
- * false processor claim is ammunition in a card dispute.
+ * "Powered by Stripe" is accurate on every payment surface: Duffel/Kyte
+ * flight checkouts and DOTW hotels use our Stripe account directly, and
+ * LiteAPI's payment SDK runs on Stripe under the hood (owner-confirmed
+ * 2026-06-10; its wrapper loads Stripe's bundle). The `stripe={false}`
+ * variant remains for any future processor that genuinely isn't Stripe.
  */
 
 const CARD_METHODS = [
@@ -32,7 +32,7 @@ export default function PaymentTrustStrip({
 }: {
   /** 'footer' = dark background, full method set, larger. 'checkout' = light card, compact. */
   variant?: 'checkout' | 'footer';
-  /** False on the LiteAPI hotel payment step (not Stripe-processed). */
+  /** False only for a processor that genuinely isn't Stripe-backed. */
   stripe?: boolean;
 }) {
   // Wallets are only advertised where Stripe (which provides them) runs.
