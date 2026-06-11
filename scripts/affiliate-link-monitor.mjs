@@ -108,10 +108,13 @@ function encodeExpediaMisIdSuffix(adults, destCityRegion, originIata, originRegi
 /* ── Per-provider URL builders (mirror prod) ──────────────────────────── */
 
 function buildPackagesTrip({ dep, ret }) {
+  // 2026-06-11: hCity (hotel-leg city id, Tenerife=3508) became REQUIRED —
+  // without it Trip.com 302s to /packages/index and strips all params
+  // including affiliate IDs. Mirrors TRIP_HOTEL_CITY in packages-client.
   return (
     'https://www.trip.com/packages/list?adult=2&child=0&infants=0' +
     '&aCityCode=TCI&dCityCode=LON&tripWay=round-trip&classType=ys' +
-    `&dDate=${dep}&rDate=${ret}&iDate=${dep}&oDate=${ret}` +
+    `&dDate=${dep}&rDate=${ret}&hCity=3508&iDate=${dep}&oDate=${ret}` +
     '&room=1&sourceFrom=IBUdefault&destinationName=Tenerife' +
     '&isOversea=true&locale=en-GB&curr=GBP' +
     '&Allianceid=8023009&SID=303363796&trip_sub3=D15021113'
@@ -207,8 +210,10 @@ function buildMonitorTargets({ dep, ret }) {
       name: 'Trip.com Packages — LON → TFS',
       provider: 'trip.com', type: 'package', dest: 'Tenerife',
       build: () => buildPackagesTrip({ dep, ret }),
-      assertions: ['aCityCode=', 'dCityCode=', 'dDate=', 'rDate=', 'iDate=', 'oDate=', 'destinationName=', 'Allianceid=8023009'],
-      finalUrlMustContain: ['trip.com'],
+      assertions: ['aCityCode=', 'dCityCode=', 'dDate=', 'rDate=', 'hCity=3508', 'iDate=', 'oDate=', 'destinationName=', 'Allianceid=8023009'],
+      // /packages/list (params kept) is the pass; a bounce to
+      // /packages/index means hCity broke again — fail loudly.
+      finalUrlMustContain: ['packages/list'],
     },
     {
       name: 'Expedia Packages — LON → TFS',

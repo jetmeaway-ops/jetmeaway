@@ -592,6 +592,34 @@ const TRIP_CITY_CODE: Record<string, string> = {
   'TAS': 'TAS', 'ALA': 'ALA', 'NQZ': 'NQZ', 'FRU': 'FRU', 'DYU': 'DYU',
 };
 
+/* Trip.com hotel-leg city IDs (`hCity`), keyed by the SAME city codes
+   TRIP_CITY_CODE produces. 2026-06-11: Trip.com started 302-redirecting
+   /packages/list → /packages/index (dropping ALL params incl. affiliate
+   IDs) whenever `hCity` is missing — the server-side auto-resolve from
+   `destinationName` no longer happens. IDs harvested from Trip.com's own
+   poiSearch → CityDataSearch APIs (flight-city → hotel-city), the exact
+   pair their search box calls. Destinations without an entry fall back
+   to the no-hCity URL (degraded: lands on /packages/index). */
+const TRIP_HOTEL_CITY: Record<string, number> = {
+  BCN: 40795, MAD: 357, AGP: 1268, SVQ: 1350, VLC: 1351, IBZ: 1768, PMI: 1267,
+  TCI: 3508, ACE: 1766, LPA: 3174, ALC: 1293, FAO: 840, LIS: 1231, FNC: 3298,
+  OPO: 826, PAR: 192, NCE: 775, AMS: 176, ROM: 343, VCE: 688, FLR: 687,
+  MIL: 361, NAP: 1262, ATH: 710, HER: 6890, RHO: 3570, CFU: 5046, JTR: 3576,
+  JMK: 42294, KGS: 7159, ZTH: 6565, CHQ: 5052, DBV: 3901, SPU: 3264,
+  AYT: 1217, BJV: 1761, DLM: 1749, IST: 532, DXB: 220, AUH: 766, RAK: 1360,
+  AGA: 3682, CAI: 332, SSH: 36242, HRG: 3471, NYC: 633, LAX: 347, MIA: 25773,
+  LAS: 26282, ORL: 1187, SFO: 313, CUN: 812, PUJ: 5677, MEX: 691,
+  TYO: 228, BKK: 359, SIN: 73, DPS: 723, HKT: 725, KBV: 1405, MLE: 1207,
+  CMB: 810, SYD: 501, MEL: 358, CPT: 683, JNB: 684, MRU: 785, SEZ: 4100,
+  ZNZ: 316972, MBA: 818, YTO: 461, YVR: 476, HKG: 58, SEL: 274, KUL: 315,
+  LIM: 837, BUE: 807, RIO: 769, VIE: 651, PRG: 1288, BUD: 637, CPH: 260,
+  STO: 420, OSL: 827, HEL: 277, PFO: 3291, LCA: 40316, DOH: 1401, REK: 831,
+  DUB: 803, LHE: 799, ISB: 531, KHI: 334, BAK: 650, EVN: 3245, TBS: 7612,
+  ASB: 3862, TAS: 639, ALA: 174, NQZ: 3263, FRU: 642, DYU: 4160,
+  LON: 338, MAN: 722, BHX: 1270, EDI: 706, GLA: 780, LPL: 3187,
+  PMO: 3640, CTA: 1419, CAG: 1432, MBJ: 4074, BGI: 4636,
+};
+
 function buildTripUrl(
   dest: string,
   fromAirport: string,
@@ -634,7 +662,11 @@ function buildTripUrl(
   //     to a 7-night default — what owners reported on Build #15/#16.
   //     Belt-and-braces alongside the explicit dates.
   const nights = calculateNights(depDate, retDate);
-  return `https://www.trip.com/packages/list?adult=${adults}&child=${childCount}&infants=0${ageQuery}&aCityCode=${destCity}&dCityCode=${fromCity}&tripWay=round-trip&classType=ys&dDate=${depDate}&rDate=${retDate}&iDate=${depDate}&oDate=${retDate}&noOfNights=${nights}&room=1&sourceFrom=IBUdefault&destinationName=${encodeURIComponent(destName)}&isOversea=true&locale=en-GB&curr=GBP&Allianceid=8023009&SID=303363796&trip_sub3=D15021113`;
+  // 2026-06-11 — `hCity` became REQUIRED: without it Trip.com 302s to
+  // /packages/index and strips every param (search AND affiliate IDs).
+  const hCity = TRIP_HOTEL_CITY[destCity];
+  const hCityQuery = hCity ? `&hCity=${hCity}` : '';
+  return `https://www.trip.com/packages/list?adult=${adults}&child=${childCount}&infants=0${ageQuery}&aCityCode=${destCity}&dCityCode=${fromCity}&tripWay=round-trip&classType=ys&dDate=${depDate}&rDate=${retDate}${hCityQuery}&iDate=${depDate}&oDate=${retDate}&noOfNights=${nights}&room=1&sourceFrom=IBUdefault&destinationName=${encodeURIComponent(destName)}&isOversea=true&locale=en-GB&curr=GBP&Allianceid=8023009&SID=303363796&trip_sub3=D15021113`;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

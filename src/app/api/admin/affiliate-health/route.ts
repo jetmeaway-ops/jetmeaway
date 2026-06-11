@@ -84,10 +84,12 @@ function encodeExpediaMisIdSuffix(adults: number, destCityRegion: number, origin
 /* ── Per-provider builders (mirror prod) ──────────────────────────────── */
 
 function buildPackagesTrip({ dep, ret }: { dep: string; ret: string }) {
+  // 2026-06-11: hCity (hotel-leg city id, Tenerife=3508) is REQUIRED —
+  // without it Trip.com 302s to /packages/index, stripping all params.
   return (
     'https://www.trip.com/packages/list?adult=2&child=0&infants=0' +
     '&aCityCode=TCI&dCityCode=LON&tripWay=round-trip&classType=ys' +
-    `&dDate=${dep}&rDate=${ret}&iDate=${dep}&oDate=${ret}` +
+    `&dDate=${dep}&rDate=${ret}&hCity=3508&iDate=${dep}&oDate=${ret}` +
     '&room=1&sourceFrom=IBUdefault&destinationName=Tenerife' +
     '&isOversea=true&locale=en-GB&curr=GBP' +
     '&Allianceid=8023009&SID=303363796&trip_sub3=D15021113'
