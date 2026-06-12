@@ -29,6 +29,46 @@ const DEFAULT_BOTTOM_PX = 96; // sits above the back-to-top button's corner
 const WC_BALL_POS_KEY = 'jma_wc_ball_pos_v1';
 const MIN_EDGE = 16;
 
+type Pos = { leftPx: number; bottomPx: number };
+
+/** Keep a position on-screen (and clear of the very edges / header). */
+function clampPos(next: Pos): Pos {
+  if (typeof window === 'undefined') return next;
+  const maxLeft = Math.max(MIN_EDGE, window.innerWidth - BALL_PX - MIN_EDGE);
+  const maxBottom = Math.max(MIN_EDGE, window.innerHeight - BALL_PX - MIN_EDGE);
+  return {
+    leftPx: Math.min(maxLeft, Math.max(MIN_EDGE, next.leftPx)),
+    bottomPx: Math.min(maxBottom, Math.max(MIN_EDGE, next.bottomPx)),
+  };
+}
+
+/**
+ * First-visit default landing spot for the current route.
+ *  - Homepage: perched just ABOVE the hero search "Go" button so it sits on
+ *    the primary CTA without ever covering it (Go stays fully clickable).
+ *  - Anywhere else (or if the Go button can't be found): bottom-right corner,
+ *    raised above the back-to-top button and clear of the bottom-left Scout.
+ */
+function defaultPosFor(pathname: string | null): Pos {
+  if (typeof window === 'undefined') return { leftPx: MIN_EDGE, bottomPx: DEFAULT_BOTTOM_PX };
+  if (pathname === '/') {
+    const go = document.querySelector('button[aria-label="Search"]');
+    if (go) {
+      const r = go.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) {
+        return clampPos({
+          leftPx: r.left + r.width / 2 - BALL_PX / 2, // centred on Go
+          bottomPx: window.innerHeight - r.top + 8, // 8px gap above Go's top
+        });
+      }
+    }
+  }
+  return clampPos({
+    leftPx: window.innerWidth - BALL_PX - 20,
+    bottomPx: DEFAULT_BOTTOM_PX,
+  });
+}
+
 export default function WorldCupBall() {
   const pathname = usePathname();
   const router = useRouter();
@@ -37,10 +77,10 @@ export default function WorldCupBall() {
   const [mounted, setMounted] = useState(false);
   const [expired, setExpired] = useState(false);
 
-  // 2D position, restored from localStorage. Defaults to the bottom-RIGHT
-  // corner (raised above the back-to-top button) so it never lands on the
-  // bottom-left Scout button. Set once on mount so SSR has a sane value.
-  const [pos, setPos] = useState<{ leftPx: number; bottomPx: number }>({
+  // 2D position. On first visit it (re)anchors to the route default —
+  // perched above the hero Go button on the homepage; bottom-right elsewhere.
+  // A drag overrides it and persists to localStorage.
+  const [pos, setPos] = useState<Pos>({
     leftPx: MIN_EDGE,
     bottomPx: DEFAULT_BOTTOM_PX,
   });
@@ -49,7 +89,14 @@ export default function WorldCupBall() {
   // While dragging, suppress the click that fires on pointerup so a
   // drag-to-reposition doesn't also navigate to the campaign page.
   const justDraggedRef = useRef(false);
+  // True once the visitor has a spot of their own (restored from localStorage
+  // or set by a drag). Stops the route default from overriding their choice.
+  const customRef = useRef(false);
 
+  // Runs on mount and on every client-side route change. Restores the
+  // visitor's saved spot if they have one; otherwise (re)anchors to the
+  // current route's default — so landing on, or navigating to, the homepage
+  // perches the ball just above the Go button.
   useEffect(() => {
     setMounted(true);
     if (typeof window === 'undefined') return;
@@ -71,6 +118,7 @@ export default function WorldCupBall() {
           Number.isFinite(parsed.leftPx) &&
           Number.isFinite(parsed.bottomPx)
         ) {
+          customRef.current = true; // their own spot — never override it
           setPos(clampPos({ leftPx: parsed.leftPx, bottomPx: parsed.bottomPx }));
           return;
         }
@@ -78,14 +126,9 @@ export default function WorldCupBall() {
         /* fall through to default */
       }
     }
-    // No persisted position → bottom-RIGHT, raised above the back-to-top.
-    setPos(
-      clampPos({
-        leftPx: window.innerWidth - BALL_PX - 20,
-        bottomPx: DEFAULT_BOTTOM_PX,
-      }),
-    );
-  }, []);
+    // No saved spot → anchor to the route default (homepage: above Go).
+    if (!customRef.current) setPos(defaultPosFor(pathname));
+  }, [pathname]);
 
   // Re-clamp on resize so rotation / mobile-chrome show-hide never strands
   // the ball off-screen.
@@ -95,19 +138,6 @@ export default function WorldCupBall() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
-
-  function clampPos(next: { leftPx: number; bottomPx: number }): {
-    leftPx: number;
-    bottomPx: number;
-  } {
-    if (typeof window === 'undefined') return next;
-    const maxLeft = Math.max(MIN_EDGE, window.innerWidth - BALL_PX - MIN_EDGE);
-    const maxBottom = Math.max(MIN_EDGE, window.innerHeight - BALL_PX - MIN_EDGE);
-    return {
-      leftPx: Math.min(maxLeft, Math.max(MIN_EDGE, next.leftPx)),
-      bottomPx: Math.min(maxBottom, Math.max(MIN_EDGE, next.bottomPx)),
-    };
-  }
 
   function onPointerDown(e: React.PointerEvent<HTMLButtonElement>) {
     draggingRef.current = true;
@@ -143,6 +173,7 @@ export default function WorldCupBall() {
       /* ignore — capture already released */
     }
     if (justDraggedRef.current && typeof window !== 'undefined') {
+      customRef.current = true; // their chosen spot now wins over the default
       window.localStorage.setItem(WC_BALL_POS_KEY, JSON.stringify(pos));
     }
   }

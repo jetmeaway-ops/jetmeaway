@@ -3,7 +3,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import HotelImageHybrid from '@/components/HotelImageHybrid';
 import { PageSchema } from '@/lib/page-schema';
-import { WC_CITIES, WC_DATES, type WorldCupCity } from '@/data/world-cup-cities';
+import { WC_CITIES, WC_DATES, STADIUM_COORDS, type WorldCupCity } from '@/data/world-cup-cities';
 import FlightPicker from './FlightPicker';
 
 export const runtime = 'edge';
@@ -81,9 +81,15 @@ function HotelCard({
   cin: string;
   cout: string;
 }) {
-  // Direct booking on JetMeAway (LiteAPI) — dates pre-filled, auto-searches.
-  // No affiliate redirect.
-  const bookUrl = `/hotels?destination=${encodeURIComponent(hotel.name)}&checkin=${cin}&checkout=${cout}`;
+  // Direct booking on JetMeAway (LiteAPI). Searches LIVE hotels CENTRED ON THE
+  // STADIUM (lat/lng = the match venue, forwarded as the geo-filter centroid)
+  // with the match dates pre-filled — so the closest hotels to the ground come
+  // up first. Searching by hotel NAME returned nothing, hence the city + venue
+  // coords. No affiliate redirect.
+  const s = STADIUM_COORDS[city.slug];
+  const bookUrl = s
+    ? `/hotels?destination=${encodeURIComponent(city.shortName)}&checkin=${cin}&checkout=${cout}&lat=${s.lat}&lng=${s.lng}&radius=${s.radiusKm}`
+    : `/hotels?destination=${encodeURIComponent(city.shortName)}&checkin=${cin}&checkout=${cout}`;
   return (
     <div className="overflow-hidden rounded-2xl border border-[#E8ECF4] bg-white shadow-[0_8px_30px_-12px_rgba(0,102,255,0.12)] transition-shadow hover:shadow-[0_16px_44px_-14px_rgba(0,102,255,0.22)]">
       <HotelImageHybrid
@@ -100,7 +106,7 @@ function HotelCard({
           href={bookUrl}
           className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-[#0066FF] py-2.5 text-center font-poppins text-[.8rem] font-black text-white transition-colors hover:bg-[#0052CC]"
         >
-          <i className="fa-solid fa-bolt text-[.72rem]" aria-hidden="true" /> Book direct · {fmtRange(cin, cout)}
+          <i className="fa-solid fa-bolt text-[.72rem]" aria-hidden="true" /> Live hotels near stadium · {fmtRange(cin, cout)}
         </Link>
       </div>
     </div>
@@ -121,17 +127,8 @@ export default function WorldCup2026Page() {
       <style
         dangerouslySetInnerHTML={{
           __html: `
-.wc-ball{
-  background:
-    radial-gradient(circle at 50% 19%, #0a1628 0 9px, transparent 10px),
-    radial-gradient(circle at 17% 43%, #0a1628 0 9px, transparent 10px),
-    radial-gradient(circle at 83% 43%, #0a1628 0 9px, transparent 10px),
-    radial-gradient(circle at 31% 81%, #0a1628 0 9px, transparent 10px),
-    radial-gradient(circle at 69% 81%, #0a1628 0 9px, transparent 10px),
-    #ffffff;
-  border:3px solid #0a1628;
-}
-.wc-ball:hover{ transform: rotate(360deg) scale(1.04); }
+.wc-ball-img{ transition: transform .7s ease; }
+.wc-ball:hover .wc-ball-img{ transform: rotate(360deg) scale(1.04); }
 `,
         }}
       />
@@ -160,16 +157,25 @@ export default function WorldCup2026Page() {
             </p>
 
             <div className="mt-9 flex flex-col items-center justify-center gap-6 sm:flex-row sm:gap-8">
-              {/* THE single soccer-ball button */}
+              {/* THE single soccer-ball button — the real adidas Trionda
+                  2026 match ball, with the label below (text over the ball
+                  would clash with the FIFA logo / swirls). */}
               <a
                 href="#host-cities"
                 aria-label="Explore the 11 host cities"
-                className="wc-ball group relative inline-flex h-32 w-32 items-center justify-center rounded-full text-center font-poppins text-[.82rem] font-black leading-tight text-[#0a1628] shadow-[0_18px_50px_-12px_rgba(0,102,255,0.55)] transition-transform duration-700 ease-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                className="wc-ball group inline-flex flex-col items-center gap-3 focus:outline-none"
               >
-                <span className="relative z-10 px-2">
-                  Explore
-                  <br />
-                  Host&nbsp;Cities
+                <span className="relative inline-flex h-32 w-32 items-center justify-center overflow-hidden rounded-full bg-white shadow-[0_18px_50px_-12px_rgba(0,102,255,0.55)] ring-1 ring-black/10 group-focus-visible:outline group-focus-visible:outline-2 group-focus-visible:outline-offset-2 group-focus-visible:outline-white">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/wc-2026-ball.webp"
+                    alt="adidas Trionda — the official 2026 World Cup match ball"
+                    className="wc-ball-img h-full w-full scale-[1.06] object-cover"
+                  />
+                </span>
+                <span className="inline-flex items-center gap-2 font-poppins text-[.92rem] font-black uppercase tracking-[1px] text-white">
+                  Explore Host Cities
+                  <i className="fa-solid fa-chevron-down text-[.78rem]" aria-hidden="true" />
                 </span>
               </a>
 

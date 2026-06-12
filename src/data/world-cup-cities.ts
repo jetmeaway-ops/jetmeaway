@@ -55,6 +55,35 @@ const unsplash = (id: string) =>
 /** Default departure date for non-England featured flight routes (tournament window). */
 export const WC_DATES = { flightDep: '2026-06-15' } as const;
 
+/**
+ * Stadium WGS84 coords + a hotel-search radius (km) per host city, keyed by
+ * slug. Used to deep-link the /hotels search CENTRED ON THE MATCH VENUE — the
+ * `lat`/`lng` are forwarded as the geo-filter centroid (autocompleteCentre,
+ * which the /api/hotels route prioritises over the city-centre table), so the
+ * results are "hotels nearest the stadium", with the match dates pre-filled.
+ *
+ * Radius is a uniform 50km: LiteAPI's geo-search around several of these
+ * centroids returns NOTHING at a tight 15-30km radius (an upstream-inventory
+ * quirk — verified: Dallas/Atlanta/Seattle/SF/Vancouver came back empty at
+ * 20-30km but healthy at 50km). 50km still keeps the search anchored on the
+ * stadium (closest hotels rank up) while guaranteeing live inventory for all
+ * 11 venues, including the remote ones (Foxborough, Santa Clara, Arlington).
+ */
+const WC_RADIUS_KM = 50;
+export const STADIUM_COORDS: Record<string, { lat: number; lng: number; radiusKm: number }> = {
+  dallas: { lat: 32.7473, lng: -97.0945, radiusKm: WC_RADIUS_KM }, // AT&T Stadium, Arlington
+  boston: { lat: 42.0909, lng: -71.2643, radiusKm: WC_RADIUS_KM }, // Gillette Stadium, Foxborough
+  'new-york': { lat: 40.8135, lng: -74.0745, radiusKm: WC_RADIUS_KM }, // MetLife Stadium, East Rutherford
+  'los-angeles': { lat: 33.9535, lng: -118.3392, radiusKm: WC_RADIUS_KM }, // SoFi Stadium, Inglewood
+  miami: { lat: 25.958, lng: -80.2389, radiusKm: WC_RADIUS_KM }, // Hard Rock Stadium, Miami Gardens
+  atlanta: { lat: 33.7554, lng: -84.4009, radiusKm: WC_RADIUS_KM }, // Mercedes-Benz Stadium
+  seattle: { lat: 47.5952, lng: -122.3316, radiusKm: WC_RADIUS_KM }, // Lumen Field
+  'san-francisco': { lat: 37.403, lng: -121.9698, radiusKm: WC_RADIUS_KM }, // Levi's Stadium, Santa Clara
+  toronto: { lat: 43.6332, lng: -79.4185, radiusKm: WC_RADIUS_KM }, // BMO Field
+  vancouver: { lat: 49.2768, lng: -123.1118, radiusKm: WC_RADIUS_KM }, // BC Place
+  'mexico-city': { lat: 19.303, lng: -99.1506, radiusKm: WC_RADIUS_KM }, // Estadio Azteca
+};
+
 export const WC_CITIES: WorldCupCity[] = [
   // ── England's Group L cities first ──────────────────────────────────────
   {
