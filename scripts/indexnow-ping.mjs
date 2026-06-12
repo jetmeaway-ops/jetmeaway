@@ -13,10 +13,11 @@ const HOST = 'jetmeaway.co.uk';
 async function main() {
   const sitemap = await fetch(`https://${HOST}/sitemap.xml`).then((r) => r.text());
   const urls = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
-  // Ensure newest posts are pinged even if sitemap hasn't regenerated yet.
+  // Ensure newest pages are pinged even if the live sitemap hasn't regenerated
+  // yet (e.g. the seasonal World Cup hub + its blog cluster).
   const must = [
-    `https://${HOST}/blog/best-hotels-bangkok-2026`,
-    `https://${HOST}/blog/best-hotels-lisbon-2026`,
+    `https://${HOST}/world-cup-2026`,
+    `https://${HOST}/blog/england-world-cup-2026`,
   ];
   for (const u of must) if (!urls.includes(u)) urls.push(u);
 

@@ -30,6 +30,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/blog`,        lastModified: now, changeFrequency: 'weekly',  priority: 0.8 },
     { url: `${BASE}/destinations`, lastModified: now, changeFrequency: 'weekly',  priority: 0.85 },
     { url: `${BASE}/travel-data`, lastModified: now, changeFrequency: 'weekly',  priority: 0.7 },
+    // Seasonal campaign — the 2026 World Cup host-city hub. Listed while the
+    // tournament window is live so Google/Bing actively crawl it; remove after
+    // 19 Jul 2026 when the page retires.
+    { url: `${BASE}/world-cup-2026`, lastModified: now, changeFrequency: 'daily', priority: 0.9 },
   ];
 
   // Programmatic SEO — one page per destination city
