@@ -14,7 +14,7 @@
  *      hotel still shows *something* distinct, never a broken image.
  *
  * Result (incl. which source won) is KV-cached: 30 days positive, 30 min
- * negative, on its OWN namespace (`wc-hotel-img:v6:`) so it isn't polluted by
+ * negative, on its OWN namespace (`wc-hotel-img:v7:`) so it isn't polluted by
  * HotelPhoto's older Google-only "miss" entries.
  *
  * Built for the /world-cup-2026 campaign page; HotelPhoto (Google-only, blog
@@ -83,7 +83,11 @@ function fallbackUrlFor(hotelName: string, city: string): string {
 
 function cacheKey(hotelName: string, city: string): string {
   const slug = `${hotelName}::${city}`.toLowerCase().replace(/[^a-z0-9: ]+/g, '').trim();
-  return `wc-hotel-img:v6:${slug}`;
+  // v7 bump (2026-06-12 evening): v6 entries were seeded while the prod
+  // GOOGLE_PLACES_API_KEY was being rejected by Google (key-rotation
+  // incident) — every hotel cached a Google miss for 30 days. Fresh
+  // namespace now that the working key is restored.
+  return `wc-hotel-img:v7:${slug}`;
 }
 
 /** Try LiteAPI: resolve the hotel by bare name + country → its real mainPhoto. */

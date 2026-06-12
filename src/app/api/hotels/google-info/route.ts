@@ -38,7 +38,9 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const kvKey = `google-info:v1:${hotelId}`;
+  // v2 bump (2026-06-12 evening): v1 held 6h negative entries seeded while
+  // the prod Google key was rejected during the key-rotation incident.
+  const kvKey = `google-info:v2:${hotelId}`;
 
   try {
     const cached = await kv.get<GoogleHotelEnrichment>(kvKey);

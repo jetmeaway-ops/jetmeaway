@@ -47,9 +47,13 @@ type CachedPhoto = { url: string } | { miss: true };
 // be ignored. The v1 keys held a wave of `{miss:true}` rows from the
 // initial render of the 10 hotel posts shipped today, which were then
 // serving the city-fallback image for every hotel.
+// v3 bump (2026-06-12 evening): v2 held 30-day positive entries with
+// expired lh3.googleusercontent.com URLs (broken imgs on Milan/Dublin/
+// Edinburgh/Dubai posts) plus misses seeded while the prod Google key
+// was dead (June outage + key-rotation incident). Working key restored.
 function cacheKey(hotelName: string, city: string) {
   const slug = `${hotelName}::${city}`.toLowerCase().replace(/[^a-z0-9: ]+/g, '').trim();
-  return `blog-hotel-photo:v2:${slug}`;
+  return `blog-hotel-photo:v3:${slug}`;
 }
 
 /**
