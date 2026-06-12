@@ -22,6 +22,10 @@ const DeferredAnalytics = dynamic(() => import('@/components/DeferredAnalytics')
 // user has engaged with the page.
 const BackToTopButton = dynamic(() => import('@/components/BackToTopButton'), { ssr: false });
 const AndroidAppBanner = dynamic(() => import('@/components/AndroidAppBanner'), { ssr: false });
+// Floating, draggable soccer-ball CTA → /world-cup-2026 campaign page.
+// Same drag UX as Scout/BackToTop; self-hides after the tournament and on
+// the funnel/conversion routes. Promo chrome, so it lands in phase 3.
+const WorldCupBall = dynamic(() => import('@/components/WorldCupBall'), { ssr: false });
 
 /**
  * Delays mounting of non-critical widgets in three staggered phases so no
@@ -81,6 +85,7 @@ export default function DeferredWidgets() {
       {/* Phase 3 — UI chrome */}
       {phase >= 3 && <BackToTopButton />}
       {phase >= 3 && <AndroidAppBanner />}
+      {phase >= 3 && <WorldCupBall />}
       {phase >= 3 && <PushNotificationPrompt />}
     </>
   );
