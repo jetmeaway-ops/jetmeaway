@@ -1,21 +1,38 @@
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import HotelPhoto from '@/components/blog/HotelPhoto';
+import HotelImageHybrid from '@/components/HotelImageHybrid';
 import { PageSchema } from '@/lib/page-schema';
-import { redirectUrl } from '@/lib/redirect';
-import { WC_CITIES, type WorldCupCity } from '@/data/world-cup-cities';
-import {
-  hotelExpediaUrl,
-  hotelTripcomUrl,
-  flightAviasalesUrl,
-  flightTripUrl,
-  flightExpediaUrl,
-  WC_DATES,
-} from '@/lib/wc-deeplinks';
+import { WC_CITIES, WC_DATES, type WorldCupCity } from '@/data/world-cup-cities';
 import FlightPicker from './FlightPicker';
 
 export const runtime = 'edge';
+// Re-render every request so the date-based city filter + hotel pre-fill dates
+// are always evaluated against the live "today" (cities drop off after their
+// last match; hotel links pre-fill to each city's next match).
+export const dynamic = 'force-dynamic';
+
+/* ── Date helpers (match-aware hotel dates + auto-hide) ──────────────────── */
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+function addDaysISO(iso: string, n: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+/** Earliest match date that is today or later, or null if all have passed. */
+function nextMatchDate(dates: string[], today: string): string | null {
+  const upcoming = dates.filter((d) => d >= today).sort();
+  return upcoming[0] ?? null;
+}
+/** "14–16 Jun" style label for a check-in → check-out window. */
+function fmtRange(cin: string, cout: string): string {
+  const day = (iso: string) => new Date(`${iso}T00:00:00Z`).getUTCDate();
+  const mon = new Date(`${cout}T00:00:00Z`).toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' });
+  const cinMon = new Date(`${cin}T00:00:00Z`).toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' });
+  return cinMon === mon ? `${day(cin)}–${day(cout)} ${mon}` : `${day(cin)} ${cinMon} – ${day(cout)} ${mon}`;
+}
 
 export const metadata = {
   title: 'World Cup 2026 Host Cities — Hotels & Flights | JetMeAway',
@@ -53,54 +70,50 @@ const FAQS = [
   },
 ];
 
-function HotelCard({ city, hotel }: { city: WorldCupCity; hotel: WorldCupCity['hotels'][number] }) {
-  const expedia = redirectUrl(
-    hotelExpediaUrl(hotel.name, WC_DATES.hotelCin, WC_DATES.hotelCout, 2),
-    'expedia',
-    city.shortName,
-    'hotels',
-  );
-  const trip = redirectUrl(
-    hotelTripcomUrl(hotel.name, WC_DATES.hotelCin, WC_DATES.hotelCout, 2),
-    'tripcom',
-    city.shortName,
-    'hotels',
-  );
+function HotelCard({
+  city,
+  hotel,
+  cin,
+  cout,
+}: {
+  city: WorldCupCity;
+  hotel: WorldCupCity['hotels'][number];
+  cin: string;
+  cout: string;
+}) {
+  // Direct booking on JetMeAway (LiteAPI) — dates pre-filled, auto-searches.
+  // No affiliate redirect.
+  const bookUrl = `/hotels?destination=${encodeURIComponent(hotel.name)}&checkin=${cin}&checkout=${cout}`;
   return (
     <div className="overflow-hidden rounded-2xl border border-[#E8ECF4] bg-white shadow-[0_8px_30px_-12px_rgba(0,102,255,0.12)] transition-shadow hover:shadow-[0_16px_44px_-14px_rgba(0,102,255,0.22)]">
-      <HotelPhoto
+      <HotelImageHybrid
         hotelName={hotel.name}
         city={city.shortName}
+        countryCode={{ USA: 'US', Canada: 'CA', Mexico: 'MX' }[city.country]}
         className="h-[180px] w-full object-cover"
       />
       <div className="p-4">
         <h4 className="font-poppins text-[1.02rem] font-black leading-tight text-[#1A1D2B]">{hotel.name}</h4>
         <p className="mt-0.5 text-[.72rem] font-bold uppercase tracking-[1px] text-[#0066FF]">{hotel.neighbourhood}</p>
         <p className="mt-2 text-[.86rem] font-medium leading-snug text-[#5C6378]">{hotel.hook}</p>
-        <div className="mt-4 flex gap-2">
-          <a
-            href={expedia}
-            target="_blank"
-            rel="noopener noreferrer sponsored"
-            className="flex-1 rounded-lg bg-[#0066FF] py-2.5 text-center font-poppins text-[.78rem] font-black text-white transition-colors hover:bg-[#0052CC]"
-          >
-            Expedia
-          </a>
-          <a
-            href={trip}
-            target="_blank"
-            rel="noopener noreferrer sponsored"
-            className="flex-1 rounded-lg border border-[#0066FF] bg-white py-2.5 text-center font-poppins text-[.78rem] font-black text-[#0066FF] transition-colors hover:bg-blue-50"
-          >
-            Trip.com
-          </a>
-        </div>
+        <Link
+          href={bookUrl}
+          className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-[#0066FF] py-2.5 text-center font-poppins text-[.8rem] font-black text-white transition-colors hover:bg-[#0052CC]"
+        >
+          <i className="fa-solid fa-bolt text-[.72rem]" aria-hidden="true" /> Book direct · {fmtRange(cin, cout)}
+        </Link>
       </div>
     </div>
   );
 }
 
 export default function WorldCup2026Page() {
+  const today = todayISO();
+  // A city stays on the page only while it still has a match today or later.
+  const visibleCities = WC_CITIES.filter((c) => c.matchDates.some((d) => d >= today));
+  // England route strip: only games still to come.
+  const englandCities = WC_CITIES.filter((c) => c.englandMatch && c.englandMatch.iso >= today);
+
   return (
     <>
       <PageSchema crumbs={[{ name: 'World Cup 2026', path: '/world-cup-2026' }]} faqs={FAQS} />
@@ -170,17 +183,18 @@ export default function WorldCup2026Page() {
           </div>
         </section>
 
-        {/* ── England's route strip ────────────────────────────────────── */}
+        {/* ── England's route strip (only while games are still to come) ── */}
+        {englandCities.length > 0 && (
         <section id="england-route" className="bg-[#F8FAFC] px-5 py-14">
           <div className="mx-auto max-w-[1000px]">
             <h2 className="text-center font-poppins text-[1.6rem] font-black text-[#1A1D2B] md:text-[2rem]">
               🏴󠁧󠁢󠁥󠁮󠁧󠁿 England&apos;s Group L Route
             </h2>
             <p className="mx-auto mt-2 max-w-[560px] text-center text-[.92rem] font-semibold text-[#5C6378]">
-              Three cities on the US East Coast — a kind draw for travelling fans.
+              England&apos;s remaining group games — book the match-day stay before rooms go.
             </p>
             <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-              {WC_CITIES.filter((c) => c.englandMatch).map((c) => (
+              {englandCities.map((c) => (
                 <a
                   key={c.slug}
                   href={`#city-${c.slug}`}
@@ -194,20 +208,38 @@ export default function WorldCup2026Page() {
             </div>
           </div>
         </section>
+        )}
 
         {/* ── Host cities ──────────────────────────────────────────────── */}
         <section id="host-cities" className="px-5 py-16">
           <div className="mx-auto max-w-[1100px]">
             <h2 className="text-center font-poppins text-[1.8rem] font-black text-[#1A1D2B] md:text-[2.4rem]">
-              The 11 Host Cities &amp; Where to Stay
+              {visibleCities.length > 0
+                ? `${visibleCities.length} Host ${visibleCities.length === 1 ? 'City' : 'Cities'} & Where to Stay`
+                : 'The 2026 World Cup Has Wrapped'}
             </h2>
             <p className="mx-auto mt-3 max-w-[600px] text-center text-[.95rem] font-semibold text-[#5C6378]">
-              Hand-picked boutique and characterful hotels near each stadium — the kind of stays you won&apos;t find on a
-              generic chain list.
+              {visibleCities.length > 0
+                ? 'Hand-picked boutique hotels near each stadium, with dates pre-filled for the next match in town — once a city’s games are done, it drops off this list.'
+                : 'Every host city’s matches have finished. Browse our full hotel guides instead.'}
             </p>
 
+            {visibleCities.length === 0 && (
+              <div className="mt-8 text-center">
+                <Link
+                  href="/blog/england-world-cup-2026"
+                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#0066FF] to-[#0052CC] px-7 py-3.5 font-poppins text-[.92rem] font-black text-white"
+                >
+                  Read the England World Cup guide <i className="fa-solid fa-arrow-right text-[.8rem]" aria-hidden="true" />
+                </Link>
+              </div>
+            )}
+
             <div className="mt-12 space-y-16">
-              {WC_CITIES.map((city) => (
+              {visibleCities.map((city) => {
+                const cin = nextMatchDate(city.matchDates, today) ?? city.matchDates[city.matchDates.length - 1];
+                const cout = addDaysISO(cin, 2);
+                return (
                 <div key={city.slug} id={`city-${city.slug}`} className="scroll-mt-28">
                   {/* City header */}
                   <div className="flex flex-col gap-3 border-b border-[#E8ECF4] pb-5 md:flex-row md:items-end md:justify-between">
@@ -220,7 +252,10 @@ export default function WorldCup2026Page() {
                         {city.stadiumFifa} <span className="text-[#8E95A9]">({city.stadiumCommercial})</span>
                       </p>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        {city.englandMatch && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[.68rem] font-black uppercase tracking-[1px] text-emerald-700">
+                          <i className="fa-solid fa-calendar-check" aria-hidden="true" /> Dates pre-filled · {fmtRange(cin, cout)}
+                        </span>
+                        {city.englandMatch && city.englandMatch.iso >= today && (
                           <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1 text-[.68rem] font-black uppercase tracking-[1px] text-[#D9281B]">
                             🏴󠁧󠁢󠁥󠁮󠁧󠁿 England play here · {city.englandMatch.date}
                           </span>
@@ -240,14 +275,15 @@ export default function WorldCup2026Page() {
                     </Link>
                   </div>
 
-                  {/* Niche hotel cards */}
+                  {/* Niche hotel cards — dates pre-filled to the next match */}
                   <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                     {city.hotels.map((hotel) => (
-                      <HotelCard key={hotel.name} city={city} hotel={hotel} />
+                      <HotelCard key={hotel.name} city={city} hotel={hotel} cin={cin} cout={cout} />
                     ))}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>
@@ -259,16 +295,15 @@ export default function WorldCup2026Page() {
               Flights Between Host Cities
             </h2>
             <p className="mx-auto mt-3 max-w-[600px] text-center text-[.95rem] font-semibold text-white/60">
-              North America is vast. Hop between host cities with the cheapest fares — compared across Aviasales, Trip.com and
-              Expedia.
+              North America is vast. Hop between host cities — search live fares and book direct on JetMeAway, no booking
+              fees.
             </p>
 
             {/* Featured routes */}
             <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {FEATURED_ROUTES.map((r) => {
-                const av = redirectUrl(flightAviasalesUrl(r.from, r.to, r.dep, null, 1), 'aviasales', r.toCity, 'flights');
-                const tp = redirectUrl(flightTripUrl(r.from, r.to, r.dep, null, 1), 'tripcom', r.toCity, 'flights');
-                const ex = redirectUrl(flightExpediaUrl(r.from, r.to, r.dep, null, 1), 'expedia', r.toCity, 'flights');
+                // Direct flight search on JetMeAway (Duffel) — no affiliate redirect.
+                const flightUrl = `/flights?origin=${r.from}&dest=${r.to}&departure=${r.dep}&adults=1`;
                 return (
                   <div key={`${r.from}-${r.to}`} className="rounded-2xl bg-white/5 p-5 ring-1 ring-white/10">
                     {r.tag && (
@@ -282,17 +317,12 @@ export default function WorldCup2026Page() {
                     <p className="mt-0.5 text-[.78rem] font-semibold text-white/45">
                       {r.from} → {r.to}
                     </p>
-                    <div className="mt-4 flex gap-2">
-                      <a href={av} target="_blank" rel="noopener noreferrer sponsored" className="flex-1 rounded-lg bg-[#0066FF] py-2 text-center font-poppins text-[.72rem] font-black text-white transition-colors hover:bg-[#0052CC]">
-                        Aviasales
-                      </a>
-                      <a href={tp} target="_blank" rel="noopener noreferrer sponsored" className="flex-1 rounded-lg bg-white/10 py-2 text-center font-poppins text-[.72rem] font-black text-white transition-colors hover:bg-white/20">
-                        Trip.com
-                      </a>
-                      <a href={ex} target="_blank" rel="noopener noreferrer sponsored" className="flex-1 rounded-lg bg-white/10 py-2 text-center font-poppins text-[.72rem] font-black text-white transition-colors hover:bg-white/20">
-                        Expedia
-                      </a>
-                    </div>
+                    <Link
+                      href={flightUrl}
+                      className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-[#0066FF] py-2.5 text-center font-poppins text-[.75rem] font-black text-white transition-colors hover:bg-[#0052CC]"
+                    >
+                      <i className="fa-solid fa-bolt text-[.7rem]" aria-hidden="true" /> Search direct on JetMeAway
+                    </Link>
                   </div>
                 );
               })}

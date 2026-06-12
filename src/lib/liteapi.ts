@@ -219,6 +219,37 @@ export async function searchHotelsByName(query: string, limit = 5): Promise<Hote
   }
 }
 
+/**
+ * Search LiteAPI by a BARE hotel name scoped to an explicit ISO-2 country code.
+ *
+ * Unlike searchHotelsByName (which stuffs the whole free-text query into
+ * `name=` and auto-detects the country from a city token), this takes the
+ * name and country separately. Use it when you already KNOW the country
+ * (e.g. a curated hotel list) — LiteAPI's `/data/hotels` rejects a name-only
+ * call with HTTP 400 ("must search by country code, lat/lng, placeId…"), and
+ * its name search returns 0 hits when the city is appended to the name
+ * (e.g. "Faena Hotel Miami Beach Miami"). Pass just the hotel name + country.
+ */
+export async function searchHotelByNameInCountry(
+  name: string,
+  countryCode: string,
+  limit = 5,
+): Promise<HotelByName[]> {
+  if (!name || name.length < 3 || !countryCode) return [];
+  try {
+    const data = await liteFetch<{ data: HotelByName[] }>(
+      `/data/hotels?name=${encodeURIComponent(name)}&countryCode=${encodeURIComponent(countryCode)}&limit=${limit}`,
+      { method: 'GET' },
+      6_000,
+    );
+    return data.data || [];
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'name+country search failed';
+    console.warn('[liteapi:searchHotelByNameInCountry]', message);
+    return [];
+  }
+}
+
 /** Reduce a hotel/chain name to its identifying tokens — strip generic
  *  words like "hotel"/"the"/"and"/"by", drop short tokens (<= 2 chars),
  *  lowercase + alphanumeric. Used to fuzzy-match an expected name

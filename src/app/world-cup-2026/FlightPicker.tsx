@@ -2,43 +2,27 @@
 
 /**
  * Interactive From -> To flight picker for the /world-cup-2026 page.
- * The only client island on the page. Builds affiliate deep links on the fly
- * via the server-safe builders in wc-deeplinks.ts (no import from the
- * 'use client' flights page). Standard blue CTA — NOT the soccer-ball button.
+ * Navigates to JetMeAway's OWN flight search (/flights, Duffel direct) — no
+ * affiliate redirect. The only client island on the page.
  */
 
-import { useMemo, useState } from 'react';
-import { WC_CITIES } from '@/data/world-cup-cities';
-import {
-  flightAviasalesUrl,
-  flightTripUrl,
-  flightExpediaUrl,
-  WC_DATES,
-} from '@/lib/wc-deeplinks';
-import { redirectUrl } from '@/lib/redirect';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { WC_CITIES, WC_DATES } from '@/data/world-cup-cities';
 
 export default function FlightPicker() {
+  const router = useRouter();
   const [from, setFrom] = useState('DFW'); // Dallas — England's opener
   const [to, setTo] = useState('BOS'); // Boston — England's 2nd
   const [dep, setDep] = useState<string>(WC_DATES.flightDep);
   const [adults, setAdults] = useState(1);
 
-  const cityFor = (iata: string) =>
-    WC_CITIES.find((c) => c.iata[0] === iata);
-
   const sameCity = from === to;
 
-  const links = useMemo(() => {
-    if (sameCity) return null;
-    const toName = cityFor(to)?.shortName ?? to;
-    return {
-      aviasales: redirectUrl(flightAviasalesUrl(from, to, dep, null, adults), 'aviasales', toName, 'flights'),
-      trip: redirectUrl(flightTripUrl(from, to, dep, null, adults), 'tripcom', toName, 'flights'),
-      expedia: redirectUrl(flightExpediaUrl(from, to, dep, null, adults), 'expedia', toName, 'flights'),
-    };
-  }, [from, to, dep, adults, sameCity]);
-
-  const open = (href: string) => window.open(href, '_blank', 'noopener,noreferrer');
+  const search = () => {
+    if (sameCity) return;
+    router.push(`/flights?origin=${from}&dest=${to}&departure=${dep}&adults=${adults}`);
+  };
 
   const selectCls =
     'w-full rounded-xl border border-[#E8ECF4] bg-white px-3.5 py-3 font-poppins text-[.9rem] font-semibold text-[#1A1D2B] focus:border-[#0066FF] focus:outline-none';
@@ -90,30 +74,17 @@ export default function FlightPicker() {
         </label>
       </div>
 
-      <div className="mt-5 flex flex-col items-center gap-3">
+      <div className="mt-5 flex justify-center">
         <button
           type="button"
-          disabled={sameCity || !links}
-          onClick={() => links && open(links.aviasales)}
+          disabled={sameCity}
+          onClick={search}
           className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#0066FF] to-[#0052CC] px-7 py-3.5 font-poppins text-[.95rem] font-black text-white shadow-[0_8px_24px_rgba(0,102,255,0.28)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(0,102,255,0.35)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 sm:w-auto"
         >
-          <i className="fa-solid fa-futbol" aria-hidden="true" />
-          {sameCity ? 'Pick two different cities' : 'Search flights'}
+          <i className="fa-solid fa-bolt" aria-hidden="true" />
+          {sameCity ? 'Pick two different cities' : 'Search flights direct on JetMeAway'}
           {!sameCity && <i className="fa-solid fa-arrow-right text-[.8rem]" aria-hidden="true" />}
         </button>
-
-        {links && (
-          <p className="text-[.8rem] font-semibold text-[#5C6378]">
-            Also compare on{' '}
-            <button type="button" onClick={() => open(links.trip)} className="font-bold text-[#0066FF] hover:underline">
-              Trip.com
-            </button>{' '}
-            ·{' '}
-            <button type="button" onClick={() => open(links.expedia)} className="font-bold text-[#0066FF] hover:underline">
-              Expedia
-            </button>
-          </p>
-        )}
       </div>
     </div>
   );

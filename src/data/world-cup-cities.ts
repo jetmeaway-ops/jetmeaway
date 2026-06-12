@@ -36,11 +36,24 @@ export type WorldCupCity = {
   heroImage: string;
   englandMatch?: EnglandMatch;
   note?: string; // optional extra context (final, opening match, etc.)
+  /**
+   * ISO dates (sorted) on which this city hosts a 2026 World Cup match.
+   * Drives the hotel pre-fill dates (next upcoming match → +2 nights) and the
+   * auto-hide: a city disappears from the page once ALL its match dates are in
+   * the past. Anchored on confirmed dates (England's games, the 11 Jun opening,
+   * the 19 Jul final, plus a few known group fixtures); the rest are
+   * representative group-stage dates — confirm against the official FIFA
+   * fixture list and edit here as needed.
+   */
+  matchDates: string[];
   hotels: NicheHotel[];
 };
 
 const unsplash = (id: string) =>
   `https://images.unsplash.com/photo-${id}?q=80&w=1200&h=600&fit=crop`;
+
+/** Default departure date for non-England featured flight routes (tournament window). */
+export const WC_DATES = { flightDep: '2026-06-15' } as const;
 
 export const WC_CITIES: WorldCupCity[] = [
   // ── England's Group L cities first ──────────────────────────────────────
@@ -55,6 +68,7 @@ export const WC_CITIES: WorldCupCity[] = [
     stadiumCommercial: 'AT&T Stadium, Arlington',
     blogSlug: 'best-hotels-dallas-2026',
     heroImage: unsplash('1621904878414-d4ca4756bd7e'),
+    matchDates: ['2026-06-14', '2026-06-17', '2026-06-20', '2026-06-25', '2026-06-27'],
     englandMatch: { label: 'England vs Croatia', date: '17 Jun 2026', iso: '2026-06-17' },
     note: "England's opening match",
     hotels: [
@@ -74,6 +88,7 @@ export const WC_CITIES: WorldCupCity[] = [
     stadiumCommercial: 'Gillette Stadium, Foxborough',
     blogSlug: 'best-hotels-boston-2026',
     heroImage: unsplash('1565127803082-69dd82351360'),
+    matchDates: ['2026-06-13', '2026-06-16', '2026-06-19', '2026-06-23', '2026-06-26'],
     englandMatch: { label: 'England vs Ghana', date: '23 Jun 2026', iso: '2026-06-23' },
     hotels: [
       { name: 'The Verb Hotel', neighbourhood: 'Fenway', hook: 'A vinyl-and-rock-memorabilia motor lodge a long ball from Fenway Park.' },
@@ -92,6 +107,7 @@ export const WC_CITIES: WorldCupCity[] = [
     stadiumCommercial: 'MetLife Stadium',
     blogSlug: 'best-hotels-new-york-2026',
     heroImage: unsplash('1496588152823-86ff7695e68f'),
+    matchDates: ['2026-06-13', '2026-06-16', '2026-06-22', '2026-06-25', '2026-06-27', '2026-07-19'],
     englandMatch: { label: 'England vs Panama', date: '27 Jun 2026', iso: '2026-06-27' },
     note: 'Hosts the Final on 19 July',
     hotels: [
@@ -113,6 +129,7 @@ export const WC_CITIES: WorldCupCity[] = [
     stadiumCommercial: 'SoFi Stadium, Inglewood',
     blogSlug: 'best-hotels-los-angeles-2026',
     heroImage: unsplash('1597982087634-9884f03198ce'),
+    matchDates: ['2026-06-12', '2026-06-15', '2026-06-18', '2026-06-21', '2026-06-25'],
     hotels: [
       { name: 'Chateau Marmont', neighbourhood: 'Sunset Strip', hook: 'The famously discreet 1929 castle of Hollywood legend.' },
       { name: 'The Hoxton, Downtown LA', neighbourhood: 'Downtown', hook: 'A Euro cool-kid hotel with a Pizzette rooftop and pool.' },
@@ -131,6 +148,7 @@ export const WC_CITIES: WorldCupCity[] = [
     stadiumCommercial: 'Hard Rock Stadium, Miami Gardens',
     blogSlug: 'best-hotels-miami-2026',
     heroImage: unsplash('1558951412-8845d2b0f2fc'),
+    matchDates: ['2026-06-15', '2026-06-21', '2026-06-24', '2026-07-11'],
     hotels: [
       { name: 'The Standard Spa, Miami Beach', neighbourhood: 'Belle Isle', hook: 'An adults-leaning bayfront spa with a hammam and infinity hot tub.' },
       { name: 'Faena Hotel Miami Beach', neighbourhood: 'Mid-Beach', hook: "A gilded mammoth with Damien Hirst's gold mammoth skeleton in the lobby." },
@@ -148,6 +166,7 @@ export const WC_CITIES: WorldCupCity[] = [
     stadiumCommercial: 'Mercedes-Benz Stadium',
     blogSlug: 'best-hotels-atlanta-2026',
     heroImage: unsplash('1663601460253-aba72eea6edf'),
+    matchDates: ['2026-06-15', '2026-06-18', '2026-06-21', '2026-06-24'],
     hotels: [
       { name: 'Hotel Clermont', neighbourhood: 'Poncey-Highland', hook: "A restored 1920s landmark above Atlanta's most infamous dive lounge." },
       { name: 'The Candler Hotel, Curio Collection', neighbourhood: 'Downtown', hook: 'A 1906 neo-Gothic bank tower dressed in marble and gold leaf.' },
@@ -165,6 +184,7 @@ export const WC_CITIES: WorldCupCity[] = [
     stadiumCommercial: 'Lumen Field',
     blogSlug: 'best-hotels-seattle-2026',
     heroImage: unsplash('1542223616-9de9adb5e3e8'),
+    matchDates: ['2026-06-15', '2026-06-19', '2026-06-24', '2026-06-26'],
     hotels: [
       { name: 'The Edgewater Hotel', neighbourhood: 'Waterfront, Pier 67', hook: 'The over-the-water lodge where The Beatles once fished from their window.' },
       { name: 'Ace Hotel Seattle', neighbourhood: 'Belltown', hook: 'The original minimalist Ace — shared-bath rooms and serious cool.' },
@@ -182,6 +202,7 @@ export const WC_CITIES: WorldCupCity[] = [
     stadiumCommercial: "Levi's Stadium, Santa Clara",
     blogSlug: 'best-hotels-san-francisco-2026',
     heroImage: unsplash('1521747116042-5a810fda9664'),
+    matchDates: ['2026-06-13', '2026-06-16', '2026-06-22', '2026-06-25'],
     hotels: [
       { name: 'The Phoenix Hotel', neighbourhood: 'Lower Nob Hill', hook: "A palm-fringed rock-'n'-roll motor lodge — the touring-band classic." },
       { name: 'Hotel Zeppelin', neighbourhood: 'Union Square', hook: 'A psychedelic, Summer-of-Love-themed design hotel.' },
@@ -200,6 +221,7 @@ export const WC_CITIES: WorldCupCity[] = [
     stadiumCommercial: 'BMO Field',
     blogSlug: 'best-hotels-toronto-2026',
     heroImage: unsplash('1543962226-818f4301073f'),
+    matchDates: ['2026-06-12', '2026-06-16', '2026-06-20', '2026-06-23'],
     hotels: [
       { name: 'The Drake Hotel', neighbourhood: 'West Queen West', hook: "The original art-and-music boutique anchoring Toronto's hippest strip." },
       { name: 'The Broadview Hotel', neighbourhood: 'Riverside', hook: 'A restored 1891 Romanesque red-brick with a glass rooftop bar.' },
@@ -217,6 +239,7 @@ export const WC_CITIES: WorldCupCity[] = [
     stadiumCommercial: 'BC Place',
     blogSlug: 'best-hotels-vancouver-2026',
     heroImage: unsplash('1730661906876-18bfc6e95f2f'),
+    matchDates: ['2026-06-13', '2026-06-17', '2026-06-21', '2026-06-24'],
     hotels: [
       { name: 'The Burrard', neighbourhood: 'Downtown', hook: 'A neon-sign 1956 motor hotel reborn as a mid-century courtyard boutique.' },
       { name: 'Opus Hotel Vancouver', neighbourhood: 'Yaletown', hook: "A colour-drenched design hotel in the city's nightlife quarter." },
@@ -235,6 +258,7 @@ export const WC_CITIES: WorldCupCity[] = [
     stadiumCommercial: 'Estadio Azteca',
     blogSlug: 'best-hotels-mexico-city-2026',
     heroImage: unsplash('1585464231875-d9ef1f5ad396'),
+    matchDates: ['2026-06-11', '2026-06-14', '2026-06-18', '2026-06-24'],
     note: 'Hosts the Opening Match on 11 June',
     hotels: [
       { name: 'Hotel Carlota', neighbourhood: 'Cuauhtémoc', hook: 'A pared-back design hotel built around a glass-walled courtyard pool.' },
