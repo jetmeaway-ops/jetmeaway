@@ -124,6 +124,7 @@ function gen(opts: {
     payoff = `Stay this close to kickoff from £${nearest.pricePerNight} a night. We rank by distance to the real stadium. Book direct, no fees.`;
   }
 
+  hook = hook.charAt(0).toUpperCase() + hook.slice(1);
   const script = `${hook} ${stakes} ${payoff}`;
   const tag = opts.slug.replace(/-/g, '');
   const caption = `${matchLabel}: where to ACTUALLY stay for the World Cup — real prices, booked direct on JetMeAway with no booking fees. Link in bio. #worldcup2026 #${tag} #footballtravel`;
