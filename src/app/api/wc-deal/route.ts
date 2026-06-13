@@ -14,7 +14,8 @@ export const runtime = 'edge';
  *   - atStadium    : the single closest hotel to the stadium (often premium)
  *   - valuePick    : cheapest room in the metro (+ how far it is from the ground)
  *   - hook/stakes/payoff/script/caption : a suspense-format script with the real
- *     numbers baked in (curiosity-gap open, answer held to the back half)
+ *     numbers baked in (curiosity-gap open, answer held to the back half), with
+ *     the angle chosen FROM the live numbers so the copy always fits the data
  *   - bookUrl      : a DIRECT-BOOK deep link (LiteAPI /hotels, geo-filtered to the
  *     stadium) — NO affiliate
  *   - img1..img10 / music / outro_color : merged from the city's slideshow JSON
@@ -75,33 +76,52 @@ function gen(opts: {
   variant: number;
 }) {
   const { twist, cityLabel, stadium, trapArea, matchLabel, nearest, closest, value, variant } = opts;
+  const area = trapArea || cityLabel;
   let hook = '';
   let stakes = '';
   let payoff = '';
 
-  if (twist === 'trap') {
-    hook =
-      variant === 0
-        ? `£${closest.pricePerNight} or £${value.pricePerNight} a night for ${matchLabel} — and the cheap one hides a catch.`
-        : `${matchLabel} isn't where you think — book the obvious city and you'll watch kickoff from a traffic jam.`;
-    stakes = `${stadium} isn't in central ${trapArea}. The bargain rooms sit ${value.distanceKm}km from the ground — a long haul on match day…`;
-    payoff = `Stay near the stadium from £${nearest.pricePerNight} a night (${nearest.distanceKm}km out), or £${value.pricePerNight} if you'll take the ${value.distanceKm}km trek. We rank by distance to the real stadium. Book direct, no fees.`;
-  } else if (twist === 'trap-nj') {
+  // Choose the story from the REAL numbers so the copy always fits the data:
+  //  - nj / bargain are city-specific narratives
+  //  - a 'trap' city only gets the trap story when there's a genuine far-cheaper
+  //    gap; otherwise the close room IS the deal (value story)
+  //  - walkable cities lead with "you can walk to it"
+  const realTrap = value.distanceKm >= 15 && value.pricePerNight < nearest.pricePerNight * 0.9;
+  const twoTiers = closest.pricePerNight >= nearest.pricePerNight * 1.3;
+  const branch =
+    twist === 'trap-nj' ? 'nj'
+    : twist === 'bargain' ? 'bargain'
+    : twist === 'walkable' ? 'walkable'
+    : realTrap ? 'trap'
+    : 'value';
+
+  if (branch === 'nj') {
     hook = `Everyone books Manhattan for ${matchLabel}. The room ${nearest.distanceKm}km from the stadium is £${nearest.pricePerNight} — here's the catch.`;
     stakes = `${stadium} isn't in New York at all — it's in the New Jersey Meadowlands. While Manhattan overpays and fights the tunnel on match day…`;
     payoff = `…the Meadowlands sits right by the ground from £${nearest.pricePerNight} a night. We rank by distance to the real stadium. Book direct, no fees.`;
-  } else if (twist === 'walkable') {
-    hook =
-      variant === 0
-        ? `Most World Cup stadiums are an hour from town. ${cityLabel}'s is a ${nearest.distanceKm}km stroll — and cheaper than you'd guess.`
-        : `Two ${cityLabel} hotels, the same walk to the stadium — one's £${closest.pricePerNight}, one's £${nearest.pricePerNight}. Most fans pick wrong.`;
-    stakes = `${stadium} sits right by downtown ${cityLabel} — no transfer, no 40-minute Uber, no motorway.`;
-    payoff = `Walk to kickoff from £${nearest.pricePerNight} a night (${nearest.distanceKm}km away). We rank by distance to the real stadium. Book direct, no fees.`;
-  } else {
-    // bargain
+  } else if (branch === 'bargain') {
     hook = `£${value.pricePerNight} a night at a World Cup — ${cityLabel} is 2026's bargain. But book near the stadium and you've already lost.`;
     stakes = `${stadium} is deep in the south of the city — far from the neighbourhoods you'll actually want to stay in.`;
     payoff = `Base in the city from £${value.pricePerNight} a night, then ride the Metro to the ground. We rank by distance and price. Book direct, no fees.`;
+  } else if (branch === 'walkable') {
+    hook =
+      variant === 1 && twoTiers
+        ? `Two ${cityLabel} hotels, the same walk to the stadium — one's £${closest.pricePerNight}, one's £${nearest.pricePerNight}. Most fans pick wrong.`
+        : `Most World Cup stadiums are an hour from town. ${cityLabel}'s is a ${nearest.distanceKm}km hop — from £${nearest.pricePerNight} a night.`;
+    stakes = `${stadium} sits right by the heart of ${cityLabel} — no transfer, no 40-minute Uber, no motorway.`;
+    payoff = `Walk to kickoff from £${nearest.pricePerNight} a night (${nearest.distanceKm}km away)${twoTiers ? `, and skip the £${closest.pricePerNight} room next door` : ''}. We rank by distance to the real stadium. Book direct, no fees.`;
+  } else if (branch === 'trap') {
+    hook =
+      variant === 0
+        ? `£${nearest.pricePerNight} near the stadium or £${value.pricePerNight} a ${value.distanceKm}km drive out — most ${matchLabel} fans pick wrong.`
+        : `${matchLabel} isn't in central ${area} — and the cheap rooms are ${value.distanceKm}km from the ground. Here's the smart play.`;
+    stakes = `${stadium} is well outside central ${area}. Book the bargain and it's a ${value.distanceKm}km haul on match day…`;
+    payoff = `Stay near the ground from £${nearest.pricePerNight} (${nearest.distanceKm}km out), or save with £${value.pricePerNight} if you'll travel. We rank by distance to the real stadium. Book direct, no fees.`;
+  } else {
+    // value — the close room IS the deal
+    hook = `The hotel ${nearest.distanceKm}km from ${matchLabel} is just £${nearest.pricePerNight} a night — and most fans book the wrong side of town.`;
+    stakes = `${stadium} is nowhere near the postcard neighbourhoods everyone splashes out on — so a room this close stays cheap.`;
+    payoff = `Stay this close to kickoff from £${nearest.pricePerNight} a night. We rank by distance to the real stadium. Book direct, no fees.`;
   }
 
   const script = `${hook} ${stakes} ${payoff}`;
