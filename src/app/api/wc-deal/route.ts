@@ -135,9 +135,22 @@ export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url);
   // Sanitise: tolerate any query-string join (e.g. Make appending "?city=dallas&per_page=15"
   // or an edge-case "city=dallas?per_page=15") by taking the leading slug only.
-  const slug =
+  let slug =
     ((searchParams.get('city') || 'dallas').toLowerCase().split(/[?&/\s]/)[0].replace(/[^a-z-]/g, '')) ||
     'dallas';
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  // 'england' (the team hub) or any non-host slug -> the next upcoming
+  // England-match host city, so England-day reels show a real venue deal
+  // (e.g. England's opener in Dallas) instead of erroring.
+  if (!SEARCH[slug]) {
+    const eng = WC_CITIES.filter((c) => c.englandMatch).sort((a, b) =>
+      (a.englandMatch?.iso || '').localeCompare(b.englandMatch?.iso || ''),
+    );
+    const next = eng.find((c) => (c.englandMatch?.iso || '') >= today) || eng[eng.length - 1];
+    if (next) slug = next.slug;
+  }
 
   const city = WC_CITIES.find((c) => c.slug === slug);
   const coords = STADIUM_COORDS[slug];
@@ -150,7 +163,6 @@ export async function GET(req: NextRequest) {
   }
 
   // Pick the next upcoming match date for this city (fall back to the last one).
-  const today = new Date().toISOString().slice(0, 10);
   const dates = [...city.matchDates].sort();
   const checkIn = dates.find((d) => d >= today) || dates[dates.length - 1];
   const checkOut = addDays(checkIn, 2);
