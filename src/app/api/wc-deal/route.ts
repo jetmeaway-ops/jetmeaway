@@ -133,7 +133,11 @@ function gen(opts: {
 
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url);
-  const slug = (searchParams.get('city') || 'dallas').toLowerCase();
+  // Sanitise: tolerate any query-string join (e.g. Make appending "?city=dallas&per_page=15"
+  // or an edge-case "city=dallas?per_page=15") by taking the leading slug only.
+  const slug =
+    ((searchParams.get('city') || 'dallas').toLowerCase().split(/[?&/\s]/)[0].replace(/[^a-z-]/g, '')) ||
+    'dallas';
 
   const city = WC_CITIES.find((c) => c.slug === slug);
   const coords = STADIUM_COORDS[slug];
