@@ -55,6 +55,16 @@ const EVENT_REELS: Record<string, { textOverlayHook: string; script: string; cap
     caption:
       "CONGRATULATIONS, SCOTLAND! The Tartan Army are BACK and they made it count. John McGinn's goal sinks Haiti 1-0 in Boston: Scotland's FIRST World Cup win in 36 years, and it puts them TOP of Group C, ahead of Brazil. 28 years of waiting, worth every second. How far do the boys go? #jetmeaway jetmeaway.co.uk (link in bio) #Scotland #WorldCup2026 #TartanArmy #McGinn #FIFAWorldCup #ScotlandNT",
   },
+  // Post #2 — the Bank Holiday angle. King Charles granted Scotland a bank holiday
+  // (Mon 15 Jun 2026) to mark its first World Cup in 28 years; the win is folded in
+  // as the celebration (the holiday is for the RETURN, not the Haiti result).
+  'scotland-bank-holiday': {
+    textOverlayHook: 'SCOTLAND GETS A BANK HOLIDAY',
+    script:
+      "This is how big it is. Scotland are back at a World Cup for the first time in twenty-eight years, and King Charles has granted the whole country a Bank Holiday to mark it. Monday the fifteenth of June, Scotland gets the day off. And the Tartan Army are making it count: McGinn's goal sinks Haiti one-nil, Scotland top of the group, ahead of Brazil. No Scotland, no party. This is Scotland's moment.",
+    caption:
+      "IT'S OFFICIAL — Scotland just got a BANK HOLIDAY. To mark the men's team reaching the World Cup for the first time in 28 years, King Charles has granted Scotland a day off: Monday 15 June. And the Tartan Army kicked it off in style — McGinn sinks Haiti 1-0, Scotland top of Group C ahead of Brazil. No Scotland, no party. What are you doing with your day off? #jetmeaway jetmeaway.co.uk (link in bio) #Scotland #WorldCup2026 #TartanArmy #BankHoliday",
+  },
 };
 
 function haversineKm(aLat: number, aLng: number, bLat: number, bLng: number): number {
