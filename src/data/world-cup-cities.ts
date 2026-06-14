@@ -7,6 +7,10 @@
  * England's confirmed Group L route is flagged via `englandMatch`:
  *   Dallas 17 Jun -> Boston 23 Jun -> New York/NJ 27 Jun.
  *
+ * Scotland's confirmed Group C route is flagged via `scotlandMatches` (an
+ * array, because Boston hosts TWO of Scotland's three group games):
+ *   Boston (v Haiti 13 Jun, v Morocco 19 Jun) -> Miami (v Brazil 24 Jun).
+ *
  * Hotel photos are resolved at render by <HotelPhoto hotelName city /> (Google
  * Places + Unsplash fallback), so only the name + city are needed here.
  */
@@ -23,6 +27,12 @@ export type EnglandMatch = {
   iso: string; // '2026-06-17'
 };
 
+export type ScotlandMatch = {
+  label: string; // e.g. 'Scotland vs Haiti'
+  date: string; // human, e.g. '13 Jun 2026'
+  iso: string; // '2026-06-13'
+};
+
 export type WorldCupCity = {
   slug: string; // 'new-york'
   name: string; // 'New York / New Jersey'
@@ -35,6 +45,7 @@ export type WorldCupCity = {
   blogSlug: string; // best-hotels-<slug>-2026
   heroImage: string;
   englandMatch?: EnglandMatch;
+  scotlandMatches?: ScotlandMatch[]; // array — Boston hosts 2 Scotland group games
   note?: string; // optional extra context (final, opening match, etc.)
   /**
    * ISO dates (sorted) on which this city hosts a 2026 World Cup match.
@@ -119,6 +130,10 @@ export const WC_CITIES: WorldCupCity[] = [
     heroImage: unsplash('1565127803082-69dd82351360'),
     matchDates: ['2026-06-13', '2026-06-16', '2026-06-19', '2026-06-23', '2026-06-26'],
     englandMatch: { label: 'England vs Ghana', date: '23 Jun 2026', iso: '2026-06-23' },
+    scotlandMatches: [
+      { label: 'Scotland vs Haiti', date: '13 Jun 2026', iso: '2026-06-13' },
+      { label: 'Scotland vs Morocco', date: '19 Jun 2026', iso: '2026-06-19' },
+    ],
     hotels: [
       { name: 'The Verb Hotel', neighbourhood: 'Fenway', hook: 'A vinyl-and-rock-memorabilia motor lodge a long ball from Fenway Park.' },
       { name: 'The Liberty, a Luxury Collection Hotel', neighbourhood: 'Beacon Hill', hook: 'A converted 1851 jail — the old cells are now a buzzing bar.' },
@@ -178,6 +193,9 @@ export const WC_CITIES: WorldCupCity[] = [
     blogSlug: 'best-hotels-miami-2026',
     heroImage: unsplash('1558951412-8845d2b0f2fc'),
     matchDates: ['2026-06-15', '2026-06-21', '2026-06-24', '2026-07-11'],
+    scotlandMatches: [
+      { label: 'Scotland vs Brazil', date: '24 Jun 2026', iso: '2026-06-24' },
+    ],
     hotels: [
       { name: 'The Standard Spa, Miami Beach', neighbourhood: 'Belle Isle', hook: 'An adults-leaning bayfront spa with a hammam and infinity hot tub.' },
       { name: 'Faena Hotel Miami Beach', neighbourhood: 'Mid-Beach', hook: "A gilded mammoth with Damien Hirst's gold mammoth skeleton in the lobby." },

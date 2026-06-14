@@ -14,6 +14,13 @@ export type WcSpotlight = { name: string; note: string };
 export type WcSquad = { formation: string; blueprint: string; predictedXI: WcXI[]; spotlights: WcSpotlight[]; disclaimer: string };
 export type WcFixture = { match: string; city: string; date: string };
 export type WcGroupStage = { summary: string; fixtures: WcFixture[]; travel: string; climate: string; disclaimer: string };
+/**
+ * Scotland squad section is intentionally lighter than the England Tuchel
+ * blueprint above — no fabricated predicted XI, just CONFIRMED names from
+ * Steve Clarke's announced 26 with their established roles. Renders via a
+ * dedicated ScotlandSquadSection component on /world-cup-2026.
+ */
+export type WcScotlandSquad = { formation: string; blueprint: string; spotlights: WcSpotlight[]; disclaimer: string };
 
 export const WC_BUDGET: WcBudget = {
   "assumptions": "UK return flight + ~10 nights in ONE England group city (Dallas/Boston/NY-NJ, the pricier US end). Per person, group stage 2026. Excludes match tickets. All figures are ESTIMATES — World Cup demand surge means prices move fast.",
@@ -274,4 +281,74 @@ export const WC_GROUP_STAGE: WcGroupStage = {
   "travel": "Two of England's three cities are close; one is a long hop. Dallas to Boston is the big one — roughly 1,550 mi / 2,500 km, about a 3.5–4 hr direct flight (DFW–BOS). Boston to New York/NJ is the easy leg — only about 190 mi / 305 km, a ~1 hr flight or a 3.5–4 hr Amtrak/drive down the I-95 corridor. Dallas to New York/NJ direct is about 1,370 mi / 2,200 km, a ~3.5 hr flight. The smart fan plan: fly out for Dallas, then base on the north-east corridor for the Boston and New York games. Projected return fares between US cities are an estimated £80–£250 per leg depending on how early you book — not guaranteed.",
   "climate": "Expect a real swing between the cities in late June. Dallas is the hot, humid outlier — daytime highs typically around 33–36°C, often muggy (AT&T Stadium is air-conditioned with a roof, so the match itself is sheltered). Boston and New York/NJ are noticeably milder and more variable — typically low-to-mid 20s°C, occasionally warmer, with a chance of summer showers and higher humidity in a heatwave. Pack for Texas heat first, then layers for the cooler, changeable north-east. These are typical seasonal averages, not a forecast.",
   "disclaimer": "CONFIRMED facts (2026 draw held 5 Dec 2025): England are in Group L with Croatia, Ghana and Panama; fixtures and host cities are official — v Croatia, Dallas, 17 June; v Ghana, Boston, 23 June; v Panama, New York/NJ, 27 June; UK kick-off times as listed. PROJECTED / not confirmed: all travel distances and flight times are approximate; fares are rough estimates, not guaranteed prices; climate figures are typical late-June seasonal averages, not a weather forecast. England must finish in the top two of Group L to progress, and any knockout venues are not yet known."
+};
+
+/* ── Scotland Group C ─────────────────────────────────────────────────────── */
+export const WC_SCOTLAND_GROUP_STAGE: WcGroupStage = {
+  summary: "Scotland were drawn in Group C for the 2026 World Cup — their first World Cup since France 1998, ending a 28-year drought. They play two of three group games at Gillette Stadium in Boston (vs Haiti on 13 June and vs Morocco on 19 June) before heading south to Hard Rock Stadium in Miami for the Brazil decider on 24 June. For travelling fans, the geography is kind: one East Coast base covers two of the three fixtures.",
+  fixtures: [
+    {
+      match: "Scotland v Haiti (Group C opener)",
+      city: "Boston — Gillette Stadium, Foxborough (BOS)",
+      date: "Saturday 13 June 2026",
+    },
+    {
+      match: "Scotland v Morocco (Group C)",
+      city: "Boston — Gillette Stadium, Foxborough (BOS)",
+      date: "Friday 19 June 2026",
+    },
+    {
+      match: "Scotland v Brazil (Group C finale)",
+      city: "Miami — Hard Rock Stadium, Miami Gardens (MIA)",
+      date: "Wednesday 24 June 2026",
+    },
+  ],
+  travel: "A friendlier itinerary than England's three-city run. The first two group games are five days apart at the same Boston venue, so a single central-Boston hotel base covers both — no relocation needed between Haiti and Morocco. The Miami leg is a ~2.5 hr internal flight south (BOS → MIA, est. £80–£200 one-way refundable depending on lead time) or a very long drive few will attempt. Total trans-Atlantic + domestic transport estimated ~£2,300 per fan for the full group stage — figures are estimates, not guaranteed prices.",
+  climate: "Boston in mid-to-late June is warm and fairly humid — typically 25–28°C daytime, dropping to 17–19°C overnight, with the odd thundery shower. Generally comfortable for a UK fan. Miami in late June is the contrast: heat indices regularly exceed 35°C with 70%+ humidity and routine afternoon thunderstorms. Air-conditioned hotels are non-negotiable in Florida; pack light, breathable kit for the Brazil game. These are seasonal averages, not a weather forecast.",
+  disclaimer: "CONFIRMED facts (qualification + 2026 draw): Scotland qualified by beating Denmark 4-2 at Hampden Park on 18 November 2025; the squad is in Group C with Brazil, Morocco and Haiti; fixtures and host cities are official — v Haiti, Boston, 13 June; v Morocco, Boston, 19 June; v Brazil, Miami, 24 June. PROJECTED / not confirmed: all travel distances and flight times are approximate; fares and per-fan costs are rough estimates; climate figures are typical late-June seasonal averages. Scotland must finish in the top two (or as one of the best third-placed sides under the 48-team format) to progress; any knockout venues are not yet known.",
+};
+
+/* ── Steve Clarke's Scotland — confirmed core only ──────────────────────────
+ * Deliberately no predicted XI grid (unlike the Tuchel section above) — the
+ * blueprint is to surface the CONFIRMED named players from Clarke's 26 with
+ * their established roles, not to fabricate positional predictions.
+ */
+export const WC_SCOTLAND_SQUAD: WcScotlandSquad = {
+  formation: "3-4-2-1 (Clarke's preferred shape)",
+  blueprint: "PREDICTED blueprint: Steve Clarke's Scotland is built on a back three with wing-backs, two screening midfielders and two creative tens behind a lone striker — the shape he has used through both Euro 2024 and the 2026 qualifying campaign. Set-piece dangerous, defensively organised, designed to frustrate elite opposition (Brazil, Morocco) and grind out a result against the side Scotland are expected to beat (Haiti). With the heat of a Florida finale, expect heavy rotation and cooling-break game management.",
+  spotlights: [
+    {
+      name: "Steve Clarke (Head Coach)",
+      note: "CONFIRMED: in post since May 2019, the longest-serving Scotland coach in living memory. Signed a contract extension through the 2030 cycle in May 2026 — though he has publicly indicated he is unlikely to remain in post beyond this tournament. Engineered Scotland's first World Cup qualification in 28 years.",
+    },
+    {
+      name: "Andy Robertson (Captain)",
+      note: "CONFIRMED captain. Liverpool left-back, Champions League and Premier League winner, at 92 international caps the most experienced player in the squad. The emotional anchor of the trip.",
+    },
+    {
+      name: "Scott McTominay",
+      note: "CONFIRMED: Napoli midfielder, the goal-scoring physical presence of the modern Scottish side. Opened the scoring inside three minutes against Denmark in the qualifying decider — the single most important goal of the campaign.",
+    },
+    {
+      name: "John McGinn",
+      note: "CONFIRMED: Aston Villa midfielder, 85+ caps, brings creativity and leadership. Owner-side note: Scotland 1-0 Haiti (McGinn 28' goal, opening fixture) — a fact emerging during the tournament window.",
+    },
+    {
+      name: "Kenny McLean",
+      note: "CONFIRMED: Norwich midfielder, scored the stoppage-time goal v Denmark that finally settled the qualifying night and broke the 28-year drought.",
+    },
+    {
+      name: "Craig Gordon",
+      note: "CONFIRMED: Hearts goalkeeper, 43 years old — becomes the second-oldest player ever named to a World Cup squad (behind Egypt's Essam El-Hadary at Russia 2018). An emotional honour for one of the most respected figures in Scottish football.",
+    },
+    {
+      name: "Lawrence Shankland & Kieran Tierney",
+      note: "CONFIRMED: both scored in the 4-2 win v Denmark that sealed qualification. Shankland is the Hearts striker called on for fixtures Scotland are favoured to win; Tierney is the versatile defender comfortable at left-back or in a back three.",
+    },
+    {
+      name: "Ross Stewart & Ben Curtis",
+      note: "CONFIRMED: Ross Stewart returns to the Scotland squad after a four-year international absence — a forward whose injury-disrupted club career has regained momentum. Ben Curtis, 19, is the youngest player in the squad, providing midfield depth and a glimpse of the next generation.",
+    },
+  ],
+  disclaimer: "Squad spotlights drawn from confirmed Scotland selections and reporting around Clarke's announced 26. Formation is Clarke's typical shape — final XI subject to form and injuries. Any cost/ticket figures elsewhere on this page should be treated as estimates, not guarantees.",
 };
