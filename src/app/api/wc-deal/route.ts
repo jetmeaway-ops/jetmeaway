@@ -43,6 +43,20 @@ const SEARCH: Record<
   'mexico-city': { cc: 'MX', names: ['Mexico City'], twist: 'bargain' },
 };
 
+// Event / celebration reels (GROW-FIRST — pure engagement, NO deal logic, NO hotels).
+// These bypass the LiteAPI stadium-deal engine entirely and return a fixed, fact-checked
+// package that is merged with the matching /data/slideshow/<slug>.json imagery + music.
+// Used for live-moment reaction reels (e.g. Scotland 1-0 Haiti, McGinn 28').
+const EVENT_REELS: Record<string, { textOverlayHook: string; script: string; caption: string }> = {
+  'scotland-win': {
+    textOverlayHook: 'SCOTLAND ARE BACK',
+    script:
+      "Get in! Scotland have done it. After twenty-eight years away from the World Cup, the Tartan Army are back, and they've made it count. John McGinn's strike sinks Haiti, one-nil, in Boston. It's Scotland's first World Cup win in thirty-six years, and it sends them top of the group, ahead of Brazil. From Hampden to America, a whole nation is dreaming again. Next up, Morocco. After twenty-eight years away, Scotland are well and truly back.",
+    caption:
+      "CONGRATULATIONS, SCOTLAND! The Tartan Army are BACK and they made it count. John McGinn's goal sinks Haiti 1-0 in Boston: Scotland's FIRST World Cup win in 36 years, and it puts them TOP of Group C, ahead of Brazil. 28 years of waiting, worth every second. How far do the boys go? #jetmeaway jetmeaway.co.uk (link in bio) #Scotland #WorldCup2026 #TartanArmy #McGinn #FIFAWorldCup #ScotlandNT",
+  },
+};
+
 function haversineKm(aLat: number, aLng: number, bLat: number, bLng: number): number {
   const R = 6371;
   const r = (x: number) => (x * Math.PI) / 180;
@@ -140,6 +154,35 @@ export async function GET(req: NextRequest) {
     'dallas';
 
   const today = new Date().toISOString().slice(0, 10);
+
+  // Event / celebration reel? Return the fixed package (merged with the slideshow
+  // imagery) and skip BOTH the england->host-city remap and the LiteAPI deal engine.
+  const ev = EVENT_REELS[slug];
+  if (ev) {
+    let media: Record<string, unknown> = {};
+    try {
+      const r = await fetch(`${origin}/data/slideshow/${slug}.json`, { cache: 'no-store' });
+      if (r.ok) {
+        const j: any = await r.json();
+        if (j && typeof j === 'object') media = j;
+      }
+    } catch {
+      /* imagery is optional */
+    }
+    return NextResponse.json(
+      {
+        success: true,
+        city: slug,
+        event: true,
+        ...media,
+        script: ev.script,
+        textOverlayHook: ev.textOverlayHook,
+        caption: ev.caption,
+        generatedFor: today,
+      },
+      { headers: { 'cache-control': 's-maxage=900, stale-while-revalidate=3600' } },
+    );
+  }
 
   // 'england' (the team hub) or any non-host slug -> the next upcoming
   // England-match host city, so England-day reels show a real venue deal
