@@ -7,7 +7,15 @@
  *
  * Static, server-renderable (no hooks) so it compiles inside MDX via
  * next-mdx-remote/rsc. Usable in any post as `<BestValueTable />`.
+ *
+ * Each row is a single stretched link to a prefilled flight search
+ * (`/flights?to=<IATA>`, the same deep link used by MidArticleCta and the
+ * /destinations pages) — a click anywhere in the row opens it. Added
+ * 2026-06-16 after Clarity recordings showed readers dead-clicking the
+ * destination/code/month cells expecting them to be tappable — the table
+ * looked clickable but every cell was plain text.
  */
+import Link from 'next/link';
 
 const CAPTURED = '25 May 2026';
 
@@ -65,12 +73,37 @@ export default function BestValueTable() {
             </tr>
           </thead>
           <tbody>
-            {ROWS.map((r, i) => (
-              <tr key={r.code} className={i % 2 ? 'bg-[#F8FAFC]' : 'bg-white'}>
+            {ROWS.map((r, i) => {
+              const search = `/flights?to=${r.code}`;
+              return (
+              <tr
+                key={r.code}
+                className={`group relative cursor-pointer transition-colors hover:bg-[#EEF4FF] ${i % 2 ? 'bg-[#F8FAFC]' : 'bg-white'}`}
+              >
                 <td className="px-4 py-3 font-black text-[#8E95A9]">{r.rank}</td>
-                <td className="px-4 py-3 font-bold text-[#1A1D2B]">
-                  {r.dest} <span className="text-[#8E95A9] font-semibold">({r.code})</span>
-                  <span className="block text-[.72rem] text-[#8E95A9] font-semibold">{r.country}</span>
+                <td className="px-4 py-3">
+                  {/* Stretched link: the ::after spans the whole <tr> (which is
+                      `relative`), so a click anywhere in the row opens the search.
+                      One real, labelled link per row keeps it accessible + crawlable. */}
+                  <Link
+                    href={search}
+                    aria-label={`Search flights to ${r.dest} (${r.code})`}
+                    className="after:absolute after:inset-0 after:content-['']"
+                  >
+                    <span className="font-bold text-[#0066FF] group-hover:underline">
+                      {r.dest}{' '}
+                      <span className="font-semibold text-[#8E95A9] group-hover:text-[#0066FF]">
+                        ({r.code})
+                      </span>
+                      <span
+                        aria-hidden
+                        className="ml-1 inline-block text-[#0066FF] opacity-0 transition-opacity group-hover:opacity-100"
+                      >
+                        →
+                      </span>
+                    </span>
+                    <span className="block text-[.72rem] text-[#8E95A9] font-semibold">{r.country}</span>
+                  </Link>
                 </td>
                 <td className="px-4 py-3 font-black text-[#0066FF] whitespace-nowrap">£{r.from}</td>
                 <td className="px-4 py-3">
@@ -80,7 +113,8 @@ export default function BestValueTable() {
                 </td>
                 <td className="px-4 py-3 text-[#5C6378] font-semibold whitespace-nowrap text-[.8rem]">{r.tier}</td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
