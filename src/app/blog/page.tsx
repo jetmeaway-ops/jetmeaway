@@ -67,17 +67,21 @@ export default function BlogListingPage() {
           {/* Posts grid */}
           {posts.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {posts.map(post => (
+              {posts.map((post, postIdx) => (
                 <Link
                   key={post.slug}
                   href={`/blog/${post.slug}`}
                   className="group bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all"
                 >
-                  <div className="relative h-52 overflow-hidden bg-[#F1F3F7]">
+                  {/* Visible placeholder tone while covers load — some heroes
+                      are full-size Wikimedia originals that take seconds on a
+                      cold cache and the cards read as broken white boxes
+                      (2026-07-02 audit). First row loads eagerly. */}
+                  <div className="relative h-52 overflow-hidden bg-gradient-to-br from-[#DDE4EF] to-[#F1F3F7]">
                     <img
                       src={post.heroImage}
                       alt={post.title}
-                      loading="lazy"
+                      loading={postIdx < 3 ? 'eager' : 'lazy'}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     <span className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm text-[#0066FF] text-[.6rem] font-black uppercase tracking-[1.5px] px-2.5 py-1 rounded-full shadow-sm">

@@ -371,7 +371,9 @@ function CtaSection() {
         <h2 className="font-[var(--font-playfair)] text-[2rem] md:text-[2.6rem] font-black text-[#0a1628] mb-3">
           Ready to Find Your <span className="bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">Best Deal?</span>
         </h2>
-        <p className="font-[var(--font-dm-sans)] text-[.95rem] text-[#5C6378] mb-8">Join thousands of UK travellers saving money across 15+ providers</p>
+        {/* Copy must stay TRUE — no invented user counts ("join thousands")
+            or made-up stats. Honest value props only (2026-07-02 audit). */}
+        <p className="font-[var(--font-dm-sans)] text-[.95rem] text-[#5C6378] mb-8">Live prices from 15+ trusted providers — no markups, no booking fees</p>
         <a href="/hotels"
           // bg-orange-700 + white text = 5.0:1 contrast (passes WCAG AA);
           // previous orange-500 was 2.93:1 and Lighthouse flagged it.
@@ -424,7 +426,7 @@ export default function Home() {
             {[
               { val: '15+', label: 'Providers' },
               { val: '2M+', label: 'Hotels' },
-              { val: '90s', label: 'Avg. Checkout' },
+              { val: '£0', label: 'Booking Fees' },
               { val: '24/7', label: 'AI Assistant' },
             ].map(s => (
               <div key={s.label} className="text-center" role="listitem">

@@ -108,17 +108,19 @@ export default function RotatingReviews() {
           </div>
         ) : (
           // Trustpilot Carousel — official widget, live verified reviews.
-          // Rendered into a div with light-tinted background so the dark
-          // gradient strip doesn't clash with Trustpilot's own theme.
+          // On a WHITE card with the light theme: the dark theme's deep-green
+          // logo was invisible against our navy strip (2026-07-02 audit) and
+          // we can't restyle inside Trustpilot's iframe, so give it a
+          // background it's designed for instead.
           <div
             ref={widgetRef}
-            className="trustpilot-widget"
+            className="trustpilot-widget bg-white rounded-2xl py-2 px-3 shadow-[0_8px_30px_rgba(0,0,0,0.25)]"
             data-locale="en-GB"
             data-template-id="53aa8912dec7e10d38f59f36"
             data-businessunit-id="69d8e37d3f9345fb75e31dfa"
             data-style-height="140px"
             data-style-width="100%"
-            data-theme="dark"
+            data-theme="light"
             data-stars="3,4,5"
             data-review-languages="en"
           >

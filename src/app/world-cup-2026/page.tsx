@@ -40,15 +40,32 @@ function fmtRange(cin: string, cout: string): string {
 export const metadata = {
   title: 'World Cup 2026 Host Cities — Hotels & Flights | JetMeAway',
   description:
-    "Follow the 2026 World Cup across all 11 host cities. Boutique hotels near every stadium, flights between host cities — plus the confirmed routes for both UK nations: England (Dallas, Boston, New York) and Scotland (Boston, Miami). No booking fees.",
+    "Follow the 2026 World Cup knockout rounds across the host cities. England are through to the Round of 16 v Mexico at the Estadio Azteca — boutique hotels near every stadium, flights between host cities. No booking fees.",
   alternates: { canonical: 'https://jetmeaway.co.uk/world-cup-2026' },
 };
 
+/* England/Scotland flag emoji render as a generic purple flag on Windows
+   Chrome (no colour-font support for the tag-sequence flags) — use real
+   SVG-derived flag images instead (2026-07-02 audit). */
+function Flag({ code, className = '' }: { code: 'gb-eng' | 'gb-sct'; className?: string }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`https://flagcdn.com/h24/${code}.png`}
+      srcSet={`https://flagcdn.com/h48/${code}.png 2x`}
+      alt={code === 'gb-eng' ? 'England flag' : 'Scotland flag'}
+      className={`inline-block h-[0.95em] w-auto rounded-[2px] align-[-0.08em] ${className}`}
+    />
+  );
+}
+
 // England's + Scotland's inter-city legs + marquee inter-host-city hops. Built server-side.
 const FEATURED_ROUTES = [
-  { from: 'DFW', to: 'BOS', fromCity: 'Dallas', toCity: 'Boston', dep: '2026-06-19', tag: "England's route" },
-  { from: 'BOS', to: 'EWR', fromCity: 'Boston', toCity: 'New York', dep: '2026-06-25', tag: "England's route" },
-  { from: 'BOS', to: 'MIA', fromCity: 'Boston', toCity: 'Miami', dep: '2026-06-22', tag: "Scotland's route" },
+  // Knockout-stage legs (2026-07-02): England's group legs and Scotland's
+  // Miami hop are in the past — replaced with the trip fans actually need
+  // now: getting to the Estadio Azteca for the Round of 16 (Sun 5 July).
+  { from: 'JFK', to: 'MEX', fromCity: 'New York', toCity: 'Mexico City', dep: '2026-07-04', tag: "England's route" },
+  { from: 'DFW', to: 'MEX', fromCity: 'Dallas', toCity: 'Mexico City', dep: '2026-07-04', tag: "England's route" },
   { from: 'JFK', to: 'LAX', fromCity: 'New York', toCity: 'Los Angeles', dep: WC_DATES.flightDep },
   { from: 'MIA', to: 'ATL', fromCity: 'Miami', toCity: 'Atlanta', dep: WC_DATES.flightDep },
   { from: 'LAX', to: 'SFO', fromCity: 'Los Angeles', toCity: 'San Francisco', dep: WC_DATES.flightDep },
@@ -147,7 +164,7 @@ function GroupStageSection() {
     <section id="group-stage" className="px-5 py-16">
       <div className="mx-auto max-w-[1000px]">
         <h2 className="text-center font-poppins text-[1.8rem] font-black text-[#1A1D2B] md:text-[2.4rem]">
-          🏴󠁧󠁢󠁥󠁮󠁧󠁿 England&apos;s Group L — the run-down
+          <Flag code="gb-eng" /> England&apos;s road so far — results &amp; what&apos;s next
         </h2>
         <p className="mx-auto mt-3 max-w-[660px] text-center text-[.95rem] font-semibold text-[#5C6378]">{g.summary}</p>
         <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -182,7 +199,7 @@ function ScotlandGroupStageSection() {
     <section id="scotland-group-stage" className="bg-[#0a1628] px-5 py-16">
       <div className="mx-auto max-w-[1000px]">
         <h2 className="text-center font-poppins text-[1.8rem] font-black text-white md:text-[2.4rem]">
-          🏴󠁧󠁢󠁳󠁣󠁴󠁿 Scotland&apos;s Group C — the run-down
+          <Flag code="gb-sct" /> Scotland&apos;s Group C — how the campaign ended
         </h2>
         <p className="mx-auto mt-3 max-w-[700px] text-center text-[.95rem] font-semibold text-white/70">{g.summary}</p>
         <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -225,7 +242,7 @@ function ScotlandSquadSection() {
     <section id="scotland-squad" className="px-5 py-16">
       <div className="mx-auto max-w-[1000px]">
         <h2 className="text-center font-poppins text-[1.8rem] font-black text-[#1A1D2B] md:text-[2.4rem]">
-          🏴󠁧󠁢󠁳󠁣󠁴󠁿 Steve Clarke&apos;s Scotland — the confirmed core
+          <Flag code="gb-sct" /> Steve Clarke&apos;s Scotland — the squad that ended the drought
         </h2>
         <div className="mt-4 flex justify-center">
           <span className="rounded-full bg-[#0066FF]/10 px-4 py-1.5 text-[.8rem] font-black tracking-wide text-[#0066FF]">{sq.formation}</span>
@@ -406,7 +423,7 @@ export default function WorldCup2026Page() {
               </span>
             </h1>
             <p className="mx-auto mt-4 max-w-[640px] text-[1rem] font-semibold text-white/65">
-              Boutique hotels near every stadium and flights between host cities — plus the confirmed routes for both UK nations: 🏴󠁧󠁢󠁥󠁮󠁧󠁿 England (Dallas, Boston, New York) and 🏴󠁧󠁢󠁳󠁣󠁴󠁿 Scotland (Boston, Miami). No markups, no booking fees.
+              <Flag code="gb-eng" /> England topped their group and beat DR Congo in the last 32 — next stop the Estadio Azteca to face Mexico in the Round of 16 (Sun 5 July, 1am BST Mon). <Flag code="gb-sct" /> Scotland&apos;s historic 28-year return ended in the group stage. Boutique hotels near every stadium, flights between host cities — no markups, no booking fees.
             </p>
 
             <div className="mt-9 flex flex-col items-center justify-center gap-6 sm:flex-row sm:flex-wrap sm:gap-6">
@@ -437,13 +454,13 @@ export default function WorldCup2026Page() {
                   href="/blog/england-world-cup-2026"
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#0066FF] to-[#0052CC] px-7 py-3.5 font-poppins text-[.95rem] font-black text-white shadow-[0_8px_24px_rgba(0,102,255,0.3)] transition-all hover:-translate-y-0.5"
                 >
-                  🏴󠁧󠁢󠁥󠁮󠁧󠁿 Read the England guide <i className="fa-solid fa-arrow-right text-[.8rem]" aria-hidden="true" />
+                  <Flag code="gb-eng" /> Read the England guide <i className="fa-solid fa-arrow-right text-[.8rem]" aria-hidden="true" />
                 </Link>
                 <Link
                   href="/blog/scotland-world-cup-2026"
                   className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-white/30 bg-white/10 px-7 py-3 font-poppins text-[.95rem] font-black text-white backdrop-blur transition-all hover:-translate-y-0.5 hover:bg-white/15"
                 >
-                  🏴󠁧󠁢󠁳󠁣󠁴󠁿 Read the Scotland guide <i className="fa-solid fa-arrow-right text-[.8rem]" aria-hidden="true" />
+                  <Flag code="gb-sct" /> Read the Scotland guide <i className="fa-solid fa-arrow-right text-[.8rem]" aria-hidden="true" />
                 </Link>
               </div>
             </div>
@@ -455,7 +472,7 @@ export default function WorldCup2026Page() {
         <section id="england-route" className="bg-[#F8FAFC] px-5 py-14">
           <div className="mx-auto max-w-[1000px]">
             <h2 className="text-center font-poppins text-[1.6rem] font-black text-[#1A1D2B] md:text-[2rem]">
-              🏴󠁧󠁢󠁥󠁮󠁧󠁿 England&apos;s Group L Route
+              <Flag code="gb-eng" /> England&apos;s Group L Route
             </h2>
             <p className="mx-auto mt-2 max-w-[560px] text-center text-[.92rem] font-semibold text-[#5C6378]">
               England&apos;s remaining group games — book the match-day stay before rooms go.
@@ -482,7 +499,7 @@ export default function WorldCup2026Page() {
         <section id="scotland-route" className="bg-gradient-to-b from-[#0a1628] to-[#0b1f3a] px-5 py-14">
           <div className="mx-auto max-w-[1000px]">
             <h2 className="text-center font-poppins text-[1.6rem] font-black text-white md:text-[2rem]">
-              🏴󠁧󠁢󠁳󠁣󠁴󠁿 Scotland&apos;s Group C Route
+              <Flag code="gb-sct" /> Scotland&apos;s Group C Route
             </h2>
             <p className="mx-auto mt-2 max-w-[600px] text-center text-[.92rem] font-semibold text-white/65">
               First World Cup since 1998 — Scotland&apos;s remaining group games.
@@ -586,12 +603,12 @@ export default function WorldCup2026Page() {
                         </span>
                         {city.englandMatch && city.englandMatch.iso >= today && (
                           <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1 text-[.68rem] font-black uppercase tracking-[1px] text-[#D9281B]">
-                            🏴󠁧󠁢󠁥󠁮󠁧󠁿 England play here · {city.englandMatch.date}
+                            <Flag code="gb-eng" /> England play here · {city.englandMatch.date}
                           </span>
                         )}
                         {city.scotlandMatches?.filter((m) => m.iso >= today).map((m) => (
                           <span key={m.iso} className="inline-flex items-center gap-1.5 rounded-full bg-[#0a1628] px-3 py-1 text-[.68rem] font-black uppercase tracking-[1px] text-cyan-300">
-                            🏴󠁧󠁢󠁳󠁣󠁴󠁿 Scotland play here · {m.date}
+                            <Flag code="gb-sct" /> Scotland play here · {m.date}
                           </span>
                         ))}
                         {city.note && (
@@ -694,12 +711,12 @@ export default function WorldCup2026Page() {
         <section className="px-5 py-16">
           <div className="mx-auto grid max-w-[1000px] grid-cols-1 gap-5 md:grid-cols-2">
             <div className="rounded-3xl border border-[#E8ECF4] bg-gradient-to-br from-[#EBF3FF] to-[#F8FAFC] p-8 text-center md:p-9">
-              <span className="mb-3 inline-block text-[1.4rem]" aria-hidden="true">🏴󠁧󠁢󠁥󠁮󠁧󠁿</span>
+              <span className="mb-3 inline-block" aria-hidden="true"><Flag code="gb-eng" className="!h-[1.3rem]" /></span>
               <h2 className="font-poppins text-[1.35rem] font-black text-[#1A1D2B] md:text-[1.55rem]">
-                Plan the whole England trip
+                Plan the England knockout run
               </h2>
               <p className="mx-auto mt-2 max-w-[420px] text-[.88rem] font-semibold text-[#5C6378]">
-                History, the 2026 fixtures, host-city guides and the full booking funnel.
+                The road to the final, host-city guides and the full booking funnel — Mexico up next.
               </p>
               <Link
                 href="/blog/england-world-cup-2026"
@@ -709,12 +726,12 @@ export default function WorldCup2026Page() {
               </Link>
             </div>
             <div className="rounded-3xl border border-[#0a1628]/15 bg-gradient-to-br from-[#0a1628] to-[#0b1f3a] p-8 text-center md:p-9">
-              <span className="mb-3 inline-block text-[1.4rem]" aria-hidden="true">🏴󠁧󠁢󠁳󠁣󠁴󠁿</span>
+              <span className="mb-3 inline-block" aria-hidden="true"><Flag code="gb-sct" className="!h-[1.3rem]" /></span>
               <h2 className="font-poppins text-[1.35rem] font-black text-white md:text-[1.55rem]">
-                Plan the whole Scotland trip
+                Relive Scotland&apos;s historic return
               </h2>
               <p className="mx-auto mt-2 max-w-[420px] text-[.88rem] font-semibold text-white/65">
-                28 years of hurt, the Tartan Army, Boston + Miami fixtures and the full booking funnel.
+                28 years of hurt ended — the Tartan Army&apos;s Boston + Miami story, from qualification to the group stage.
               </p>
               <Link
                 href="/blog/scotland-world-cup-2026"

@@ -1585,7 +1585,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
       </button>
       <div className="grid grid-cols-1 md:grid-cols-[240px_1fr_auto] gap-0">
         {/* Image */}
-        <a href={detailHref} className="relative h-48 md:h-full min-h-[180px] block group">
+        <a href={detailHref} className="relative h-48 md:h-full min-h-[180px] block group bg-gradient-to-br from-[#EFE4D6] to-[#F8F2E9]">
           {photoUrl ? (
             <img src={photoUrl} alt={h.name} loading="lazy"
               className="w-full h-full object-cover group-hover:brightness-95 transition-all"

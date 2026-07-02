@@ -153,9 +153,12 @@ export default function PopularDestinations() {
                 orange-500 background was 2.93:1 and Lighthouse flagged it. */}
             <span className="absolute top-3 left-3 bg-orange-700 text-white text-[.58rem] font-black uppercase tracking-wider px-2.5 py-1 rounded-full z-[2]">{d.tag}</span>
             <div className="absolute top-3 right-3 z-[2] animate-bob">
-              <div className="backdrop-blur-md bg-white/20 border border-white/30 rounded-xl px-3 py-1.5 shadow-lg">
+              {/* Dark scrim, not white/20 — white text on a translucent
+                  white chip vanished over bright skies/beaches (Bali card,
+                  2026-07-02 audit). */}
+              <div className="backdrop-blur-md bg-black/45 border border-white/25 rounded-xl px-3 py-1.5 shadow-lg">
                 <p className="font-poppins font-black text-white text-[.72rem] leading-none">From &pound;{d.price}</p>
-                <p className="font-[var(--font-dm-sans)] text-white/70 text-[.55rem] font-medium">/night</p>
+                <p className="font-[var(--font-dm-sans)] text-white/80 text-[.55rem] font-medium">/night</p>
               </div>
             </div>
             <div className="absolute bottom-0 left-0 right-0 p-5 z-[2]">

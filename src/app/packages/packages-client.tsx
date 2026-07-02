@@ -716,10 +716,12 @@ function FamilyPackages() {
         <span className="inline-flex items-center gap-1.5 bg-purple-50 text-purple-600 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-3">
           ☀️ July & August · Family of 4
         </span>
-        <h2 className="font-poppins text-[1.8rem] md:text-[2.2rem] font-black text-[#1A1D2B] leading-tight mb-2">
+        {/* Section sits on the dark galaxy backdrop — near-black heading
+            text was unreadable on it (2026-07-02 audit). */}
+        <h2 className="font-poppins text-[1.8rem] md:text-[2.2rem] font-black text-white leading-tight mb-2">
           Pre-Built Summer Packages
         </h2>
-        <p className="text-[.85rem] text-[#8E95A9] font-semibold max-w-[560px] mx-auto">
+        <p className="text-[.85rem] text-white/60 font-semibold max-w-[560px] mx-auto">
           7 nights from London · Click any deal to see live prices on Trip.com or Expedia — all dates &amp; travellers pre-filled
         </p>
       </div>

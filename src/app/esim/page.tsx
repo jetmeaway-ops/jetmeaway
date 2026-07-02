@@ -299,7 +299,9 @@ export default function ESIMPage() {
           <h1 className="font-poppins text-[2.6rem] md:text-[3.8rem] font-black text-white leading-[1.05] tracking-tight mb-3">
             Stay Connected <em className="italic bg-gradient-to-br from-cyan-300 via-blue-400 to-indigo-500 bg-clip-text text-transparent">Anywhere</em>
           </h1>
-          <p className="text-[1rem] text-white/60 font-semibold max-w-[520px] mx-auto">No roaming charges. No SIM swapping. Just scan a QR code and go — data from $4.50.</p>
+          {/* No dollar prices on a UK site — providers price in USD but our
+              audience reads GBP; keep the hook currency-free (2026-07-02). */}
+          <p className="text-[1rem] text-white/60 font-semibold max-w-[520px] mx-auto">No roaming charges. No SIM swapping. Just scan a QR code and go — plans from a few pounds.</p>
         </div>
 
         {/* What is eSIM — glass on dark */}

@@ -260,52 +260,70 @@ export const WC_SQUAD: WcSquad = {
 };
 
 export const WC_GROUP_STAGE: WcGroupStage = {
-  "summary": "England were drawn in Group L for the 2026 World Cup and play all three group games in the eastern and southern USA, kicking off against Croatia in Dallas on 17 June before facing Ghana in Boston and Panama in New York/New Jersey. It is a compact, fan-friendly route: two of the three cities sit on the north-east corridor, with one hot-weather trip down to Texas.",
+  // Updated 2026-07-02 to knockout-stage state. Results verified via
+  // ESPN / Sky / englandfootball.com on 2 July 2026 — do NOT write match
+  // results here without a source.
+  "summary": "England topped Group L unbeaten — a 4-2 win over Croatia in Dallas, a 0-0 draw with Ghana in Boston and a 2-0 win over Panama in New York/New Jersey — then beat DR Congo 2-1 in the Round of 32 on 1 July. Next up: Mexico at the Estadio Azteca in the Round of 16 — Sunday 5 July, 18:00 local (1am BST Monday 6 July for UK viewers).",
   "fixtures": [
     {
-      "match": "England v Croatia (Group L opener)",
+      "match": "England 4-2 Croatia (Group L opener)",
       "city": "Dallas — AT&T Stadium, Arlington (DFW)",
-      "date": "Wednesday 17 June 2026, 21:00 BST"
+      "date": "Wednesday 17 June 2026 · FT"
     },
     {
-      "match": "England v Ghana (Group L)",
+      "match": "England 0-0 Ghana (Group L)",
       "city": "Boston — Gillette Stadium, Foxborough (BOS)",
-      "date": "Tuesday 23 June 2026, 21:00 BST"
+      "date": "Tuesday 23 June 2026 · FT"
     },
     {
-      "match": "England v Panama (Group L finale)",
+      "match": "England 2-0 Panama (Group L finale)",
       "city": "New York/New Jersey — MetLife Stadium, East Rutherford (EWR)",
-      "date": "Saturday 27 June 2026, 22:00 BST"
+      "date": "Saturday 27 June 2026 · FT"
+    },
+    {
+      "match": "England 2-1 DR Congo (Round of 32)",
+      "city": "Knockout stage",
+      "date": "Wednesday 1 July 2026 · FT"
+    },
+    {
+      "match": "Mexico v England (Round of 16) — up next",
+      "city": "Mexico City — Estadio Azteca (MEX)",
+      "date": "Sunday 5 July 2026, 18:00 local · 1am BST Mon 6 July"
     }
   ],
   "travel": "Two of England's three cities are close; one is a long hop. Dallas to Boston is the big one — roughly 1,550 mi / 2,500 km, about a 3.5–4 hr direct flight (DFW–BOS). Boston to New York/NJ is the easy leg — only about 190 mi / 305 km, a ~1 hr flight or a 3.5–4 hr Amtrak/drive down the I-95 corridor. Dallas to New York/NJ direct is about 1,370 mi / 2,200 km, a ~3.5 hr flight. The smart fan plan: fly out for Dallas, then base on the north-east corridor for the Boston and New York games. Projected return fares between US cities are an estimated £80–£250 per leg depending on how early you book — not guaranteed.",
   "climate": "Expect a real swing between the cities in late June. Dallas is the hot, humid outlier — daytime highs typically around 33–36°C, often muggy (AT&T Stadium is air-conditioned with a roof, so the match itself is sheltered). Boston and New York/NJ are noticeably milder and more variable — typically low-to-mid 20s°C, occasionally warmer, with a chance of summer showers and higher humidity in a heatwave. Pack for Texas heat first, then layers for the cooler, changeable north-east. These are typical seasonal averages, not a forecast.",
-  "disclaimer": "CONFIRMED facts (2026 draw held 5 Dec 2025): England are in Group L with Croatia, Ghana and Panama; fixtures and host cities are official — v Croatia, Dallas, 17 June; v Ghana, Boston, 23 June; v Panama, New York/NJ, 27 June; UK kick-off times as listed. PROJECTED / not confirmed: all travel distances and flight times are approximate; fares are rough estimates, not guaranteed prices; climate figures are typical late-June seasonal averages, not a weather forecast. England must finish in the top two of Group L to progress, and any knockout venues are not yet known."
+  "disclaimer": "CONFIRMED results as of 2 July 2026: England won Group L (4-2 v Croatia, 0-0 v Ghana, 2-0 v Panama) and beat DR Congo 2-1 in the Round of 32; the Round of 16 tie against Mexico at the Estadio Azteca kicks off 18:00 local on Sunday 5 July (1am BST Monday 6 July). PROJECTED / not confirmed: any venues beyond the Round of 16 depend on results; travel distances and flight times are approximate; fares are rough estimates, not guaranteed prices; climate figures are seasonal averages, not a forecast."
 };
 
 /* ── Scotland Group C ─────────────────────────────────────────────────────── */
 export const WC_SCOTLAND_GROUP_STAGE: WcGroupStage = {
-  summary: "Scotland were drawn in Group C for the 2026 World Cup — their first World Cup since France 1998, ending a 28-year drought. They play two of three group games at Gillette Stadium in Boston (vs Haiti on 13 June and vs Morocco on 19 June) before heading south to Hard Rock Stadium in Miami for the Brazil decider on 24 June. For travelling fans, the geography is kind: one East Coast base covers two of the three fixtures.",
+  // Updated 2026-07-02: Scotland's campaign ended in the group stage
+  // (3 points — the win over Haiti — was not enough to advance as one of
+  // the best third-placed sides). Verified via ESPN 2 July 2026. Exact
+  // scores of the Morocco and Brazil defeats deliberately not stated —
+  // not verified; do not invent them.
+  summary: "Scotland's first World Cup since France 1998 ended in the group stage. The 28-year return brought a famous 1-0 win over Haiti at Gillette Stadium (McGinn 28'), but defeats to Morocco in Boston and group-winners Brazil in Miami left the Tartan Army on 3 points — not enough to advance as one of the best third-placed sides. A heartbreaking exit, and still a historic summer for Scottish football.",
   fixtures: [
     {
-      match: "Scotland v Haiti (Group C opener)",
+      match: "Scotland 1-0 Haiti (Group C opener) — McGinn 28'",
       city: "Boston — Gillette Stadium, Foxborough (BOS)",
-      date: "Saturday 13 June 2026",
+      date: "Saturday 13 June 2026 · FT",
     },
     {
-      match: "Scotland v Morocco (Group C)",
+      match: "Scotland lost v Morocco (Group C)",
       city: "Boston — Gillette Stadium, Foxborough (BOS)",
-      date: "Friday 19 June 2026",
+      date: "Friday 19 June 2026 · FT",
     },
     {
-      match: "Scotland v Brazil (Group C finale)",
+      match: "Scotland lost v Brazil (Group C finale)",
       city: "Miami — Hard Rock Stadium, Miami Gardens (MIA)",
-      date: "Wednesday 24 June 2026",
+      date: "Wednesday 24 June 2026 · FT",
     },
   ],
   travel: "A friendlier itinerary than England's three-city run. The first two group games are five days apart at the same Boston venue, so a single central-Boston hotel base covers both — no relocation needed between Haiti and Morocco. The Miami leg is a ~2.5 hr internal flight south (BOS → MIA, est. £80–£200 one-way refundable depending on lead time) or a very long drive few will attempt. Total trans-Atlantic + domestic transport estimated ~£2,300 per fan for the full group stage — figures are estimates, not guaranteed prices.",
   climate: "Boston in mid-to-late June is warm and fairly humid — typically 25–28°C daytime, dropping to 17–19°C overnight, with the odd thundery shower. Generally comfortable for a UK fan. Miami in late June is the contrast: heat indices regularly exceed 35°C with 70%+ humidity and routine afternoon thunderstorms. Air-conditioned hotels are non-negotiable in Florida; pack light, breathable kit for the Brazil game. These are seasonal averages, not a weather forecast.",
-  disclaimer: "CONFIRMED facts (qualification + 2026 draw): Scotland qualified by beating Denmark 4-2 at Hampden Park on 18 November 2025; the squad is in Group C with Brazil, Morocco and Haiti; fixtures and host cities are official — v Haiti, Boston, 13 June; v Morocco, Boston, 19 June; v Brazil, Miami, 24 June. PROJECTED / not confirmed: all travel distances and flight times are approximate; fares and per-fan costs are rough estimates; climate figures are typical late-June seasonal averages. Scotland must finish in the top two (or as one of the best third-placed sides under the 48-team format) to progress; any knockout venues are not yet known.",
+  disclaimer: "CONFIRMED as of 2 July 2026: Scotland qualified by beating Denmark 4-2 at Hampden on 18 November 2025; beat Haiti 1-0 (Boston, 13 June); lost to Morocco (Boston, 19 June) and Brazil (Miami, 24 June); finished on 3 points and did not advance from Group C. Travel and climate notes are kept for reference for fans planning future US trips — fares are estimates, climate figures are seasonal averages.",
 };
 
 /* ── Steve Clarke's Scotland — confirmed core only ──────────────────────────
