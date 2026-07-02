@@ -1194,6 +1194,10 @@ function FlightsContent() {
   const [destCity, setDestCity] = useState('');
   const [depDate, setDepDate] = useState('');
   const [retDate, setRetDate] = useState('');
+  // Inline form-validation message rendered under the Search button —
+  // replaces the old blocking alert() dialogs. Cleared automatically as
+  // soon as the user edits any of the fields the message complains about.
+  const [formError, setFormError] = useState('');
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
   const [infants, setInfants] = useState(0);
@@ -1326,6 +1330,26 @@ function FlightsContent() {
         setCabinClass(sc as typeof cabinClass);
       }
     }
+
+    // Sensible default dates when neither URL nor sticky supplied any —
+    // depart ~4 weeks out, 7-night return. An empty "Add dates" box was
+    // the first dead-end on this form (2026-07-02 audit): the visitor had
+    // to open the calendar before anything worked. Prefilled dates keep
+    // the form one-click searchable; the calendar still lets them change.
+    const todayIso = new Date().toISOString().split('T')[0];
+    const stickyDepValid = !!(sticky?.departure && sticky.departure >= todayIso);
+    if (!dep && !stickyDepValid) {
+      const plus = (n: number) => {
+        const dd = new Date();
+        dd.setDate(dd.getDate() + n);
+        return dd.toISOString().split('T')[0];
+      };
+      setDepDate(plus(28));
+      const wantsOneWay =
+        urlTripType === 'oneway' || urlTripType === 'one-way' ||
+        (!ret && sticky?.tripType === 'one-way');
+      if (!wantsOneWay) setRetDate(plus(35));
+    }
   }, []);
 
   /**
@@ -1358,14 +1382,24 @@ function FlightsContent() {
 
   const today = new Date().toISOString().split('T')[0];
 
+  // Clear the inline validation message as soon as the user touches any
+  // field it could be complaining about — stale errors erode trust.
+  useEffect(() => {
+    setFormError('');
+  }, [originCode, destCode, depDate, retDate, tripType]);
+
   const handleSearch = useCallback(async () => {
-    if (!originCode) { alert('Please select a departure airport'); return; }
-    if (!destCode) { alert('Please select a destination'); return; }
-    if (!depDate) { alert('Please select a departure date'); return; }
+    // Inline validation — never alert(). A blocking alert() dialog reads
+    // as a frozen page to some users (and to automation), and dismissing
+    // it teaches nothing because the message vanishes (2026-07-02 audit).
+    if (!originCode) { setFormError('Choose a departure airport to get started.'); return; }
+    if (!destCode) { setFormError('Choose a destination to search.'); return; }
+    if (!depDate) { setFormError('Pick a departure date to search.'); return; }
     if (tripType === 'return' && !retDate) {
-      alert('Please select a return date — or switch to one-way.');
+      setFormError('Add a return date — or switch to One-way above.');
       return;
     }
+    setFormError('');
 
     // Track the search submission so we can see which routes get the
     // most demand, return vs one-way mix, and which searches actually
@@ -2072,7 +2106,12 @@ function FlightsContent() {
                     ? 'Pick a return date to search'
                     : 'Search 5 Providers →'}
                 </button>
-                {returnMissing ? (
+                {formError ? (
+                  <p className="text-center text-[.72rem] text-red-600 font-bold mt-2.5" role="alert">
+                    <i className="fa-solid fa-circle-exclamation mr-1.5" aria-hidden />
+                    {formError}
+                  </p>
+                ) : returnMissing ? (
                   <p className="text-center text-[.68rem] text-amber-700 font-bold mt-2.5">
                     Return trip selected — add a return date, or switch to One-way above.
                   </p>

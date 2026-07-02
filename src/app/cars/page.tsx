@@ -384,6 +384,9 @@ function CarsContent() {
 
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  // Inline form-validation message rendered under the Search button —
+  // replaces the old blocking alert() dialogs (2026-07-02).
+  const [formError, setFormError] = useState('');
   const [searchedLoc, setSearchedLoc] = useState('');
   const [searchedReturnLoc, setSearchedReturnLoc] = useState('');
 
@@ -431,25 +434,34 @@ function CarsContent() {
 
   const today = new Date().toISOString().split('T')[0];
 
+  // Clear the inline validation message as soon as the user touches any
+  // field it could be complaining about — stale errors erode trust.
+  useEffect(() => {
+    setFormError('');
+  }, [location, returnLocation, pickupDate, dropoffDate, differentReturn]);
+
   const days = pickupDate && dropoffDate
     ? Math.max(1, Math.round((new Date(dropoffDate).getTime() - new Date(pickupDate).getTime()) / 86400000))
     : null;
 
   const handleSearch = useCallback(() => {
-    if (!location) { alert('Please choose a pickup airport from the list'); return; }
+    // Inline validation — never alert(). Blocking dialogs read as a frozen
+    // page and the message vanishes on dismiss (2026-07-02 audit).
+    if (!location) { setFormError('Choose a pickup airport to search.'); return; }
     if (!findLocation(location)) {
-      alert('Please pick a location from the dropdown — only listed airports are supported.');
+      setFormError('Pick a pickup airport from the dropdown list — only listed airports are supported.');
       return;
     }
-    if (!pickupDate) { alert('Please select a pickup date'); return; }
-    if (!dropoffDate) { alert('Please select a return date'); return; }
+    if (!pickupDate) { setFormError('Pick a pickup date to search.'); return; }
+    if (!dropoffDate) { setFormError('Pick a return date to search.'); return; }
     if (differentReturn) {
-      if (!returnLocation) { alert('Please choose a return location'); return; }
+      if (!returnLocation) { setFormError('Choose a return location to search.'); return; }
       if (!findLocation(returnLocation)) {
-        alert('Please pick a return location from the dropdown — only listed airports are supported.');
+        setFormError('Pick a return location from the dropdown list — only listed airports are supported.');
         return;
       }
     }
+    setFormError('');
 
     setSearchedLoc(location);
     setSearchedReturnLoc(differentReturn ? returnLocation : location);
@@ -467,11 +479,14 @@ function CarsContent() {
       age: driverAge,
     });
 
+    // Short beat so the loading state registers as "it's searching", then
+    // reveal. Was 1800ms — long enough that impatient users saw a stuck
+    // page (2026-07-02 audit); 900ms keeps the feedback without the wait.
     setTimeout(() => {
       setLoading(false);
       setSearched(true);
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-    }, 1800);
+    }, 900);
   }, [location, pickupDate, dropoffDate, differentReturn, returnLocation]);
 
   // Auto-search when URL params fill all required fields
@@ -648,7 +663,14 @@ function CarsContent() {
             className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(16,185,129,0.3)]">
             Search Car Rentals →
           </button>
-          <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">Pick from {LOCATIONS.length} verified airports · Compare real live prices on EconomyBookings & Trip.com</p>
+          {formError ? (
+            <p className="text-center text-[.72rem] text-red-600 font-bold mt-2.5" role="alert">
+              <i className="fa-solid fa-circle-exclamation mr-1.5" aria-hidden />
+              {formError}
+            </p>
+          ) : (
+            <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">Pick from {LOCATIONS.length} verified airports · Compare real live prices on EconomyBookings & Trip.com</p>
+          )}
         </div>
 
         {/* App-store badge row — sits under the search form on the dark hero. */}
@@ -715,14 +737,16 @@ function CarsContent() {
           {/* Car category cards */}
           <section className="max-w-[1000px] mx-auto px-5 pb-6">
             <div className="space-y-3">
-              {filteredCars.length > 0 ? filteredCars.map((car) => {
+              {filteredCars.length > 0 ? filteredCars.map((car, carIdx) => {
                 const totalEst = days ? car.fromPrice * days : car.fromPrice;
                 return (
                   <div key={car.name} className="bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden hover:shadow-md transition-all">
                     <div className="grid grid-cols-1 md:grid-cols-[220px_1fr_auto] gap-0">
-                      {/* Car image */}
+                      {/* Car image — first three load eagerly so the reveal
+                          after the loading beat isn't a wall of white boxes
+                          while Unsplash wakes up (2026-07-02 audit). */}
                       <div className="relative h-44 md:h-full min-h-[160px] bg-gradient-to-br from-gray-50 to-gray-100">
-                        <img src={car.img} alt={car.name} loading="lazy"
+                        <img src={car.img} alt={car.name} loading={carIdx < 3 ? 'eager' : 'lazy'}
                           className="w-full h-full object-cover"
                           onError={(e) => {
                             const el = e.target as HTMLImageElement;

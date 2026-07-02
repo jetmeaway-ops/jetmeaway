@@ -51,6 +51,24 @@ export default function PopularDestinations() {
     return () => cancelAnimationFrame(raf);
   }, [paused, dragging]);
 
+  // Vertical mouse-wheel over the carousel must scroll the PAGE. The strip
+  // is a scroll container (overflow-x: auto makes overflow-y compute to
+  // auto too), so wheel events latched onto it and went nowhere — users'
+  // scroll "stuck" on this section (2026-07-02 audit). Native non-passive
+  // listener because React's synthetic wheel can't preventDefault here.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        window.scrollBy({ top: e.deltaY, left: 0 });
+      }
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
   // Mouse handlers — desktop drag-to-scroll. Kept because mouse events don't
   // fire on touch devices, so this is mouse-only by design.
   const onMouseDown = useCallback((e: React.MouseEvent) => {
@@ -96,7 +114,13 @@ export default function PopularDestinations() {
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
         onTouchCancel={onTouchEnd}
-        className="flex gap-5 overflow-x-auto overflow-y-hidden px-6 select-none popular-dest-scroller"
+        // overflow-y-hidden removed 2026-07-02 — pairing it with
+        // overflow-x-auto made the strip a y-axis scroll container too, so
+        // a vertical mouse-wheel over the cards latched onto the carousel
+        // (which has nothing to scroll vertically) instead of chaining up
+        // to the page. Users' scroll "stuck" on this section. Cards are
+        // fixed-height so nothing overflows y; visually identical.
+        className="flex gap-5 overflow-x-auto px-6 select-none popular-dest-scroller"
         style={{
           cursor: dragging ? 'grabbing' : 'grab',
           scrollbarWidth: 'none',

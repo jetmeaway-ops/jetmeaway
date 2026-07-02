@@ -289,7 +289,18 @@ function ExploreContent() {
     const p = new URLSearchParams(window.location.search);
     const dest = p.get('destination') || p.get('dest') || '';
     const d = p.get('date') || '';
-    if (d) setTravelDate(d);
+    // Dates in the past are dropped no matter where they came from — the
+    // form was showing "25 Jun" a week after that date passed because
+    // sticky restore never checked freshness (2026-07-02 audit). When
+    // nothing valid survives, default to a week from today so the field
+    // is always actionable.
+    const today = new Date().toISOString().split('T')[0];
+    const weekOut = (() => {
+      const dd = new Date();
+      dd.setDate(dd.getDate() + 7);
+      return dd.toISOString().split('T')[0];
+    })();
+    setTravelDate(d && d >= today ? d : weekOut);
     if (dest) {
       setDestination(dest);
       setSearchedDest(dest);
@@ -304,7 +315,7 @@ function ExploreContent() {
           setDestination(parsed.d.dest);
           setSearchedDest(parsed.d.dest);
           setSearched(true);
-          if (parsed.d.date) setTravelDate(parsed.d.date);
+          if (parsed.d.date && parsed.d.date >= today) setTravelDate(parsed.d.date);
           return;
         }
       }

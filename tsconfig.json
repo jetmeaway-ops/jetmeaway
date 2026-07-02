@@ -30,5 +30,16 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "mobile"]
+  "exclude": [
+    "node_modules",
+    "mobile",
+    "scratch",
+    "Advertisement",
+    "jetmeaway app landing page",
+    "jma-blog-links",
+    "jma-dest-hubs",
+    "jma-ios-fix",
+    "jma-native-3d",
+    "jma-weather-badge"
+  ]
 }

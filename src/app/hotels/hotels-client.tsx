@@ -2173,6 +2173,9 @@ function HotelsContent() {
   const [loading, setLoading] = useState(false);
   const [hotels, setHotels] = useState<HotelResult[] | null>(null);
   const [apiError, setApiError] = useState('');
+  // Inline form-validation message rendered under the Search button —
+  // replaces the old blocking alert() dialogs (2026-07-02).
+  const [formError, setFormError] = useState('');
   const [searched, setSearched] = useState(false);
   const [searchedDest, setSearchedDest] = useState('');
   // Trip.com numeric cityId for the current search. Resolved server-side via
@@ -2303,6 +2306,21 @@ function HotelsContent() {
     if (cout) setCheckout(cout);
     else if (sticky?.checkout && sticky.checkout >= today) setCheckout(sticky.checkout);
 
+    // Sensible default dates when neither URL nor sticky supplied any —
+    // check-in ~2 weeks out, 3 nights. An empty "Add dates" box was the
+    // first dead-end on this form (2026-07-02 audit). Destination stays
+    // EMPTY by owner decision (2026-04-27) — only dates are prefilled.
+    const stickyCinValid = !!(sticky?.checkin && sticky.checkin >= today);
+    if (!cin && !stickyCinValid) {
+      const plus = (n: number) => {
+        const dd = new Date();
+        dd.setDate(dd.getDate() + n);
+        return dd.toISOString().split('T')[0];
+      };
+      setCheckin(plus(14));
+      setCheckout(plus(17));
+    }
+
     if (a) setAdults(Math.min(10, Math.max(1, parseInt(a))));
     else if (sticky?.adults) setAdults(Math.min(10, Math.max(1, sticky.adults)));
 
@@ -2421,6 +2439,12 @@ function HotelsContent() {
 
   const today = new Date().toISOString().split('T')[0];
 
+  // Clear the inline validation message as soon as the user touches any
+  // field it could be complaining about — stale errors erode trust.
+  useEffect(() => {
+    setFormError('');
+  }, [destination, checkin, checkout]);
+
   // Calculate nights
   function getNights(): number {
     if (!checkin || !checkout) return 0;
@@ -2431,9 +2455,14 @@ function HotelsContent() {
   }
 
   const handleSearch = useCallback(async () => {
-    if (!destination) { alert('Please enter a destination'); return; }
-    if (!checkin) { alert('Please select a check-in date'); return; }
-    if (!checkout) { alert('Please select a check-out date'); return; }
+    // Inline validation — never alert(). A blocking alert() dialog reads
+    // as a frozen page to some users (and to automation), and the message
+    // vanishes on dismiss so it teaches nothing (2026-07-02 audit — the
+    // "Search Hotels does nothing / page hangs" report was these alerts).
+    if (!destination) { setFormError('Type a destination to search — city, landmark or hotel name.'); return; }
+    if (!checkin) { setFormError('Pick a check-in date to search.'); return; }
+    if (!checkout) { setFormError('Pick a check-out date to search.'); return; }
+    setFormError('');
 
     // Track the search submission so we can see which destinations get
     // searched most, how many nights/rooms/guests are typical, and which
@@ -2765,6 +2794,29 @@ function HotelsContent() {
     return allBoards.some(b => b.includes(boardFilter));
   }) : null;
 
+  // 'Recommended' score — quality-weighted value, not raw server order.
+  // Server order surfaced whatever LiteAPI returned first, which for
+  // Barcelona was a 2★ non-refundable hostal wearing the Scout Pick badge
+  // (2026-07-02 audit). Quality = stars + review score + review volume;
+  // value bonus rewards being cheap relative to the result set's median
+  // so a solid 4★ at a fair price beats both the dirt-cheap dive and the
+  // overpriced palace. All inputs are optional-safe: missing fields score 0.
+  const medianPPN = (() => {
+    if (!filteredHotels || filteredHotels.length === 0) return 0;
+    const ps = filteredHotels.map(h => h.pricePerNight).filter(n => Number.isFinite(n) && n > 0).sort((x, y) => x - y);
+    return ps.length ? ps[Math.floor(ps.length / 2)] : 0;
+  })();
+  const recommendedScore = (h: HotelResult): number => {
+    const stars = h.stars || 0;
+    const score = typeof h.reviewScore === 'number' && h.reviewScore > 0 ? Math.min(10, h.reviewScore) : 0;
+    const reviews = typeof h.reviewCount === 'number' && h.reviewCount > 0 ? h.reviewCount : 0;
+    const quality = stars * 1.2 + score * 0.5 + Math.log10(reviews + 1) * 0.9;
+    const value = medianPPN > 0 && h.pricePerNight > 0
+      ? Math.min(2, medianPPN / h.pricePerNight) * 1.5
+      : 0;
+    return quality + value;
+  };
+
   const sortedHotels = filteredHotels ? [...filteredHotels].sort((a, b) => {
     if (sortBy === 'price-asc') return a.pricePerNight - b.pricePerNight;
     if (sortBy === 'price-desc') return b.pricePerNight - a.pricePerNight;
@@ -2773,11 +2825,27 @@ function HotelsContent() {
       const db = b.lat != null && b.lng != null ? distanceKm(b.lat, b.lng, cityCentre.lat, cityCentre.lng) : Infinity;
       return da - db;
     }
-    // 'recommended' — keep server order (LiteAPI bookable first, then curated)
-    return 0;
+    // 'recommended' — quality-weighted value, best first.
+    return recommendedScore(b) - recommendedScore(a);
   }) : null;
 
-  const cheapest = sortedHotels && sortedHotels.length > 0 ? sortedHotels[0] : null;
+  const cheapest = sortedHotels && sortedHotels.length > 0
+    ? [...sortedHotels].sort((a, b) => a.pricePerNight - b.pricePerNight)[0]
+    : null;
+
+  // Scout Pick — the badge is an endorsement, so it has a quality bar:
+  // 3★+, a real review base, and either a strong score or 4★+. First
+  // hotel in the current sort order that qualifies wears it; if nothing
+  // qualifies, nobody gets the badge (better no pick than a bad pick).
+  const scoutPickId = (() => {
+    if (!sortedHotels) return null;
+    const pick = sortedHotels.find(h =>
+      (h.stars || 0) >= 3 &&
+      (h.reviewCount || 0) >= 150 &&
+      ((h.reviewScore || 0) >= 7.5 || (h.stars || 0) >= 4)
+    );
+    return pick ? pick.id : null;
+  })();
   const nights = getNights();
 
   // ── Pagination ────────────────────────────────────────────────────────────
@@ -2980,7 +3048,14 @@ function HotelsContent() {
             className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(245,158,11,0.3)]">
             {loading ? 'Searching…' : 'Search Hotels →'}
           </button>
-          <p className="text-center text-[11px] leading-snug text-[#8E95A9] font-semibold mt-1.5">Book directly — no redirects, no hidden fees, best price guaranteed</p>
+          {formError ? (
+            <p className="text-center text-[.72rem] text-red-600 font-bold mt-1.5" role="alert">
+              <i className="fa-solid fa-circle-exclamation mr-1.5" aria-hidden />
+              {formError}
+            </p>
+          ) : (
+            <p className="text-center text-[11px] leading-snug text-[#8E95A9] font-semibold mt-1.5">Book directly — no redirects, no hidden fees, best price guaranteed</p>
+          )}
         </div>
 
       {/* App-store badge row — sits under the search form on the dark hero. */}
@@ -3370,7 +3445,7 @@ function HotelsContent() {
                     key={h.id || i}
                     hotel={h}
                     index={pageStart + i}
-                    isCheapest={pageStart + i === 0}
+                    isCheapest={scoutPickId != null && h.id === scoutPickId}
                     nights={nights}
                     adults={adults}
                     children={childCount}

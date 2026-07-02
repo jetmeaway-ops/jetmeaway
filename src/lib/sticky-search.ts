@@ -7,15 +7,17 @@
      it wants, but readers must defend against missing fields and bad shapes.
    - We store ONE record per vertical. New search overwrites old. We do NOT
      keep history — that's a separate concern (see Vercel KV recent searches).
-   - Time-to-live is 30 days. After that we treat the record as missing so
-     the user doesn't get stale dates pre-filled into a fresh visit.
+   - Time-to-live is 7 days. After that we treat the record as missing so
+     the user doesn't get stale dates/passenger counts pre-filled into a
+     fresh visit. (Was 30 days — a month-old "3 adults, Nov 7–Dec 7" test
+     search kept resurfacing as if it were the site default, 2026-07-02.)
    - URL params ALWAYS win. Sticky restore only fills gaps when the URL is
      bare. This keeps shareable links honest.
    - Server-render safe: every read/write checks for `window` existence and
      swallows storage exceptions (private mode, quota exceeded, etc).
    ════════════════════════════════════════════════════════════════════════════ */
 
-const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+const TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 type Stamped<T> = { v: 1; t: number; d: T };
 
