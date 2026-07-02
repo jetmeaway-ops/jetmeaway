@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import DateRangePicker from '@/components/DateRangePicker';
 import { redirectUrl } from '@/lib/redirect';
 import RoomsTable, { type RoomRate } from './RoomsTable';
 import RoomsSkeleton from './RoomsSkeleton';
@@ -215,6 +216,7 @@ function formatReviewDate(iso: string): string {
 export default function HotelDetailPage() {
   const params = useParams<{ id: string }>();
   const sp = useSearchParams();
+  const router = useRouter();
   const id = params?.id || '';
 
   const [hotel, setHotel] = useState<HotelDetails | null>(null);
@@ -264,11 +266,29 @@ export default function HotelDetailPage() {
   // object) so the modal always reflects the latest row data if the rates
   // array updates under it.
   const [modalOfferId, setModalOfferId] = useState<string | null>(null);
+  // In-progress date selection for the sidebar picker. The picker is
+  // controlled from the URL params; this holds the half-picked range
+  // (start clicked, end pending) so the UI tracks the click before we
+  // commit the full range to the URL.
+  const [pickDates, setPickDates] = useState<{ start: string; end: string } | null>(null);
 
-  // Search context passed from /hotels results (for the Book button)
+  // Search context passed from /hotels results (for the Book button).
+  // Deep-link support (2026-07-02): blog posts link straight to a hotel by
+  // LiteAPI id with NO search context. Default to the same window the
+  // search form uses (check-in ~2 weeks out, 3 nights) so live rooms load
+  // immediately instead of a rate-less dead end; the sidebar date picker
+  // below lets the visitor change dates in place.
+  const defaultDates = useMemo(() => {
+    const plus = (n: number) => {
+      const d = new Date();
+      d.setDate(d.getDate() + n);
+      return d.toISOString().split('T')[0];
+    };
+    return { cin: plus(14), cout: plus(17) };
+  }, []);
   const offerId = sp?.get('offerId') || '';
-  const checkin = sp?.get('checkin') || '';
-  const checkout = sp?.get('checkout') || '';
+  const checkin = sp?.get('checkin') || defaultDates.cin;
+  const checkout = sp?.get('checkout') || defaultDates.cout;
   const adults = sp?.get('adults') || '2';
   const children = sp?.get('children') || '0';
   const childrenAges = sp?.get('childrenAges') || '';
@@ -1457,8 +1477,33 @@ export default function HotelDetailPage() {
               </>
             )}
             <div className="mt-4 space-y-2 text-[.82rem] text-[#5C6378] font-semibold">
-              {checkin && <div className="flex justify-between"><span>Check-in</span><strong className="text-[#1A1D2B]">{checkin}</strong></div>}
-              {checkout && <div className="flex justify-between"><span>Check-out</span><strong className="text-[#1A1D2B]">{checkout}</strong></div>}
+              {/* Editable dates — blog deep links land with default dates;
+                  changing them here rewrites the URL params and the rates
+                  table refetches live prices in place. The old offerId/
+                  price params are dropped on change (they belong to the
+                  previous dates and would show a stale price). */}
+              <DateRangePicker
+                start={pickDates ? pickDates.start : checkin}
+                end={pickDates ? pickDates.end : checkout}
+                minDate={new Date().toISOString().split('T')[0]}
+                accent="orange"
+                startWord="check-in"
+                endWord="check-out"
+                onChange={(next) => {
+                  setPickDates(next);
+                  if (next.start && next.end) {
+                    const q = new URLSearchParams(sp?.toString() || '');
+                    q.set('checkin', next.start);
+                    q.set('checkout', next.end);
+                    q.delete('offerId');
+                    q.delete('price');
+                    q.delete('negPrice');
+                    q.delete('mktPrice');
+                    router.replace(`/hotels/${encodeURIComponent(String(id))}?${q.toString()}`, { scroll: false });
+                    setPickDates(null);
+                  }
+                }}
+              />
               <div className="flex justify-between">
                 <span>Guests</span>
                 <strong className="text-[#1A1D2B]">{adults} adult{adults !== '1' ? 's' : ''}{children !== '0' ? `, ${children} child${children !== '1' ? 'ren' : ''}` : ''}</strong>
