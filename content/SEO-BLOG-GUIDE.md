@@ -103,6 +103,14 @@ Bordeaux, Cannes) → 9. Dubai → 10. everything else.
 
 ## 6. Conversion — every post must feed the funnel
 
+- **Hotel deep links (2026-07-02): every hotel NAME in a post links to its own hotel
+  page**: `/hotels/<liteapi-id>?city=<City>` (e.g. `/hotels/la_lp6aee8?city=Barcelona`).
+  The page opens with live rooms on default dates and a date picker so the reader books
+  that exact hotel. To find each hotel's LiteAPI id: call our own API
+  `GET /api/hotels?city=<City>&checkin=<future date>&checkout=<+3d>&adults=2` and match
+  hotel names to the returned `id` fields (ids look like `la_xxxxxxx`). If a hotel is
+  not in the response (not LiteAPI-bookable), link to `/hotels?city=<City>` instead —
+  NEVER `/hotels?destination=<hotel name>` (hotel names don't resolve as destinations).
 - In-content links to `/hotels?city=X` and `/flights?to=XXX` with intent phrasing
   ("check live prices for these dates"). One booking exit per tier minimum.
 - Comparison-table rows must be clickable links (Clarity showed dead-clicks on static tables).
