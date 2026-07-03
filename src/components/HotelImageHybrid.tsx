@@ -131,16 +131,14 @@ export default async function HotelImageHybrid({ hotelName, city, countryCode, a
   if (!url && !miss) {
     let source: string | null = null;
     // 1. Google Places — fast + accurate for a named hotel's photo (the right
-    //    tool for "photo of this hotel"). Primary source.
+    //    tool for "photo of this hotel"). Primary source. googleHotelFirstPhoto
+    //    self-manages timeout, retry and a concurrency cap (see google-places.ts);
+    //    an outer timeout here would cut its retries short during a static build.
     {
-      const ctrl = new AbortController();
-      const timeout = setTimeout(() => ctrl.abort(), 8000);
       try {
-        url = await googleHotelFirstPhoto(`${hotelName} ${city}`, ctrl.signal);
+        url = await googleHotelFirstPhoto(`${hotelName} ${city}`);
       } catch {
         url = null;
-      } finally {
-        clearTimeout(timeout);
       }
       if (url) source = 'google';
     }

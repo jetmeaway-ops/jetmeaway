@@ -143,19 +143,15 @@ export default async function HotelPhoto({ hotelName, city, alt, className }: Pr
 
   // Only call Google if we have no cached result at all (positive or negative).
   if (!url && !cachedMiss) {
-    // 8-second hard cap (was 4s, which mis-fired during Google's slower
-    // cold responses and seeded a 6-hour negative cache on the entire
-    // post). Google's p99 for Text Search + Photo Media combined sits
-    // around 5-6s under load, so 8s clears the long tail without making
-    // the page perceptibly slower (the photos lazy-load anyway).
-    const ctrl = new AbortController();
-    const timeout = setTimeout(() => ctrl.abort(), 8000);
+    // googleHotelFirstPhoto now self-manages its per-attempt timeout, retry
+    // and a process-wide concurrency cap (see src/lib/google-places.ts). The
+    // old 8s wrapper here would abort those retries mid-flight during a static
+    // build — the exact reason big posts (e.g. Athens, 46 hotels) burst-failed
+    // and froze generic stock photos into the page — so it's gone.
     try {
-      url = await googleHotelFirstPhoto(`${hotelName} ${city}`, ctrl.signal);
+      url = await googleHotelFirstPhoto(`${hotelName} ${city}`);
     } catch {
       url = null;
-    } finally {
-      clearTimeout(timeout);
     }
 
     try {

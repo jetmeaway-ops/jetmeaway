@@ -250,6 +250,95 @@ export async function googleHotelPlaceId(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Build-time resilience for single-photo hotel resolution.
+// ---------------------------------------------------------------------------
+// Blog pages are statically generated (generateStaticParams, no revalidate),
+// so every <HotelPhoto> resolves its image via a LIVE Google call AT BUILD
+// TIME. A 40-50 hotel post fires that many Text Search + Photo Media pairs
+// at once; Google rate-limits / times out under the burst, the hotels fall
+// back to generic stock, and that stock is then frozen into the static HTML
+// until the next rebuild (which bursts and fails the same way). Athens (46
+// hotels) hit 0/46 real photos this way.
+//
+// Two guards make a build reliable without changing the caller contract:
+//   1. a process-wide concurrency cap so we never burst Google, and
+//   2. per-attempt timeout + bounded retry on TRANSIENT errors (429 / 5xx /
+//      abort) — a clean "no photo for this hotel" result is NOT retried.
+const PHOTO_MAX_CONCURRENT = 5;
+const PHOTO_ATTEMPTS = 3;
+const PHOTO_ATTEMPT_TIMEOUT_MS = 10_000;
+
+let photoActive = 0;
+const photoWaiters: Array<() => void> = [];
+
+async function acquirePhotoSlot(): Promise<void> {
+  if (photoActive < PHOTO_MAX_CONCURRENT) {
+    photoActive++;
+    return;
+  }
+  // Wait for release() to hand a slot over. The count is carried across the
+  // handover (release neither ++ nor -- when a waiter exists) so we never
+  // over-admit past PHOTO_MAX_CONCURRENT.
+  await new Promise<void>((resolve) => photoWaiters.push(resolve));
+}
+
+function releasePhotoSlot(): void {
+  const next = photoWaiters.shift();
+  if (next) next();
+  else photoActive--;
+}
+
+type PhotoOnce =
+  | { kind: 'ok'; url: string }
+  | { kind: 'miss' }        // hotel genuinely has no Google photo — do not retry
+  | { kind: 'transient' };  // rate limit / server error — retry
+
+/** True for HTTP statuses worth retrying (rate limit, server error). */
+function isTransientStatus(status: number): boolean {
+  return status === 429 || status >= 500;
+}
+
+/** One Text Search → Photo Media pass. Never throws on HTTP status. */
+async function resolveFirstPhotoOnce(
+  query: string,
+  apiKey: string,
+  signal: AbortSignal,
+): Promise<PhotoOnce> {
+  // Text Search — first place's first photo name (saves a Place Details call).
+  const res = await fetch(TEXT_SEARCH_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': apiKey,
+      'X-Goog-FieldMask': 'places.id,places.photos.name',
+    },
+    body: JSON.stringify({ textQuery: query, includedType: 'lodging', maxResultCount: 1 }),
+    signal,
+  });
+  if (!res.ok) {
+    if (isTransientStatus(res.status)) return { kind: 'transient' };
+    console.error('[google-places:firstPhoto] HTTP', res.status, await res.text().catch(() => ''));
+    return { kind: 'miss' };
+  }
+  const data = await res.json() as {
+    places?: Array<{ id?: string; photos?: Array<{ name?: string }> }>;
+  };
+  const photoName = data.places?.[0]?.photos?.[0]?.name;
+  if (!photoName) return { kind: 'miss' };
+
+  const mediaRes = await fetch(
+    `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=1200&skipHttpRedirect=true`,
+    { headers: { 'X-Goog-Api-Key': apiKey }, signal },
+  );
+  if (!mediaRes.ok) {
+    if (isTransientStatus(mediaRes.status)) return { kind: 'transient' };
+    return { kind: 'miss' };
+  }
+  const mediaData = await mediaRes.json() as { photoUri?: string };
+  return mediaData.photoUri ? { kind: 'ok', url: mediaData.photoUri } : { kind: 'miss' };
+}
+
 /**
  * Cheaper variant — just one photo, used by blog posts where we only
  * need a single hero shot per recommended hotel. Two API calls:
@@ -257,7 +346,10 @@ export async function googleHotelPlaceId(
  * which is the expensive part of full enrichment).
  *
  * Returns the resolved CDN photo URL (lh3.googleusercontent.com/places/…)
- * or null on any error / missing key. Caller is responsible for caching.
+ * or null (missing key, hotel has no Google photo, or every retry failed).
+ * Never throws. Self-manages timeout, retry and concurrency (see above) so
+ * a caller must NOT wrap it in its own short timeout — that would cut the
+ * retries short during a static build. Caller is responsible for caching.
  *
  * Cost: Text Search $32/1k + Photo Media $7/1k ≈ $0.04 per hotel
  * first-fetch — half the cost of the full enrichment path.
@@ -269,46 +361,39 @@ export async function googleHotelFirstPhoto(
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
   if (!apiKey || !query) return null;
 
+  await acquirePhotoSlot();
   try {
-    // Text Search — return first photo name in the same call (saves
-    // one Place Details request vs. doing it in two steps).
-    const res = await fetch(TEXT_SEARCH_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask': 'places.id,places.photos.name',
-      },
-      body: JSON.stringify({
-        textQuery: query,
-        includedType: 'lodging',
-        maxResultCount: 1,
-      }),
-      signal,
-    });
-    if (!res.ok) {
-      console.error('[google-places:firstPhoto] HTTP', res.status, await res.text().catch(() => ''));
-      return null;
-    }
-    const data = await res.json() as {
-      places?: Array<{ id?: string; photos?: Array<{ name?: string }> }>;
-    };
-    const photoName = data.places?.[0]?.photos?.[0]?.name;
-    if (!photoName) return null;
+    for (let attempt = 0; attempt < PHOTO_ATTEMPTS; attempt++) {
+      if (signal?.aborted) return null;
 
-    const mediaRes = await fetch(
-      `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=1200&skipHttpRedirect=true`,
-      {
-        headers: { 'X-Goog-Api-Key': apiKey },
-        signal,
-      },
-    );
-    if (!mediaRes.ok) return null;
-    const mediaData = await mediaRes.json() as { photoUri?: string };
-    return mediaData.photoUri ?? null;
-  } catch (err) {
-    console.error('[google-places:firstPhoto]', err instanceof Error ? err.message : err);
-    return null;
+      // Per-attempt timeout, chained to any outer cancellation signal.
+      const ctrl = new AbortController();
+      const onOuterAbort = () => ctrl.abort();
+      signal?.addEventListener('abort', onOuterAbort, { once: true });
+      const timer = setTimeout(() => ctrl.abort(), PHOTO_ATTEMPT_TIMEOUT_MS);
+      try {
+        const r = await resolveFirstPhotoOnce(query, apiKey, ctrl.signal);
+        if (r.kind === 'ok') return r.url;
+        if (r.kind === 'miss') return null;   // clean miss — do not retry
+        // r.kind === 'transient' → fall through to backoff + retry
+      } catch (err) {
+        // Outer cancellation → stop. Otherwise (network error / attempt
+        // timeout) treat as transient and retry.
+        if (signal?.aborted) return null;
+        console.error('[google-places:firstPhoto]', err instanceof Error ? err.message : err);
+      } finally {
+        clearTimeout(timer);
+        signal?.removeEventListener('abort', onOuterAbort);
+      }
+
+      // Linear backoff before the next attempt (skip after the last).
+      if (attempt < PHOTO_ATTEMPTS - 1) {
+        await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+      }
+    }
+    return null;   // exhausted retries — caller uses its fallback for this render
+  } finally {
+    releasePhotoSlot();
   }
 }
 
