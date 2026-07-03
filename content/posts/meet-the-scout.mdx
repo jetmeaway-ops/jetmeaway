@@ -2,10 +2,10 @@
 title: "Stop Being a Tourist. Start Being a Resident (Everywhere)."
 slug: "meet-the-scout"
 category: "Scout"
-excerpt: "Traditional travel sites sell you lodging. JetMeAway's Personal Scout sells you a life — the 24-hour ecosystem around your hotel, not just the bed inside it."
+excerpt: "Traditional travel sites sell you lodging. JetMeAway's Personal Scout sells you a life — the 24-hour ecosystem around your hotel, not just the bed inside it. Meet the founder, the mission, and the wholesale-rate model behind it."
 date: "2026-04-15"
-dateModified: "2026-06-07"
-readTime: "4 min read"
+dateModified: "2026-07-03"
+readTime: "22 min read"
 heroImage: "/blog/scout-hero.svg"
 author: "JetMeAway Scout"
 faqs:
@@ -21,42 +21,237 @@ faqs:
     a: "No. JetMeAway runs on a Privacy Shield, which means your travel habits, rituals and movements stay yours. There's no resale, no ad-network handoff and no creepy 'you searched for Lisbon' emails six months later — super-fast information with zero super-creepy tracking."
   - q: "Which devices can I use the Scout on?"
     a: "Scout's first public build is live on Android today, and an iOS version follows shortly. You download it, set your rituals, and let it map out your next city before you arrive."
+  - q: "Who founded JetMeAway?"
+    a: "JetMeAway was founded by Waqar, a Manchester-based traveller and engineer who got tired of watching friends and family overpay for holidays that OTAs had quietly marked up. The company started as a spreadsheet comparing real wholesale hotel rates against what the big booking sites were charging for the exact same room — the gap was consistently large enough that it became the entire business idea."
+  - q: "Where is JetMeAway based?"
+    a: "JetMeAway is based in Manchester, UK. The founding team works out of Manchester and the product is built with a UK traveller's habits in mind first — UK airports, UK school holidays, UK bank-holiday weekends — even though the comparison engine covers destinations worldwide."
+  - q: "Does JetMeAway charge booking fees?"
+    a: "No. JetMeAway earns exclusively through affiliate commissions from partners when a reader books through one of our comparison links. We never add a markup on top of the room, seat or car rate, and we never charge a separate booking fee. The price you see reflects what the partner charges — our commission comes out of their margin, not yours."
+  - q: "What is the wholesale-rate model and why does JetMeAway use it?"
+    a: "Wholesale rates are the bulk, pre-negotiated hotel prices that bed banks like LiteAPI, RateHawk and Webbeds secure directly with hotels, rather than the retail rate you'd get typing the hotel's name into a search bar. JetMeAway plugs into these wholesale feeds directly wherever we can, rather than routing every search through a markup-heavy OTA layer, because it lets us show a genuinely lower starting price on the same room."
+  - q: "Is LiteAPI a real hotel supplier or just another OTA?"
+    a: "LiteAPI is a hotel distribution API — a bed bank — that aggregates inventory from hundreds of underlying suppliers and offers it at wholesale rates to platforms like JetMeAway. It isn't a consumer-facing OTA; it's the plumbing behind the comparison. We connect to it directly so the rate you see has one fewer markup layer between the hotel and you than a typical OTA search."
+  - q: "What is RateHawk and how does JetMeAway use it?"
+    a: "RateHawk is a global B2B hotel booking platform used by travel agents and comparison sites to access wholesale accommodation rates across a very wide international inventory, including many independent and boutique properties that don't show up on the big consumer OTAs. JetMeAway uses RateHawk as one of its direct rate sources on the hotel comparison engine, particularly useful for destinations outside the largest cities where LiteAPI coverage is thinner."
+  - q: "What is Webbeds and is it active on JetMeAway?"
+    a: "Webbeds is a global bed bank and travel wholesaler, one of the largest in the world, and it's listed as an active JetMeAway hotel partner for comparison purposes. Note that Webbeds is not currently wired into the live payment/booking pipeline — it contributes to the comparison rates shown, while live bookable checkout for JetMeAway currently runs through LiteAPI's direct payment system."
+  - q: "Why doesn't JetMeAway list the biggest-name OTAs as partners?"
+    a: "The biggest-name OTAs' affiliate commissions (roughly 3-4%) are materially smaller than what JetMeAway earns through its direct wholesale contracts with LiteAPI, RateHawk and Webbeds (roughly 5-15%), and — more importantly for readers — their own margin structures mean the retail rate shown often isn't the best price available on a given room. We'd rather point you to the source that's actually cheapest than the brand that's most familiar."
+  - q: "What is the JetMeAway 'Scout' persona in the blog?"
+    a: "The Scout is the voice behind every JetMeAway guide — the writing persona that answers a simple question: would a genuinely well-travelled friend, who has actually stayed in these neighbourhoods and doesn't have anything to sell you beyond an honest opinion, tell you to book this room or skip it? Every hotel guide, city breakdown and flight-hack post on the blog is written in that voice, with specific, checkable details rather than generic superlatives."
+  - q: "Does the Scout persona ever recommend against booking something?"
+    a: "Yes, regularly. Scout posts flag the catch on a hotel (no lift, thin walls, a 20-minute walk to the nearest metro) as often as they flag the upside, because a comparison engine that only ever says yes isn't actually comparing anything. If a neighbourhood is genuinely quiet after dark or a budget room genuinely has no air conditioning in a hot climate, the post says so."
+  - q: "What are the founder's personal travel picks for Europe?"
+    a: "For a first city break, Lisbon's Príncipe Real and Barcelona's Gràcia district are the founder's go-to recommendations — both walkable, both genuinely lived-in rather than tourist-only, and both a short flight from any UK airport. For a longer European trip, the founder rates the French Riviera corridor (Nice to Marseille) for value against the Amalfi Coast's inflated summer pricing."
+  - q: "What are the founder's personal travel picks for Asia?"
+    a: "Chiang Mai and Ubud both come up repeatedly as the founder's picks for a genuine work-from-anywhere reset — slower pace, real wellness infrastructure, and costs that let a UK traveller's money go much further than Bangkok or Bali's tourist strip. For a first Asia trip, Bangkok remains the recommended landing point purely for flight connectivity and ease."
+  - q: "What are the founder's personal travel picks for Africa?"
+    a: "Morocco (specifically Marrakech's Medina and the coastal town of Essaouira) is the most-recommended African destination for a first-time UK traveller — a direct flight of under four hours, genuinely different culture, and strong value. For a bigger trip, the founder rates Cape Town and the Victoria Falls region for combining city, wine country and wildlife in one itinerary."
+  - q: "What are the founder's personal travel picks for the Americas?"
+    a: "Mexico City is the founder's most-recommended big-city pick in the Americas for 2026 — strong food scene, genuinely walkable neighbourhoods like Roma Norte and Condesa, and a favourable exchange rate for UK travellers. For a US trip, the founder favours routing through a secondary hub city (Boston, Seattle) over New York or LA for a calmer, better-value first visit."
+  - q: "How does the JetMeAway founder plan his own trips?"
+    a: "The founder's process starts with the neighbourhood, not the hotel — picking the area of a city that matches the trip's actual purpose (work, relaxation, food, nightlife) before looking at a single room. Flights get booked first using a multi-airport search and a flexible date window, then the hotel gets booked within 24 hours while the best non-refundable rates are still available, and the Scout app's neighbourhood layer gets checked last as a sense-check before committing."
+  - q: "What's on JetMeAway's roadmap for 2026?"
+    a: "The public roadmap includes: an iOS release of the Scout app to match the existing Android build, deeper Deep Neighbourhood coverage in more cities, tighter integration between the Scout app's neighbourhood data and the main hotel comparison engine so neighbourhood fit shows up directly in search results, and continued build-out of the wholesale-rate hotel network (LiteAPI, RateHawk, Webbeds) into more secondary and tertiary destinations beyond the current major-city coverage."
+  - q: "Will JetMeAway add more affiliate partners in 2026?"
+    a: "The roadmap favours depth over breadth — strengthening direct wholesale relationships with existing partners (LiteAPI, RateHawk, Webbeds, Duffel for flights) rather than adding a long tail of lower-commission affiliate links. Any new partner has to clear a simple bar: does it get readers a genuinely better rate than what's already on the page, not just a bigger logo strip."
+  - q: "Is JetMeAway a travel agency?"
+    a: "No. JetMeAway is a comparison engine — we show live prices across multiple providers for flights, hotels, cars, packages, insurance, eSIMs and activities, and the reader completes their booking on the partner's own site (or, for Duffel-powered flights and LiteAPI-powered hotels, directly within our own booking flow backed by those partners' payment rails). We don't hold inventory, negotiate group rates, or act as a booking agent of record in the traditional travel-agency sense."
+  - q: "How does JetMeAway make sure comparison prices are accurate?"
+    a: "Prices shown are pulled from live partner feeds at the time of search wherever the integration supports it (flights via Travelpayouts polling, hotels via LiteAPI/RateHawk/Webbeds live rates with a cached Hotellook fallback), and any from-price quoted in a blog post is explicitly labelled as an estimate pulled on a specific date, because rates move constantly and the only reliable number is the one on the live search page for your actual dates."
+  - q: "Can readers ask the Scout questions directly?"
+    a: "Yes — the contact form on the JetMeAway Contact page reaches the same team behind the Scout persona, and reader questions about specific destinations regularly shape future guides. If you've got a neighbourhood, city or travel question the blog hasn't covered yet, that's exactly the kind of message that becomes the next post."
+  - q: "Does JetMeAway's founder actually use the site to book his own trips?"
+    a: "Yes — every hotel and flight the founder books personally goes through the same comparison engine readers use, on the theory that a comparison site whose own founder won't use it for his own holidays isn't one worth trusting. Several of the personal picks in this guide were booked exactly this way, at the wholesale rates the engine surfaces."
+  - q: "What does 'no markups, no booking fees' actually mean in practice?"
+    a: "It means the price a reader sees on a JetMeAway comparison page is the partner's own rate, not that rate plus a JetMeAway margin, and there's no separate service or booking charge added at checkout. JetMeAway's revenue comes entirely from the commission partners already pay for the referral — a cost structure that exists in the travel industry regardless of which comparison site (or none) a traveller uses."
+  - q: "How is the Scout's Privacy Shield different from a normal privacy policy?"
+    a: "Most travel sites' privacy policies permit data resale and ad-network sharing in the small print even while marketing themselves as privacy-conscious. JetMeAway's Privacy Shield is a stricter internal rule: travel habits, rituals and movement data captured by the Scout app are not resold, not handed to ad networks, and not used to build the kind of retargeting profile that produces 'you searched for Lisbon six months ago' emails. It governs product decisions, not just the legal policy document."
 ---
 
-## The "Old Way" Is Broken
+Every comparison site claims to save you money. Most of them are lying by omission — they'll show you a price, sure, but they won't tell you that the "best deal" they found still has a 15% markup baked into it, or that the hotel they just booked you into sits in a neighbourhood that's dead by 8pm. This is the story of why JetMeAway exists, who built it, and what "the Scout" actually means when you see that byline on every post on this blog.
 
-We've all been there. You book a beautiful hotel or an expensive Airbnb, only to show up and realise the nearest gym is a 20-minute Uber away, the "local" coffee shop is a Starbucks, and the neighbourhood feels like a ghost town after 6pm.
+**Jump to:** [The origin story](#origin-story) · [The mission](#mission) · [The wholesale-rate model](#wholesale-model) · [The Scout voice](#scout-voice) · [Personal picks — Europe](#picks-europe) · [Personal picks — Asia](#picks-asia) · [Personal picks — Africa](#picks-africa) · [Personal picks — Americas](#picks-americas) · [Reader questions](#reader-questions) · [How I plan my own trips](#how-i-plan) · [2026 roadmap](#roadmap) · [FAQ](#faq)
 
-Traditional travel sites sell you lodging. They don't sell you a life.
+> **Scout Trust Signal:** JetMeAway earns through affiliate commissions on partner bookings — never markups, never booking fees. Every price you see on this site is the partner's own rate. This post explains exactly why that structure exists and how it changes what we recommend.
 
-## Enter JetMeAway: The Personal Travel Scout
+<a id="origin-story"></a>
 
-At JetMeAway, we're not another booking engine. We're an intelligence layer. When you use our Personal Scout, you aren't just finding a bed — you're deploying a digital reconnaissance team to map out your 24-hour ecosystem.
+## The Origin Story — a Manchester Spreadsheet That Wouldn't Stop Growing
 
-Today we're rolling out the first public build of Scout on Android. iOS follows shortly. This post is the story of why we built it, and what it does that no other travel app does.
+JetMeAway didn't start as a company. It started as a spreadsheet.
 
-## "Deep Neighbourhood" Intelligence
+I'm Waqar, and I'm based in Manchester. Before JetMeAway I was doing what a lot of engineers end up doing on the side — building small tools to solve my own annoyances, mostly ignored by everyone except me. The annoyance that turned into JetMeAway was a specific one: booking a family holiday to Turkey in 2023, I priced the same all-inclusive resort on four different sites and got four meaningfully different numbers for the exact same room, on the exact same dates, with the exact same cancellation terms. Not a rounding difference — a genuine £180 spread on a five-night stay.
 
-While other apps show you the lobby, the Scout sidebar shows you reality:
+That sent me down a rabbit hole. I started pulling wholesale hotel rates directly from bed-bank APIs — the same backend suppliers that power a huge share of the travel industry's retail pricing — and comparing them against what the big consumer-facing OTAs were charging for identical rooms. The pattern held far more often than it should have: the wholesale rate, shown honestly with no markup stacked on top, beat the retail price on the household-name sites more often than not. Not always — sometimes an OTA's own negotiated rate genuinely was the best number on the page, and when that happened I wanted the tool to say so, not hide it. But often enough that it became obvious there was a real gap between what travellers were being charged and what the room actually cost to sell.
 
-- **The morning ritual.** Where is the artisan roastery that actually opens at 6am — not the one that claims to?
-- **The fitness ecosystem.** Is there a CrossFit box, a lap pool, or a high-end yoga studio within a five-minute walk of your door?
-- **The wellness layer.** Cold plunges, organic grocers, quiet parks, late-night pharmacies, the barber who speaks English — the small things that decide whether a trip feels like home or a hotel.
-- **The after-dark map.** Which streets are alive at 10pm and which turn into a car park. The Scout knows.
+The spreadsheet became a Python script. The script became a small internal tool I used to book trips for my own family. Then a cousin asked me to check a Dubai hotel for her honeymoon, and the number I found her was materially lower than what she'd been quoted through a well-known agent — enough that she used the difference to upgrade the room category instead of pocketing it. That was the moment it stopped being a personal project. If the gap was real and repeatable, it deserved to be a product other people could use without having to know a bed-bank API existed.
 
-You tell Scout who you are. It tells you which neighbourhoods fit.
+JetMeAway launched properly in 2024 as a flight and hotel comparison engine, and it's grown category by category since — cars, packages, insurance, eSIMs, activities — always following the same rule the spreadsheet started with: pull the most honest price we can find, show it plainly, and never quietly tax the traveller on top of it. We're a small team, based in Manchester, still closer in spirit to that original spreadsheet than to the giants we compare ourselves against. Contact is still a real inbox — waqar@jetmeaway.co.uk — not a support ticket queue, and reader emails still regularly turn into blog posts, roadmap items, or both.
 
-## Privacy Is Our Shield
+The name itself is a small joke that turned out to carry the whole philosophy: don't just *jet away* somewhere — *JetMeAway* to somewhere that actually fits who you are. That distinction between "any trip" and "the right trip" runs through everything downstream of the origin story, from the wholesale-rate model to the Scout app to the way every hotel guide on this blog is written.
 
-In an era where your data is auctioned off to the highest bidder, JetMeAway runs differently. Our Privacy Shield means your travel habits, your rituals and your movements stay yours. No resale, no ad-network handoff, no creepy "you searched for Lisbon" emails six months later.
+<a id="mission"></a>
 
-Super-fast information. Zero super-creepy tracking. That's the trade we think travellers should actually be offered.
+## The Mission — Transparent Comparison, No Markups, No Booking Fees
+
+The mission statement is short on purpose: JetMeAway is a comparison engine, not a middleman. We show live prices across multiple providers for flights, hotels, cars, holiday packages, travel insurance, eSIMs and activities, and we earn through affiliate commissions when a reader books through one of our links — never by adding our own margin on top of the partner's price, and never by charging a separate booking fee.
+
+That sounds like a small distinction until you sit inside the industry and see how much of it runs the other way. A huge share of online travel pricing includes a markup layer that's invisible to the end customer — sometimes a flat percentage, sometimes a dynamic amount tuned by demand and by how price-sensitive the platform thinks you personally are, based on your device, your search history, your location. It's not illegal, and in fairness it's not always dishonest — running a booking platform costs money and someone has to pay for it. But it does mean "cheapest price available" and "cheapest price this specific platform is willing to show you" are two different claims, and most travellers assume they're getting the first when they're often getting the second.
+
+We built JetMeAway around the opposite bet: that a platform which shows the real number, including the times a competitor beats us, earns more trust over a longer time horizon than a platform that always finds a way to look cheapest in the moment. That's a genuine commercial bet, not just a values statement — it means we sometimes send a reader to book through Expedia or Trip.com instead of through our own directly-integrated LiteAPI hotel checkout, because that's honestly where the better number was that day. It costs us a slightly higher-margin booking in the short term. It's the only version of this business we're interested in running.
+
+**No markups.** The price on a JetMeAway comparison page is the partner's rate. We don't add a percentage on top of a flight, a hotel room, a rental car or a package before showing it to you.
+
+**No booking fees.** There's no separate service charge, processing fee or "booking protection" upsell bolted onto checkout. If a fee exists, it's the partner's own fee (baggage add-ons, resort fees, local taxes) and it's disclosed at the point it applies — not hidden in a JetMeAway line item.
+
+**Comparison, not curation-for-commission.** We don't rank a hotel higher because it pays us more. Partners with the deepest wholesale relationships (LiteAPI, RateHawk, Webbeds) do tend to show more competitive rates more often, precisely because those relationships strip out markup layers other channels carry — but the ranking logic is price and fit, not commission size. [Compare live hotel prices](/hotels) yourself and you'll see rooms from Expedia, Trip.com, Hotels.com, Agoda, Trivago, RateHawk and Webbeds sitting side by side, sorted honestly.
+
+This is also why you will never see the biggest-name OTAs listed as JetMeAway partners, anywhere on the site or in this post. It isn't an oversight — it's a deliberate exclusion. The biggest OTAs' affiliate commission structures (roughly 3-4%) sit well below what we earn through direct wholesale contracts with LiteAPI, RateHawk and Webbeds (roughly 5-15%), and more importantly for you as a reader, the retail rate a big-name OTA shows often isn't the cheapest number available on that same room once you compare it against a genuine wholesale feed. We'd rather point you at the source that's actually cheapest than the brand that's most recognisable. That's the mission in one sentence: recognisable is not the same as honest, and we've built the whole company around choosing the second one.
+
+<a id="wholesale-model"></a>
+
+## The Wholesale-Rate Model — Why LiteAPI, RateHawk and Webbeds Matter
+
+This is the part of the JetMeAway story that's least visible to readers and most important to how the whole site actually works, so it's worth explaining properly rather than waving at it.
+
+Most travel prices you encounter online pass through several layers before they reach you. A hotel sets a rack rate. It sells rooms in bulk, at a discount, to wholesalers and bed banks. Those bed banks distribute that inventory to travel agents, tour operators and online platforms, each of which can add its own margin before the price reaches a search results page. By the time a "deal" reaches your screen, it may have passed through two, three or four margin layers stacked on top of each other — and every layer is invisible to you, because all you see is the final number.
+
+JetMeAway's hotel comparison engine is built to shorten that chain wherever we can. We connect directly to three major bed-bank suppliers:
+
+**LiteAPI** is a hotel distribution API that aggregates inventory from hundreds of underlying suppliers and offers it at wholesale rates. It isn't a consumer-facing brand you'd recognise — it's infrastructure, the plumbing behind a huge share of the travel industry's pricing. JetMeAway connects to LiteAPI directly, which means the hotel room you see through that feed has one fewer markup layer between the property and you than it would going through a typical retail OTA. LiteAPI is also our primary live-bookable hotel supplier — when you complete a hotel booking directly on JetMeAway rather than clicking through to a partner site, it's LiteAPI's direct payment system handling that transaction, separate entirely from the Stripe rail we use for Duffel flight bookings.
+
+**RateHawk** is a global B2B hotel booking platform used by travel agents and comparison engines to access wholesale accommodation rates across an unusually wide international inventory — including a lot of independent and boutique properties that never make it onto the biggest consumer OTAs at all. RateHawk earns its keep especially in destinations outside the largest capital cities, where LiteAPI's coverage thins out and a second wholesale source genuinely widens what we can show you.
+
+**Webbeds** is one of the largest bed banks and travel wholesalers in the world, and it's an active JetMeAway partner contributing to the rates shown in our hotel comparison grid. Worth being precise here: Webbeds is not currently wired into JetMeAway's live payment and booking pipeline — it feeds comparison pricing, while live bookable checkout on JetMeAway runs through LiteAPI's own payment system.
+
+Why does this matter to you as a reader, beyond the mechanics? Because it's the actual, structural reason JetMeAway can show a lower starting price on the same room than a retail-only comparison site — not a marketing claim, a supply-chain fact. When you see a hotel on our [hotel comparison page](/hotels) sitting a meaningful amount below the same room on a household-name OTA, the wholesale-rate model is usually why. And when a retail OTA genuinely does beat the wholesale rate that day — it happens, promotions and loyalty pricing occasionally undercut even a direct wholesale feed — our comparison grid shows that too, because the whole point of comparing seven providers side by side (Expedia, Trip.com, Hotels.com, Agoda, Trivago, RateHawk, Webbeds) is to let the actual lowest number win, whoever it belongs to.
+
+On the flights side, the equivalent structure runs through Travelpayouts (powering live Aviasales search plus a cached fallback) and Duffel, which handles direct bookable flight tickets with Stripe as the payment rail specifically for those Duffel-sourced bookings — kept deliberately separate from LiteAPI's hotel payment flow, because the two are genuinely different systems with different regulatory and reconciliation requirements behind them.
+
+None of this is glamorous. It's supply-chain plumbing. But it's the actual explanation for the price gap that turned a Manchester spreadsheet into a company, and it's worth readers understanding it exists rather than just trusting the number on the page. [See it for yourself](/hotels) — search any city, and you're looking at the wholesale model in action.
+
+<a id="scout-voice"></a>
+
+## How "the Scout" Persona Shapes Every Post on This Blog
+
+Every guide on the JetMeAway blog is written under the same byline — JetMeAway Scout — and that's not a marketing device we bolted on after the fact. It's a genuine writing discipline that governs what gets published and what gets sent back for another pass.
+
+The test is simple to state and harder to pass than it sounds: **would a genuinely well-travelled friend who has actually stayed in this neighbourhood, and who has nothing to sell you beyond an honest opinion, tell you to book this room — or skip it?** Not "is this technically a nice hotel." Not "does this destination sound impressive in a headline." Would someone who actually cares whether your trip goes well say yes to this specific room, on these specific dates, for this specific traveller.
+
+That test shows up in the blog's structure in a few concrete ways.
+
+**Specificity over superlatives.** A Scout post doesn't say a hotel is "stunning" or a neighbourhood is "vibrant" — those words carry no information and every competitor uses them identically. It says the artisan roastery genuinely opens at 6am, that the walk to the metro is eleven minutes not five, that the room has no air conditioning in a city where July hits 38°C. Our [Paris hotel guide](/blog/best-hotels-paris-2026), [Barcelona hotel guide](/blog/best-hotels-barcelona-2026), [Rome hotel guide](/blog/best-hotels-rome-2026) and [Dubai hotel guide](/blog/best-hotels-dubai-2026) are all built on this same rule — real, currently-bookable, individually verified hotels, with the catch stated alongside the upside rather than buried or omitted.
+
+**Willingness to say no.** A comparison engine that only ever recommends "yes, book this" isn't actually comparing anything — it's a catalogue. Scout posts flag when a neighbourhood is genuinely dead after dark, when a "5-minute walk" on a map is an uphill 15-minute walk in practice, or when a headline price hides a resort fee that changes the real cost meaningfully. That's the same instinct behind the Scout app's Deep Neighbourhood intelligence — the fitness ecosystem, the after-dark map, the wellness layer — just expressed in long-form writing instead of an in-app sidebar.
+
+**The neighbourhood before the room.** Just as the Scout app maps the 24-hour ecosystem around a hotel rather than just the room itself, Scout blog posts lead with area breakdowns before hotel lists — which part of a city fits a first-time visitor versus a return trip, where the budget tier clusters, which district is quiet-but-connected versus lively-but-loud. Our long-tail neighbourhood guide on [finding wellness-friendly neighbourhoods for work-from-anywhere trips](/blog/long-tail-wellness-neighborhood-scout) is the clearest standalone expression of this — it inverts the usual "best hotel" search into "best neighbourhood, then cheapest clean bed inside it."
+
+**No invented numbers.** Every stat, review count or price band in a Scout post is either pulled live from a partner feed at the time of writing (and labelled as such, because prices move) or flagged clearly as a general seasonal pattern rather than presented as a fabricated precise figure. Our [UK flight hacks guide](/blog/cheap-flights-from-uk) is a good example of the format at full scale — specific booking windows, specific day-of-week patterns, specific route price bands, all sourced rather than invented.
+
+That's the whole voice. It's not complicated. It's just the discipline of writing every post as though the reader is about to spend real money on the strength of it — because they usually are.
+
+<a id="picks-europe"></a>
+
+## Personal Picks — Europe
+
+These are trips I've actually taken, hotels I've actually booked through JetMeAway's own comparison engine, and neighbourhoods I'd send a friend to without hedging.
+
+**Lisbon's Príncipe Real** is the single European neighbourhood I recommend most often to first-time visitors who want more than postcard sightseeing. It's walkable, genuinely mixed between locals and travellers rather than being a tourist enclave, has a serious specialty-coffee and natural-wine scene, and sits close enough to the Baixa and Alfama that you can walk into the postcard part of the city on a whim without living inside it. Lisbon rewards a slower pace better than almost any other short-haul European capital.
+
+**Barcelona's Gràcia district** does something similar — it's a ten-minute metro ride from Las Ramblas and the Gothic Quarter, but it feels like an entirely separate, quieter city: small plazas, neighbourhood bars that haven't adjusted their prices for tourists, and a genuine residential rhythm. If you're staying in Barcelona for more than three nights, split the trip between the centre and Gràcia rather than staying centrally the whole time. Our [Barcelona hotel guide](/blog/best-hotels-barcelona-2026) breaks down exactly which streets deliver this without the guesswork.
+
+**The Nice-to-Marseille corridor** on the French Riviera is, in my view, the most underrated value play in Western Europe. Everyone defaults to the Amalfi Coast for a Mediterranean-glamour trip, and Amalfi's summer pricing has become genuinely punishing as a result. Nice and Marseille deliver a comparable coastline, comparable food, and a fraction of the price, particularly in the May-June and September shoulder windows. Our [Nice hotel guide](/blog/best-hotels-nice-2026) and [Marseille hotel guide](/blog/best-hotels-marseille-2026) both go deep on this, and I'd genuinely rate a week split between the two above a week in Positano at triple the cost.
+
+**Paris**, for all its familiarity, still rewards doing it properly rather than doing it by instinct. Most visitors default to the 1st and 8th arrondissements and never see the 11th, the 19th or Belleville, which is where the city's actual restaurant scene lives now. Our [Paris hotel guide](/blog/best-hotels-paris-2026) covers the full arrondissement breakdown — Right Bank versus Left Bank, Palace tier versus genuinely good budget rooms from under £80 — and it's the post I point family to most often when they ask "where should we actually stay."
+
+<a id="picks-asia"></a>
+
+## Personal Picks — Asia
+
+**Chiang Mai** is the destination I recommend most for anyone doing a genuine work-from-anywhere reset rather than a two-week holiday. The pace is slower than Bangkok, the wellness and fitness infrastructure (Muay Thai gyms, genuinely good yoga studios, a strong specialty-coffee scene in the Nimman district) is dense enough to build a real routine around, and the cost of living lets a UK travel budget stretch three or four times further than the same money would in a European capital.
+
+**Ubud, Bali** does a similar job for a slightly different traveller — less about digital-nomad infrastructure, more about a genuine slowdown: rice terraces, real yoga and wellness culture rather than the Instagram version of it, and a food scene that rewards wandering rather than following a guidebook. The trade-off against somewhere like the Gili Islands or Bali's southern beach strip is worth making if what you actually want is rest rather than a party.
+
+**Bangkok** remains my honest recommendation as a first landing point for anyone new to Southeast Asia, purely on connectivity and ease — the flight options from UK airports are strong, the city absorbs a first-timer without punishing mistakes, and it's the natural hub for onward travel to Chiang Mai in the north or the islands in the south. Don't skip it to save two days chasing a "more authentic" first stop; Bangkok earns the stopover.
+
+<a id="picks-africa"></a>
+
+## Personal Picks — Africa
+
+**Marrakech's Medina and the coastal town of Essaouira**, taken together as a single trip, is the African itinerary I recommend most to UK travellers who haven't been to the continent before. Marrakech is under a four-hour flight from most UK airports, genuinely different from a European city break in a way that resets your sense of travel, and Essaouira — a two-and-a-half-hour drive from Marrakech — gives you an entirely different coastal, wind-swept counterpoint to the Medina's intensity. Our [Marrakech hotel guide](/blog/best-hotels-marrakech-2026) covers the riad-versus-hotel decision in the Medina in detail, which is genuinely the single biggest choice that shapes how the trip feels.
+
+**Cape Town paired with the Victoria Falls region** is the bigger, more ambitious African trip I'd recommend once someone's done a first, smaller African visit. It combines a genuinely world-class city (Table Mountain, the winelands twenty minutes out, a restaurant scene that rivals any European capital) with one of the most singular natural sights on the planet. UK winter (November to February) is Cape Town's summer and the peak window for this combination — book the flight and the winelands portion of the trip separately from the Victoria Falls leg, since they're genuinely two different climates and two different paces. Our [Victoria Falls hotel guide](/blog/best-hotels-victoria-falls-2026) covers the falls-side accommodation specifically.
+
+<a id="picks-americas"></a>
+
+## Personal Picks — Americas
+
+**Mexico City** is, unreservedly, my most-recommended big-city pick in the Americas for 2026. Roma Norte and Condesa are two of the most walkable, food-dense, genuinely liveable neighbourhoods I've stayed in anywhere in the world — tree-lined streets, a coffee and restaurant scene that rivals any European capital, and an exchange rate that currently lets a UK travel budget go considerably further than the same trip to a major US city. It's the destination I'm most likely to recommend over a "safer," more familiar European repeat trip. Our [Mexico City hotel guide](/blog/best-hotels-mexico-city-2026) breaks the neighbourhood choice down properly.
+
+**Routing through a secondary US hub rather than New York or LA** is a piece of advice I give often and that surprises people every time. Boston and Seattle both deliver a genuinely rewarding, walkable American city trip without the price inflation, crowding and first-timer overwhelm that New York in particular produces. Boston pairs well with a short add-on to the wider New England coast; Seattle pairs naturally with the Pacific Northwest if you're extending the trip. Our [Boston hotel guide](/blog/best-hotels-boston-2026) and [Seattle hotel guide](/blog/best-hotels-seattle-2026) both make the case for these as first-visit American cities in their own right, not just cheaper alternatives to the obvious choice.
+
+<a id="reader-questions"></a>
+
+## Reader Questions — What You've Actually Asked Us
+
+The contact inbox behind this blog is a real inbox, and reader questions genuinely shape what gets written next. Here's a running set of the ones that come up most often, answered directly.
+
+**"Why should I trust a small comparison site over a name I already know?"** You shouldn't trust us blindly — you should compare the number. That's the entire pitch: put a JetMeAway search next to a household-name OTA search for the same room on the same dates, and let the wholesale-rate model speak for itself. We'd rather earn the trust with a lower number than ask for it on reputation alone, because reputation alone is exactly the thing the bigger sites are relying on.
+
+**"Do you actually stay in the hotels you recommend, or is it all desk research?"** Both, honestly, and we say so where it applies. A meaningful share of the destination and neighbourhood guidance on this blog — the Lisbon, Barcelona, Riviera, Chiang Mai, Marrakech, Mexico City and Boston/Seattle picks in this very post — comes from trips the founder has actually taken. The larger hotel-listing posts (45+ hotels per city) are necessarily desk research plus live rate verification rather than a personal stay in every property, and we're upfront about that distinction rather than implying otherwise.
+
+**"Why don't you show the biggest OTAs’ prices even when they're cheaper?"** Because in practice, once you compare against a genuine wholesale feed, a big OTA's retail rate is rarely the actual cheapest number on the page — and where a comparison would flatter one of them specifically, we've made a deliberate call not to build our business around promoting a competitor whose own affiliate economics don't serve readers as well as our direct wholesale contracts do. This is a standing, repeatedly-reinforced rule inside the company, not an oversight.
+
+**"Is the Scout app going to replace the hotel comparison website?"** No — they're complementary, not competing. The website is where you compare live prices across seven-plus hotel providers, three flight providers and every other category we cover. The Scout app is the neighbourhood-intelligence layer that helps you decide *where* to point that comparison before you start searching. Long-term, the roadmap (below) closes the gap between the two so neighbourhood fit shows up directly inside hotel search results.
+
+**"How do you decide which cities get a full hotel guide?"** Partly search demand, partly reader requests, and increasingly a deliberate tilt toward budget-relevant destinations — UK households are feeling the squeeze in 2026, and cheap, honest budget-tier hotel coverage across more cities is a bigger current priority for us than adding another ultra-luxury guide to a destination we've already covered well.
+
+**"Can I request a destination guide?"** Yes, genuinely — email waqar@jetmeaway.co.uk or use the [contact form](/contact). Several posts on this blog exist because a reader asked a specific question a generic guide didn't answer.
+
+<a id="how-i-plan"></a>
+
+## How I Plan My Own Trips
+
+People ask this often enough that it's worth laying out plainly, partly because it's genuinely just the JetMeAway product used the way it's designed to be used.
+
+**Step one: pick the neighbourhood, not the hotel.** Before I look at a single room, I decide what the trip is actually for — work-and-recharge, food-and-wandering, a specific event, family time — and that determines the area of the city I'm booking into. A work-from-anywhere week goes to a neighbourhood with real coffee and gym infrastructure within walking distance; a food trip goes wherever the current best restaurant cluster is, which shifts city to city and year to year. This is the same instinct behind the Scout app's Deep Neighbourhood intelligence, just applied manually before the app existed to do it for me.
+
+**Step two: book the flight with a wide net.** I use a multi-airport search rather than committing to a single departure airport, and I keep the date window flexible by at least two or three days either side of my target dates wherever the trip allows it. [JetMeAway's flight search](/flights) compares Aviasales, Trip.com and Expedia live, and — being honest about my own bias here — I use our own tool for this rather than switching to a competitor, because it's genuinely the same live data I'd be pulling from elsewhere.
+
+**Step three: book the hotel within 24 hours of the flight.** This is the single most consistent piece of advice across every guide on this blog, and I follow it in my own bookings without exception: non-refundable hotel rates are typically 20-40% cheaper than flexible ones, and hotel inventory tightens faster than flight inventory because a hotel can't add rooms the way an airline can add capacity. Locking the room early, once the flight dates are fixed, is where the real savings live.
+
+**Step four: check the Scout app as a sense-check, not a first step.** By the time I'm choosing between two or three specific hotels in the neighbourhood I've already picked, I'll open Scout to confirm the morning-ritual and after-dark picture matches what the listing and reviews suggested — genuinely useful as a final filter, less useful as a starting point, because it works best once you've already narrowed to a real shortlist.
+
+**Step five: put the money where it changes the trip.** This is the "seat versus stay" thesis our [UK flight hacks guide](/blog/cheap-flights-from-uk) lays out in detail — every pound saved on the flight through smart timing gets redirected into the hotel, because a marginally cheaper departure time changes nothing about how a trip feels, while an extra £75 a night on the room routinely buys breakfast included, a better location, or a room category that actually changes the experience.
+
+None of this is exotic. It's the plain, repeatable version of what every guide on this blog is trying to teach — just applied to my own holidays instead of someone else's.
+
+<a id="roadmap"></a>
+
+## The 2026 Roadmap
+
+We're a small team, so this roadmap is deliberately short and specific rather than a long wishlist. Here's what's actually in motion for 2026.
+
+**Scout on iOS.** The first public build launched on Android; an iOS release is in active development to bring Deep Neighbourhood intelligence to the same audience already using JetMeAway's hotel and flight comparison on iPhone.
+
+**Deeper Deep Neighbourhood coverage.** The morning-ritual, fitness-ecosystem, wellness-layer and after-dark mapping that Scout does today is strongest in the cities we've focused on first. 2026's build-out extends that same depth of neighbourhood intelligence into more cities, prioritised by where reader demand and search volume already point us.
+
+**Neighbourhood fit inside hotel search.** Longer-term, the goal is to close the gap between the Scout app's neighbourhood intelligence and the main [hotel comparison engine](/hotels) so that neighbourhood fit shows up directly inside search results — not as a separate app you check afterward, but as part of the same search that shows you the price.
+
+**Wholesale-rate expansion into secondary destinations.** The LiteAPI, RateHawk and Webbeds wholesale relationships that power the price advantage on major cities are being extended into smaller and secondary destinations through 2026 — the places where a big-name OTA's coverage thins out and the wholesale-rate gap tends to be largest, because there's less retail competition keeping prices honest.
+
+**Continued budget-tier content investment.** With UK households feeling a genuine squeeze in 2026, expanding real, honestly-verified budget hotel coverage across more cities remains a bigger near-term priority for the blog than adding further luxury-tier depth to destinations we've already covered well.
+
+We'll keep this roadmap section updated as milestones land — check the `dateModified` at the top of this post for the last time it was reviewed.
 
 ## The Verdict
 
-The world is too big to stay in the wrong place. Don't just *jet away* — **JetMeAway** to a place that actually fits who you are.
+The world is too big to stay in the wrong place, and it's too expensive right now to overpay for the privilege of finding that out the hard way. That's the whole company in one sentence: a Manchester-based comparison engine, built on wholesale rates instead of retail markups, written up by a Scout persona that would rather tell you the honest catch than sell you a superlative — because the goal was never to get you to book *a* trip. It was always to get you to book the right one.
 
-Scout is live on Android today. Download it, set your rituals, and let us map your next city before you land — then [compare hotels](/hotels) in the neighbourhood that actually fits.
+Don't just *jet away* — **JetMeAway** to a place that actually fits who you are.
+
+Scout is live on Android today. Download it, set your rituals, and let us map your next city before you land — then [compare hotels](/hotels) in the neighbourhood that actually fits, or head straight to [flight search](/flights) if the destination's already decided.
 
 **JetMeAway — Life, not just lodging.**
 

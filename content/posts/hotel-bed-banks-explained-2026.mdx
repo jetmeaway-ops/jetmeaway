@@ -2,10 +2,10 @@
 title: "How Hotel 'Bed Banks' Quietly Power Cheaper Rates in 2026 (And Why JetMeAway Uses Them)"
 slug: "hotel-bed-banks-explained-2026"
 category: "Money"
-excerpt: "Most travel sites mark up the same hotel rooms by 10–25%. The reason is the supply chain — bed banks like LiteAPI, RateHawk and Webbeds sell wholesale rates that big-brand OTAs add commission to. Here's how the system actually works in 2026."
+excerpt: "Most travel sites mark up the same hotel rooms by 10–25%. The reason is the supply chain — bed banks like LiteAPI, RateHawk and Webbeds sell wholesale rates that big-brand OTAs add commission to. Here's how the whole wholesale hotel market actually works in 2026, and why it's the reason comparison engines can show you a lower price."
 date: "2026-05-07"
-dateModified: "2026-06-07"
-readTime: "6 min read"
+dateModified: "2026-07-03"
+readTime: "22 min read"
 heroImage: "https://images.unsplash.com/photo-1455587734955-081b22074882?q=80&w=1600&h=800&fit=crop"
 heroAlt: "Hotel reception desk at dusk with warm lighting and a key cabinet behind the counter"
 author: "JetMeAway Scout"
@@ -13,77 +13,361 @@ ctaCity: "Barcelona"
 ctaFlightsTo: "BCN"
 faqs:
   - q: "What is a hotel 'bed bank'?"
-    a: "A bed bank is a B2B wholesaler that buys hotel rooms in bulk from properties around the world, then redistributes that inventory to travel agencies, comparison engines and tour operators. The biggest names in the space include LiteAPI, RateHawk, Webbeds and Hotelston. They sell at lower-than-retail rates because they're moving volume — and because their margin is built into the supply chain rather than into the consumer price."
+    a: "A bed bank is a B2B wholesaler that buys or contracts hotel rooms in bulk from properties around the world, then redistributes that inventory to travel agencies, comparison engines, tour operators and airlines worldwide. The biggest names in the space include LiteAPI, RateHawk, Webbeds, Hotelbeds and Hotelston. They sell at lower-than-retail rates because they're moving volume — and because their margin is built into the wholesale supply chain rather than stacked on top of the consumer-facing price."
   - q: "Why do bigger travel sites charge more for the same room?"
-    a: "Major OTAs typically add a 15–25% commission on top of the hotel's bed-bank rate to cover their marketing spend, customer-service overhead and brand-trust premium. That's the cost passed on to you. A site that connects directly to bed-bank inventory — like JetMeAway's direct-booking flow — can show the supplier rate without that extra layer."
+    a: "Major OTAs typically add a 15–25% commission on top of the wholesale bed-bank rate to cover their marketing spend, customer-service overhead and brand-trust premium. That's the cost passed on to you. A site that connects directly to bed-bank inventory — like JetMeAway's direct-booking flow via LiteAPI, RateHawk and Webbeds — can show the supplier rate without that extra retail layer."
   - q: "Are bed-bank rates the same room and same hotel as on big sites?"
-    a: "Yes — typically the same hotel, same room category, same star rating, same cancellation terms. The only thing different is the price you see, which reflects the supply chain you bought through. Some bed banks have negotiated extras like flexible cancellation or breakfast that don't appear on retail OTA listings."
-  - q: "What's the catch?"
-    a: "Two real ones, both manageable. First, bed-bank inventory can have stricter cancellation windows on the very cheapest rates — read the policy before you book. Second, bed banks don't always carry every hotel in every city — for niche boutique stays you may still find better availability via the property direct. Always price-check both before pulling the trigger."
+    a: "Yes — typically the same hotel, same room category, same star rating, and often the same or better cancellation terms. The only thing that's different is the price you see, which reflects which layer of the supply chain you bought through. Some bed banks negotiate extras — flexible cancellation, breakfast, early check-in — that don't always appear on retail OTA listings for the identical room."
+  - q: "What's the catch with booking through a bed bank?"
+    a: "Two real ones, both manageable. First, the very cheapest bed-bank rates can carry stricter cancellation windows — read the policy before you book, exactly as you would on any OTA. Second, bed banks don't carry every hotel in every city — small independent guesthouses and niche boutiques are sometimes only bookable direct with the property. Always price-check both before committing."
+  - q: "Is a bed bank the same thing as an OTA like Expedia or Trip.com?"
+    a: "No. An OTA (Online Travel Agency) is consumer-facing — it's the website or app you search on. A bed bank is business-to-business — it never sells to the public directly. Confusingly, some companies do both: Webbeds is purely B2B, but the giant OTAs also run wholesale divisions behind the scenes. The simplest way to tell them apart: if you can search it on Google and land on a public booking page with marketing and reviews, it's an OTA; if you've never heard of it as a consumer, it's probably a bed bank."
+  - q: "How do bed banks make money if their rates are lower than retail?"
+    a: "Volume and negotiation power. A bed bank contracts thousands of rooms across thousands of hotels and resells that inventory to hundreds of downstream distributors — travel agents, tour operators, airlines bundling package deals, and comparison engines. Their margin per room is thinner than a retail OTA's markup, but it's earned across an enormous transaction volume, and it doesn't carry the same marketing-spend burden a consumer-facing brand does."
+  - q: "Which bed banks does JetMeAway use?"
+    a: "JetMeAway integrates directly with LiteAPI, RateHawk and Webbeds — all three are active partners with live, bookable inventory on the JetMeAway hotels page. We also compare retail rates from Expedia, Trip.com, Hotels.com, Agoda and Trivago alongside them, so you see both layers of the supply chain side by side rather than only one."
+  - q: "Which providers does JetMeAway compare hotel prices across?"
+    a: "JetMeAway compares Expedia, Trip.com, Hotels.com, Agoda, Trivago, RateHawk and Webbeds on the retail-and-direct side, plus LiteAPI as a core booking integration — seven providers in total, chosen because they offer materially better commercial terms than a padded, affiliate-only grid."
+  - q: "How big is LiteAPI's hotel inventory?"
+    a: "LiteAPI aggregates roughly 2 million hotels globally by connecting to multiple underlying supply sources itself — it functions as a bed bank of bed banks, normalising inventory from several wholesale suppliers into one API. That's why a LiteAPI integration can return results for both major cities and smaller regional towns that a single-supplier connection might miss."
+  - q: "What is RateHawk and who owns it?"
+    a: "RateHawk is the B2B hotel booking platform operated by Emerging Travel Group (ETG), the same group behind consumer brands Ostrovok and ZenHotels. RateHawk covers 2.9 million+ properties across 220+ markets and is particularly strong on Eastern European, Central Asian and CIS-region inventory, alongside a genuinely global mainstream hotel catalogue."
+  - q: "What is Webbeds and who owns it?"
+    a: "Webbeds is a UK-headquartered bed bank owned by Webjet Limited, an ASX-listed Australian travel group. It's one of the largest wholesale hotel distributors globally, with particular depth in European and Middle Eastern inventory. JetMeAway uses Webbeds for European and Middle East stays, and Webbeds operates its own merchant-of-record payment flow — meaning Webbeds itself takes the card payment and pays the hotel, rather than routing through a separate payment processor."
+  - q: "Is booking through a bed bank as safe as booking through a big-name OTA?"
+    a: "Yes, provided you're booking through a legitimate integration. The safety of a hotel booking comes from the payment processor, the cancellation terms and the contractual chain back to the hotel — not from brand recognition. LiteAPI, RateHawk and Webbeds are all established B2B travel technology companies with direct commercial contracts with hotels; your booking confirmation comes through the same voucher/confirmation system a retail OTA would use, because in many cases retail OTAs are themselves reselling the exact same bed-bank inventory one layer downstream."
+  - q: "Why have I never heard of LiteAPI, RateHawk or Webbeds before?"
+    a: "Because they don't market to consumers — that's the entire point of the B2B model. A bed bank's customers are travel businesses (agencies, comparison sites, airlines, tour operators), not the travelling public, so there's no reason for them to run consumer advertising, build a recognisable retail brand, or appear in a general Google search the way Expedia or a big OTA does. You interact with their inventory constantly without ever seeing their name, because it's relabelled by whichever retail site or comparison engine you're using."
+  - q: "Do hotels prefer selling through bed banks or directly to consumers?"
+    a: "Most hotels run a mixed distribution strategy: their own website (best margin, no commission), direct OTA relationships (broad reach, higher commission), and bed-bank contracts (bulk volume, used to fill rooms that would otherwise go unsold, particularly in shoulder season or for last-minute inventory). A bed-bank contract is one channel among several a hotel's revenue manager balances — not a replacement for the others."
+  - q: "Can hotels set different prices for bed banks versus retail OTAs?"
+    a: "Yes, and they routinely do, through rate parity clauses that have loosened considerably since regulatory scrutiny in the EU and UK reduced strict parity requirements around 2015 onward. A hotel can offer a wholesale bed-bank rate that's genuinely lower than its retail OTA rate, particularly for bulk or opaque (unbranded until booked) inventory, because the bed-bank channel doesn't carry the same marketing-value expectation the hotel gets from a major consumer OTA placement."
+  - q: "What does 'opaque inventory' mean in the bed-bank world?"
+    a: "Opaque inventory is hotel room stock sold without the hotel's name revealed until after you've paid — common in some bed-bank and package-holiday contexts. It lets hotels offload excess rooms at a discount without publicly undercutting their own retail rate, because the deep discount is never visible next to the hotel's branded listing. JetMeAway's comparison search shows named hotels with transparent pricing rather than opaque blind-booking products, so you always know exactly what you're booking before you pay."
+  - q: "Do bed banks affect loyalty points or hotel status?"
+    a: "Usually not in the same way a direct hotel-website booking does. Because a bed-bank booking is technically made through a B2B intermediary rather than the hotel's own retail channel, it may not automatically earn or qualify for the hotel chain's own loyalty programme points or elite-status credit in every case. If chain loyalty points matter more to you than the price gap, check the hotel's own site rate before booking wholesale, and weigh the points value against the cash saving."
+  - q: "Does using a bed bank mean I lose consumer protection?"
+    a: "No — UK and EU consumer protection law applies based on the nature of the transaction and who you contracted with, not on which layer of the supply chain the inventory originated from. Reputable bed-bank integrations still give you a booking confirmation, a cancellation policy, and a clear contractual counterparty. As with any online purchase, paying by credit card gives you Section 75 protection in the UK regardless of whether the underlying inventory came from a bed bank or a retail OTA."
+  - q: "Why do prices for the same room sometimes differ between LiteAPI, RateHawk and Webbeds?"
+    a: "Because each bed bank negotiates its own contracts with hotels independently, and those contracts differ by allocation size, season, region and negotiated discount tier. A hotel might give RateHawk a better rate on Eastern European inventory because RateHawk brings stronger volume there, while Webbeds might have the edge on the same hotel's Middle East distribution. That's exactly why comparing across multiple bed banks — rather than trusting a single wholesale source — still matters."
+  - q: "What is the difference between a bed bank and a Destination Management Company (DMC)?"
+    a: "A DMC typically operates on the ground in a single destination, bundling hotels with local services — transfers, excursions, guides — for tour operators and travel agents building complex itineraries. A bed bank is broader and purely accommodation-focused, often multi-country, and connects via API to automated booking systems rather than the more manual, relationship-driven DMC model. Some large groups (like Hotelbeds) operate both a bed-bank division and DMC-style services under one umbrella."
+  - q: "Can I book directly with LiteAPI, RateHawk or Webbeds as a consumer?"
+    a: "Generally, no — these are B2B platforms that don't sell directly to the public. You access their inventory through a retail-facing partner like JetMeAway, which holds the commercial integration and presents the rates through a consumer booking flow with the necessary payment processing, customer support and legal disclosures a B2B API alone doesn't provide."
+  - q: "Is the wholesale hotel market growing or shrinking in 2026?"
+    a: "Growing. Wholesale API distribution has expanded steadily as more comparison engines, super-apps, airlines and fintech travel products plug hotel booking into their platforms without building hotel contracts from scratch. The API-first bed-bank model (LiteAPI is a clear example) has made it commercially viable for smaller, newer travel businesses to offer genuine hotel inventory rather than only the largest incumbents — which is part of why comparison sites like JetMeAway can compete on price against far larger legacy OTAs."
+  - q: "Do bed banks only serve big international chain hotels?"
+    a: "No — bed-bank contracts span everything from five-star international chains to independent three-star city hotels and regional guesthouses, though coverage depth varies by bed bank and by region. Independent boutique properties are the category most likely to sit outside bed-bank contracts entirely and be bookable only direct with the hotel — always check both options for a genuinely unique boutique stay."
+  - q: "Why does JetMeAway show both retail OTA prices and bed-bank prices instead of only bed-bank prices?"
+    a: "Because the cheapest option genuinely varies by hotel, date and season — sometimes a retail OTA runs a promotion that undercuts even the wholesale rate, and we'd rather show you that than hide it to make our own bed-bank integrations look better. The honest position is to compare every price we can access and surface the lowest one, whichever layer of the supply chain it comes from."
+  - q: "What happens if a bed-bank-booked hotel makes an error with my reservation?"
+    a: "The same dispute process applies as any hotel booking: contact the platform you booked through first (in JetMeAway's case, our support team and the relevant bed-bank partner's customer service), with your booking confirmation and voucher number to hand. Because bed-bank bookings run through a formal B2B contract with the hotel, there's a documented chain of responsibility — the same structure that protects you when a retail OTA books on your behalf, just one layer further up the supply chain."
+  - q: "Are wholesale hotel rates always cheaper than booking directly with the hotel's own website?"
+    a: "Not always. Many hotels run 'best rate guarantee' or direct-booking-discount programmes specifically to compete with third-party channels, sometimes undercutting even wholesale rates to keep the commission in-house. It's worth a quick check of the hotel's own site alongside a comparison search — occasionally the hotel itself is the cheapest option of all, and JetMeAway's honest-comparison model means we'd rather you know that than not."
+  - q: "How does the two-tier hotel market (retail vs wholesale) affect last-minute bookings specifically?"
+    a: "Last-minute inventory is where bed-bank pricing can diverge most sharply from retail, because hotels often release unsold rooms into wholesale channels close to the date to avoid an empty room generating zero revenue — sometimes at a much deeper discount than the equivalent last-minute retail OTA listing. If you're booking within a few days of your stay, checking a bed-bank-connected comparison engine alongside the usual retail sites is particularly worth the extra few minutes."
+  - q: "Does the two-tier hotel pricing system exist for hotels outside Europe too?"
+    a: "Yes — it's a global structure, not a European quirk. LiteAPI, RateHawk and Webbeds all carry international inventory across North America, Asia, the Middle East and beyond, and the same retail-versus-wholesale price gap shows up wherever a bed bank has negotiated hotel contracts, though the size of the gap varies significantly by region and by how competitive the local retail OTA market is."
 ---
 
-**Most UK travellers booking on Expedia, Hotels.com or Trip.com are paying 10–25% more than the same room would cost via the supply chain those sites buy from.** That isn't a conspiracy theory — it's just how the hotel-distribution industry has worked since the late 2000s. Big-brand OTAs are spectacular marketing machines, and that marketing has to be paid for. The cost lands on the consumer price tag.
+**Most UK travellers booking on Expedia, Hotels.com or Trip.com are paying 10–25% more than the exact same room would cost one layer up the supply chain.** That isn't a conspiracy theory or a hidden trick — it's simply how hotel distribution has worked since the mid-2000s. Big-brand OTAs are exceptional marketing machines, and that marketing has to be paid for somewhere. On a hotel booking, it's paid for in the price you see on the page.
 
-The alternative most travellers don't know about: comparison engines that connect directly to **bed banks** — the wholesalers sitting one layer up the supply chain — and pass the supplier rate through to you. That's the layer JetMeAway builds on. Here's how it actually works.
+The layer most travellers have never heard of sits one step up the chain: **bed banks** — wholesale B2B distributors like LiteAPI, RateHawk, Webbeds, Hotelbeds and Hotelston — that buy or contract hotel inventory in bulk and redistribute it to travel businesses at rates the public rarely sees directly. Comparison engines that connect straight into that wholesale layer can pass the supplier rate through to you, instead of adding a retail markup on top of it. That's the layer JetMeAway is built on. This guide goes deep: what a bed bank actually is, why the two-tier retail-versus-wholesale hotel market exists at all, how the biggest bed banks differ from one another, which public-facing platforms quietly run on wholesale inventory, and exactly how JetMeAway's own LiteAPI, RateHawk and Webbeds integrations work.
 
-## What a bed bank is, and why it matters
+**Jump to a section:** [What a Bed Bank Actually Is](#what-is-a-bed-bank) · [A Short History of the Bed Bank](#history) · [Why Bed Banks Exist](#why-bed-banks-exist) · [How a Bed-Bank Transaction Actually Works](#how-it-works) · [The Two-Tier Hotel Market — Retail vs Wholesale](#two-tier-market) · [Meet the Major Bed Banks](#major-bed-banks) · [Bed Bank vs OTA vs DMC — What's the Difference](#comparison-table) · [Bed Banks by Region — Where Each One Is Strongest](#regional-strength) · [Consumer Platforms That Run on Bed-Bank Inventory](#consumer-platforms) · [How JetMeAway Actually Uses This](#how-jetmeaway-uses-this) · [How Much Can Bed-Bank Rates Save in 2026](#savings-data) · [Is It Safe? Cancellation, Loyalty Points & Consumer Protection](#is-it-safe) · [How to Spot Which Layer You're Buying From](#spot-the-layer) · [Quiz: Retail Booker or Supply-Chain Saver](#quiz) · [Common Myths, Corrected](#common-myths) · [FAQ](#faq)
 
-A "bed bank" is a B2B wholesaler. Think of it as the middle of the hotel supply chain: properties around the world contract bulk inventory to bed banks at negotiated rates, and bed banks then redistribute that inventory to thousands of travel agencies, comparison sites and tour operators worldwide.
+> **Scout's fast take:** the two things worth remembering from this whole guide — **(1)** a bed bank is a wholesaler, not a website you'll ever visit directly, and **(2)** the price gap between retail and wholesale exists because retail OTAs have to fund their marketing budget from somewhere, and that somewhere is your room rate. Compare both layers before you book; don't assume the biggest brand name is the cheapest one.
 
-The big names operating in 2026:
+<a id="what-is-a-bed-bank"></a>
 
-- **[LiteAPI](https://www.liteapi.travel/)** — Germany-based, ~2 million hotels globally, used by hundreds of comparison sites. JetMeAway integrates LiteAPI directly for hotel search and booking.
-- **[RateHawk](https://www.ratehawk.com/)** — Russian-Czech parent, particularly strong on Eastern European inventory and central-Asia routes. Active partner.
-- **[Webbeds](https://www.webbeds.com/)** — UK-headquartered, owned by Webjet Group (ASX-listed), one of the largest globally. Active partner — JetMeAway uses Webbeds inventory for European and Middle East stays.
-- **Hotelston** — smaller European bed bank, particularly competitive on Turkish and Mediterranean inventory.
-- **Hotelbeds** — the largest of the lot, currently runs the bulk of TUI and many high-street agency inventory.
+## What a Bed Bank Actually Is
 
-## Why prices differ between the supply chain and the retail layer
+A "bed bank" is a business-to-business (B2B) hotel wholesaler. Picture the hotel supply chain as three layers stacked on top of each other: **hotels** at the bottom, contracting bulk inventory to **bed banks** in the middle at negotiated wholesale rates, who then redistribute that inventory to **thousands of downstream buyers** — travel agencies, tour operators, airlines building flight-plus-hotel packages, and comparison engines like JetMeAway — who in turn sell (or, in JetMeAway's case, compare and pass through) that inventory to the actual traveller.
 
-The pattern most travellers see in the wild is: same hotel, same room category, same dates — but the price varies by 10–25% depending on which site you compare on. The reason is structural, not promotional.
+The critical thing to understand: **a bed bank never sells to you directly.** You will not find LiteAPI.com or the RateHawk consumer site set up to take your booking with a marketing homepage and customer reviews, because that's not their business model. Their customers are travel businesses, not travellers. If you've booked a hotel through almost any comparison site, meta-search engine, airline package deal, or smaller regional travel agency in the last decade, there's a reasonable chance a bed bank supplied some or all of that inventory somewhere in the chain — you just never saw its name, because it was relabelled by whichever retail-facing platform you were using.
 
-A retail OTA receives the bed-bank rate, then adds:
+This is also why bed banks are sometimes called "wholesale hotel distributors," "hotel API aggregators" or simply "hotel wholesalers" in trade press — different terms for the same layer of the market. In 2026 the dominant technical model is **API-first**: a bed bank exposes its hotel inventory, live pricing and booking flow through a programming interface (an API) that a platform like JetMeAway connects to directly, rather than the older model of manually-negotiated paper contracts and phone-based booking that dominated the pre-2010s wholesale travel industry.
 
-- **Commission** (typically 15–25%) — covers marketing spend, customer service, brand trust, technology
-- **Loyalty programme cost** — points, perks, status benefits
-- **Currency conversion margin** — most major sites add 1–3% on FX
+<a id="history"></a>
 
-A bed-bank-direct integration like JetMeAway's hotel search shows the supplier rate, without those layers added. Whether you save 6%, 16% or 25% depends on the specific hotel, the season and the OTA you're comparing against — but the supply chain explains why the difference exists at all.
+## A Short History of the Bed Bank
 
-## How JetMeAway actually uses this
+The wholesale hotel model didn't appear overnight — it grew out of the package-holiday industry's own logistics problem, decades before "comparison engine" was a phrase anyone used.
 
-JetMeAway is hybrid — it does two different things on the same page, which is worth being clear about:
+**The pre-internet era.** Long before online travel existed, tour operators building package holidays needed a way to guarantee blocks of hotel rooms across dozens of destinations without personally negotiating with every property. Specialist wholesale desks — often a division inside a large tour operator, or an independent broker — began contracting bulk allocations directly with hotels and reselling them to smaller agencies and operators who couldn't negotiate hotel deals at that scale themselves. This is the direct ancestor of the modern bed bank: a business that exists purely to sit between the hotel and the retail seller.
 
-1. **Comparison search.** When you search a city like [Lisbon](/destinations/lisbon) or [Barcelona](/destinations/barcelona), we show prices side-by-side from multiple sources — Expedia, Trip.com, Hotels.com, Agoda, Trivago — *plus* our direct bed-bank integrations. If an OTA is genuinely the cheapest for a particular night, we say so. We're not playing favourites.
-2. **Direct booking via bed banks.** For bookings made through our LiteAPI, RateHawk and Webbeds integrations, you transact with us using the bed-bank rate. No OTA commission layer. The price you see is the price you pay (plus standard taxes/fees).
+**The rise of Hotelbeds and the 2000s consolidation.** As package travel scaled through the 1990s and 2000s, a handful of wholesale operators grew to dominate the space — Hotelbeds chief among them, eventually becoming deeply embedded in TUI's own supply chain and much of the UK high-street travel-agency market. This era cemented the basic economics still in place today: wholesale contracts negotiated on volume, resold downstream to a long tail of smaller retail buyers who could never have negotiated equivalent rates on their own.
 
-Our [hotels page](/hotels) shows both surfaces and tells you which is which. Sometimes the OTA is cheapest; sometimes the bed bank is. We surface the lowest rate either way — but we'll always tell you who you're transacting with.
+**The API-first shift (2015 onward).** The biggest structural change in the last decade has been technical, not commercial: bed banks moved from manually-negotiated paper contracts and phone- or fax-based booking toward live, API-driven inventory that any developer can connect to programmatically. This is the shift that made LiteAPI's model possible — instead of a bed bank being a business only a large, established travel company could realistically integrate with, an API-first bed bank can be plugged into a comparison engine, a fintech app or a smaller travel start-up in weeks rather than the months or years a legacy paper-contract relationship required.
 
-## How Much Can Bed Bank Hotel Rates Save in 2026?
+**Where it stands in 2026.** The market today is a mix of legacy giants (Hotelbeds), regionally-specialised players (Hotelston), and newer API-native aggregators (LiteAPI, which itself aggregates several underlying wholesale sources into one unified connection) — alongside large, diversified groups like Webbeds and RateHawk's parent ETG that combine broad global coverage with genuine regional depth. The direction of travel is toward more API-first distribution and more comparison engines connecting directly to wholesale layers, which is precisely the trend JetMeAway's own hotel search sits inside.
 
-We ran a six-hotel price test on 6 May 2026 across four cities (Barcelona, Antalya, Sharm-el-Sheikh, Tunisia) comparing identical rooms across LiteAPI, Webbeds and Hotelston. Hotelston came out cheapest on 6 of 6, between **6% and 16% below the LiteAPI retail equivalent** for the same room and dates.
+<a id="why-bed-banks-exist"></a>
 
-That's a real number you can quote. The "10–25% versus the biggest retail OTAs" pattern is industry-wide and well-documented in trade press, but it varies enormously by hotel, city and season — we won't claim a fixed average we haven't measured at scale. Always price-check before booking. The supply chain explains *why* the gap exists; the actual gap on your specific trip depends on the night.
+## Why Bed Banks Exist
 
-## Quiz: are you a Retail booker or a Supply-Chain booker?
+The wholesale layer isn't an accident of the market — it solves a real structural problem for both hotels and downstream travel businesses.
 
-1. **You see a "Member-Only Deal" on a major travel site. You:**
-   - **A)** Trust it — the bigger the brand, the better the deal.
-   - **B)** Open a second tab and check the same room on a comparison engine that surfaces bed-bank rates.
-2. **A hotel shows £180/night on a big OTA and £156/night on a smaller comparison site for the exact same room category. You:**
-   - **A)** Stick with the big-brand site for the trust factor.
-   - **B)** Read both cancellation policies, and if they match, book the cheaper one.
-3. **A site says "Sold Out" but another shows availability. You:**
-   - **A)** Assume it's actually sold out.
-   - **B)** Know that bed banks often hold blocks of rooms one site can't see.
+**For hotels, the problem is unsold inventory risk.** A hotel room is a perishable product: if it isn't sold tonight, that revenue is gone forever — there's no way to "restock" an empty room and sell it tomorrow instead. Hotels therefore want as many distribution channels as possible feeding demand into their booking system, so that whichever channel a given traveller happens to search on, the hotel has a chance of capturing that booking. Contracting bulk allocation to a bed bank gives a hotel access to hundreds of downstream retail and B2B buyers through a single commercial relationship, rather than negotiating individually with each one.
+
+**For travel businesses downstream, the problem is scale.** Building direct commercial relationships with individual hotels — negotiating rates, integrating booking systems, handling payment reconciliation — across even a modest 500-city footprint would require thousands of separate contracts. A single bed-bank integration instead gives a comparison engine, airline or travel agency access to hundreds of thousands (or in LiteAPI's case, millions) of hotels through one technical connection. This is precisely what made it commercially realistic for a comparison engine the size of JetMeAway to launch genuine hotel search and booking at all — building that inventory from individual hotel contracts one at a time simply isn't viable for a company our size, but a bed-bank API makes it achievable.
+
+**For the traveller, the upside is price competition further down the chain.** Because bed-bank rates are wholesale, any downstream platform that connects to them has room to compete on price against retail-only competitors who are paying (and passing on) a full retail markup. That price competition is the entire reason the two-tier market described below matters to you as a traveller, even though you'll likely never interact with a bed bank's own name directly.
+
+<a id="how-it-works"></a>
+
+## How a Bed-Bank Transaction Actually Works
+
+It helps to walk through the mechanics step by step, because the process is more transparent than the "hidden wholesale layer" framing sometimes suggests.
+
+**Step 1 — Hotel contracts allocation to the bed bank.** A hotel's revenue manager agrees a rate and a room allocation (sometimes a fixed number of rooms per night, sometimes a dynamic allocation tied to occupancy forecasts) with a bed bank, at a negotiated wholesale price. This is a formal commercial contract, renewed and renegotiated periodically, usually at least annually.
+
+**Step 2 — The bed bank exposes that inventory via API.** Once contracted, the room allocation, live availability and rate become queryable through the bed bank's API — the technical interface a platform like JetMeAway calls in real time when you search a destination and dates.
+
+**Step 3 — The retail-facing platform queries and displays the rate.** When you search [hotels on JetMeAway](/hotels), our system queries LiteAPI, RateHawk and Webbeds (alongside the retail OTA feeds) simultaneously, compares what comes back, and shows you the live rate returned by each source. This happens in real time, not from a cached price list — wholesale rates move with occupancy and demand just like retail ones do.
+
+**Step 4 — You book, and the payment routes through the source you selected.** If you choose a bed-bank rate, the booking and payment flow through that bed bank's own system (LiteAPI's or Webbeds' merchant-of-record flow, for example), which then confirms the reservation with the hotel and issues your booking voucher. The hotel is paid by the bed bank, not directly by you — but the contractual chain from you, through the bed bank, to the hotel is documented at every step, exactly as it would be through a retail OTA.
+
+**Step 5 — Commission settles after the stay.** The bed bank retains its margin (built into the wholesale rate it negotiated with the hotel) and pays a referral commission to the retail-facing platform that sent the booking — in JetMeAway's case, that's how a bed-bank-sourced booking generates revenue for us without adding any markup to what you pay.
+
+The mechanics are ordinary B2B commerce — a supply contract, an API, a booking confirmation, a commission settlement — dressed up in unfamiliar terminology. Nothing about the process is opaque to the traveller at the point of booking; the unfamiliarity is simply because the terminology (“bed bank”) never needed to reach a consumer audience before.
+
+<a id="two-tier-market"></a>
+
+## The Two-Tier Hotel Market — Retail vs Wholesale
+
+Here's the pattern most UK travellers notice in the wild without necessarily understanding why: the same hotel, same room category, same dates — and the price varies by **10–25%** depending on which site you happen to land on. That gap is structural, not promotional, and it comes from where in the supply chain the price you're seeing was set.
+
+**Layer 1 — Wholesale (bed-bank) rate.** This is the price a hotel contracts to a bed bank like LiteAPI, RateHawk or Webbeds, negotiated on volume and typically without the marketing-value premium a hotel expects to pay for placement on a major consumer brand. It's the lowest layer in the chain before any retail markup is applied.
+
+**Layer 2 — Retail markup.** A retail OTA receiving that bed-bank rate (whether directly or through their own supplier relationships) typically adds:
+
+- **Commission** (commonly 15–25%) — funds marketing spend, customer service infrastructure, and the technology stack behind a large consumer travel brand
+- **Loyalty programme cost** — points, cashback and status-tier perks baked into the headline price
+- **Currency-conversion margin** — many major sites add roughly 1–3% on foreign-exchange conversion for international bookings
+
+**Layer 3 — What you actually pay.** The final consumer price is Layer 1 plus however much of Layer 2 that particular platform has stacked on top. A retail-only OTA shows you Layer 1 + Layer 2 combined, with no way to see the split. A bed-bank-direct integration like JetMeAway's LiteAPI, RateHawk and Webbeds flows shows you a price much closer to Layer 1, because the retail-marketing layer simply isn't being added on our side of the transaction.
+
+Whether you personally save 6%, 16% or 25% on any given booking depends on the specific hotel, the season, and which OTA you're comparing against — the gap isn't a fixed number, and we won't pretend it is. But the supply-chain structure explains reliably *why* the gap exists at all, which is more useful to understand than any single average would be, because it tells you what to actually check before you book: is this price coming from Layer 1, or Layer 1-plus-Layer-2?
+
+### A quick worked example
+
+Say a genuine 4-star hotel in Lisbon has a published bed-bank rate of £120/night for a standard double in June 2026. A retail OTA sourcing from the same or a comparable wholesale contract, adding a typical 20% commission plus a small FX margin, lists that same room at roughly £146–150/night. Both listings are for the identical room, on the identical dates, with comparable cancellation terms — the £26–30 difference is entirely the retail layer. Multiply that across a 5-night stay and the gap is £130–150 — enough to fund an extra activity, a nicer dinner, or simply a cheaper trip overall.
+
+<a id="major-bed-banks"></a>
+
+## Meet the Major Bed Banks
+
+The wholesale hotel-distribution market has a handful of genuinely large players, each with a slightly different footprint, ownership structure and regional strength. Here's the honest rundown of the names that matter in 2026.
+
+**[LiteAPI](https://www.liteapi.travel/)** — Germany-based, roughly 2 million hotels globally by aggregating multiple underlying wholesale sources into a single unified API, effectively functioning as a "bed bank of bed banks." It's built for developer-first integration — API-driven, fast to connect to, and used by hundreds of comparison sites, travel apps and fintech products worldwide. **JetMeAway integrates LiteAPI directly** as a core part of our hotel search and booking flow, and LiteAPI operates its own merchant-of-record payment system, meaning LiteAPI itself processes the card payment for LiteAPI-sourced hotel bookings rather than routing through a separate payment rail.
+
+**[RateHawk](https://www.ratehawk.com/)** — the B2B platform operated by Emerging Travel Group (ETG), which also runs the consumer brands Ostrovok and ZenHotels. RateHawk covers 2.9 million+ properties across 220+ markets, with particular strength in Eastern European, Central Asian and CIS-region inventory alongside a solid global mainstream catalogue. **Active JetMeAway partner** — RateHawk's regional depth is a genuine differentiator for travellers heading somewhere the mainstream Western-European-and-US-focused OTAs cover more thinly.
+
+**[Webbeds](https://www.webbeds.com/)** — UK-headquartered, owned by Webjet Limited (ASX-listed), one of the largest wholesale hotel distributors globally by volume. Particularly deep on European and Middle Eastern inventory. **Active JetMeAway partner** — JetMeAway uses Webbeds inventory specifically for European and Middle East stays, and Webbeds runs its own merchant-of-record payment flow, so Webbeds itself takes the card payment and pays the hotel directly, which removes a layer of payment-processing complexity and liability from our side of the transaction entirely.
+
+**Hotelbeds** — the largest single bed bank in the world by most industry measures, historically the backbone of TUI's package-holiday inventory and a huge share of high-street travel-agency hotel stock. Not a current JetMeAway integration, but worth knowing as the name that set the template the rest of the industry has followed.
+
+**Hotelston** — a smaller, more specialised European bed bank, particularly competitive on Turkish and wider Mediterranean inventory. Useful as a reminder that the wholesale market isn't only the three or four biggest names — smaller, regionally-focused bed banks can occasionally beat the giants on a specific market.
+
+The practical takeaway for a traveller: none of these companies is "the best" universally. Each negotiates its own hotel contracts independently, so the cheapest wholesale rate for a specific hotel, on specific dates, genuinely varies by which bed bank you're comparing — which is exactly why a comparison engine connected to more than one bed bank (as JetMeAway is, across LiteAPI, RateHawk and Webbeds) has a real structural advantage over one connected to only a single wholesale source.
+
+<a id="comparison-table"></a>
+
+## Bed Bank vs OTA vs DMC — What's the Difference
+
+The travel-distribution industry throws around several overlapping terms. Here's how the three main categories actually differ.
+
+<table className="w-full my-8 border-collapse text-[.9rem] md:text-[.95rem]">
+<thead>
+<tr>
+<th className="text-left font-bold text-[#1A1D2B] bg-[#F8FAFC] border border-[#E8ECF4] px-3 py-2.5">Feature</th>
+<th className="text-left font-bold text-[#1A1D2B] bg-[#F8FAFC] border border-[#E8ECF4] px-3 py-2.5">Bed bank (LiteAPI, RateHawk, Webbeds)</th>
+<th className="text-left font-bold text-[#1A1D2B] bg-[#F8FAFC] border border-[#E8ECF4] px-3 py-2.5">Retail OTA (Expedia, Trip.com, Hotels.com)</th>
+<th className="text-left font-bold text-[#1A1D2B] bg-[#F8FAFC] border border-[#E8ECF4] px-3 py-2.5">Destination Management Company (DMC)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top font-semibold">Sells directly to consumers?</td>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top">No — B2B only</td>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top">Yes — consumer-facing</td>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top">Rarely — sells to agents/operators</td>
+</tr>
+<tr>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top font-semibold">Typical geographic scope</td>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top">Global, often millions of properties</td>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top">Global, consumer-brand-led</td>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top">Usually one country or region</td>
+</tr>
+<tr>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top font-semibold">What's bundled in</td>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top">Accommodation, sometimes transfers</td>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top">Accommodation, flights, cars, packages</td>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top">Hotels + local services (transfers, guides, excursions)</td>
+</tr>
+<tr>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top font-semibold">Integration style</td>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top">API-first, automated</td>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top">Consumer website/app</td>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top">Often relationship-driven, manual</td>
+</tr>
+<tr>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top font-semibold">Typical price position</td>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top">Wholesale — closest to the hotel's contracted rate</td>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top">Wholesale + retail markup (commonly 15–25%)</td>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top">Negotiated per client/operator, varies widely</td>
+</tr>
+<tr>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top font-semibold">Who you'd recognise as a consumer</td>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top">Almost never — no consumer brand</td>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top">Usually — heavy consumer marketing</td>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top">Rarely — B2B-only, on-the-ground focus</td>
+</tr>
+<tr>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top font-semibold">Who JetMeAway uses each for</td>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top">Direct booking layer — LiteAPI, RateHawk, Webbeds</td>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top">Comparison layer — Expedia, Trip.com, Hotels.com, Agoda, Trivago</td>
+<td className="border border-[#E8ECF4] px-3 py-2.5 text-[#374151] align-top">Not currently integrated</td>
+</tr>
+</tbody>
+</table>
+
+<a id="regional-strength"></a>
+
+## Bed Banks by Region — Where Each One Is Strongest
+
+Because every bed bank negotiates its hotel contracts independently, none of them has uniform strength everywhere — and knowing the rough regional pattern helps explain why comparing more than one wholesale source consistently pays off.
+
+**Western Europe (France, Spain, Italy, Portugal, Germany).** All three of JetMeAway's bed-bank partners carry deep inventory here — this is the most competitive, most contested region in the wholesale market, which tends to compress the retail-versus-wholesale gap somewhat because retail OTAs also fight hardest for market share in these destinations. Webbeds has particular strength across mainstream Western European city and beach destinations.
+
+**Eastern Europe, Central Asia and the CIS region.** RateHawk's parent, Emerging Travel Group, built its original business in this region (via Ostrovok), and RateHawk's contract depth here is noticeably stronger than the mainstream Western-focused OTAs — a genuinely useful reason to check RateHawk specifically for a Georgia, Kazakhstan, Uzbekistan or wider CIS trip.
+
+**The Middle East and North Africa.** Webbeds has a strong historical footprint here, reflecting the group's origins and ongoing investment in Gulf and North African hotel contracts — relevant for UK travellers booking Dubai, Abu Dhabi, Egypt or Morocco stays.
+
+**Turkey and the wider Mediterranean.** Hotelston's specific competitive edge, and part of why our own six-hotel Barcelona/Antalya/Sharm el-Sheikh/Tunisia test (below) found it cheapest across the board — smaller, regionally-focused bed banks can genuinely out-negotiate the bigger generalists on their home turf.
+
+**North America and long-haul global.** LiteAPI's aggregation-of-aggregators model gives it the broadest single-API global reach, useful precisely because no single regional specialist covers North America, Asia-Pacific and Europe equally well — LiteAPI's approach of blending several underlying wholesale sources behind one API is a direct response to that regional-fragmentation problem.
+
+The practical lesson: there is no single "best" bed bank across every destination, which is exactly why a comparison engine plugged into more than one wholesale source has a genuine structural edge over one connected to only a single supplier, regardless of how large that one supplier is.
+
+<a id="consumer-platforms"></a>
+
+## Consumer Platforms That Run on Bed-Bank Inventory
+
+You've almost certainly used a bed bank's inventory without knowing it, because a huge share of the consumer travel industry runs on wholesale supply somewhere in its chain. A few categories worth knowing:
+
+**Package-holiday operators.** Traditional UK tour operators building flight-plus-hotel packages have relied on bed-bank inventory (historically Hotelbeds above all) for decades — it's the reason a package holiday can sometimes undercut booking the same flight and hotel separately, since the operator is buying accommodation at wholesale rather than retail rates and blending it into a single package price.
+
+**Airlines selling hotel add-ons.** When an airline's own booking flow offers "add a hotel to your flight" at checkout, that hotel inventory is very rarely the airline's own — it's almost always a white-label bed-bank integration running quietly behind the airline's branding.
+
+**Meta-search and comparison engines.** Sites that compare hotel prices across multiple sources — JetMeAway included — typically blend retail OTA feeds with one or more direct bed-bank integrations, precisely so the comparison includes both layers of the market rather than only the retail one.
+
+**Fintech and super-app travel features.** Banking apps, loyalty-point redemption portals and "book with points" travel features bolted onto non-travel platforms are almost always powered by a bed-bank API under the hood — building a hotel booking feature from scratch, hotel by hotel, isn't realistic for a company whose core business is something else entirely.
+
+**Smaller regional travel agencies.** A high-street or regional online travel agency without the scale to negotiate its own direct hotel contracts across hundreds of destinations will typically plug into a bed bank for the bulk of its accommodation inventory, reserving direct hotel relationships for a small number of local, high-value properties.
+
+The pattern across every one of these: **the bed-bank layer is largely invisible by design.** It's meant to power other people's consumer experiences, not build its own. That's precisely why most UK travellers have never heard the term before, despite almost certainly having booked bed-bank-sourced inventory at some point.
+
+<a id="how-jetmeaway-uses-this"></a>
+
+## How JetMeAway Actually Uses This
+
+JetMeAway is hybrid — it does two genuinely different things on the same page, which is worth being explicit about rather than blurring together.
+
+**1. Comparison search.** When you search a city like [Lisbon](/destinations/lisbon) or [Barcelona](/destinations/barcelona), we show prices side-by-side from multiple sources at once — Expedia, Trip.com, Hotels.com, Agoda, Trivago — *plus* our direct bed-bank integrations. If a retail OTA is genuinely the cheapest option for a particular hotel on particular dates, we say so. We're not playing favourites toward our own integrations, and we don't hide a cheaper retail price to make a wholesale rate look better by comparison.
+
+**2. Direct booking via bed banks.** For bookings made through our LiteAPI, RateHawk and Webbeds integrations, you transact with us using the wholesale bed-bank rate. There's no retail-OTA commission layer stacked on top. The price you see is the price you pay, plus standard taxes and fees disclosed before checkout — nothing hidden at the payment step.
+
+Our [hotels page](/hotels) shows both surfaces and is explicit about which is which. Sometimes the retail OTA is cheapest; sometimes the bed-bank rate wins. We surface the lowest rate either way — but we'll always tell you exactly who you're transacting with, because that transparency is the entire point of a comparison engine that doesn't take a cut for steering you toward a specific provider.
+
+On the payments side, this hybrid model matters operationally too. LiteAPI and Webbeds both run their own merchant-of-record payment flows for hotel bookings sourced through them — LiteAPI processes card payments for LiteAPI-sourced bookings directly, and Webbeds does the same for its own inventory, paying the hotel and remitting our commission afterwards. That's a meaningfully different payment rail from JetMeAway's flight bookings, where [Stripe](https://stripe.com) sits behind Duffel-powered flight purchases specifically — hotel bed-bank payments and flight payments never share infrastructure, by design.
+
+<a id="savings-data"></a>
+
+## How Much Can Bed-Bank Hotel Rates Save in 2026?
+
+We ran a six-hotel price test on 6 May 2026 across four cities — Barcelona, Antalya, Sharm el-Sheikh and Tunisia — comparing identical rooms across LiteAPI, Webbeds and Hotelston. Hotelston came out cheapest on 6 of 6, running **6% to 16% below the LiteAPI retail-equivalent price** for the same room and dates.
+
+That's a real, measured number you can quote. The broader "10–25% versus the biggest retail OTAs" pattern is well documented across trade press covering the wholesale hotel-distribution industry, but it varies enormously by hotel, city, season and which specific OTA you're comparing against — we won't claim one fixed average we haven't measured ourselves at scale, because a single blended number would hide more than it reveals.
+
+What we can say with confidence: the supply-chain structure explains *why* a gap exists at all — a retail OTA has a marketing budget to fund and a bed-bank-direct comparison engine largely doesn't, on the bed-bank side of its business. The actual size of the gap on your specific trip depends on the hotel, the night, and whichever platforms you happen to be comparing that day. Always price-check before booking — that's true whether you're reading this guide or not, and it's the single most reliable habit for catching whichever layer of the market happens to be cheapest for your dates.
+
+<a id="is-it-safe"></a>
+
+## Is It Safe? Cancellation, Loyalty Points & Consumer Protection
+
+Three questions come up constantly once travellers understand the wholesale layer exists, and they deserve straight answers.
+
+**Is a bed-bank booking as safe as a retail OTA booking?** Yes, provided the integration is legitimate. Safety on a hotel booking comes from the payment processor, the disclosed cancellation terms, and a clear contractual chain back to the hotel — not from how recognisable the consumer-facing brand name is. LiteAPI, RateHawk and Webbeds are all established B2B travel-technology companies with direct commercial hotel contracts, and in many cases retail OTAs are themselves quietly reselling the exact same wholesale inventory one layer downstream from where you're booking it. Paying by UK credit card also gives you Section 75 protection on qualifying purchases regardless of which layer of the supply chain the room came from.
+
+**Does a bed-bank booking earn hotel chain loyalty points?** Not always, and this is the one genuine trade-off worth knowing about. Because a bed-bank booking is technically routed through a B2B intermediary rather than the hotel chain's own retail channel, it may not automatically register for that chain's points programme or elite-status credit the way a booking made directly on the hotel's own website would. If chain loyalty points matter more to you than the price gap for a specific stay, it's worth checking the hotel's own site rate as a third comparison point alongside the retail-OTA and bed-bank prices, and weighing the points value against the cash saved.
+
+**Are cancellation terms different?** Sometimes, and this is worth reading carefully rather than assuming either way. The very cheapest bed-bank rates can carry stricter, non-refundable cancellation windows — exactly the same trade-off that exists on the cheapest advance-purchase rates from any retail OTA. Flexible, fully-refundable bed-bank rates are also available at most hotels, usually at a modest premium over the non-refundable price, mirroring the retail market's own structure. Always check the specific cancellation policy on the rate you're selecting, not the general reputation of the platform.
+
+<a id="spot-the-layer"></a>
+
+## How to Spot Which Layer You're Buying From
+
+You don't need insider knowledge to work out whether a price you're looking at is closer to the wholesale layer or the retail-marked-up one. A few practical tells:
+
+**Check the checkout page's merchant name.** A wholesale bed-bank booking will often show the bed bank's own name (or a clearly-labelled partner name) as the merchant of record on your card statement or booking confirmation, rather than the comparison site's own brand — that's a sign you're one layer closer to the source. JetMeAway is explicit about this at checkout on every bed-bank booking.
+
+**Compare the same room across at least three sources.** One retail OTA, one comparison engine with bed-bank integrations, and — where practical — the hotel's own website. If all three cluster within a few percent, you're probably not looking at a meaningful retail markup on that particular date. If the gap is 10%+ between the retail-only sites and the bed-bank-connected one, you've likely found the layer split described in this guide.
+
+**Read the cancellation policy, not just the headline price.** A wholesale rate that's dramatically cheaper but strictly non-refundable is a genuinely different product from a flexible retail rate at a higher price — compare like-for-like cancellation terms before concluding one option is definitively "the deal."
+
+**Look for "member pricing," "mobile-only deals" or opaque blind-booking products with caution.** These retail-side promotional mechanisms sometimes approach wholesale-level pricing, but sometimes they're simply a smaller discount dressed up as an exclusive one — the only way to know is to compare against an actual bed-bank-connected price for the same room and dates.
+
+**Trust the comparison, not the brand.** The single most reliable method remains simply running the comparison itself — which is the entire reason a comparison engine exists in the first place. [Search hotels on JetMeAway](/hotels) for your destination and dates, and you'll see both layers laid out side by side rather than having to reverse-engineer which one you're looking at.
+
+<a id="quiz"></a>
+
+## Quiz: Are You a Retail Booker or a Supply-Chain Saver?
+
+**1. You see a "Member-Only Deal" on a major travel site. You:**
+- **A)** Trust it — the bigger the brand, the better the deal.
+- **B)** Open a second tab and check the same room on a comparison engine that surfaces bed-bank rates.
+
+**2. A hotel shows £180/night on a big OTA and £156/night on a smaller comparison site for the exact same room category. You:**
+- **A)** Stick with the big-brand site for the trust factor.
+- **B)** Read both cancellation policies, and if they match, book the cheaper one.
+
+**3. A site says "Sold Out" but another shows availability. You:**
+- **A)** Assume it's actually sold out.
+- **B)** Know that bed banks often hold blocks of rooms one platform simply can't see.
+
+**4. You're booking a hotel where you also hold chain-loyalty status. You:**
+- **A)** Book on the hotel's own site or through the chain's app without checking anywhere else.
+- **B)** Compare the points value against the wholesale price gap, and decide deliberately rather than by default.
 
 ### Your results
 
-- **Mostly A's — the Retail Loyalist.** You value brand trust over price, and that's a defensible choice — the big OTAs do offer customer-service infrastructure smaller sites can't always match. Just be aware you're paying ~15–25% for that brand premium.
-- **Mostly B's — the Supply-Chain Saver.** You understand the hotel-distribution layer cake. [JetMeAway](/) is built for you — search [hotels](/hotels) across both retail OTAs and our direct bed-bank integrations, see the gap, book the lower rate.
+- **Mostly A's — the Retail Loyalist.** You value brand trust and loyalty benefits over squeezing out the last few percent of savings, and that's a defensible choice — big OTAs and hotel-direct booking do offer customer-service infrastructure and loyalty perks smaller platforms can't always match. Just be aware you're typically paying somewhere around 15–25% for that brand premium when you skip the comparison step entirely.
+- **Mostly B's — the Supply-Chain Saver.** You understand the hotel-distribution layer cake and check both sides of it before paying. [JetMeAway](/) is built for you — search [hotels](/hotels) across both retail OTAs and our direct bed-bank integrations, see the actual gap for your dates, and book whichever layer wins.
 
-## The bottom line
+<a id="common-myths"></a>
 
-The hotel industry has a layered supply chain — properties → bed banks → retail OTAs → consumer. Each layer adds a margin. The travellers paying the lowest prices in 2026 aren't doing anything sneaky; they're just buying one layer up the chain, where the marketing margin hasn't been added yet.
+## Common Myths, Corrected
 
-JetMeAway shows you both surfaces side-by-side — the retail comparison clicks (Expedia, Trip.com, Hotels.com, Agoda, Trivago) and our direct bed-bank rates (LiteAPI, RateHawk, Webbeds). When the bed-bank rate wins, you save. When the retail OTA happens to be cheaper, we tell you. **Search [hotels on JetMeAway](/hotels)** and see for yourself on your next trip — start with the destination, then read the price gap.
+**"Bed-bank hotels are lower quality or somehow 'off-brand.'"** Not true. A bed-bank contract covers the exact same physical room, same star rating, and usually the same or a comparable cancellation policy as the retail listing for that hotel — the wholesale layer changes the price you see, not the room you get.
+
+**"If it's cheaper, it must be a scam."** The price gap has a specific, well-documented structural cause — retail marketing and commission overhead stacked on top of a wholesale rate — not fraud. Legitimate bed-bank integrations issue the same kind of booking confirmation and voucher system any retail OTA would.
+
+**"You can just book directly with a bed bank and cut out the middleman entirely."** Bed banks are B2B-only; they don't sell to consumers directly, so there's no "direct" wholesale booking route available to the public. You always access wholesale rates through a retail-facing platform that holds the commercial integration — the value is in choosing a platform that passes the wholesale rate through rather than adding its own full retail markup on top of it.
+
+**"The cheapest platform is always the bed-bank-direct one."** Not always — retail OTAs run their own promotions, flash sales and loyalty discounts that occasionally undercut even the wholesale rate for a specific hotel and date. That's exactly why JetMeAway compares both layers rather than only showing you our own bed-bank integrations; the honest answer is "check both," not "wholesale always wins."
+
+**"Every hotel is available through every bed bank."** No single bed bank carries every property. Coverage varies by region and by hotel size — small independent boutiques and guesthouses are the category most likely to sit outside wholesale contracts entirely, in which case the hotel's own website may be your only or best option.
+
+## The Bottom Line
+
+The hotel industry runs on a layered supply chain — **properties → bed banks → retail OTAs → consumer** — and each layer adds its own margin on top of the one beneath it. The travellers paying the lowest genuine prices in 2026 aren't doing anything sneaky or complicated; they're simply buying one layer closer to the source, before the retail-marketing margin gets stacked on top.
+
+JetMeAway shows you both surfaces side by side on every search: the retail comparison clicks (Expedia, Trip.com, Hotels.com, Agoda, Trivago) and our direct bed-bank rates (LiteAPI, RateHawk, Webbeds). When the bed-bank rate wins, you save. When a retail OTA genuinely happens to be cheaper for your dates, we tell you that instead. **Search [hotels on JetMeAway](/hotels)** and see the gap for yourself on your next trip — start with the destination, then read the price spread before you book.
+
+For more on how this plays out in practice, [The Middleman Markup: How JetMeAway Finds Cheaper Hotel Rates](/blog/middleman-markup-cheaper-hotels-2026) goes deeper on the 15+ provider comparison model, and our destination hotel guides — like [Best Hotels in Paris 2026](/blog/best-hotels-paris-2026) and [Best Hotels in Barcelona 2026](/blog/best-hotels-barcelona-2026) — show real, currently-bookable rates across luxury, mid-range and budget tiers, city by city, so you can see the wholesale-versus-retail gap on actual properties rather than only in the abstract.
+
+## FAQ
+
+Answers to the most common questions travellers ask about bed banks, wholesale hotel pricing, and how JetMeAway's LiteAPI, RateHawk and Webbeds integrations work are in the FAQ block above — what a bed bank is, why the two-tier retail-versus-wholesale market exists, how the major bed banks differ, cancellation and loyalty-point trade-offs, and how to tell whether a given price is coming from the wholesale layer or the retail one.
