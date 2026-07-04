@@ -9,8 +9,10 @@
  * Posts go to the EXISTING JetMeAway accounts (YouTube @Jetmeawayy, TikTok/
  * FB/Bluesky/IG "jetmeawayy") — owner reviews every reel before posting.
  *
- * Usage: node scripts/build-ranking-short.mjs scratch/shorts/<job>.json
- * Output: scratch/shorts/<jobId>.mp4
+ * Usage: node scripts/build-ranking-short.mjs <job.json> [outputDir]
+ * Output: <outputDir>/<jobId>.mp4 — outputDir defaults to the owner's
+ * deliverables folder "Desktop/Advertisement/new plan by Fable" (owner
+ * directive 2026-07-03: all shorts deliverables live there, not scratch).
  *
  * Job shape:
  * {
@@ -41,8 +43,10 @@ const TITLE_DUR = 2.5, SEG_DUR = 4.5, END_DUR = 3.0;
 const NAVY = '0x0a1628', ORANGE = '0xF97316';
 
 const WORK = path.join(ROOT, 'scratch', 'shorts', 'work', job.id);
-const OUT = path.join(ROOT, 'scratch', 'shorts', job.id + '.mp4');
+const OUTDIR = process.argv[3] || 'C:/Users/10ban/OneDrive/Desktop/Advertisement/new plan by Fable';
+const OUT = path.join(OUTDIR, job.id + '.mp4');
 fs.mkdirSync(WORK, { recursive: true });
+fs.mkdirSync(OUTDIR, { recursive: true });
 
 // Fonts copied local so drawtext fontfile= needs no drive-letter escaping.
 fs.copyFileSync('C:/Windows/Fonts/segoeuib.ttf', path.join(WORK, 'fontb.ttf'));
