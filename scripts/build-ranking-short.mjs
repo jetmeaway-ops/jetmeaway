@@ -70,12 +70,13 @@ async function download(url, dest) {
 
 /** Animate a composed still into a segment mp4: slow zoom + fade in/out. */
 function animate(basePng, outMp4, dur, extraFilters = '') {
-  const F = Math.round(dur * FPS);
+  // STILL image + fade in/out. zoompan removed 2026-07-03 — it jittered on
+  // still photos ("shaky pictures" — owner). Perfectly static by design.
   const fc =
-    `[0:v]zoompan=z='min(zoom+0.0004,1.06)':d=${F}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=${W}x${H}:fps=${FPS},format=yuv420p` +
+    `[0:v]scale=${W}:${H},setsar=1,format=yuv420p` +
     (extraFilters ? `,${extraFilters}` : '') +
     `,fade=t=in:st=0:d=0.2,fade=t=out:st=${(dur - 0.2).toFixed(2)}:d=0.2[v]`;
-  run(['-y', '-i', basePng, '-filter_complex', fc, '-map', '[v]',
+  run(['-y', '-loop', '1', '-t', String(dur), '-i', basePng, '-filter_complex', fc, '-map', '[v]',
     '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p', '-r', String(FPS), outMp4]);
 }
 
