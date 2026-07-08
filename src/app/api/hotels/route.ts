@@ -130,6 +130,14 @@ const AIRPORT_COORDS_RAW: Array<{ keys: string[]; lat: number; lng: number; radi
   // Marseille Provence is 25 km north of Marseille centre, so radius 15
   // from the airport coords lands entirely outside the city hotel cluster.
   { keys: ['mrs', 'marseille airport', 'marseille provence'], lat: 43.4393, lng: 5.2214, radiusKm: 30 },
+  // Malta — NOT an airport: it's a country/island with no single LiteAPI
+  // "Malta" city (a bare "Malta" search returned 0 hotels — owner report
+  // 2026-07-08). This map is really "search term → geo-filter centroid", so we
+  // register Malta's island centroid here. Because "malta" stays the (unrouted)
+  // cityName, LiteAPI can't match it to one town and instead runs the lat/lng
+  // radius query, returning hotels ISLAND-WIDE (Sliema, Valletta, St Julian's,
+  // Bugibba, St Paul's Bay…). 25 km covers the whole archipelago incl. Gozo.
+  { keys: ['malta'], lat: 35.9200, lng: 14.4200, radiusKm: 25 },
 ];
 
 const AIRPORT_COORDS: Record<string, { lat: number; lng: number; radiusKm?: number }> = {};
@@ -351,6 +359,11 @@ const AIRPORT_TO_CITY: Record<string, string> = {
   // /hotels?destination=Sal CTA in the Cabo Verde blog returned 0 results.
   'sal': 'santa maria', 'cape verde': 'santa maria', 'cabo verde': 'santa maria',
   'cape-verde': 'santa maria', 'cabo-verde': 'santa maria',
+  // NB: "Malta" is deliberately NOT aliased to a town here — aliasing it to a
+  // resolvable LiteAPI city (e.g. St Julian's) narrows the result to that one
+  // town. Instead Malta gets an island centroid in MALTA_COORDS/AIRPORT_COORDS
+  // so the search runs a lat/lng radius query and returns hotels island-wide
+  // across every Maltese town. See the AIRPORT_COORDS_RAW "malta" entry.
   // Crete — Heraklion is the island's capital but LiteAPI's live inventory
   // for the city (and its Greek/alt spellings) is sparse-to-empty, so a bare
   // "Heraklion" search returned 0 hotels (monkey-landmark 2026-05-30). Alias
@@ -393,6 +406,9 @@ const CITY_COUNTRY: Record<string, string> = {
   'istanbul': 'TR', 'antalya': 'TR', 'bodrum': 'TR', 'dalaman': 'TR',
   // Balkans
   'dubrovnik': 'HR', 'split': 'HR', 'zagreb': 'HR', 'karlovac': 'HR',
+  // Malta — "malta" is aliased to "st julian's" (see AIRPORT_TO_CITY); pin both
+  // to MT so resolveCountryCode is instant instead of a flaky Nominatim lookup.
+  "st julian's": 'MT', 'malta': 'MT', 'valletta': 'MT', 'sliema': 'MT',
   // Middle East
   'dubai': 'AE', 'abu dhabi': 'AE', 'doha': 'QA', 'muscat': 'OM',
   // Saudi Arabia (incl. Hajj/Umrah destinations — high volume from UK Muslim travellers)
@@ -1032,6 +1048,12 @@ const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
   'athens': { lat: 37.9838, lng: 23.7275 },
   'santorini': { lat: 36.3932, lng: 25.4615 },
   'crete': { lat: 35.2401, lng: 24.4709 },
+  // Malta — country/island, no single LiteAPI "Malta" city. Centroid of the
+  // main island so an aliased "Malta" search runs a lat/lng radius search
+  // (primaryDestClause uses lat/lng when a centroid is present) and returns
+  // island-wide inventory across Sliema, Valletta, St Julian's, Bugibba,
+  // St Paul's Bay etc. instead of a single town. Radius set in CITY_RADIUS_KM.
+  'malta': { lat: 35.9200, lng: 14.4200 },
   'antalya': { lat: 36.8969, lng: 30.7133 },
   'dubrovnik': { lat: 42.6507, lng: 18.0944 },
   'edinburgh': { lat: 55.9533, lng: -3.1883 },
@@ -1131,6 +1153,10 @@ const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
 // who type "London" still see hotels in Westminster, Shoreditch, etc.
 // Default for any city not listed: 25km (errs toward inclusive).
 const CITY_RADIUS_KM: Record<string, number> = {
+  // Malta — 25km from the island centroid covers the whole archipelago
+  // (main island ~27km N–S plus Gozo/Comino to the NW), so a "Malta" search
+  // surfaces every town's hotels island-wide.
+  'malta': 25,
   // London boroughs — strict so a "Croydon" search doesn't return Hammersmith
   'croydon': 10,
   'wembley': 10,
