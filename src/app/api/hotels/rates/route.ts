@@ -98,15 +98,27 @@ export async function GET(req: NextRequest) {
     ? childrenAgesRaw.split(',').map((n) => parseInt(n, 10) || 0).filter((n) => n > 0 || n === 0)
     : [];
 
-  // One `occupancy` entry per room — mirror the rest of the codebase so
-  // prices match what the user saw on the search results page.
-  const occupancy = Array.from({ length: rooms }, () =>
-    childrenAges.length > 0 ? { adults, children: childrenAges } : { adults },
+  // One `occupancy` entry per room. `adults`/`children` are the TOTAL party,
+  // split across rooms exactly like the search route (src/app/api/hotels/
+  // route.ts) — adults spread evenly with the remainder in the last room,
+  // children all in room 0 — so detail-page prices match the results page.
+  // (Was: full party repeated per room, which turned "4 adults, 2 rooms"
+  // into an 8-person search and returned zero offers. 2026-07-08)
+  const adultsPerRoom: number[] = [];
+  let remainingAdults = adults;
+  for (let i = 0; i < rooms; i++) {
+    const a = i === rooms - 1 ? remainingAdults : Math.max(1, Math.floor(adults / rooms));
+    adultsPerRoom.push(Math.max(1, a));
+    remainingAdults -= a;
+  }
+  const occupancy = adultsPerRoom.map((a, idx) =>
+    idx === 0 && childrenAges.length > 0 ? { adults: a, children: childrenAges } : { adults: a },
   );
 
-  // v2: bumped 2026-04-21 so cached entries re-fetch with cancelDeadline +
-  // paymentTypes. Old `hotel-rates:*` entries lack those fields.
-  const cacheKey = `hotel-rates:v2:${hotelId}:${checkin}:${checkout}:${adults}:${children}:${childrenAgesRaw}:${rooms}:${currency}`;
+  // v3: bumped 2026-07-08 — rooms>1 occupancy semantics changed from
+  // "party per room" to "party split across rooms"; v2 entries priced the
+  // wrong headcount. (v2 2026-04-21 added cancelDeadline + paymentTypes.)
+  const cacheKey = `hotel-rates:v3:${hotelId}:${checkin}:${checkout}:${adults}:${children}:${childrenAgesRaw}:${rooms}:${currency}`;
 
   try {
     const cached = await kv.get<CacheShape | { offers: BoardOptionOut[] }>(cacheKey);
