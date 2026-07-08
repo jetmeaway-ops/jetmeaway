@@ -351,6 +351,15 @@ const AIRPORT_TO_CITY: Record<string, string> = {
   // /hotels?destination=Sal CTA in the Cabo Verde blog returned 0 results.
   'sal': 'santa maria', 'cape verde': 'santa maria', 'cabo verde': 'santa maria',
   'cape-verde': 'santa maria', 'cabo-verde': 'santa maria',
+  // Malta — the search bar accepts the country name "Malta", but LiteAPI has
+  // no city called Malta, so a bare "Malta" search returned 0 hotels (owner
+  // report 2026-07-08: flights showed via MLA but hotels were empty). Malta's
+  // hotel inventory is indexed under its town names; St Julian's (Paceville /
+  // Spinola Bay) is the main resort hub with the most rooms (~44 vs Valletta
+  // ~42, Sliema ~30). Alias so "Malta" resolves to the St Julian's cluster
+  // instead of an empty state — same pattern as Cabo Verde ("sal" → "santa
+  // maria") above. The site UI still surfaces "Malta" as the destination label.
+  'malta': "st julian's",
   // Crete — Heraklion is the island's capital but LiteAPI's live inventory
   // for the city (and its Greek/alt spellings) is sparse-to-empty, so a bare
   // "Heraklion" search returned 0 hotels (monkey-landmark 2026-05-30). Alias
@@ -393,6 +402,9 @@ const CITY_COUNTRY: Record<string, string> = {
   'istanbul': 'TR', 'antalya': 'TR', 'bodrum': 'TR', 'dalaman': 'TR',
   // Balkans
   'dubrovnik': 'HR', 'split': 'HR', 'zagreb': 'HR', 'karlovac': 'HR',
+  // Malta — "malta" is aliased to "st julian's" (see AIRPORT_TO_CITY); pin both
+  // to MT so resolveCountryCode is instant instead of a flaky Nominatim lookup.
+  "st julian's": 'MT', 'malta': 'MT', 'valletta': 'MT', 'sliema': 'MT',
   // Middle East
   'dubai': 'AE', 'abu dhabi': 'AE', 'doha': 'QA', 'muscat': 'OM',
   // Saudi Arabia (incl. Hajj/Umrah destinations — high volume from UK Muslim travellers)
