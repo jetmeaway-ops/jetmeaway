@@ -271,6 +271,23 @@ export default function HotelDetailPage() {
   // (start clicked, end pending) so the UI tracks the click before we
   // commit the full range to the URL.
   const [pickDates, setPickDates] = useState<{ start: string; end: string } | null>(null);
+  // Editable occupancy (2026-07-03, owner request): blog deep links land
+  // with the default 2 adults — families adjust adults/children right here
+  // and the rates table refetches live. Committed to the URL like dates.
+  const updateOccupancy = (nextAdults: number, nextAges: number[], nextRooms?: number) => {
+    const q = new URLSearchParams(sp?.toString() || '');
+    q.set('adults', String(nextAdults));
+    q.set('children', String(nextAges.length));
+    if (nextAges.length) q.set('childrenAges', nextAges.join(','));
+    else q.delete('childrenAges');
+    if (nextRooms !== undefined) {
+      if (nextRooms > 1) q.set('rooms', String(nextRooms));
+      else q.delete('rooms');
+    }
+    // Stale for the new occupancy — price belongs to the old party size.
+    ['offerId', 'price', 'negPrice', 'mktPrice'].forEach((k) => q.delete(k));
+    router.replace(`/hotels/${encodeURIComponent(String(id))}?${q.toString()}`, { scroll: false });
+  };
 
   // Search context passed from /hotels results (for the Book button).
   // Deep-link support (2026-07-02): blog posts link straight to a hotel by
@@ -956,7 +973,41 @@ export default function HotelDetailPage() {
                   onShowDetails={(oid) => setModalOfferId(oid)}
                 />
               </div>
-            ) : null}
+            ) : (() => {
+              // Empty rates used to render nothing — a silent dead end. Most
+              // common cause for bigger parties: no single room sleeps 3+, but
+              // the hotel books fine as two rooms. Offer that split in one tap.
+              const adultsN = Math.max(1, parseInt(adults) || 2);
+              const childCount = Math.max(0, parseInt(children) || 0);
+              const roomsN = Math.max(1, parseInt(rooms) || 1);
+              const party = adultsN + childCount;
+              const canSplit = roomsN === 1 && party > 2;
+              const ages = (childrenAges || '').split(',').map(Number).filter((n) => Number.isFinite(n) && n >= 0 && n <= 17).slice(0, childCount);
+              return (
+                <div className="mb-5 bg-white border border-[#E8ECF4] rounded-2xl p-6 text-center">
+                  <p className="text-[.9rem] font-bold text-[#1A1D2B] mb-1">
+                    {canSplit
+                      ? `No single room sleeps ${party} guests on these dates`
+                      : 'No live rates for these dates'}
+                  </p>
+                  <p className="text-[.8rem] text-[#5C6378] font-medium mb-4">
+                    {canSplit
+                      ? 'Most hotels take bigger groups across two rooms side by side.'
+                      : 'Try different dates in the panel — prices reload instantly.'}
+                  </p>
+                  {canSplit && (
+                    <button
+                      type="button"
+                      onClick={() => updateOccupancy(adultsN, ages, 2)}
+                      className="inline-flex items-center gap-2 rounded-full bg-[#0066FF] px-5 py-2.5 text-[.82rem] font-black text-white hover:bg-[#0052CC] transition-colors"
+                    >
+                      <i className="fa-solid fa-bed" />
+                      Search 2 rooms instead
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
 
             {hotel.description && (
               <section id="overview" className="bg-white border border-[#E8ECF4] rounded-2xl p-6 mb-5 scroll-mt-[140px]">
@@ -1476,7 +1527,70 @@ export default function HotelDetailPage() {
                 </div>
               </>
             )}
-            <div className="mt-4 space-y-2 text-[.82rem] text-[#5C6378] font-semibold">
+            {(() => {
+              const adultsN = Math.max(1, Math.min(6, parseInt(adults) || 2));
+              const childCount = Math.max(0, Math.min(4, parseInt(children) || 0));
+              const roomsN = Math.max(1, Math.min(3, parseInt(rooms) || 1));
+              const agesFromParam = (childrenAges || '').split(',').map(Number).filter((n) => Number.isFinite(n) && n >= 0 && n <= 17);
+              const ages = Array.from({ length: childCount }, (_, i) => agesFromParam[i] ?? 7);
+              const stepBtn = 'w-8 h-8 rounded-full border border-[#E8ECF4] bg-[#F8FAFC] hover:bg-white text-[#1A1D2B] font-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors';
+              return (
+                <div className="mt-4 rounded-xl border border-[#E8ECF4] p-3 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[.82rem] font-semibold text-[#5C6378]">Adults</span>
+                    <div className="flex items-center gap-2.5">
+                      <button type="button" aria-label="Fewer adults" className={stepBtn} disabled={adultsN <= 1}
+                        onClick={() => updateOccupancy(adultsN - 1, ages)}>−</button>
+                      <span className="w-5 text-center font-black text-[#1A1D2B]">{adultsN}</span>
+                      <button type="button" aria-label="More adults" className={stepBtn} disabled={adultsN >= 6}
+                        onClick={() => updateOccupancy(adultsN + 1, ages)}>+</button>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[.82rem] font-semibold text-[#5C6378]">Children</span>
+                    <div className="flex items-center gap-2.5">
+                      <button type="button" aria-label="Fewer children" className={stepBtn} disabled={childCount <= 0}
+                        onClick={() => updateOccupancy(adultsN, ages.slice(0, -1))}>−</button>
+                      <span className="w-5 text-center font-black text-[#1A1D2B]">{childCount}</span>
+                      <button type="button" aria-label="More children" className={stepBtn} disabled={childCount >= 4}
+                        onClick={() => updateOccupancy(adultsN, [...ages, 7])}>+</button>
+                    </div>
+                  </div>
+                  {childCount > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {ages.map((age, i) => (
+                        <label key={i} className="inline-flex items-center gap-1.5 text-[.72rem] font-bold text-[#5C6378]">
+                          Child {i + 1}
+                          <select value={age}
+                            className="rounded-lg border border-[#E8ECF4] bg-[#F8FAFC] px-1.5 py-1 text-[.75rem] font-bold text-[#1A1D2B]"
+                            onChange={(e) => {
+                              const next = [...ages];
+                              next[i] = Number(e.target.value);
+                              updateOccupancy(adultsN, next);
+                            }}>
+                            {Array.from({ length: 18 }, (_, a) => (
+                              <option key={a} value={a}>{a === 0 ? '<1' : a}</option>
+                            ))}
+                          </select>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-[.82rem] font-semibold text-[#5C6378]">Rooms</span>
+                    <div className="flex items-center gap-2.5">
+                      <button type="button" aria-label="Fewer rooms" className={stepBtn} disabled={roomsN <= 1}
+                        onClick={() => updateOccupancy(adultsN, ages, roomsN - 1)}>−</button>
+                      <span className="w-5 text-center font-black text-[#1A1D2B]">{roomsN}</span>
+                      <button type="button" aria-label="More rooms" className={stepBtn} disabled={roomsN >= 3}
+                        onClick={() => updateOccupancy(adultsN, ages, roomsN + 1)}>+</button>
+                    </div>
+                  </div>
+                  <p className="text-[.66rem] text-[#8E95A9] font-medium">Prices update live for your party size.</p>
+                </div>
+              );
+            })()}
+            <div className="mt-3 space-y-2 text-[.82rem] text-[#5C6378] font-semibold">
               {/* Editable dates — blog deep links land with default dates;
                   changing them here rewrites the URL params and the rates
                   table refetches live prices in place. The old offerId/
@@ -1504,10 +1618,6 @@ export default function HotelDetailPage() {
                   }
                 }}
               />
-              <div className="flex justify-between">
-                <span>Guests</span>
-                <strong className="text-[#1A1D2B]">{adults} adult{adults !== '1' ? 's' : ''}{children !== '0' ? `, ${children} child${children !== '1' ? 'ren' : ''}` : ''}</strong>
-              </div>
               {rooms !== '1' && <div className="flex justify-between"><span>Rooms</span><strong className="text-[#1A1D2B]">{rooms}</strong></div>}
             </div>
 
