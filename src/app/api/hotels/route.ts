@@ -130,6 +130,14 @@ const AIRPORT_COORDS_RAW: Array<{ keys: string[]; lat: number; lng: number; radi
   // Marseille Provence is 25 km north of Marseille centre, so radius 15
   // from the airport coords lands entirely outside the city hotel cluster.
   { keys: ['mrs', 'marseille airport', 'marseille provence'], lat: 43.4393, lng: 5.2214, radiusKm: 30 },
+  // Malta — NOT an airport: it's a country/island with no single LiteAPI
+  // "Malta" city (a bare "Malta" search returned 0 hotels — owner report
+  // 2026-07-08). This map is really "search term → geo-filter centroid", so we
+  // register Malta's island centroid here. Because "malta" stays the (unrouted)
+  // cityName, LiteAPI can't match it to one town and instead runs the lat/lng
+  // radius query, returning hotels ISLAND-WIDE (Sliema, Valletta, St Julian's,
+  // Bugibba, St Paul's Bay…). 25 km covers the whole archipelago incl. Gozo.
+  { keys: ['malta'], lat: 35.9200, lng: 14.4200, radiusKm: 25 },
 ];
 
 const AIRPORT_COORDS: Record<string, { lat: number; lng: number; radiusKm?: number }> = {};
@@ -351,15 +359,11 @@ const AIRPORT_TO_CITY: Record<string, string> = {
   // /hotels?destination=Sal CTA in the Cabo Verde blog returned 0 results.
   'sal': 'santa maria', 'cape verde': 'santa maria', 'cabo verde': 'santa maria',
   'cape-verde': 'santa maria', 'cabo-verde': 'santa maria',
-  // Malta — the search bar accepts the country name "Malta", but LiteAPI has
-  // no city called Malta, so a bare "Malta" search returned 0 hotels (owner
-  // report 2026-07-08: flights showed via MLA but hotels were empty). Malta's
-  // hotel inventory is indexed under its town names; St Julian's (Paceville /
-  // Spinola Bay) is the main resort hub with the most rooms (~44 vs Valletta
-  // ~42, Sliema ~30). Alias so "Malta" resolves to the St Julian's cluster
-  // instead of an empty state — same pattern as Cabo Verde ("sal" → "santa
-  // maria") above. The site UI still surfaces "Malta" as the destination label.
-  'malta': "st julian's",
+  // NB: "Malta" is deliberately NOT aliased to a town here — aliasing it to a
+  // resolvable LiteAPI city (e.g. St Julian's) narrows the result to that one
+  // town. Instead Malta gets an island centroid in MALTA_COORDS/AIRPORT_COORDS
+  // so the search runs a lat/lng radius query and returns hotels island-wide
+  // across every Maltese town. See the AIRPORT_COORDS_RAW "malta" entry.
   // Crete — Heraklion is the island's capital but LiteAPI's live inventory
   // for the city (and its Greek/alt spellings) is sparse-to-empty, so a bare
   // "Heraklion" search returned 0 hotels (monkey-landmark 2026-05-30). Alias
