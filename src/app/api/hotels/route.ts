@@ -1044,6 +1044,12 @@ const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
   'athens': { lat: 37.9838, lng: 23.7275 },
   'santorini': { lat: 36.3932, lng: 25.4615 },
   'crete': { lat: 35.2401, lng: 24.4709 },
+  // Malta — country/island, no single LiteAPI "Malta" city. Centroid of the
+  // main island so an aliased "Malta" search runs a lat/lng radius search
+  // (primaryDestClause uses lat/lng when a centroid is present) and returns
+  // island-wide inventory across Sliema, Valletta, St Julian's, Bugibba,
+  // St Paul's Bay etc. instead of a single town. Radius set in CITY_RADIUS_KM.
+  'malta': { lat: 35.9200, lng: 14.4200 },
   'antalya': { lat: 36.8969, lng: 30.7133 },
   'dubrovnik': { lat: 42.6507, lng: 18.0944 },
   'edinburgh': { lat: 55.9533, lng: -3.1883 },
@@ -1143,6 +1149,10 @@ const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
 // who type "London" still see hotels in Westminster, Shoreditch, etc.
 // Default for any city not listed: 25km (errs toward inclusive).
 const CITY_RADIUS_KM: Record<string, number> = {
+  // Malta — 25km from the island centroid covers the whole archipelago
+  // (main island ~27km N–S plus Gozo/Comino to the NW), so a "Malta" search
+  // surfaces every town's hotels island-wide.
+  'malta': 25,
   // London boroughs — strict so a "Croydon" search doesn't return Hammersmith
   'croydon': 10,
   'wembley': 10,
