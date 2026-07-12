@@ -1710,13 +1710,16 @@ export default function HotelDetailPage() {
                     handleBook();
                   }
                 }}
-                disabled={startingBooking}
+                // ratesLoading too: after a date/party change the old offer is
+                // still selected until fresh rates land — a fast click would
+                // book the previous party size at the previous price.
+                disabled={startingBooking || ratesLoading}
                 className="w-full mt-5 bg-[#0a1628] hover:bg-[#0066FF] disabled:opacity-60 text-white font-poppins font-bold text-[.92rem] py-3.5 rounded-xl transition-all shadow-[0_6px_22px_rgba(10,22,40,0.22)] flex items-center justify-center gap-2"
               >
-                {startingBooking ? (
+                {startingBooking || ratesLoading ? (
                   <>
                     <span className="inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    Starting…
+                    {startingBooking ? 'Starting…' : 'Updating price…'}
                   </>
                 ) : (
                   <><i className="fa-solid fa-lock text-[.78rem]" /> Reserve with Scout →</>
@@ -1855,10 +1858,10 @@ export default function HotelDetailPage() {
               if (selectedRate) handleRowReserve(selectedRate.offerId);
               else handleBook();
             }}
-            disabled={startingBooking}
+            disabled={startingBooking || ratesLoading}
             className="flex-shrink-0 inline-flex items-center gap-2 bg-[#0a1628] hover:bg-[#0066FF] disabled:opacity-60 text-white font-poppins font-bold text-[.82rem] rounded-full px-5 py-3 shadow-[0_8px_18px_rgba(10,22,40,0.25)] transition-all"
           >
-            {startingBooking ? (
+            {startingBooking || ratesLoading ? (
               <span className="inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
             ) : (
               <><i className="fa-solid fa-lock text-[.72rem]" /> Reserve →</>

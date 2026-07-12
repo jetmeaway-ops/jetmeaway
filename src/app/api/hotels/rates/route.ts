@@ -97,6 +97,10 @@ export async function GET(req: NextRequest) {
   const childrenAges = childrenAgesRaw
     ? childrenAgesRaw.split(',').map((n) => parseInt(n, 10) || 0).filter((n) => n > 0 || n === 0)
     : [];
+  // `children=N` with missing/short ages: pad with 8 exactly like the search
+  // route — otherwise the children were silently dropped from occupancy and
+  // the quote came back priced for adults only (too cheap, wrong room).
+  while (childrenAges.length < children) childrenAges.push(8);
 
   // One `occupancy` entry per room. `adults`/`children` are the TOTAL party,
   // split across rooms exactly like the search route (src/app/api/hotels/
