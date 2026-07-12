@@ -153,6 +153,11 @@ const mdxComponents = {
   img: (props: any) => (
     // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
     <img
+      // Hotel-guide posts embed 45-50 full-size supplier photos (110-650KB
+      // each, ~15MB total, no resize API). Lazy-load so only the photos in
+      // view download — the rest stream in as the reader scrolls.
+      loading="lazy"
+      decoding="async"
       className="w-full rounded-2xl shadow-[0_12px_40px_-12px_rgba(0,102,255,0.18)] my-8"
       {...props}
     />
@@ -366,6 +371,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           <img
             src={post.heroImage}
             alt={post.title}
+            // LCP element — load it first, ahead of the 45-50 lazy body photos.
+            fetchPriority="high"
+            decoding="async"
             className="w-full h-[320px] md:h-[460px] object-cover rounded-3xl shadow-[0_24px_60px_-20px_rgba(0,102,255,0.2)]"
           />
         </div>
