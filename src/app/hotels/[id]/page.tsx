@@ -450,6 +450,76 @@ export default function HotelDetailPage() {
     return () => { cancelled = true; };
   }, [id, checkin, checkout, adults, children, rooms, currency, childrenAges, offerId]);
 
+  /* Guests & rooms steppers — rendered TWICE: in the booking sidebar
+     (desktop) and directly above the rooms table (mobile-only block).
+     On mobile the sidebar stacks below every other section, so without
+     the top copy a phone user had to scroll past rooms + reviews + all
+     hotel details just to find where to change the party (owner report
+     2026-07-14; ~90% of traffic is mobile). Plain function, no hooks. */
+  const renderOccupancyPicker = () => {
+    const adultsN = Math.max(1, Math.min(6, parseInt(adults) || 2));
+    const childCount = Math.max(0, Math.min(4, parseInt(children) || 0));
+    const roomsN = Math.max(1, Math.min(3, parseInt(rooms) || 1));
+    const agesFromParam = (childrenAges || '').split(',').map(Number).filter((n) => Number.isFinite(n) && n >= 0 && n <= 17);
+    const ages = Array.from({ length: childCount }, (_, i) => agesFromParam[i] ?? 7);
+    const stepBtn = 'w-8 h-8 rounded-full border border-[#E8ECF4] bg-[#F8FAFC] hover:bg-white text-[#1A1D2B] font-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors';
+    return (
+      <div className="rounded-xl border border-[#E8ECF4] p-3 space-y-2.5 bg-white">
+        <div className="flex items-center justify-between">
+          <span className="text-[.82rem] font-semibold text-[#5C6378]">Adults</span>
+          <div className="flex items-center gap-2.5">
+            <button type="button" aria-label="Fewer adults" className={stepBtn} disabled={adultsN <= 1}
+              onClick={() => updateOccupancy(adultsN - 1, ages)}>−</button>
+            <span className="w-5 text-center font-black text-[#1A1D2B]">{adultsN}</span>
+            <button type="button" aria-label="More adults" className={stepBtn} disabled={adultsN >= 6}
+              onClick={() => updateOccupancy(adultsN + 1, ages)}>+</button>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-[.82rem] font-semibold text-[#5C6378]">Children</span>
+          <div className="flex items-center gap-2.5">
+            <button type="button" aria-label="Fewer children" className={stepBtn} disabled={childCount <= 0}
+              onClick={() => updateOccupancy(adultsN, ages.slice(0, -1))}>−</button>
+            <span className="w-5 text-center font-black text-[#1A1D2B]">{childCount}</span>
+            <button type="button" aria-label="More children" className={stepBtn} disabled={childCount >= 4}
+              onClick={() => updateOccupancy(adultsN, [...ages, 7])}>+</button>
+          </div>
+        </div>
+        {childCount > 0 && (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {ages.map((age, i) => (
+              <label key={i} className="inline-flex items-center gap-1.5 text-[.72rem] font-bold text-[#5C6378]">
+                Child {i + 1}
+                <select value={age}
+                  className="rounded-lg border border-[#E8ECF4] bg-[#F8FAFC] px-1.5 py-1 text-[.75rem] font-bold text-[#1A1D2B]"
+                  onChange={(e) => {
+                    const next = [...ages];
+                    next[i] = Number(e.target.value);
+                    updateOccupancy(adultsN, next);
+                  }}>
+                  {Array.from({ length: 18 }, (_, a) => (
+                    <option key={a} value={a}>{a === 0 ? '<1' : a}</option>
+                  ))}
+                </select>
+              </label>
+            ))}
+          </div>
+        )}
+        <div className="flex items-center justify-between">
+          <span className="text-[.82rem] font-semibold text-[#5C6378]">Rooms</span>
+          <div className="flex items-center gap-2.5">
+            <button type="button" aria-label="Fewer rooms" className={stepBtn} disabled={roomsN <= 1}
+              onClick={() => updateOccupancy(adultsN, ages, roomsN - 1)}>−</button>
+            <span className="w-5 text-center font-black text-[#1A1D2B]">{roomsN}</span>
+            <button type="button" aria-label="More rooms" className={stepBtn} disabled={roomsN >= 3}
+              onClick={() => updateOccupancy(adultsN, ages, roomsN + 1)}>+</button>
+          </div>
+        </div>
+        <p className="text-[.66rem] text-[#8E95A9] font-medium">Prices update live for your party size.</p>
+      </div>
+    );
+  };
+
   /* Row click — updates the selected rate and triggers the sidebar
      "breathe" (1.00 → 1.02 → 1.00 over 180ms ease-out). `will-change-
      transform` on the container keeps the GPU hot so the transform is
@@ -958,10 +1028,32 @@ export default function HotelDetailPage() {
                 The primary action. Rendered BEFORE description so the
                 customer sees the rate choices without scrolling. */}
             <div id="rooms" className="scroll-mt-[140px]" />
-            {ratesLoading ? (
+            {/* Guests & rooms — mobile-only copy at the TOP of the page.
+                90% of bookings come from phones, where the sidebar copy is
+                buried below rooms + reviews + details (owner report 07-14). */}
+            <div className="md:hidden mb-4">
+              <div className="text-[.7rem] font-black uppercase tracking-[1px] text-[#8E95A9] mb-1.5">
+                <i className="fa-solid fa-user-group text-[.65rem] mr-1.5" />
+                Who&apos;s staying?
+              </div>
+              {renderOccupancyPicker()}
+            </div>
+            {ratesLoading && rates.length === 0 ? (
               <RoomsSkeleton />
             ) : rates.length > 0 ? (
-              <div className="mb-5">
+              // While a party/date change refetches, keep the previous table
+              // mounted (dimmed, clicks off) instead of collapsing to a short
+              // skeleton — the collapse used to shrink the page and dump the
+              // viewport at the footer on mobile (owner report 07-14).
+              <div className={`mb-5 relative ${ratesLoading ? 'opacity-50 pointer-events-none select-none' : ''}`}>
+                {ratesLoading && (
+                  <div className="absolute inset-x-0 top-3 z-10 flex justify-center">
+                    <span className="inline-flex items-center gap-2 rounded-full bg-[#0a1628] text-white text-[.75rem] font-bold px-4 py-2 shadow-lg">
+                      <span className="inline-block w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      Updating prices…
+                    </span>
+                  </div>
+                )}
                 <RoomsTable
                   offers={rates}
                   nights={numNights || 1}
@@ -1527,69 +1619,10 @@ export default function HotelDetailPage() {
                 </div>
               </>
             )}
-            {(() => {
-              const adultsN = Math.max(1, Math.min(6, parseInt(adults) || 2));
-              const childCount = Math.max(0, Math.min(4, parseInt(children) || 0));
-              const roomsN = Math.max(1, Math.min(3, parseInt(rooms) || 1));
-              const agesFromParam = (childrenAges || '').split(',').map(Number).filter((n) => Number.isFinite(n) && n >= 0 && n <= 17);
-              const ages = Array.from({ length: childCount }, (_, i) => agesFromParam[i] ?? 7);
-              const stepBtn = 'w-8 h-8 rounded-full border border-[#E8ECF4] bg-[#F8FAFC] hover:bg-white text-[#1A1D2B] font-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors';
-              return (
-                <div className="mt-4 rounded-xl border border-[#E8ECF4] p-3 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[.82rem] font-semibold text-[#5C6378]">Adults</span>
-                    <div className="flex items-center gap-2.5">
-                      <button type="button" aria-label="Fewer adults" className={stepBtn} disabled={adultsN <= 1}
-                        onClick={() => updateOccupancy(adultsN - 1, ages)}>−</button>
-                      <span className="w-5 text-center font-black text-[#1A1D2B]">{adultsN}</span>
-                      <button type="button" aria-label="More adults" className={stepBtn} disabled={adultsN >= 6}
-                        onClick={() => updateOccupancy(adultsN + 1, ages)}>+</button>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[.82rem] font-semibold text-[#5C6378]">Children</span>
-                    <div className="flex items-center gap-2.5">
-                      <button type="button" aria-label="Fewer children" className={stepBtn} disabled={childCount <= 0}
-                        onClick={() => updateOccupancy(adultsN, ages.slice(0, -1))}>−</button>
-                      <span className="w-5 text-center font-black text-[#1A1D2B]">{childCount}</span>
-                      <button type="button" aria-label="More children" className={stepBtn} disabled={childCount >= 4}
-                        onClick={() => updateOccupancy(adultsN, [...ages, 7])}>+</button>
-                    </div>
-                  </div>
-                  {childCount > 0 && (
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      {ages.map((age, i) => (
-                        <label key={i} className="inline-flex items-center gap-1.5 text-[.72rem] font-bold text-[#5C6378]">
-                          Child {i + 1}
-                          <select value={age}
-                            className="rounded-lg border border-[#E8ECF4] bg-[#F8FAFC] px-1.5 py-1 text-[.75rem] font-bold text-[#1A1D2B]"
-                            onChange={(e) => {
-                              const next = [...ages];
-                              next[i] = Number(e.target.value);
-                              updateOccupancy(adultsN, next);
-                            }}>
-                            {Array.from({ length: 18 }, (_, a) => (
-                              <option key={a} value={a}>{a === 0 ? '<1' : a}</option>
-                            ))}
-                          </select>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <span className="text-[.82rem] font-semibold text-[#5C6378]">Rooms</span>
-                    <div className="flex items-center gap-2.5">
-                      <button type="button" aria-label="Fewer rooms" className={stepBtn} disabled={roomsN <= 1}
-                        onClick={() => updateOccupancy(adultsN, ages, roomsN - 1)}>−</button>
-                      <span className="w-5 text-center font-black text-[#1A1D2B]">{roomsN}</span>
-                      <button type="button" aria-label="More rooms" className={stepBtn} disabled={roomsN >= 3}
-                        onClick={() => updateOccupancy(adultsN, ages, roomsN + 1)}>+</button>
-                    </div>
-                  </div>
-                  <p className="text-[.66rem] text-[#8E95A9] font-medium">Prices update live for your party size.</p>
-                </div>
-              );
-            })()}
+            {/* Guests & rooms — desktop copy; the mobile copy sits above the
+                rooms table because this sidebar stacks below all content on
+                phones. */}
+            <div className="mt-4">{renderOccupancyPicker()}</div>
             <div className="mt-3 space-y-2 text-[.82rem] text-[#5C6378] font-semibold">
               {/* Editable dates — blog deep links land with default dates;
                   changing them here rewrites the URL params and the rates
