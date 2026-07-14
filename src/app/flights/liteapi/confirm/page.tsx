@@ -141,14 +141,24 @@ async function finaliseBooking(
     });
     const data = (await res.json().catch(() => ({}))) as {
       ok?: boolean;
-      error?: string;
+      error?: unknown;
       bookingRef?: string;
     };
     if (res.ok && data?.ok) {
       bookOk = true;
       bookingRefFromApi = data.bookingRef;
     } else {
-      bookError = data?.error || `Booking could not be completed (status ${res.status}).`;
+      // Coerce to a string ALWAYS — the book route (or an upstream error) can
+      // hand back an object here, and rendering an object as a React child hard-
+      // crashes this page (500 "This page couldn't load") instead of showing the
+      // amber "needs attention" card.
+      const rawErr = data?.error;
+      bookError =
+        typeof rawErr === 'string' && rawErr
+          ? rawErr
+          : rawErr
+            ? JSON.stringify(rawErr)
+            : `Booking could not be completed (status ${res.status}).`;
     }
   } catch (err) {
     bookError = err instanceof Error ? err.message : 'Booking request failed';

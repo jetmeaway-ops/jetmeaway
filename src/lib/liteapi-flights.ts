@@ -255,9 +255,23 @@ export interface FlightBookResult {
 }
 
 export async function bookFlight(params: FlightBookParams): Promise<FlightBookResult> {
+  const { prebookId, transactionId, clientReference, ...rest } = params;
+
+  // LiteAPI /flights/bookings REQUIRES an explicit payment method (400 45009
+  // "payment method must be CREDIT, TRANSACTION_ID, or THIRD_PARTY" otherwise).
+  // We settle with the transaction captured by the hosted Payment SDK, so the
+  // method is TRANSACTION_ID — the exact same shape the live hotels book uses
+  // (src/lib/liteapi.ts bookWithTransactionId → payment:{method:'TRANSACTION_ID',transactionId}).
+  const body: Record<string, unknown> = {
+    prebookId,
+    payment: { method: 'TRANSACTION_ID', transactionId },
+    ...(clientReference ? { clientReference } : {}),
+    ...rest,
+  };
+
   const res = await flightFetch<{ data?: FlightBookResult | FlightBookResult[] }>(
     '/flights/bookings',
-    { method: 'POST', body: JSON.stringify(params) },
+    { method: 'POST', body: JSON.stringify(body) },
     50_000,
   );
   const data = res.data;

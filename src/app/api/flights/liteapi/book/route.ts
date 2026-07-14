@@ -193,7 +193,16 @@ export async function POST(req: NextRequest) {
   // decline email/SMS on a confirm-page reload (that page is force-dynamic and
   // re-POSTs /book on every load). Echo the stored error instead.
   if (record.state === 'failed') {
-    return NextResponse.json({ error: record.error ?? 'book_failed' }, { status: 502 });
+    // Always emit a STRING error — the confirm page renders this value, and an
+    // object here would crash its render (500) instead of showing the graceful
+    // "needs attention" card.
+    const storedErr =
+      typeof record.error === 'string' && record.error
+        ? record.error
+        : record.error
+          ? JSON.stringify(record.error)
+          : 'book_failed';
+    return NextResponse.json({ error: storedErr }, { status: 502 });
   }
 
   // Guard — the prebook the customer paid for must match the one on file.
