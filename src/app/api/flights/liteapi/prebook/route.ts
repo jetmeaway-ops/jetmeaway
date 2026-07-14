@@ -189,12 +189,22 @@ export async function POST(req: NextRequest) {
     };
     await kv.set(`pending-flight:${ref}`, updated, { ex: PENDING_TTL_SECONDS });
 
+    // Tell the client which LiteAPI payment SDK mode to use — it MUST match the
+    // key the server booked with: a sand_… key needs publicKey:"sandbox", a
+    // prod_… key needs publicKey:"live". Derived from the flights key so it flips
+    // automatically when we swap to the production key.
+    const paymentMode = (process.env.LITEAPI_FLIGHTS_KEY || process.env.LITE_API_KEY || '')
+      .startsWith('sand')
+      ? 'sandbox'
+      : 'live';
+
     return NextResponse.json({
       prebookId: result.prebookId,
       transactionId: result.transactionId,
       secretKey: result.secretKey,
       price: newPrice || record.trip.totalPrice,
       currency,
+      paymentMode,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);

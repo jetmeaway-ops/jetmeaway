@@ -241,7 +241,7 @@ export default function FlightCheckoutPage() {
   // ── LiteAPI Payment SDK init — COPIED VERBATIM from the hotels checkout
   //    (src/app/hotels/checkout/[ref]/page.tsx). The ONLY change is the
   //    returnUrl, which points at the flights confirm route. NO Stripe. ─────
-  const initPaymentSdk = useCallback((secretKey: string, pbId: string, txId: string) => {
+  const initPaymentSdk = useCallback((secretKey: string, pbId: string, txId: string, mode: string) => {
     if (sdkLoadedRef.current) return;
     sdkLoadedRef.current = true;
 
@@ -271,7 +271,10 @@ export default function FlightCheckoutPage() {
 
       try {
         const payment = new LiteAPIPayment({
-          publicKey: 'live',
+          // 'sandbox' or 'live' — supplied by the prebook route from the key it
+          // booked with, so the SDK mode always matches (sandbox test card
+          // 4242… works when the sandbox key is in use).
+          publicKey: mode,
           secretKey,
           targetElement: '#liteapi-payment-form',
           returnUrl,
@@ -396,7 +399,7 @@ export default function FlightCheckoutPage() {
       });
 
       // 3. Hand off to LiteAPI's hosted payment SDK.
-      initPaymentSdk(pbData.secretKey, pbData.prebookId, pbData.transactionId);
+      initPaymentSdk(pbData.secretKey, pbData.prebookId, pbData.transactionId, pbData.paymentMode || 'sandbox');
     } catch (e: unknown) {
       setStepError(e instanceof Error ? e.message : 'Unexpected error');
       setStep('form');
