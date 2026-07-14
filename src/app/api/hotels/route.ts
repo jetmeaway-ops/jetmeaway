@@ -138,6 +138,11 @@ const AIRPORT_COORDS_RAW: Array<{ keys: string[]; lat: number; lng: number; radi
   // radius query, returning hotels ISLAND-WIDE (Sliema, Valletta, St Julian's,
   // Bugibba, St Paul's Bay…). 25 km covers the whole archipelago incl. Gozo.
   { keys: ['malta'], lat: 35.9200, lng: 14.4200, radiusKm: 25 },
+  // Isle of Wight — same island-not-a-city pattern as Malta (owner report
+  // 2026-07-14: search returned 0). Centroid sits mid-island; 18 km reaches
+  // every coastal town (Cowes, Ryde, Bembridge, Ventnor, Freshwater) while
+  // keeping Portsmouth/Southampton across the Solent OUT of the circle.
+  { keys: ['isle of wight'], lat: 50.6500, lng: -1.3200, radiusKm: 18 },
 ];
 
 const AIRPORT_COORDS: Record<string, { lat: number; lng: number; radiusKm?: number }> = {};
@@ -383,7 +388,7 @@ const CITY_COUNTRY: Record<string, string> = {
   'tenerife': 'ES', 'lanzarote': 'ES', 'fuerteventura': 'ES', 'gran canaria': 'ES',
   'seville': 'ES', 'valencia': 'ES', 'ibiza': 'ES', 'marbella': 'ES',
   // UK & Ireland
-  'london': 'GB', 'edinburgh': 'GB', 'manchester': 'GB', 'glasgow': 'GB',
+  'london': 'GB', 'edinburgh': 'GB', 'manchester': 'GB', 'glasgow': 'GB', 'isle of wight': 'GB',
   'liverpool': 'GB', 'birmingham': 'GB', 'bristol': 'GB', 'leeds': 'GB',
   'belfast': 'GB', 'cardiff': 'GB', 'dublin': 'IE',
   'horley': 'GB', 'crawley': 'GB', 'luton': 'GB',
@@ -1054,6 +1059,10 @@ const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
   // island-wide inventory across Sliema, Valletta, St Julian's, Bugibba,
   // St Paul's Bay etc. instead of a single town. Radius set in CITY_RADIUS_KM.
   'malta': { lat: 35.9200, lng: 14.4200 },
+  // Isle of Wight — island, no LiteAPI city (same pattern as Malta).
+  // Mid-island centroid; radius in CITY_RADIUS_KM stays tight so
+  // Portsmouth/Southampton across the Solent never contaminate results.
+  'isle of wight': { lat: 50.6500, lng: -1.3200 },
   'antalya': { lat: 36.8969, lng: 30.7133 },
   'dubrovnik': { lat: 42.6507, lng: 18.0944 },
   'edinburgh': { lat: 55.9533, lng: -3.1883 },
@@ -1157,6 +1166,9 @@ const CITY_RADIUS_KM: Record<string, number> = {
   // (main island ~27km N–S plus Gozo/Comino to the NW), so a "Malta" search
   // surfaces every town's hotels island-wide.
   'malta': 25,
+  // Isle of Wight — 18km from the mid-island centroid covers every coastal
+  // town but stops short of Portsmouth (~23km away) across the Solent.
+  'isle of wight': 18,
   // London boroughs — strict so a "Croydon" search doesn't return Hammersmith
   'croydon': 10,
   'wembley': 10,
