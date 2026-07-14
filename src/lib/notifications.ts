@@ -218,7 +218,12 @@ export async function notifyBookingConfirmed(booking: Booking): Promise<void> {
 
 function declineHtml(booking: Booking, reason: string): string {
   const isFlight = booking.type === 'flight';
-  const refundLine = booking.stripePaymentId
+  const refundLine = booking.type === 'flight'
+    ? // LiteAPI flights: the customer already paid our flight partner (merchant of
+      // record) before the book call, so there's no Stripe PI on our side. A book
+      // failure auto-reverses that charge — never say "no payment taken" here.
+      `Your payment was taken by our flight partner and any charge will be automatically reversed to your card, usually within 5–10 business days.`
+    : booking.stripePaymentId
     ? `We've issued a full refund of ${formatPrice(booking.totalPence)} to your card. It usually lands within 5–10 business days.`
     : `No payment has been taken — nothing will appear on your card.`;
 
@@ -247,7 +252,9 @@ function declineHtml(booking: Booking, reason: string): string {
 }
 
 function declineSms(booking: Booking): string {
-  const refundBit = booking.stripePaymentId ? ' Full refund issued.' : '';
+  const refundBit = booking.type === 'flight'
+    ? ' Any charge is reversed automatically.'
+    : booking.stripePaymentId ? ' Full refund issued.' : '';
   return `JetMeAway: We couldn't complete your ${booking.type === 'flight' ? 'flight' : 'hotel'} booking ${booking.id}.${refundBit} Check your email for details — reply or email contact@jetmeaway.co.uk.`;
 }
 

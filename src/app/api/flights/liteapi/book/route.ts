@@ -189,6 +189,13 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  // Idempotency — a TERMINAL failure must not re-run bookFlight or re-fire the
+  // decline email/SMS on a confirm-page reload (that page is force-dynamic and
+  // re-POSTs /book on every load). Echo the stored error instead.
+  if (record.state === 'failed') {
+    return NextResponse.json({ error: record.error ?? 'book_failed' }, { status: 502 });
+  }
+
   // Guard — the prebook the customer paid for must match the one on file.
   // (record.prebookId is only set once prebook succeeded, so this also blocks
   // booking a record that never reached the prebooked state.)

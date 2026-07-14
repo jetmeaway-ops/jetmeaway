@@ -700,7 +700,7 @@ type LiteapiRawOffer = {
   [k: string]: unknown;
 };
 type LiteapiSearchResponse = {
-  query?: { from?: string; to?: string; date?: string; return?: string | null } | null;
+  query?: { from?: string; to?: string; date?: string; return?: string | null; adults?: number; children?: number; infants?: number; cabin?: string; currency?: string } | null;
   count?: number;
   offers?: LiteapiSearchOffer[];
   raw?: unknown[];
@@ -751,11 +751,21 @@ function liteapiOffersToFlightResults(data: LiteapiSearchResponse): FlightResult
 
   const fromCode = data?.query?.from || null;
   const toCode = data?.query?.to || null;
+  // LiteAPI `total` is the WHOLE-PARTY price; the rest of the app treats
+  // FlightResult.price as PER-PERSON (labels "/pp", totals via price×pax, sorts
+  // per-person against Duffel/TP). Divide by the party size so LiteAPI sorts and
+  // labels correctly; the whole-party amount is reconstructed at booking time
+  // (start-booking sends price × pax → matches the prebook drift guard).
+  const paxCount = Math.max(
+    1,
+    (data?.query?.adults || 1) + (data?.query?.children || 0) + (data?.query?.infants || 0),
+  );
   const out: FlightResult[] = [];
 
   for (const o of offers) {
     if (!o || !o.offerId) continue;
-    const price = typeof o.total === 'number' ? o.total : null;
+    const price =
+      typeof o.total === 'number' ? Math.round((o.total / paxCount) * 100) / 100 : null;
     if (price === null || price <= 0) continue;
 
     const raw = rawById.get(String(o.offerId));
@@ -1720,6 +1730,12 @@ function FlightsContent() {
       to: destCode,
       date: depDate,
       adults: String(adults),
+      // children/infants MUST be sent so the offer is priced + inventoried for
+      // the whole party — otherwise the downstream passenger list (built per
+      // child/infant) mismatches an adults-only offer and every family prebook
+      // fails the count check / drift guard.
+      children: String(children),
+      infants: String(infants),
       cabin: cabinClass.toUpperCase(),
     });
     if (retDate && tripType === 'return') liteapiParams.set('return', retDate);
@@ -2800,7 +2816,10 @@ function FlightsContent() {
                                         infants,
                                         cabin: cabinClass,
                                         currency: symbolToCurrencyCode(f.currency),
-                                        totalPrice: f.price,
+                                        // f.price is per-person; the trip total (used by the
+                                        // prebook drift guard vs LiteAPI's whole-party price)
+                                        // must be the whole-party amount.
+                                        totalPrice: f.price * (adults + children + infants),
                                         airline: f.airlineCode,
                                         airlineName: f.airline,
                                       },
