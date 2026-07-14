@@ -195,6 +195,7 @@ function Choice({ tone, children }: { tone: 'positive' | 'neutral'; children: Re
 function RateRow({
   rate,
   nights,
+  rooms,
   roomName,
   isSelected,
   roomMeta,
@@ -205,6 +206,10 @@ function RateRow({
 }: {
   rate: RoomRate;
   nights: number;
+  /** Rooms in this quote — totalPrice covers ALL of them. >1 happens when a
+   *  bigger party is split across rooms; without the label the doubled total
+   *  reads as a pricing bug (owner report 2026-07-14). */
+  rooms: number;
   roomName: string;
   isSelected: boolean;
   /** Phase-4: resolved room metadata (photos/size/beds/amenities). Null when
@@ -377,10 +382,10 @@ function RateRow({
             {fmtGBP(rate.totalPrice)}
           </div>
           <div className="text-[.62rem] font-semibold text-slate-400 uppercase tracking-[1.5px] mt-1">
-            Total for {nights} {nights === 1 ? 'night' : 'nights'}
+            Total for {rooms > 1 ? `${rooms} rooms · ` : ''}{nights} {nights === 1 ? 'night' : 'nights'}
           </div>
           <div className="text-[.68rem] font-medium text-slate-500 mt-1">
-            {fmtGBP(rate.pricePerNight)} / night · {rate.excludedTaxes && rate.excludedTaxes > 0 ? 'incl. VAT' : 'all taxes & fees included'}
+            {fmtGBP(rate.pricePerNight)} / night{rooms > 1 ? ` for ${rooms} rooms` : ''} · {rate.excludedTaxes && rate.excludedTaxes > 0 ? 'incl. VAT' : 'all taxes & fees included'}
           </div>
           {rate.excludedTaxes != null && rate.excludedTaxes > 0 && (
             <div className="text-[.66rem] font-medium text-slate-500 mt-0.5">
@@ -417,6 +422,7 @@ function RateRow({
 export default function RoomsTable({
   offers,
   nights,
+  rooms = 1,
   roomName,
   selectedOfferId,
   roomMetaByName,
@@ -427,6 +433,8 @@ export default function RoomsTable({
 }: {
   offers: RoomRate[];
   nights: number;
+  /** Rooms per quote (party split) — labels each total "for N rooms". */
+  rooms?: number;
   /** Optional — currently unused by the board-level rows; wired up for
    *  Option-B phase when we emit per-room-type rates. */
   roomName?: string | null;
@@ -472,6 +480,7 @@ export default function RoomsTable({
               key={rate.offerId}
               rate={rate}
               nights={nights}
+              rooms={rooms}
               roomName={roomName || ''}
               roomMeta={meta}
               fallbackPhoto={fallbackPhoto ?? null}

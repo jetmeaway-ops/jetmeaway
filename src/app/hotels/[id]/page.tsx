@@ -408,12 +408,24 @@ export default function HotelDetailPage() {
       .catch(() => setSimilarLoading(false));
   }, [city, checkin, checkout, adults, children, rooms, id]);
 
+  /* Auto room-split (owner request 2026-07-14): every hotel has its own
+     occupancy policy — some sell triple/quad rooms, budget ones cap at 2.
+     When THIS hotel returns zero single-room offers for a 3+ party, retry
+     as 2 rooms automatically instead of making the customer find the
+     manual button. One attempt per (hotel × dates × party) so manually
+     stepping rooms back down to 1 doesn't fight the automation. */
+  const autoSplitKey = useRef<string | null>(null);
+
   /* Fetch the full rate table for this hotel. We pass the exact same
      search-context params as the results page used so the prices here
      match cent-for-cent with what the user clicked on. */
   useEffect(() => {
     if (!id || !checkin || !checkout) { setRatesLoading(false); return; }
     let cancelled = false;
+    // Stays true when this run ends by auto-splitting into 2 rooms — the
+    // URL change immediately re-runs the effect, so keep the loading UI up
+    // instead of flashing the empty state in between.
+    let splitting = false;
     (async () => {
       setRatesLoading(true);
       try {
@@ -432,6 +444,27 @@ export default function HotelDetailPage() {
         if (cancelled) return;
         if (data.success && Array.isArray(data.offers)) {
           const list: RoomRate[] = data.offers;
+          // Zero single-room offers for a 3+ party → this hotel's rooms
+          // don't sleep that many. Re-run as 2 rooms automatically (once
+          // per hotel × dates × party) — hotels WITH triple/family rooms
+          // never hit this branch because their single-room offers exist.
+          if (list.length === 0) {
+            const adultsN = Math.max(1, parseInt(adults) || 2);
+            const childCount = Math.max(0, parseInt(children) || 0);
+            const roomsN = Math.max(1, parseInt(rooms) || 1);
+            const splitKey = `${id}:${checkin}:${checkout}:${adults}:${children}:${childrenAges}`;
+            if (adultsN + childCount > 2 && roomsN === 1 && autoSplitKey.current !== splitKey) {
+              autoSplitKey.current = splitKey;
+              const ages = (childrenAges || '')
+                .split(',').map(Number)
+                .filter((n) => Number.isFinite(n) && n >= 0 && n <= 17)
+                .slice(0, childCount);
+              while (ages.length < childCount) ages.push(7);
+              splitting = true;
+              updateOccupancy(adultsN, ages, 2);
+              return; // URL change re-runs this effect with rooms=2
+            }
+          }
           setRates(list);
           // Pre-select whichever row matches the offerId the user clicked
           // on the search results page — landing state already reflects
@@ -444,7 +477,7 @@ export default function HotelDetailPage() {
       } catch {
         if (!cancelled) setRates([]);
       } finally {
-        if (!cancelled) setRatesLoading(false);
+        if (!cancelled && !splitting) setRatesLoading(false);
       }
     })();
     return () => { cancelled = true; };
@@ -1046,6 +1079,19 @@ export default function HotelDetailPage() {
               // skeleton — the collapse used to shrink the page and dump the
               // viewport at the footer on mobile (owner report 07-14).
               <div className={`mb-5 relative ${ratesLoading ? 'opacity-50 pointer-events-none select-none' : ''}`}>
+                {Math.max(1, parseInt(rooms) || 1) > 1 && (
+                  // Multi-room quote — spell out WHY, whether the split was
+                  // automatic (this hotel's rooms cap below the party) or
+                  // manually picked. Every price below covers all rooms.
+                  <div className="mb-3 flex items-start gap-2.5 rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-[.8rem] font-semibold text-[#1A1D2B]">
+                    <i className="fa-solid fa-circle-info text-[#0066FF] mt-0.5" />
+                    <span>
+                      Your party of {Math.max(1, parseInt(adults) || 2) + Math.max(0, parseInt(children) || 0)} is
+                      booked as <strong>{rooms} rooms</strong> at this hotel — every price below is the total
+                      for all {rooms} rooms together.
+                    </span>
+                  </div>
+                )}
                 {ratesLoading && (
                   <div className="absolute inset-x-0 top-3 z-10 flex justify-center">
                     <span className="inline-flex items-center gap-2 rounded-full bg-[#0a1628] text-white text-[.75rem] font-bold px-4 py-2 shadow-lg">
@@ -1057,6 +1103,7 @@ export default function HotelDetailPage() {
                 <RoomsTable
                   offers={rates}
                   nights={numNights || 1}
+                  rooms={Math.max(1, parseInt(rooms) || 1)}
                   selectedOfferId={selectedRate?.offerId || null}
                   roomMetaByName={roomMetaByName}
                   fallbackPhoto={hotel.mainPhoto || hotel.photos[0] || null}
@@ -1569,7 +1616,7 @@ export default function HotelDetailPage() {
                 price when rates haven't loaded yet. */}
             {(selectedRate || price) && (
               <>
-                <div className="text-[.7rem] font-bold text-[#8E95A9] uppercase tracking-wide">Total for {numNights || '—'} night{numNights !== 1 ? 's' : ''}</div>
+                <div className="text-[.7rem] font-bold text-[#8E95A9] uppercase tracking-wide">Total for {parseInt(rooms) > 1 ? `${rooms} rooms · ` : ''}{numNights || '—'} night{numNights !== 1 ? 's' : ''}</div>
                 {selectedRate && selectedRate.negotiatedPrice != null && selectedRate.marketPrice != null && selectedRate.negotiatedPrice < selectedRate.marketPrice ? (
                   /* Phase-3: selected row carries its own Scout Deal — show
                      ribbon + strike-through market + emerald savings line,
@@ -1873,7 +1920,7 @@ export default function HotelDetailPage() {
         <div className="md:hidden fixed bottom-0 left-0 right-0 z-[150] bg-white/98 backdrop-blur-md border-t border-[#E8ECF4] shadow-[0_-8px_24px_rgba(10,22,40,0.12)] px-4 py-3 flex items-center justify-between gap-3">
           <div>
             <div className="text-[.58rem] font-semibold text-slate-500 uppercase tracking-[1.5px]">
-              Total for {numNights || '—'} {numNights === 1 ? 'night' : 'nights'}
+              Total for {parseInt(rooms) > 1 ? `${rooms} rooms · ` : ''}{numNights || '—'} {numNights === 1 ? 'night' : 'nights'}
             </div>
             <div className="font-[var(--font-playfair)] font-black text-[1.4rem] text-[#0a1628] leading-none">
               {currency === 'GBP' ? '£' : `${currency} `}
@@ -1918,6 +1965,7 @@ export default function HotelDetailPage() {
         totalPrice={modalRate?.totalPrice ?? null}
         pricePerNight={modalRate?.pricePerNight ?? null}
         nights={numNights || 1}
+        rooms={Math.max(1, parseInt(rooms) || 1)}
         currency={currency}
         boardLabel={modalBoardLabel}
         refundable={modalRate?.refundable ?? null}
