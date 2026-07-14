@@ -182,9 +182,33 @@ export interface FlightPassenger {
   [k: string]: unknown;
 }
 
-/* ── 2. PREBOOK — POST /flights/prebook (collects passengers, locks price, opens
- *      the LiteAPI-hosted payment session). Returns a Stripe PaymentIntent secret
- *      in `secretKey` (LiteAPI is merchant-of-record, same model as hotels). ──── */
+/* ── 2. VERIFY — POST /flights/verify. REQUIRED before prebook: the search price
+ *      is only indicative; verify returns the guaranteed price you can charge and
+ *      a `changes` block if the price/fare shifted. (Official docs + sandbox-
+ *      verified 2026-07-14.) ──────────────────────────────────────────────────── */
+
+export interface FlightVerifyResult {
+  journey?: unknown;      // guaranteed-price journey snapshot
+  changes?: unknown;      // present/populated if the price or rules shifted
+  offerId?: string;       // verified offerId (use for prebook if returned)
+  [k: string]: unknown;
+}
+
+export async function verifyFlight(offerId: string): Promise<FlightVerifyResult> {
+  const res = await flightFetch<{ data?: FlightVerifyResult | FlightVerifyResult[] }>(
+    '/flights/verify',
+    { method: 'POST', body: JSON.stringify({ offerId }) },
+  );
+  const data = res.data;
+  return (Array.isArray(data) ? data[0] : data) as FlightVerifyResult;
+}
+
+/* ── 3. PREBOOK — POST /flights/prebooks (plural). Collects passengers + contact,
+ *      holds the seat / creates the provider reservation, and opens the payment
+ *      session. Returns a Stripe PaymentIntent secret in `secretKey` (LiteAPI is
+ *      merchant-of-record — same model as hotels).
+ *      NB: an optional POST /flights/prebooks/{prebookId}/services (seats/bags)
+ *      SUPERSEDES transactionId + secretKey — always pay with the LATEST pair. ── */
 
 export interface FlightPrebookResult {
   prebookId: string;
@@ -193,6 +217,7 @@ export interface FlightPrebookResult {
   price: number;
   currency: string;
   booking?: unknown;        // journey/segments/pricing/baggage snapshot
+  servicesAttachable?: unknown; // seats/bags that can be added via .../services
   paymentTypes?: unknown[];
   [k: string]: unknown;
 }
@@ -203,16 +228,17 @@ export async function prebookFlight(
   passengers: FlightPassenger[],
 ): Promise<FlightPrebookResult> {
   const res = await flightFetch<{ data?: FlightPrebookResult | FlightPrebookResult[] }>(
-    '/flights/prebook',
+    '/flights/prebooks',
     { method: 'POST', body: JSON.stringify({ offerId, usePaymentSdk: true, contact, passengers }) },
   );
   const data = res.data;
   return (Array.isArray(data) ? data[0] : data) as FlightPrebookResult;
 }
 
-/* ── 3. BOOK — POST /flights/book. Finalises AFTER the payment SDK has captured
- *      the PaymentIntent. Just needs the prebookId + transactionId; returns PNR +
- *      e-tickets. (No card/charge here — funds already captured by the SDK.) ──── */
+/* ── 4. BOOK — POST /flights/bookings (plural). Finalises AFTER the payment SDK
+ *      has captured the PaymentIntent. Needs prebookId + the CURRENT transactionId
+ *      (post-attach-services if any). Idempotent: same prebookId returns the same
+ *      booking. Returns { bookingId, bookingRef (airline PNR/confirmation) }. ──── */
 
 export interface FlightBookParams {
   prebookId: string;
@@ -221,12 +247,30 @@ export interface FlightBookParams {
   [k: string]: unknown;
 }
 
-export async function bookFlight(params: FlightBookParams): Promise<any> {
-  const res = await flightFetch<{ data?: unknown }>(
-    '/flights/book',
+export interface FlightBookResult {
+  bookingId?: string;
+  bookingRef?: string;      // airline confirmation code / PNR
+  status?: string;
+  [k: string]: unknown;
+}
+
+export async function bookFlight(params: FlightBookParams): Promise<FlightBookResult> {
+  const res = await flightFetch<{ data?: FlightBookResult | FlightBookResult[] }>(
+    '/flights/bookings',
     { method: 'POST', body: JSON.stringify(params) },
     50_000,
   );
-  const data = (res as any).data;
-  return Array.isArray(data) ? data[0] : (data ?? res);
+  const data = res.data;
+  return (Array.isArray(data) ? data[0] : (data ?? (res as any))) as FlightBookResult;
+}
+
+/* ── 5. RETRIEVE — GET /flights/bookings/{bookingId} (confirmation page). ─────── */
+
+export async function getFlightBooking(bookingId: string): Promise<FlightBookResult> {
+  const res = await flightFetch<{ data?: FlightBookResult | FlightBookResult[] }>(
+    `/flights/bookings/${encodeURIComponent(bookingId)}`,
+    { method: 'GET' },
+  );
+  const data = res.data;
+  return (Array.isArray(data) ? data[0] : data) as FlightBookResult;
 }
