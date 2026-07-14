@@ -7,7 +7,11 @@ import {
   type FlightPassenger,
 } from '@/lib/liteapi-flights';
 import { upsertBooking, type Booking } from '@/lib/bookings';
-import { notifyBookingConfirmed, notifyBookingDeclined } from '@/lib/notifications';
+import {
+  notifyBookingConfirmed,
+  notifyBookingDeclined,
+  notifyOwnerOpsAlert,
+} from '@/lib/notifications';
 
 /**
  * POST /api/flights/liteapi/book — finalise a LiteAPI flight booking.
@@ -216,6 +220,9 @@ export async function POST(req: NextRequest) {
   //    per prebookId, so a retry can't double-book). ──────────────────────────
   let result: FlightBookResult | null = null;
   let lastError = '';
+  // 45036 "a booking already exists for this prebookId" — the reservation WAS
+  // created upstream (customer paid + is booked). Never retry it, never decline.
+  let duplicateExists = false;
   for (let attempt = 0; attempt <= MAX_BOOK_RETRIES; attempt++) {
     try {
       const r = await bookFlight({ prebookId, transactionId, clientReference: ref });
@@ -236,6 +243,10 @@ export async function POST(req: NextRequest) {
         `[flights/liteapi/book] attempt ${attempt + 1}/${MAX_BOOK_RETRIES + 1} failed:`,
         lastError,
       );
+      if (/\b45036\b/.test(lastError) || /duplicate booking/i.test(lastError) || /already exists/i.test(lastError)) {
+        duplicateExists = true;
+        break; // booking exists upstream — fall through to the reconcile path
+      }
       if (attempt < MAX_BOOK_RETRIES && isTransient(err)) {
         await sleep(2000);
         continue;
@@ -279,6 +290,51 @@ export async function POST(req: NextRequest) {
     );
 
     return NextResponse.json({ ok: true, ref, bookingRef });
+  }
+
+  /* ─────── ALREADY BOOKED UPSTREAM (45036) — confirm, don't decline ────────
+     The reservation exists and the customer has paid, so declining + promising a
+     refund would be false. Confirm the customer and raise an ops alert to pull the
+     PNR from the Nuitée dashboard (the duplicate error doesn't return it). */
+  if (duplicateExists) {
+    const bookingRef = record.bookingRef || record.bookingId || ref;
+    const updated: PendingFlight = {
+      ...record,
+      state: 'confirmed',
+      bookingRef,
+      updatedAt: Date.now(),
+      error: undefined,
+    };
+    try {
+      await kv.set(`pending-flight:${ref}`, updated, { ex: CONFIRMED_TTL_SECONDS });
+    } catch (e) {
+      console.error('[flights/liteapi/book] KV reconcile write failed', e);
+    }
+
+    const booking = toBooking(record, {
+      status: 'confirmed',
+      supplierRef: record.bookingId || null,
+      notes:
+        `LiteAPI flight already booked upstream (45036 duplicate). Customer paid + ` +
+        `reserved; PNR needs reconcile from the Nuitée dashboard for prebook ${prebookId}.`,
+    });
+    await upsertBooking(booking);
+
+    await notifyOwnerOpsAlert({
+      subject: `Flight booking needs PNR reconcile — ${ref}`,
+      body:
+        `LiteAPI returned 45036 (booking already exists) for prebook ${prebookId}. ` +
+        `The reservation + payment succeeded but the book call couldn't read the PNR back. ` +
+        `Pull the airline confirmation from the Nuitée dashboard and update booking ${ref}.`,
+      tags: { area: 'flights', kind: 'reconcile' },
+      extra: { ref, prebookId },
+    }).catch((e) => console.error('[flights/liteapi/book] ops alert failed', e));
+
+    await notifyBookingConfirmed(booking).catch((e) =>
+      console.error('[flights/liteapi/book] notifyBookingConfirmed (reconcile) failed', e),
+    );
+
+    return NextResponse.json({ ok: true, ref, bookingRef, reconcile: true });
   }
 
   /* ─────────────────────────── FAILURE ─────────────────────────── */

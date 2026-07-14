@@ -235,7 +235,7 @@ function declineHtml(booking: Booking, reason: string): string {
     ${detailsTable([
       ['Reference', booking.id],
       [isFlight ? 'Route' : 'Hotel', booking.title],
-      ['Reason', escapeHtml(friendlyReason(reason))],
+      ['Reason', escapeHtml(friendlyReason(reason, isFlight))],
     ])}
     <p style="margin:16px 0 8px 0;color:#5C6378;font-size:14px;">${refundLine}</p>
     <p style="margin:8px 0 0 0;color:#5C6378;font-size:14px;">
@@ -296,16 +296,28 @@ function escapeHtml(s: string): string {
  * We keep a tiny mapping and fall back to a generic line — never expose
  * supplier error codes or stack traces.
  */
-function friendlyReason(raw: string): string {
+function friendlyReason(raw: string, isFlight = false): string {
   const r = raw.toLowerCase();
-  if (r.includes('offer') && (r.includes('unavailable') || r.includes('no longer'))) {
-    return 'The fare was withdrawn by the airline before we could confirm.';
+  if (
+    (r.includes('offer') && (r.includes('unavailable') || r.includes('no longer'))) ||
+    r.includes('sold out') ||
+    r.includes('soldout')
+  ) {
+    return isFlight
+      ? 'The fare was withdrawn by the airline before we could confirm.'
+      : 'That room was taken before we could confirm it.';
   }
   if (r.includes('drift') || r.includes('price')) {
     return 'The price changed between quote and confirmation.';
   }
   if (r.includes('ancillary') || r.includes('service')) {
     return 'One of the extras you selected became unavailable.';
+  }
+  // FLIGHT bookings (LiteAPI or Duffel) must NEVER fall through to hotel copy.
+  // The raw error string contains "liteapi" for LiteAPI flights too, so the
+  // booking TYPE — not string matching — decides the vocabulary here.
+  if (isFlight) {
+    return 'The airline could not confirm the booking at the last step.';
   }
   if (r.includes('duffel') || r.includes('supplier') || r.includes('balance')) {
     return 'The airline rejected the booking at the last step.';

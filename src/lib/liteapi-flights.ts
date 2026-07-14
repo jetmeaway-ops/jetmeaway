@@ -274,8 +274,40 @@ export async function bookFlight(params: FlightBookParams): Promise<FlightBookRe
     { method: 'POST', body: JSON.stringify(body) },
     50_000,
   );
-  const data = res.data;
-  return (Array.isArray(data) ? data[0] : (data ?? (res as any))) as FlightBookResult;
+
+  // The docs don't pin down the success shape, and the sandbox does NOT use the
+  // field name we first assumed (booking succeeded but bookingId came back
+  // undefined → the route retried → 45036 "duplicate"). Normalise across every
+  // plausible field name, and drill into a nested `booking`/`data` wrapper.
+  const data = (res as { data?: unknown })?.data;
+  const d0 = Array.isArray(data) ? data[0] : (data ?? res);
+  const rec: Record<string, any> = d0 && typeof d0 === 'object' ? (d0 as any) : {};
+  const nested: Record<string, any> =
+    rec.booking && typeof rec.booking === 'object' ? rec.booking : {};
+
+  const pick = (...vals: unknown[]) =>
+    vals.find((v) => typeof v === 'string' && v.length > 0) as string | undefined;
+
+  const bookingId = pick(
+    rec.bookingId, rec.id, rec.bookingReference, rec.reference,
+    nested.bookingId, nested.id, nested.bookingReference, nested.reference,
+  );
+  const bookingRef = pick(
+    rec.bookingRef, rec.pnr, rec.airlineReference, rec.airlineConfirmationCode,
+    rec.confirmationNumber, rec.confirmationCode, rec.providerConfirmationNumber,
+    nested.bookingRef, nested.pnr, nested.airlineReference, nested.confirmationNumber,
+    bookingId, // last resort so the confirm page shows *something* real
+  );
+
+  // PII-SAFE diagnostic: field NAMES + the (non-PII) ids only — never the raw
+  // response (it carries the passenger manifest). Lets us lock the parsing down.
+  console.log(
+    '[liteapi-flights] book response keys:', Object.keys(rec).join(','),
+    '| nested keys:', Object.keys(nested).join(','),
+    '| extracted:', JSON.stringify({ bookingId, bookingRef, status: rec.status ?? nested.status }),
+  );
+
+  return { ...rec, bookingId, bookingRef, status: rec.status ?? nested.status } as FlightBookResult;
 }
 
 /* ── 5. RETRIEVE — GET /flights/bookings/{bookingId} (confirmation page). ─────── */
