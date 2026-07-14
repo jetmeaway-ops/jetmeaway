@@ -17,6 +17,12 @@ export const runtime = 'edge';
  * per journey — plus `raw` (the full LiteAPI payload) for building the UI later.
  */
 export async function GET(req: NextRequest) {
+  // Parking gate (Kyte pattern): LiteAPI Flights stays dark until this env flag
+  // is set. Production leaves it unset → empty search → zero flight rows →
+  // checkout unreachable → nothing changes for live users. Preview sets it true.
+  const LITEAPI_FLIGHTS_ENABLED = process.env.LITEAPI_FLIGHTS_ENABLED === 'true';
+  if (!LITEAPI_FLIGHTS_ENABLED) return NextResponse.json({ query: null, count: 0, offers: [] });
+
   const p = req.nextUrl.searchParams;
   const from = (p.get('from') || '').trim().toUpperCase();
   const to = (p.get('to') || '').trim().toUpperCase();
