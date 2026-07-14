@@ -154,50 +154,79 @@ export async function searchFlights(params: FlightSearchParams): Promise<FlightS
   return res.data || [];
 }
 
-/* ── 2. PREBOOK (lock the price before payment) ─────────────────────────────── */
+/* ── Passenger + contact (collected at PREBOOK time for flights — unlike hotels) ─
+ * Field names/formats VERIFIED against the LiteAPI flights sandbox (2026-07-14).
+ * See scratch/flights-verified-contract.md. gender M/F/X; phoneCountryCode numeric
+ * ('44' not '+44'); phoneNumber digits only; `birthday` (not dateOfBirth); document
+ * fields required together when a passport number is supplied. */
 
-export interface FlightPrebookResult {
-  prebookId?: string;
-  transactionId?: string;
-  offerId?: string;
-  pricing?: FlightPricing;
-  [k: string]: unknown;
-}
-
-export async function prebookFlight(offerId: string): Promise<FlightPrebookResult> {
-  const res = await flightFetch<{ data?: FlightPrebookResult }>('/flights/rates/prebook', {
-    method: 'POST',
-    body: JSON.stringify({ offerId }),
-  });
-  return res.data || {};
-}
-
-/* ── 3. BOOK (confirm → PNR + e-tickets) ────────────────────────────────────── */
-
-export interface FlightPassenger {
-  title?: string;
+export interface FlightContact {
   firstName: string;
   lastName: string;
-  dateOfBirth?: string;      // YYYY-MM-DD
-  gender?: string;
-  email?: string;
-  phone?: string;
-  type?: 'adult' | 'child' | 'infant';
+  email: string;
+  phoneNumber: string;      // digits only, e.g. "7700900000"
+  phoneCountryCode: string; // numeric, e.g. "44"
+}
+
+export interface FlightPassenger {
+  firstName: string;
+  lastName: string;
+  birthday: string;                 // YYYY-MM-DD
+  gender: 'M' | 'F' | 'X';
+  type: 'ADULT' | 'CHILD' | 'INFANT';
+  nationality: string;              // ISO-3166 alpha-2, e.g. "GB"
+  documentType?: string;            // "passport"
+  documentIssueCountry?: string;    // ISO-3166 alpha-2
+  documentNumber?: string;
+  documentExpiry?: string;          // YYYY-MM-DD (required with documentNumber)
   [k: string]: unknown;
 }
 
+/* ── 2. PREBOOK — POST /flights/prebook (collects passengers, locks price, opens
+ *      the LiteAPI-hosted payment session). Returns a Stripe PaymentIntent secret
+ *      in `secretKey` (LiteAPI is merchant-of-record, same model as hotels). ──── */
+
+export interface FlightPrebookResult {
+  prebookId: string;
+  transactionId: string;
+  secretKey: string;        // Stripe PaymentIntent client secret (pi_…_secret_…)
+  price: number;
+  currency: string;
+  booking?: unknown;        // journey/segments/pricing/baggage snapshot
+  paymentTypes?: unknown[];
+  [k: string]: unknown;
+}
+
+export async function prebookFlight(
+  offerId: string,
+  contact: FlightContact,
+  passengers: FlightPassenger[],
+): Promise<FlightPrebookResult> {
+  const res = await flightFetch<{ data?: FlightPrebookResult | FlightPrebookResult[] }>(
+    '/flights/prebook',
+    { method: 'POST', body: JSON.stringify({ offerId, usePaymentSdk: true, contact, passengers }) },
+  );
+  const data = res.data;
+  return (Array.isArray(data) ? data[0] : data) as FlightPrebookResult;
+}
+
+/* ── 3. BOOK — POST /flights/book. Finalises AFTER the payment SDK has captured
+ *      the PaymentIntent. Just needs the prebookId + transactionId; returns PNR +
+ *      e-tickets. (No card/charge here — funds already captured by the SDK.) ──── */
+
 export interface FlightBookParams {
-  prebookId?: string;
-  transactionId?: string;
-  passengers: FlightPassenger[];
-  payment?: Record<string, unknown>; // payment handled per LiteAPI flights model
+  prebookId: string;
+  transactionId: string;
+  clientReference?: string; // our JMA-F-… ref
   [k: string]: unknown;
 }
 
 export async function bookFlight(params: FlightBookParams): Promise<any> {
-  const res = await flightFetch<{ data?: unknown }>('/flights/rates/book', {
-    method: 'POST',
-    body: JSON.stringify(params),
-  });
-  return (res as any).data ?? res;
+  const res = await flightFetch<{ data?: unknown }>(
+    '/flights/book',
+    { method: 'POST', body: JSON.stringify(params) },
+    50_000,
+  );
+  const data = (res as any).data;
+  return Array.isArray(data) ? data[0] : (data ?? res);
 }
