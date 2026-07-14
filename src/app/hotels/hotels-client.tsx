@@ -48,7 +48,7 @@ const DESTINATIONS = [
   // UK
   'London', 'Manchester', 'Birmingham', 'Edinburgh', 'Glasgow', 'Liverpool',
   'Bristol', 'Leeds', 'Newcastle', 'Belfast', 'Cardiff', 'Aberdeen', 'Inverness',
-  'Bath', 'Oxford', 'Cambridge', 'Brighton', 'York',
+  'Bath', 'Oxford', 'Cambridge', 'Brighton', 'York', 'Isle of Wight',
   // Spain
   'Barcelona', 'Madrid', 'Malaga', 'Tenerife', 'Lanzarote', 'Fuerteventura',
   'Gran Canaria', 'Palma', 'Alicante', 'Seville', 'Valencia', 'Granada',
