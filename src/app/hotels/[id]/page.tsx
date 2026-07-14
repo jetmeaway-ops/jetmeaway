@@ -1057,6 +1057,7 @@ export default function HotelDetailPage() {
                 <RoomsTable
                   offers={rates}
                   nights={numNights || 1}
+                  rooms={Math.max(1, parseInt(rooms) || 1)}
                   selectedOfferId={selectedRate?.offerId || null}
                   roomMetaByName={roomMetaByName}
                   fallbackPhoto={hotel.mainPhoto || hotel.photos[0] || null}
@@ -1569,7 +1570,7 @@ export default function HotelDetailPage() {
                 price when rates haven't loaded yet. */}
             {(selectedRate || price) && (
               <>
-                <div className="text-[.7rem] font-bold text-[#8E95A9] uppercase tracking-wide">Total for {numNights || '—'} night{numNights !== 1 ? 's' : ''}</div>
+                <div className="text-[.7rem] font-bold text-[#8E95A9] uppercase tracking-wide">Total for {parseInt(rooms) > 1 ? `${rooms} rooms · ` : ''}{numNights || '—'} night{numNights !== 1 ? 's' : ''}</div>
                 {selectedRate && selectedRate.negotiatedPrice != null && selectedRate.marketPrice != null && selectedRate.negotiatedPrice < selectedRate.marketPrice ? (
                   /* Phase-3: selected row carries its own Scout Deal — show
                      ribbon + strike-through market + emerald savings line,
@@ -1873,7 +1874,7 @@ export default function HotelDetailPage() {
         <div className="md:hidden fixed bottom-0 left-0 right-0 z-[150] bg-white/98 backdrop-blur-md border-t border-[#E8ECF4] shadow-[0_-8px_24px_rgba(10,22,40,0.12)] px-4 py-3 flex items-center justify-between gap-3">
           <div>
             <div className="text-[.58rem] font-semibold text-slate-500 uppercase tracking-[1.5px]">
-              Total for {numNights || '—'} {numNights === 1 ? 'night' : 'nights'}
+              Total for {parseInt(rooms) > 1 ? `${rooms} rooms · ` : ''}{numNights || '—'} {numNights === 1 ? 'night' : 'nights'}
             </div>
             <div className="font-[var(--font-playfair)] font-black text-[1.4rem] text-[#0a1628] leading-none">
               {currency === 'GBP' ? '£' : `${currency} `}
@@ -1918,6 +1919,7 @@ export default function HotelDetailPage() {
         totalPrice={modalRate?.totalPrice ?? null}
         pricePerNight={modalRate?.pricePerNight ?? null}
         nights={numNights || 1}
+        rooms={Math.max(1, parseInt(rooms) || 1)}
         currency={currency}
         boardLabel={modalBoardLabel}
         refundable={modalRate?.refundable ?? null}

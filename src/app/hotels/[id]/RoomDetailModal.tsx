@@ -45,6 +45,8 @@ interface Props {
   totalPrice: number | null;
   pricePerNight: number | null;
   nights: number;
+  /** Rooms per quote — totalPrice covers all of them (party split). */
+  rooms?: number;
   currency: string;
   boardLabel: string | null;
   refundable: boolean | null;
@@ -66,6 +68,7 @@ export default function RoomDetailModal({
   totalPrice,
   pricePerNight,
   nights,
+  rooms = 1,
   currency,
   boardLabel,
   refundable,
@@ -247,7 +250,7 @@ export default function RoomDetailModal({
               </div>
             )}
             <div className="text-[.62rem] font-semibold text-slate-500 uppercase tracking-[1.5px] mt-1">
-              Total for {nights} {nights === 1 ? 'night' : 'nights'}
+              Total for {rooms > 1 ? `${rooms} rooms · ` : ''}{nights} {nights === 1 ? 'night' : 'nights'}
               {pricePerNight != null && (
                 <span className="normal-case tracking-normal text-slate-400 font-medium">
                   {' '}· {currencyPrefix}{pricePerNight.toFixed(2)} / night
