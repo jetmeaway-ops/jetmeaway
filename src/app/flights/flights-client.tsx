@@ -682,21 +682,26 @@ type LiteapiSearchOffer = {
   seatsRemaining?: number | null;
   baggage?: unknown;
 };
+/* Shape verified against the LIVE production payload 2026-07-15: segments sit
+   on the JOURNEY (not the offer), with departureTime/arrivalTime ISO strings,
+   originCode/destinationCode, carrier.marketingName/marketingCode, a
+   flight.marketingNumber, and duration as { iso8601, minutes }. */
 type LiteapiRawSegment = {
-  flightNumber?: string | number;
-  duration?: number;
-  marketingCarrier?: { code?: string; name?: string };
-  operatingCarrier?: { code?: string; name?: string };
-  carrier?: { code?: string; name?: string };
-  departure?: unknown;
-  arrival?: unknown;
+  departureTime?: string;      // "2026-08-12T20:35:00"
+  arrivalTime?: string;
+  originCode?: string;         // "LTN"
+  destinationCode?: string;    // "MXP"
+  direction?: string;          // "OUTBOUND" | "INBOUND"
+  duration?: { minutes?: number };
+  carrier?: { marketingCode?: string; marketingName?: string; operatingCode?: string; operatingName?: string };
+  flight?: { marketingNumber?: string; operatingNumber?: string };
   [k: string]: unknown;
 };
-type LiteapiRawOffer = {
-  offerId?: string;
-  totalDuration?: number;
+type LiteapiRawJourney = {
+  cheapestOffer?: { offerId?: string; fare?: { family?: string } };
+  offers?: Array<{ offerId?: string }>;
   segments?: LiteapiRawSegment[];
-  fare?: { family?: string };
+  totalDuration?: { minutes?: number };
   [k: string]: unknown;
 };
 type LiteapiSearchResponse = {
@@ -707,45 +712,22 @@ type LiteapiSearchResponse = {
   error?: string;
 };
 
-/** Defensively read an IATA airport code from a LiteAPI segment endpoint,
- *  which may be a bare string, `{ code }`, `{ iataCode }`, or `{ airport: … }`. */
-function liteapiAirportCode(x: unknown): string | null {
-  if (!x) return null;
-  if (typeof x === 'string') return x;
-  const o = x as Record<string, unknown>;
-  if (typeof o.code === 'string') return o.code;
-  if (typeof o.iataCode === 'string') return o.iataCode;
-  if (o.airport) return liteapiAirportCode(o.airport);
-  return null;
-}
-
-/** Defensively read an ISO datetime from a LiteAPI segment endpoint, which may
- *  expose `at` / `dateTime`, or split `date` + `time` fields (reusing the Kyte
- *  time normaliser so HH:MM and HH:MM:SS both parse). */
-function liteapiSegTime(x: unknown): string | null {
-  if (!x || typeof x !== 'object') return null;
-  const o = x as Record<string, unknown>;
-  if (typeof o.at === 'string') return o.at;
-  if (typeof o.dateTime === 'string') return o.dateTime;
-  if (typeof o.date === 'string' && typeof o.time === 'string') {
-    return `${o.date}T${normalizeKyteTime(o.time)}`;
-  }
-  if (typeof o.date === 'string') return o.date;
-  return null;
-}
-
 function liteapiOffersToFlightResults(data: LiteapiSearchResponse): FlightResult[] {
   const offers = Array.isArray(data?.offers) ? data.offers : [];
   if (offers.length === 0) return [];
 
-  // Correlate each trimmed offer back to its raw cheapestOffer (which carries
-  // the segments) by offerId.
-  const rawById = new Map<string, LiteapiRawOffer>();
+  // Correlate each trimmed offer back to its raw JOURNEY — segments (airline,
+  // times, airports) live on the journey, NOT on the offer. Reading
+  // cheapestOffer.segments (always absent) was why LiteAPI rows rendered with
+  // no airline/times and the fare name ("Basic") as the title (2026-07-15).
+  const journeyById = new Map<string, LiteapiRawJourney>();
   const rawResults = Array.isArray(data?.raw) ? data.raw : [];
-  for (const r of rawResults as Array<{ journeys?: Array<{ cheapestOffer?: LiteapiRawOffer }> }>) {
+  for (const r of rawResults as Array<{ journeys?: LiteapiRawJourney[] }>) {
     for (const j of r?.journeys || []) {
-      const o = j?.cheapestOffer;
-      if (o?.offerId) rawById.set(String(o.offerId), o);
+      if (j?.cheapestOffer?.offerId) journeyById.set(String(j.cheapestOffer.offerId), j);
+      for (const o of j?.offers || []) {
+        if (o?.offerId) journeyById.set(String(o.offerId), j);
+      }
     }
   }
 
@@ -768,33 +750,38 @@ function liteapiOffersToFlightResults(data: LiteapiSearchResponse): FlightResult
       typeof o.total === 'number' ? Math.round((o.total / paxCount) * 100) / 100 : null;
     if (price === null || price <= 0) continue;
 
-    const raw = rawById.get(String(o.offerId));
-    const segs: LiteapiRawSegment[] = Array.isArray(raw?.segments) ? raw!.segments! : [];
-    const firstSeg = segs[0];
-    const lastSeg = segs[segs.length - 1];
-    const carrier = firstSeg?.marketingCarrier || firstSeg?.operatingCarrier || firstSeg?.carrier;
-    const transfers = segs.length > 1 ? segs.length - 1 : 0;
-    const totalDuration =
-      typeof raw?.totalDuration === 'number'
-        ? raw.totalDuration
-        : segs.reduce((s, seg) => s + (typeof seg?.duration === 'number' ? seg.duration : 0), 0);
+    const journey = journeyById.get(String(o.offerId));
+    const allSegs: LiteapiRawSegment[] = Array.isArray(journey?.segments) ? journey!.segments! : [];
+    // Round trips carry both directions in one segments array — split them so
+    // outbound drives the main row and the first inbound leg fills return_at.
+    const outSegs = allSegs.filter((s) => s?.direction !== 'INBOUND');
+    const inSegs = allSegs.filter((s) => s?.direction === 'INBOUND');
+    const firstSeg = outSegs[0];
+    const lastSeg = outSegs[outSegs.length - 1];
+    const carrier = firstSeg?.carrier;
+    const transfers = outSegs.length > 1 ? outSegs.length - 1 : 0;
+    const sumMinutes = (segs: LiteapiRawSegment[]) =>
+      segs.reduce((s, seg) => s + (typeof seg?.duration?.minutes === 'number' ? seg.duration.minutes : 0), 0);
+    const durationTo = inSegs.length === 0 && typeof journey?.totalDuration?.minutes === 'number'
+      ? journey.totalDuration.minutes
+      : sumMinutes(outSegs);
 
     out.push({
-      airline: carrier?.name || o.fareFamily || 'Flight',
-      airlineCode: carrier?.code || '??',
+      airline: carrier?.marketingName || carrier?.operatingName || o.fareFamily || 'Flight',
+      airlineCode: carrier?.marketingCode || carrier?.operatingCode || '??',
       price,
       basePrice: typeof o.base === 'number' ? o.base : undefined,
       currency: currencyToSymbol(o.currency || 'GBP'),
       stops: transfers === 0 ? 'Non-stop' : `${transfers} stop${transfers > 1 ? 's' : ''}`,
       transfers,
-      duration_to: totalDuration,
-      duration_back: 0,
-      departure_at: liteapiSegTime(firstSeg?.departure),
-      arrival_at: liteapiSegTime(lastSeg?.arrival),
-      return_at: null,
-      origin_airport: liteapiAirportCode(firstSeg?.departure) || fromCode,
-      destination_airport: liteapiAirportCode(lastSeg?.arrival) || toCode,
-      flight_number: firstSeg?.flightNumber != null ? String(firstSeg.flightNumber) : null,
+      duration_to: durationTo,
+      duration_back: sumMinutes(inSegs),
+      departure_at: firstSeg?.departureTime || null,
+      arrival_at: lastSeg?.arrivalTime || null,
+      return_at: inSegs[0]?.departureTime || null,
+      origin_airport: firstSeg?.originCode || fromCode,
+      destination_airport: lastSeg?.destinationCode || toCode,
+      flight_number: firstSeg?.flight?.marketingNumber || firstSeg?.flight?.operatingNumber || null,
       offer_id: o.offerId,
       source: 'liteapi',
       // Direct-bookable — the card's emerald "Book direct" button POSTs to
