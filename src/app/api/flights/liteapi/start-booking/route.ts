@@ -124,6 +124,15 @@ export async function POST(req: NextRequest) {
     const children = Math.max(0, Math.round(Number(trip.children) || 0));
     const infants = Math.max(0, Math.round(Number(trip.infants) || 0));
 
+    // ADULTS-ONLY backstop (go-live): LiteAPI flight prebook rejects child/infant
+    // passengers (53099). The client already hides LiteAPI direct rows for family
+    // searches; this server-side guard means a crafted request can't start a
+    // family booking that would only break at prebook either. Remove once Nuitée
+    // supports child/infant flight passengers.
+    if (children > 0 || infants > 0) {
+      return NextResponse.json({ error: 'adults_only' }, { status: 400 });
+    }
+
     const now = Date.now();
     const ref = makeRef();
     const record: PendingFlight = {
