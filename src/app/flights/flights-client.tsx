@@ -2785,7 +2785,7 @@ function FlightsContent() {
                           {isDuffel && f.offer_id ? (
                             <a href={`/checkout/${f.offer_id}`}
                               className="flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 text-white font-poppins font-bold text-[.7rem] py-2 px-3 rounded-lg transition-all shadow-sm whitespace-nowrap col-span-2 sm:col-span-3 lg:col-span-5">
-                              ✓ Book Now — {f.currency}{priceView === 'total' ? Math.round(f.price * (adults + children)) : f.price}{priceView === 'total' ? ' total' : '/pp'} →
+                              ✓ Book direct — {f.currency}{priceView === 'total' ? Math.round(f.price * (adults + children)) : f.price}{priceView === 'total' ? ' total' : '/pp'} →
                             </a>
                           ) : isKyte && f.offer_id && f.link ? (
                             <a href={f.link}
