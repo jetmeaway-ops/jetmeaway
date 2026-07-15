@@ -218,7 +218,12 @@ export async function notifyBookingConfirmed(booking: Booking): Promise<void> {
 
 function declineHtml(booking: Booking, reason: string): string {
   const isFlight = booking.type === 'flight';
-  const refundLine = booking.stripePaymentId
+  const refundLine = booking.type === 'flight'
+    ? // LiteAPI flights: the customer already paid our flight partner (merchant of
+      // record) before the book call, so there's no Stripe PI on our side. A book
+      // failure auto-reverses that charge — never say "no payment taken" here.
+      `Your payment was taken by our flight partner and any charge will be automatically reversed to your card, usually within 5–10 business days.`
+    : booking.stripePaymentId
     ? `We've issued a full refund of ${formatPrice(booking.totalPence)} to your card. It usually lands within 5–10 business days.`
     : `No payment has been taken — nothing will appear on your card.`;
 
@@ -230,7 +235,7 @@ function declineHtml(booking: Booking, reason: string): string {
     ${detailsTable([
       ['Reference', booking.id],
       [isFlight ? 'Route' : 'Hotel', booking.title],
-      ['Reason', escapeHtml(friendlyReason(reason))],
+      ['Reason', escapeHtml(friendlyReason(reason, isFlight))],
     ])}
     <p style="margin:16px 0 8px 0;color:#5C6378;font-size:14px;">${refundLine}</p>
     <p style="margin:8px 0 0 0;color:#5C6378;font-size:14px;">
@@ -247,7 +252,9 @@ function declineHtml(booking: Booking, reason: string): string {
 }
 
 function declineSms(booking: Booking): string {
-  const refundBit = booking.stripePaymentId ? ' Full refund issued.' : '';
+  const refundBit = booking.type === 'flight'
+    ? ' Any charge is reversed automatically.'
+    : booking.stripePaymentId ? ' Full refund issued.' : '';
   return `JetMeAway: We couldn't complete your ${booking.type === 'flight' ? 'flight' : 'hotel'} booking ${booking.id}.${refundBit} Check your email for details — reply or email contact@jetmeaway.co.uk.`;
 }
 
@@ -289,16 +296,28 @@ function escapeHtml(s: string): string {
  * We keep a tiny mapping and fall back to a generic line — never expose
  * supplier error codes or stack traces.
  */
-function friendlyReason(raw: string): string {
+function friendlyReason(raw: string, isFlight = false): string {
   const r = raw.toLowerCase();
-  if (r.includes('offer') && (r.includes('unavailable') || r.includes('no longer'))) {
-    return 'The fare was withdrawn by the airline before we could confirm.';
+  if (
+    (r.includes('offer') && (r.includes('unavailable') || r.includes('no longer'))) ||
+    r.includes('sold out') ||
+    r.includes('soldout')
+  ) {
+    return isFlight
+      ? 'The fare was withdrawn by the airline before we could confirm.'
+      : 'That room was taken before we could confirm it.';
   }
   if (r.includes('drift') || r.includes('price')) {
     return 'The price changed between quote and confirmation.';
   }
   if (r.includes('ancillary') || r.includes('service')) {
     return 'One of the extras you selected became unavailable.';
+  }
+  // FLIGHT bookings (LiteAPI or Duffel) must NEVER fall through to hotel copy.
+  // The raw error string contains "liteapi" for LiteAPI flights too, so the
+  // booking TYPE — not string matching — decides the vocabulary here.
+  if (isFlight) {
+    return 'The airline could not confirm the booking at the last step.';
   }
   if (r.includes('duffel') || r.includes('supplier') || r.includes('balance')) {
     return 'The airline rejected the booking at the last step.';
