@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { ShieldCheck } from 'lucide-react';
 import { track } from '@vercel/analytics';
 import DateRangePicker from '@/components/DateRangePicker';
@@ -445,7 +446,7 @@ type FlightResult = {
   destination_airport?: string | null;
   flight_number: string | null;
   offer_id?: string | null;
-  source?: 'duffel' | 'travelpayouts' | 'kyte';
+  source?: 'duffel' | 'travelpayouts' | 'kyte' | 'liteapi';
   link: string | null;
   /** Set on Kyte rows — needed for the booking flow which threads
    *  transactionId through Shop → Book → Commit → Payment. */
@@ -470,12 +471,13 @@ type FlightResult = {
    ─────────────────────────────────────────────────────────────────────────── */
 const TP_ROW_CAP = 30;
 /** A flight row is "direct" (we earn margin, customer books on-site) if
- *  it's a Duffel offer OR a Kyte offer — both are direct-bookable.
- *  Travelpayouts rows are always affiliate redirects. */
+ *  it's a Duffel offer, a Kyte offer, OR a LiteAPI (Nuitée) offer — all three
+ *  are direct-bookable. Travelpayouts rows are always affiliate redirects. */
 function isDirectBookable(f: FlightResult): boolean {
   return (
     (f.source === 'duffel' && !!f.offer_id) ||
-    (f.source === 'kyte' && !!f.offer_id)
+    (f.source === 'kyte' && !!f.offer_id) ||
+    (f.source === 'liteapi' && !!f.offer_id)
   );
 }
 function mergeFlightsKeepAllDuffel(rows: FlightResult[]): FlightResult[] {
@@ -558,6 +560,20 @@ function currencyToSymbol(code: string): string {
   }
 }
 
+/** Inverse of currencyToSymbol — recover an ISO-4217 code from the display
+ *  symbol we store on a FlightResult, so the LiteAPI start-booking `trip`
+ *  record carries a real currency code (GBP/EUR/USD) rather than a glyph.
+ *  Falls back to a 3-letter passthrough (currencyToSymbol returns the code
+ *  itself for unknown currencies) then to GBP. */
+function symbolToCurrencyCode(sym: string): string {
+  switch (sym) {
+    case '£': return 'GBP';
+    case '€': return 'EUR';
+    case '$': return 'USD';
+    default: return /^[A-Z]{3}$/.test(sym) ? sym : 'GBP';
+  }
+}
+
 /**
  * Normalise a Kyte segment time to a strict HH:MM:SS shape so it can be
  * concatenated into an ISO `YYYY-MM-DDTHH:MM:SS` and parsed by `new Date()`.
@@ -637,6 +653,153 @@ function kyteOffersToFlightResults(
       source: 'kyte',
       link: `/flights/kyte/${encodeURIComponent(offerId)}?tx=${encodeURIComponent(transactionId)}`,
       kyteTransactionId: transactionId,
+    });
+  }
+  return out;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   LiteAPI (Nuitée) flights → FlightResult rows.
+
+   Mirrors kyteOffersToFlightResults but for the LiteAPI direct-bookable
+   product. Consumes the response of GET /api/flights/liteapi/search, which
+   returns a trimmed `offers[]` (offerId, total, currency, fareFamily, …) plus
+   the full LiteAPI payload in `raw`. We map each trimmed offer to a row and
+   enrich it with segment detail (airline, times, stops) pulled from the raw
+   cheapestOffer it correlates to by offerId.
+
+   PARKED: while LITEAPI_FLIGHTS_ENABLED is unset on the server the search
+   route returns an empty offers[] — so this yields zero rows in production.
+   ─────────────────────────────────────────────────────────────────────────── */
+type LiteapiSearchOffer = {
+  offerId: string;
+  expiration?: string;
+  total?: number | null;
+  currency?: string | null;
+  base?: number | null;
+  taxes?: number | null;
+  fareFamily?: string | null;
+  seatsRemaining?: number | null;
+  baggage?: unknown;
+};
+type LiteapiRawSegment = {
+  flightNumber?: string | number;
+  duration?: number;
+  marketingCarrier?: { code?: string; name?: string };
+  operatingCarrier?: { code?: string; name?: string };
+  carrier?: { code?: string; name?: string };
+  departure?: unknown;
+  arrival?: unknown;
+  [k: string]: unknown;
+};
+type LiteapiRawOffer = {
+  offerId?: string;
+  totalDuration?: number;
+  segments?: LiteapiRawSegment[];
+  fare?: { family?: string };
+  [k: string]: unknown;
+};
+type LiteapiSearchResponse = {
+  query?: { from?: string; to?: string; date?: string; return?: string | null; adults?: number; children?: number; infants?: number; cabin?: string; currency?: string } | null;
+  count?: number;
+  offers?: LiteapiSearchOffer[];
+  raw?: unknown[];
+  error?: string;
+};
+
+/** Defensively read an IATA airport code from a LiteAPI segment endpoint,
+ *  which may be a bare string, `{ code }`, `{ iataCode }`, or `{ airport: … }`. */
+function liteapiAirportCode(x: unknown): string | null {
+  if (!x) return null;
+  if (typeof x === 'string') return x;
+  const o = x as Record<string, unknown>;
+  if (typeof o.code === 'string') return o.code;
+  if (typeof o.iataCode === 'string') return o.iataCode;
+  if (o.airport) return liteapiAirportCode(o.airport);
+  return null;
+}
+
+/** Defensively read an ISO datetime from a LiteAPI segment endpoint, which may
+ *  expose `at` / `dateTime`, or split `date` + `time` fields (reusing the Kyte
+ *  time normaliser so HH:MM and HH:MM:SS both parse). */
+function liteapiSegTime(x: unknown): string | null {
+  if (!x || typeof x !== 'object') return null;
+  const o = x as Record<string, unknown>;
+  if (typeof o.at === 'string') return o.at;
+  if (typeof o.dateTime === 'string') return o.dateTime;
+  if (typeof o.date === 'string' && typeof o.time === 'string') {
+    return `${o.date}T${normalizeKyteTime(o.time)}`;
+  }
+  if (typeof o.date === 'string') return o.date;
+  return null;
+}
+
+function liteapiOffersToFlightResults(data: LiteapiSearchResponse): FlightResult[] {
+  const offers = Array.isArray(data?.offers) ? data.offers : [];
+  if (offers.length === 0) return [];
+
+  // Correlate each trimmed offer back to its raw cheapestOffer (which carries
+  // the segments) by offerId.
+  const rawById = new Map<string, LiteapiRawOffer>();
+  const rawResults = Array.isArray(data?.raw) ? data.raw : [];
+  for (const r of rawResults as Array<{ journeys?: Array<{ cheapestOffer?: LiteapiRawOffer }> }>) {
+    for (const j of r?.journeys || []) {
+      const o = j?.cheapestOffer;
+      if (o?.offerId) rawById.set(String(o.offerId), o);
+    }
+  }
+
+  const fromCode = data?.query?.from || null;
+  const toCode = data?.query?.to || null;
+  // LiteAPI `total` is the WHOLE-PARTY price; the rest of the app treats
+  // FlightResult.price as PER-PERSON (labels "/pp", totals via price×pax, sorts
+  // per-person against Duffel/TP). Divide by the party size so LiteAPI sorts and
+  // labels correctly; the whole-party amount is reconstructed at booking time
+  // (start-booking sends price × pax → matches the prebook drift guard).
+  const paxCount = Math.max(
+    1,
+    (data?.query?.adults || 1) + (data?.query?.children || 0) + (data?.query?.infants || 0),
+  );
+  const out: FlightResult[] = [];
+
+  for (const o of offers) {
+    if (!o || !o.offerId) continue;
+    const price =
+      typeof o.total === 'number' ? Math.round((o.total / paxCount) * 100) / 100 : null;
+    if (price === null || price <= 0) continue;
+
+    const raw = rawById.get(String(o.offerId));
+    const segs: LiteapiRawSegment[] = Array.isArray(raw?.segments) ? raw!.segments! : [];
+    const firstSeg = segs[0];
+    const lastSeg = segs[segs.length - 1];
+    const carrier = firstSeg?.marketingCarrier || firstSeg?.operatingCarrier || firstSeg?.carrier;
+    const transfers = segs.length > 1 ? segs.length - 1 : 0;
+    const totalDuration =
+      typeof raw?.totalDuration === 'number'
+        ? raw.totalDuration
+        : segs.reduce((s, seg) => s + (typeof seg?.duration === 'number' ? seg.duration : 0), 0);
+
+    out.push({
+      airline: carrier?.name || o.fareFamily || 'Flight',
+      airlineCode: carrier?.code || '??',
+      price,
+      basePrice: typeof o.base === 'number' ? o.base : undefined,
+      currency: currencyToSymbol(o.currency || 'GBP'),
+      stops: transfers === 0 ? 'Non-stop' : `${transfers} stop${transfers > 1 ? 's' : ''}`,
+      transfers,
+      duration_to: totalDuration,
+      duration_back: 0,
+      departure_at: liteapiSegTime(firstSeg?.departure),
+      arrival_at: liteapiSegTime(lastSeg?.arrival),
+      return_at: null,
+      origin_airport: liteapiAirportCode(firstSeg?.departure) || fromCode,
+      destination_airport: liteapiAirportCode(lastSeg?.arrival) || toCode,
+      flight_number: firstSeg?.flightNumber != null ? String(firstSeg.flightNumber) : null,
+      offer_id: o.offerId,
+      source: 'liteapi',
+      // Direct-bookable — the card's emerald "Book direct" button POSTs to
+      // start-booking and routes to /flights/liteapi/checkout/[ref]; no link.
+      link: null,
     });
   }
   return out;
@@ -1188,6 +1351,7 @@ function PriceCalendar({ origin, dest, depDate }: { origin: string; dest: string
    ═��═════════════════════════════════════════════════════════════════════════ */
 
 function FlightsContent() {
+  const router = useRouter();
   const [originCode, setOriginCode] = useState('');
   const [originCity, setOriginCity] = useState('');
   const [destCode, setDestCode] = useState('');
@@ -1555,6 +1719,56 @@ function FlightsContent() {
       })
       .catch(() => { /* Kyte is supplementary — failures don't break search */ });
 
+    // ── LiteAPI (Nuitée) direct-bookable flight search. Fires in parallel with
+    // Duffel + Kyte. PARKED behind LITEAPI_FLIGHTS_ENABLED on the server: while
+    // the flag is unset the search route returns an empty offers[] so ZERO
+    // LiteAPI rows render in production. When live, LiteAPI rows are
+    // direct-bookable (we keep margin, customer books on-site) — same top tier
+    // as Duffel + Kyte, above any TP affiliate redirect.
+    const liteapiParams = new URLSearchParams({
+      from: originCode,
+      to: destCode,
+      date: depDate,
+      adults: String(adults),
+      // children/infants MUST be sent so the offer is priced + inventoried for
+      // the whole party — otherwise the downstream passenger list (built per
+      // child/infant) mismatches an adults-only offer and every family prebook
+      // fails the count check / drift guard.
+      children: String(children),
+      infants: String(infants),
+      cabin: cabinClass.toUpperCase(),
+    });
+    if (retDate && tripType === 'return') liteapiParams.set('return', retDate);
+
+    // ADULTS-ONLY GUARD (go-live safety): LiteAPI direct flight booking does not
+    // yet support child/infant passengers — prebook rejects them (53099 "Adult
+    // passenger must be at least 12"). Until that's resolved with Nuitée, suppress
+    // LiteAPI direct rows for any search that includes children or infants, so a
+    // family can never reach a broken direct checkout. Those searches still show
+    // Duffel + Travelpayouts. Adults-only searches are unaffected.
+    const liteapiSupportsParty = children === 0 && infants === 0;
+    const liteapiPromise = liteapiSupportsParty
+      ? fetch(`/api/flights/liteapi/search?${liteapiParams}`)
+          .then(r => r.json() as Promise<LiteapiSearchResponse>)
+          .then((data) => {
+            if (!data || data.error || !Array.isArray(data.offers) || data.offers.length === 0) return;
+            const rows = liteapiOffersToFlightResults(data);
+            if (rows.length === 0) return;
+            for (const f of rows) {
+              const depDay = (f.departure_at || '').slice(0, 10);
+              const retDay = (f.return_at || '').slice(0, 10) || 'ow';
+              const key = f.flight_number
+                ? `${f.flight_number}-${depDay}-${retDay}`
+                : `${f.airlineCode}-${depDay}-${f.duration_to}-${retDay}`;
+              mergeFlightRow(mergedByKey, f, key);
+            }
+            const merged = mergeFlightsKeepAllDuffel(Array.from(mergedByKey.values()));
+            setFlights(merged);
+            setScoutAirlineCount(new Set(merged.map(f => f.airlineCode)).size);
+          })
+          .catch(() => { /* LiteAPI is supplementary — failures don't break search */ })
+      : Promise.resolve();
+
     try {
       // ── Kick off a TP v1 async search. This actively queries GDS agents
       // (Amadeus, Sabre…) — unlike v3's cached-only endpoint — so carriers
@@ -1578,7 +1792,7 @@ function FlightsContent() {
       if (!initRes.ok || !initData.searchId) {
         // v1 init misfired — wait for Duffel + Kyte to land, then fall
         // back to v3 only if both came up empty.
-        await Promise.all([duffelPromise, kytePromise]);
+        await Promise.all([duffelPromise, kytePromise, liteapiPromise]);
         if (mergedByKey.size === 0) {
           await searchV3Fallback();
           return;
@@ -1651,7 +1865,7 @@ function FlightsContent() {
       // Give Duffel + Kyte a final moment to land before deciding
       // whether to fall back — their offers should be merged into the
       // same results list when they arrive late.
-      await Promise.all([duffelPromise, kytePromise]);
+      await Promise.all([duffelPromise, kytePromise, liteapiPromise]);
 
       // If TP v1 AND Duffel both returned nothing (rare on niche
       // routes), fall back to the v3 cached path so we still show
@@ -1680,7 +1894,7 @@ function FlightsContent() {
       // cached only if both came up empty. This ensures the ONE thing
       // a user never sees is a blank results page due to a transient
       // TP hiccup.
-      await Promise.all([duffelPromise, kytePromise]);
+      await Promise.all([duffelPromise, kytePromise, liteapiPromise]);
       if (mergedByKey.size === 0) {
         await searchV3Fallback();
         return;
@@ -2451,7 +2665,8 @@ function FlightsContent() {
                   const airlineLogo = `https://pics.avs.io/80/80/${f.airlineCode}.png`;
                   const isDuffel = f.source === 'duffel';
                   const isKyte = f.source === 'kyte';
-                  const isDirect = isDuffel || isKyte;
+                  const isLiteapi = f.source === 'liteapi';
+                  const isDirect = isDuffel || isKyte || isLiteapi;
                   const viewDealUrl = isDirect
                     ? '#' // Direct-bookable — see provider-comparison row for the on-site book button
                     : buildAviasalesUrl(originCode, destCode, depDate, effectiveRet, adults);
@@ -2478,6 +2693,15 @@ function FlightsContent() {
                               >
                                 <ShieldCheck size={12} strokeWidth={2.5} />
                                 Direct via {f.airline} · Live price
+                              </div>
+                            )}
+                            {isLiteapi && (
+                              <div
+                                className="flex items-center gap-1 text-emerald-700 text-[.7rem] font-bold mt-1"
+                                title="Book direct on JetMeAway — secure checkout, price guaranteed at booking, no third-party agents."
+                              >
+                                <ShieldCheck size={12} strokeWidth={2.5} />
+                                Book direct · Price guaranteed
                               </div>
                             )}
                           </div>
@@ -2575,6 +2799,54 @@ function FlightsContent() {
                               <ShieldCheck size={14} strokeWidth={2.5} />
                               Book direct — {f.currency}{priceView === 'total' ? Math.round(f.price * (adults + children)) : f.price}{priceView === 'total' ? ' total' : '/pp'} →
                             </a>
+                          ) : isLiteapi && f.offer_id ? (
+                            <button type="button"
+                              onClick={async (e) => {
+                                // Mint a pending-flight ref server-side (stores offerId + trip
+                                // summary in KV, never exposing offerId in a URL), then route to
+                                // the LiteAPI checkout page. PARKED: while LITEAPI_FLIGHTS_ENABLED
+                                // is unset the start-booking route 404s, so nothing happens in prod.
+                                const btn = e.currentTarget;
+                                if (btn.dataset.busy === '1') return;
+                                btn.dataset.busy = '1';
+                                try {
+                                  const res = await fetch('/api/flights/liteapi/start-booking', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      offerId: f.offer_id,
+                                      trip: {
+                                        origin: f.origin_airport || originCode,
+                                        destination: f.destination_airport || destCode,
+                                        depDate,
+                                        ...(effectiveRet ? { retDate: effectiveRet } : {}),
+                                        adults,
+                                        children,
+                                        infants,
+                                        cabin: cabinClass,
+                                        currency: symbolToCurrencyCode(f.currency),
+                                        // f.price is per-person; the trip total (used by the
+                                        // prebook drift guard vs LiteAPI's whole-party price)
+                                        // must be the whole-party amount.
+                                        totalPrice: f.price * (adults + children + infants),
+                                        airline: f.airlineCode,
+                                        airlineName: f.airline,
+                                      },
+                                    }),
+                                  });
+                                  const data = await res.json().catch(() => null);
+                                  if (res.ok && data?.ref) {
+                                    router.push(`/flights/liteapi/checkout/${data.ref}`);
+                                    return;
+                                  }
+                                } catch { /* network hiccup — allow retry below */ }
+                                btn.dataset.busy = '';
+                              }}
+                              title="Book direct on JetMeAway — secure checkout, price guaranteed at booking, no third-party agents."
+                              className="flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-poppins font-bold text-[.7rem] py-2 px-3 rounded-lg transition-all shadow-sm whitespace-nowrap col-span-2 sm:col-span-3 lg:col-span-5 disabled:opacity-60">
+                              <ShieldCheck size={14} strokeWidth={2.5} />
+                              Book direct — {f.currency}{priceView === 'total' ? Math.round(f.price * (adults + children)) : f.price}{priceView === 'total' ? ' total' : '/pp'} →
+                            </button>
                           ) : (
                             PROVIDERS.map((p, pi) => {
                               const provUrl = p.getUrl(originCode, destCode, depDate, effectiveRet, adults, originCity, destCity);
