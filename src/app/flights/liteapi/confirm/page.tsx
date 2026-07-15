@@ -1,7 +1,7 @@
 import { kv } from '@vercel/kv';
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import ConversionPixel from '@/components/ConversionPixel';
+import { finalizeFlightBooking } from '@/lib/finalize-flight-booking';
 
 /**
  * /flights/liteapi/confirm — LiteAPI Flights post-payment confirmation page.
@@ -14,14 +14,14 @@ import ConversionPixel from '@/components/ConversionPixel';
  * Flow:
  *   1. Parking gate — flag off → redirect to /flights (dark in production).
  *   2. Read ?ref,prebookId,transactionId.
- *   3. POST to /api/flights/liteapi/book (absolute origin) to finalise the
- *      booking. That route is idempotent — a reload / back-nav re-hits it and
- *      returns the already-confirmed { ok, ref, bookingRef }.
+ *   3. Call finalizeFlightBooking(...) DIRECTLY (shared lib — no internal HTTP
+ *      hop, so a password-protected deployment can't 401 it). It is idempotent —
+ *      a reload / back-nav re-runs it and returns the already-confirmed booking.
  *   4. Read the pending-flight:{ref} KV record for the itinerary + total paid.
  *   5. Render a green "Flight booked" card with the PNR + <ConversionPixel/>.
  *
- * Node runtime: the book route does the LiteAPI /flights/bookings call which
- * can take 15–25s; give the whole flow 60s.
+ * Node runtime: finalizeFlightBooking does the LiteAPI /flights/bookings call
+ * which can take 15–25s; give the whole flow 60s.
  */
 
 export const runtime = 'nodejs';
@@ -104,16 +104,6 @@ function fmtDate(d?: string): string {
   });
 }
 
-/** Build the request origin so the server-side fetch to our own book route is absolute. */
-async function requestOrigin(): Promise<string> {
-  const h = await headers();
-  const host = h.get('x-forwarded-host') || h.get('host');
-  const proto = h.get('x-forwarded-proto') || 'https';
-  if (host) return `${proto}://${host}`;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return 'http://localhost:3000';
-}
-
 interface FinaliseResult {
   ok: boolean;
   error?: string;
@@ -126,39 +116,30 @@ async function finaliseBooking(
   prebookId: string,
   transactionId: string,
 ): Promise<FinaliseResult> {
-  const origin = await requestOrigin();
-
+  // Call the booking finaliser DIRECTLY — no server-to-server HTTP hop. A fetch
+  // to our own /book route gets blocked (401 "Protected deployment") on a Vercel
+  // password-protected deployment, and adds a needless failure point to a payment
+  // flow even in production. finalizeFlightBooking is idempotent, so reloads /
+  // back-navs are safe.
   let bookOk = false;
   let bookError: string | undefined;
   let bookingRefFromApi: string | undefined;
 
   try {
-    const res = await fetch(`${origin}/api/flights/liteapi/book`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ref, prebookId, transactionId }),
-      cache: 'no-store',
-    });
-    const data = (await res.json().catch(() => ({}))) as {
-      ok?: boolean;
-      error?: unknown;
-      bookingRef?: string;
-    };
-    if (res.ok && data?.ok) {
+    const res = await finalizeFlightBooking(ref, prebookId, transactionId);
+    if (res.ok) {
       bookOk = true;
-      bookingRefFromApi = data.bookingRef;
+      bookingRefFromApi = res.bookingRef ?? undefined;
     } else {
-      // Coerce to a string ALWAYS — the book route (or an upstream error) can
-      // hand back an object here, and rendering an object as a React child hard-
-      // crashes this page (500 "This page couldn't load") instead of showing the
-      // amber "needs attention" card.
-      const rawErr = data?.error;
+      // Always a string from finalizeFlightBooking, but coerce defensively so a
+      // stray object can never crash this page's render.
+      const rawErr: unknown = res.error;
       bookError =
         typeof rawErr === 'string' && rawErr
           ? rawErr
           : rawErr
             ? JSON.stringify(rawErr)
-            : `Booking could not be completed (status ${res.status}).`;
+            : 'Booking could not be completed.';
     }
   } catch (err) {
     bookError = err instanceof Error ? err.message : 'Booking request failed';
