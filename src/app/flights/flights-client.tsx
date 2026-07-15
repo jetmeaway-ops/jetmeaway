@@ -1740,24 +1740,45 @@ function FlightsContent() {
     // family can never reach a broken direct checkout. Those searches still show
     // Duffel + Travelpayouts. Adults-only searches are unaffected.
     const liteapiSupportsParty = children === 0 && infants === 0;
+    // Merge one LiteAPI response's rows into the results; returns how many.
+    const applyLiteapiData = (data: LiteapiSearchResponse | null): number => {
+      if (!data || data.error || !Array.isArray(data.offers) || data.offers.length === 0) return 0;
+      const rows = liteapiOffersToFlightResults(data);
+      if (rows.length === 0) return 0;
+      for (const f of rows) {
+        const depDay = (f.departure_at || '').slice(0, 10);
+        const retDay = (f.return_at || '').slice(0, 10) || 'ow';
+        const key = f.flight_number
+          ? `${f.flight_number}-${depDay}-${retDay}`
+          : `${f.airlineCode}-${depDay}-${f.duration_to}-${retDay}`;
+        mergeFlightRow(mergedByKey, f, key);
+      }
+      const merged = mergeFlightsKeepAllDuffel(Array.from(mergedByKey.values()));
+      setFlights(merged);
+      setScoutAirlineCount(new Set(merged.map(f => f.airlineCode)).size);
+      return rows.length;
+    };
     const liteapiPromise = liteapiSupportsParty
       ? fetch(`/api/flights/liteapi/search?${liteapiParams}`)
           .then(r => r.json() as Promise<LiteapiSearchResponse>)
-          .then((data) => {
-            if (!data || data.error || !Array.isArray(data.offers) || data.offers.length === 0) return;
-            const rows = liteapiOffersToFlightResults(data);
-            if (rows.length === 0) return;
-            for (const f of rows) {
-              const depDay = (f.departure_at || '').slice(0, 10);
-              const retDay = (f.return_at || '').slice(0, 10) || 'ow';
-              const key = f.flight_number
-                ? `${f.flight_number}-${depDay}-${retDay}`
-                : `${f.airlineCode}-${depDay}-${f.duration_to}-${retDay}`;
-              mergeFlightRow(mergedByKey, f, key);
-            }
-            const merged = mergeFlightsKeepAllDuffel(Array.from(mergedByKey.values()));
-            setFlights(merged);
-            setScoutAirlineCount(new Set(merged.map(f => f.airlineCode)).size);
+          .then(async (data) => {
+            if (applyLiteapiData(data) > 0) return;
+            // Metro fallback (owner request 07-15): a specific airport can have
+            // zero direct-bookable coverage while its sibling airports have
+            // plenty (LTN→MLA is Ryanair-only = 0, but LON→MLA = 123 via
+            // LGW/STN). Retry once with the metro code(s); every row shows its
+            // TRUE airport from segment data, so nothing is misrepresented.
+            const metroOf = (code: string) => CITY_GROUPS.find(g => g.airports.includes(code))?.code;
+            const mFrom = metroOf(originCode) || originCode;
+            const mTo = metroOf(destCode) || destCode;
+            if (mFrom === originCode && mTo === destCode) return;
+            const p2 = new URLSearchParams(liteapiParams);
+            p2.set('from', mFrom);
+            p2.set('to', mTo);
+            const d2 = await fetch(`/api/flights/liteapi/search?${p2}`)
+              .then(r => r.json() as Promise<LiteapiSearchResponse>)
+              .catch(() => null);
+            applyLiteapiData(d2);
           })
           .catch(() => { /* LiteAPI is supplementary — failures don't break search */ })
       : Promise.resolve();
