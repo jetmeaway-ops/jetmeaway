@@ -1740,25 +1740,34 @@ function FlightsContent() {
     });
     if (retDate && tripType === 'return') liteapiParams.set('return', retDate);
 
-    const liteapiPromise = fetch(`/api/flights/liteapi/search?${liteapiParams}`)
-      .then(r => r.json() as Promise<LiteapiSearchResponse>)
-      .then((data) => {
-        if (!data || data.error || !Array.isArray(data.offers) || data.offers.length === 0) return;
-        const rows = liteapiOffersToFlightResults(data);
-        if (rows.length === 0) return;
-        for (const f of rows) {
-          const depDay = (f.departure_at || '').slice(0, 10);
-          const retDay = (f.return_at || '').slice(0, 10) || 'ow';
-          const key = f.flight_number
-            ? `${f.flight_number}-${depDay}-${retDay}`
-            : `${f.airlineCode}-${depDay}-${f.duration_to}-${retDay}`;
-          mergeFlightRow(mergedByKey, f, key);
-        }
-        const merged = mergeFlightsKeepAllDuffel(Array.from(mergedByKey.values()));
-        setFlights(merged);
-        setScoutAirlineCount(new Set(merged.map(f => f.airlineCode)).size);
-      })
-      .catch(() => { /* LiteAPI is supplementary — failures don't break search */ });
+    // ADULTS-ONLY GUARD (go-live safety): LiteAPI direct flight booking does not
+    // yet support child/infant passengers — prebook rejects them (53099 "Adult
+    // passenger must be at least 12"). Until that's resolved with Nuitée, suppress
+    // LiteAPI direct rows for any search that includes children or infants, so a
+    // family can never reach a broken direct checkout. Those searches still show
+    // Duffel + Travelpayouts. Adults-only searches are unaffected.
+    const liteapiSupportsParty = children === 0 && infants === 0;
+    const liteapiPromise = liteapiSupportsParty
+      ? fetch(`/api/flights/liteapi/search?${liteapiParams}`)
+          .then(r => r.json() as Promise<LiteapiSearchResponse>)
+          .then((data) => {
+            if (!data || data.error || !Array.isArray(data.offers) || data.offers.length === 0) return;
+            const rows = liteapiOffersToFlightResults(data);
+            if (rows.length === 0) return;
+            for (const f of rows) {
+              const depDay = (f.departure_at || '').slice(0, 10);
+              const retDay = (f.return_at || '').slice(0, 10) || 'ow';
+              const key = f.flight_number
+                ? `${f.flight_number}-${depDay}-${retDay}`
+                : `${f.airlineCode}-${depDay}-${f.duration_to}-${retDay}`;
+              mergeFlightRow(mergedByKey, f, key);
+            }
+            const merged = mergeFlightsKeepAllDuffel(Array.from(mergedByKey.values()));
+            setFlights(merged);
+            setScoutAirlineCount(new Set(merged.map(f => f.airlineCode)).size);
+          })
+          .catch(() => { /* LiteAPI is supplementary — failures don't break search */ })
+      : Promise.resolve();
 
     try {
       // ── Kick off a TP v1 async search. This actively queries GDS agents
