@@ -1194,10 +1194,10 @@ function HotDeals({ onSelect }: { onSelect: (destCode: string, destCity: string)
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const LOADING_MSGS = [
-  'Searching Aviasales...',
-  'Checking Trip.com...',
-  'Scanning Expedia...',
-  'Checking Kiwi.com...',
+  'Checking live fares...',
+  'Finding direct-bookable flights...',
+  'Comparing airlines...',
+  'Pricing your dates...',
   'Finding you the best deal...',
 ];
 
@@ -2152,7 +2152,11 @@ function FlightsContent() {
   // Apply filters + sort
   const visibleFlights = useMemo(() => {
     if (!flights) return [] as FlightResult[];
-    let list = flights.slice();
+    // DIRECT-BOOK ONLY: show only flights bookable on jetmeaway.co.uk (Duffel /
+    // LiteAPI / Kyte). Affiliate redirect rows (Travelpayouts → Aviasales /
+    // Trip.com / Expedia) are excluded — customers book on our own checkout,
+    // not on a third-party OTA.
+    let list = flights.filter(isDirectBookable);
 
     // Stops
     if (stopsFilter === 'direct') list = list.filter(f => f.transfers === 0);
@@ -2204,14 +2208,13 @@ function FlightsContent() {
       }
     };
 
-    // Partition: direct-bookable (Duffel OR Kyte, has offer_id) first,
-    // redirect providers second. Keeps commission-earning bookings at
-    // the top of the page regardless of price. Uses the shared
-    // isDirectBookable() helper so the rule stays in one place.
-    const direct = list.filter(isDirectBookable).sort(cmp);
-    const redirect = list.filter(f => !isDirectBookable(f)).sort(cmp);
-    return [...direct, ...redirect];
+    // All rows here are already direct-bookable (filtered at the top) — sort only.
+    return list.sort(cmp);
   }, [flights, sortBy, stopsFilter, selectedAirlines, flightNumFilter, takeoffMin, takeoffMax, landingMin, landingMax]);
+
+  // Total direct-bookable results found (before the airline/time filters) — the
+  // "X of Y" counters use this now that affiliate redirect rows aren't shown.
+  const directCount = flights ? flights.filter(isDirectBookable).length : 0;
 
   const filtersActive =
     sortBy !== 'price-asc' ||
@@ -2479,7 +2482,7 @@ function FlightsContent() {
                   {filtersActive && <span className="w-1.5 h-1.5 rounded-full bg-[#0066FF]" />}
                 </button>
                 <div className="text-[.72rem] text-[#8E95A9] font-bold">
-                  {visibleFlights.length} of {flights.length}
+                  {visibleFlights.length} of {directCount}
                 </div>
               </div>
 
@@ -2633,7 +2636,7 @@ function FlightsContent() {
                 <div>
                   <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
                     <h3 className="font-poppins font-black text-[.9rem] text-[#1A1D2B]">
-                      {visibleFlights.length} of {flights.length} flights
+                      {visibleFlights.length} of {directCount} direct-book flights
                     </h3>
                     <SaveSearchButton
                       type="flight"
@@ -2664,10 +2667,18 @@ function FlightsContent() {
                   {visibleFlights.length === 0 ? (
                     <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
                       <span className="text-3xl mb-3 block">🔎</span>
-                      <p className="font-poppins font-bold text-[.95rem] text-[#1A1D2B] mb-2">No flights match your filters.</p>
-                      <button onClick={clearAllFilters} className="text-[.78rem] text-[#0066FF] font-bold hover:underline">
-                        Clear all filters
-                      </button>
+                      {filtersActive ? (
+                        <>
+                          <p className="font-poppins font-bold text-[.95rem] text-[#1A1D2B] mb-2">No flights match your filters.</p>
+                          <button onClick={clearAllFilters} className="text-[.78rem] text-[#0066FF] font-bold hover:underline">
+                            Clear all filters
+                          </button>
+                        </>
+                      ) : (
+                        <p className="font-poppins font-bold text-[.95rem] text-[#1A1D2B] mb-0">
+                          No direct-bookable flights for this route and date. Try nearby dates or a different London airport.
+                        </p>
+                      )}
                     </div>
                   ) : (
                   <div className="space-y-3">
@@ -2778,9 +2789,9 @@ function FlightsContent() {
                         </div>
                       )}
 
-                      {/* Provider comparison buttons */}
+                      {/* Direct booking on JetMeAway (Duffel / Kyte / LiteAPI) */}
                       <div className="border-t border-[#F1F3F7] px-5 py-3 bg-[#FAFBFD]">
-                        <div className="text-[.62rem] text-[#8E95A9] font-bold uppercase tracking-[1px] mb-2">Compare prices across providers</div>
+                        <div className="text-[.62rem] text-[#8E95A9] font-bold uppercase tracking-[1px] mb-2">Book direct on JetMeAway · no booking fees</div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
                           {isDuffel && f.offer_id ? (
                             <a href={`/checkout/${f.offer_id}`}
