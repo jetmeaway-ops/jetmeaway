@@ -970,9 +970,15 @@ function AutocompleteTo({ value, onChange, initialCode, initialCity }: {
     const groups: ToItem[] = CITY_GROUPS
       .filter(g => g.code.toLowerCase().includes(lq) || g.name.toLowerCase().includes(lq) || g.country.toLowerCase().includes(lq))
       .map(g => ({ code: g.code, city: g.name, country: g.country, flag: g.flag, isGroup: true }));
+    // UK airports as DESTINATIONS too — customers fly TO Edinburgh/Glasgow/
+    // Manchester… Typing "edin" used to suggest only Medina, Saudi Arabia,
+    // because UK airports only existed in the From list (owner report 07-15).
+    const ukDests: ToItem[] = UK_AIRPORTS
+      .filter(a => a.code.toLowerCase().startsWith(lq) || a.name.toLowerCase().includes(lq) || a.city.toLowerCase().includes(lq))
+      .map(a => ({ code: a.code, city: a.name, country: 'United Kingdom', flag: '🇬🇧' }));
     const dests: ToItem[] = DESTINATIONS
       .filter(d => d.city.toLowerCase().includes(lq) || d.country.toLowerCase().includes(lq) || d.code.toLowerCase().startsWith(lq));
-    toFiltered = [...groups, ...dests].slice(0, 10);
+    toFiltered = [...groups, ...ukDests, ...dests].slice(0, 10);
   } else {
     toFiltered = [
       ...CITY_GROUPS.map(g => ({ code: g.code, city: g.name, country: g.country, flag: g.flag, isGroup: true as const })),
