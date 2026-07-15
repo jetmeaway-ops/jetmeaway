@@ -1957,70 +1957,15 @@ function FlightsContent() {
     }
 
     async function loadDateStrip(baseHint: number | null) {
-      // Fire-and-forget: load the D−3…D+3 price strip. Travelpayouts-only
-      // + KV-cached so this never blocks the main results render. If it
-      // fails we silently render nothing — the page stays fully usable.
-      setDateStripLoading(true);
+      // DISABLED (direct-book-only): the D−3…D+3 date strip + "Scout Tip" showed
+      // indicative Travelpayouts (affiliate) prices — not live direct-bookable
+      // fares — so we no longer surface them. Clear the state (nothing renders)
+      // and skip the affiliate fetch entirely. Wiring kept for easy re-enable.
+      void baseHint;
+      setDateStripLoading(false);
       setDateStrip([]);
       setDateScoutTip(null);
-      try {
-        const stripParams = new URLSearchParams({
-          origin: originCode,
-          destination: destCode,
-          departure: depDate,
-          mode: 'datestrip',
-        });
-        if (retDate && tripType === 'return') stripParams.set('return', retDate);
-        if (baseHint !== null) stripParams.set('basePrice', String(Math.round(baseHint)));
-        const sRes = await fetch(`/api/flights?${stripParams}`);
-        const sData = await sRes.json();
-        if (sData.success && Array.isArray(sData.dates)) {
-          const effectiveRet = tripType === 'return' ? retDate : null;
-          const userNights = typeof sData.intendedNights === 'number' ? sData.intendedNights : null;
-          setIntendedNights(userNights);
-          type StripCell = {
-            dep: string;
-            ret: string | null;
-            cheapest_price_gbp: number | null;
-            actual_nights?: number | null;
-            actual_return?: string | null;
-          };
-          const mapped: MatrixOption[] = sData.dates.map((c: StripCell) => {
-            const d = new Date(c.dep + 'T00:00:00Z');
-            const r = c.ret ? new Date(c.ret + 'T00:00:00Z') : null;
-            const label = r
-              ? `${d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })} – ${r.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })}`
-              : d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
-            let subLabel: string | undefined;
-            if (
-              userNights !== null &&
-              typeof c.actual_nights === 'number' &&
-              c.actual_nights > 0 &&
-              c.actual_nights !== userNights
-            ) {
-              subLabel = `${c.actual_nights}n trip`;
-            }
-            const clickRet =
-              subLabel && c.actual_return ? c.actual_return : c.ret;
-            return {
-              id: c.dep,
-              label,
-              price: c.cheapest_price_gbp,
-              isSelected: c.dep === depDate && (c.ret || null) === (effectiveRet || null),
-              metadata: { dep: c.dep, ret: clickRet },
-              subLabel,
-            };
-          });
-          setDateStrip(mapped);
-          if (sData.scoutTip && typeof sData.scoutTip.price === 'number') {
-            setDateScoutTip(sData.scoutTip as ScoutTip);
-          }
-        }
-      } catch {
-        // Silent fail — strip is a nice-to-have, not a hard requirement.
-      } finally {
-        setDateStripLoading(false);
-      }
+      setIntendedNights(null);
     }
   }, [originCode, destCode, depDate, retDate, adults, children, infants, tripType, cabinClass]);
 
