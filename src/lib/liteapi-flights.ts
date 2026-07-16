@@ -222,14 +222,32 @@ export interface FlightPrebookResult {
   [k: string]: unknown;
 }
 
+/** Wire encoding for passenger classification. LiteAPI SILENTLY IGNORES a
+ *  `type: "CHILD"` string — every passenger defaults to adult and children
+ *  then fail age validation (53099 "Adult passenger must be at least 12").
+ *  The honored field is numeric `passengerType`: 0=adult, 1=child, 2=infant.
+ *  Confirmed with Nuitée support (ticket LAS-1312, Kaveh Kiani, 2026-07-16)
+ *  and verified by live prod prebooks: child £90.60 + infant £76.51 both 200. */
+const PASSENGER_TYPE_CODE: Record<FlightPassenger['type'], number> = {
+  ADULT: 0,
+  CHILD: 1,
+  INFANT: 2,
+};
+
 export async function prebookFlight(
   offerId: string,
   contact: FlightContact,
   passengers: FlightPassenger[],
 ): Promise<FlightPrebookResult> {
+  // Translate our readable `type` strings to the numeric `passengerType`
+  // LiteAPI actually reads; keep the rest of the codebase on the strings.
+  const wirePassengers = passengers.map(({ type, ...rest }) => ({
+    ...rest,
+    passengerType: PASSENGER_TYPE_CODE[type] ?? 0,
+  }));
   const res = await flightFetch<{ data?: FlightPrebookResult | FlightPrebookResult[] }>(
     '/flights/prebooks',
-    { method: 'POST', body: JSON.stringify({ offerId, usePaymentSdk: true, contact, passengers }) },
+    { method: 'POST', body: JSON.stringify({ offerId, usePaymentSdk: true, contact, passengers: wirePassengers }) },
   );
   const data = res.data;
   return (Array.isArray(data) ? data[0] : data) as FlightPrebookResult;

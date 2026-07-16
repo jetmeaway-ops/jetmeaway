@@ -1733,13 +1733,11 @@ function FlightsContent() {
     });
     if (retDate && tripType === 'return') liteapiParams.set('return', retDate);
 
-    // ADULTS-ONLY GUARD (go-live safety): LiteAPI direct flight booking does not
-    // yet support child/infant passengers — prebook rejects them (53099 "Adult
-    // passenger must be at least 12"). Until that's resolved with Nuitée, suppress
-    // LiteAPI direct rows for any search that includes children or infants, so a
-    // family can never reach a broken direct checkout. Those searches still show
-    // Duffel + Travelpayouts. Adults-only searches are unaffected.
-    const liteapiSupportsParty = children === 0 && infants === 0;
+    // Families enabled 2026-07-16: child/infant prebooks work now that
+    // prebookFlight sends numeric `passengerType` (0/1/2) — LiteAPI silently
+    // ignored our `type` strings, which made 53099 look like "children
+    // unsupported" (Nuitée ticket LAS-1312). Adults-only guard + server
+    // backstop removed together.
     // Merge one LiteAPI response's rows into the results; returns how many.
     const applyLiteapiData = (data: LiteapiSearchResponse | null): number => {
       if (!data || data.error || !Array.isArray(data.offers) || data.offers.length === 0) return 0;
@@ -1758,8 +1756,7 @@ function FlightsContent() {
       setScoutAirlineCount(new Set(merged.map(f => f.airlineCode)).size);
       return rows.length;
     };
-    const liteapiPromise = liteapiSupportsParty
-      ? fetch(`/api/flights/liteapi/search?${liteapiParams}`)
+    const liteapiPromise = fetch(`/api/flights/liteapi/search?${liteapiParams}`)
           .then(r => r.json() as Promise<LiteapiSearchResponse>)
           .then(async (data) => {
             if (applyLiteapiData(data) > 0) return;
@@ -1780,8 +1777,7 @@ function FlightsContent() {
               .catch(() => null);
             applyLiteapiData(d2);
           })
-          .catch(() => { /* LiteAPI is supplementary — failures don't break search */ })
-      : Promise.resolve();
+          .catch(() => { /* LiteAPI is supplementary — failures don't break search */ });
 
     try {
       // ── Kick off a TP v1 async search. This actively queries GDS agents
