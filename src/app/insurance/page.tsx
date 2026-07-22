@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import DateRangePicker from '@/components/DateRangePicker';
@@ -17,8 +18,7 @@ const PROVIDERS = [
   {
     name: 'Ekta Traveling',
     logo: '🛡',
-    desc: 'Marketplace of 30+ insurers including AIG, Allianz & ERV. Cover from £3/day.',
-    badge: 'Best Value',
+    k: 'ekta',
     url: 'https://tp.media/r?campaign_id=225&marker=714449&p=5869&trs=512633&u=https%3A%2F%2Fektatraveling.com',
   },
 ];
@@ -29,46 +29,22 @@ const PROVIDERS = [
 // like an actual comparison, not a one-provider redirect. Each link is
 // the public homepage; do NOT add referral params we haven't earned.
 const COMPARE_LINKS = [
-  {
-    name: 'Staysure',
-    desc: "UK's largest travel insurer for over-50s and pre-existing conditions.",
-    url: 'https://www.staysure.co.uk/',
-    note: 'Affiliate pending',
-  },
-  {
-    name: 'SafetyWing',
-    desc: 'Nomad cover for long-stay travellers and remote workers — monthly billing.',
-    url: 'https://safetywing.com/nomad-insurance',
-    note: 'Affiliate pending',
-  },
-  {
-    name: 'AXA',
-    desc: 'Single-trip and annual cover from a major UK insurer. FCA-regulated.',
-    url: 'https://www.axa.co.uk/insurance/personal/travel/',
-    note: 'Affiliate pending',
-  },
-  {
-    name: 'World Nomads',
-    desc: 'Adventure-friendly cover popular with backpackers and gap-year travellers.',
-    url: 'https://www.worldnomads.com/',
-    note: 'Affiliate pending',
-  },
-  {
-    name: 'Allianz Travel',
-    desc: 'Trip cancellation, medical and emergency assistance worldwide.',
-    url: 'https://www.allianz-assistance.co.uk/',
-    note: 'Affiliate pending',
-  },
-];
+  { name: 'Staysure', k: 'staysure', url: 'https://www.staysure.co.uk/' },
+  { name: 'SafetyWing', k: 'safetywing', url: 'https://safetywing.com/nomad-insurance' },
+  { name: 'AXA', k: 'axa', url: 'https://www.axa.co.uk/insurance/personal/travel/' },
+  { name: 'World Nomads', k: 'worldNomads', url: 'https://www.worldnomads.com/' },
+  { name: 'Allianz Travel', k: 'allianz', url: 'https://www.allianz-assistance.co.uk/' },
+] as const;
 
 const COVER_TYPES = [
-  { id: 'single', label: 'Single Trip', icon: '🎫', desc: 'One trip, best value' },
-  { id: 'annual', label: 'Annual Multi-Trip', icon: '📅', desc: 'Frequent travellers' },
-  { id: 'backpacker', label: 'Backpacker', icon: '🎒', desc: 'Long-stay travel' },
-  { id: 'winter', label: 'Winter Sports', icon: '⛷', desc: 'Ski & snowboard' },
-];
+  { id: 'single', k: 'single', icon: '🎫' },
+  { id: 'annual', k: 'annual', icon: '📅' },
+  { id: 'backpacker', k: 'backpacker', icon: '🎒' },
+  { id: 'winter', k: 'winter', icon: '⛷' },
+] as const;
 
 export default function InsurancePage() {
+  const t = useTranslations('insurance');
   const [coverType, setCoverType] = useState('single');
   const [destination, setDestination] = useState('');
   const [depDate, setDepDate] = useState('');
@@ -78,7 +54,7 @@ export default function InsurancePage() {
   const today = new Date().toISOString().split('T')[0];
 
   function openAll() {
-    if (!destination) { alert('Please select a destination region'); return; }
+    if (!destination) { alert(t('selectRegionAlert')); return; }
     PROVIDERS.forEach((p, i) => {
       setTimeout(() => window.open(redirectUrl(p.url, p.name, destination, 'insurance'), '_blank', 'noopener'), i * 200);
     });
@@ -116,11 +92,11 @@ export default function InsurancePage() {
         </div>
 
         <div className="max-w-[860px] mx-auto text-center mb-10 relative z-[1]">
-          <span className="inline-flex items-center gap-1.5 backdrop-blur-md bg-gradient-to-r from-emerald-500/15 to-green-500/15 border border-emerald-300/30 text-emerald-300 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4 shadow-[0_4px_20px_rgba(16,185,129,0.25)]"><span className="text-base leading-none">🛡</span> Travel Insurance</span>
+          <span className="inline-flex items-center gap-1.5 backdrop-blur-md bg-gradient-to-r from-emerald-500/15 to-green-500/15 border border-emerald-300/30 text-emerald-300 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4 shadow-[0_4px_20px_rgba(16,185,129,0.25)]"><span className="text-base leading-none">🛡</span> {t('badge')}</span>
           <h1 className="font-poppins text-[2.6rem] md:text-[3.8rem] font-black text-white leading-[1.05] tracking-tight mb-3">
-            Travel <em className="italic bg-gradient-to-br from-emerald-300 via-green-400 to-teal-500 bg-clip-text text-transparent">Protected</em>
+            {t('titlePre')} <em className="italic bg-gradient-to-br from-emerald-300 via-green-400 to-teal-500 bg-clip-text text-transparent">{t('titleHighlight')}</em>
           </h1>
-          <p className="text-[1rem] text-white/60 font-semibold max-w-[520px] mx-auto">Medical cover, cancellation & luggage — get the right policy for your trip.</p>
+          <p className="text-[1rem] text-white/60 font-semibold max-w-[520px] mx-auto">{t('heroSub')}</p>
         </div>
 
         <div className="max-w-[860px] mx-auto bg-white border border-white/20 rounded-3xl p-6 shadow-[0_30px_70px_-20px_rgba(0,0,0,0.6),0_8px_24px_-8px_rgba(16,185,129,0.3),0_0_0_1px_rgba(110,231,183,0.08)] relative z-[1]">
@@ -142,34 +118,34 @@ export default function InsurancePage() {
         `}</style>
           {/* Cover type selector */}
           <div className="mb-5">
-            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-2.5 text-center">Cover Type</label>
+            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-2.5 text-center">{t('coverType')}</label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
               {COVER_TYPES.map(ct => (
                 <button key={ct.id} onClick={() => setCoverType(ct.id)}
                   className={`p-3 rounded-xl border-2 text-left transition-all ${coverType === ct.id ? 'border-green-500 bg-green-50' : 'border-[#E8ECF4] bg-[#F8FAFC] hover:border-green-200'}`}>
                   <div className="text-lg mb-1">{ct.icon}</div>
-                  <div className={`font-poppins font-bold text-[.78rem] ${coverType === ct.id ? 'text-green-700' : 'text-[#1A1D2B]'}`}>{ct.label}</div>
-                  <div className="text-[.65rem] text-[#8E95A9] font-semibold">{ct.desc}</div>
+                  <div className={`font-poppins font-bold text-[.78rem] ${coverType === ct.id ? 'text-green-700' : 'text-[#1A1D2B]'}`}>{t(`cover.${ct.k}.label`)}</div>
+                  <div className="text-[.65rem] text-[#8E95A9] font-semibold">{t(`cover.${ct.k}.desc`)}</div>
                 </button>
               ))}
             </div>
           </div>
 
           <div className="mb-3">
-            <label htmlFor="ins-destination" className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Destination Region</label>
+            <label htmlFor="ins-destination" className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">{t('destinationRegion')}</label>
             <select id="ins-destination" value={destination} onChange={e => setDestination(e.target.value)}
               className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-green-500 focus:bg-white transition-all">
-              <option value="">Select destination...</option>
-              <option value="europe">Europe</option>
-              <option value="worldwide">Worldwide (excl. USA)</option>
-              <option value="worldwide-usa">Worldwide (incl. USA)</option>
-              <option value="uk">UK Only</option>
+              <option value="">{t('selectDestination')}</option>
+              <option value="europe">{t('regionEurope')}</option>
+              <option value="worldwide">{t('regionWorldwideExUsa')}</option>
+              <option value="worldwide-usa">{t('regionWorldwideIncUsa')}</option>
+              <option value="uk">{t('regionUkOnly')}</option>
             </select>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Calendar</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">{t('calendar')}</label>
               <DateRangePicker
                 start={depDate}
                 end={retDate}
@@ -181,21 +157,21 @@ export default function InsurancePage() {
               />
             </div>
             <div>
-              <label htmlFor="ins-travellers" className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Travellers</label>
+              <label htmlFor="ins-travellers" className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">{t('travellers')}</label>
               <select id="ins-travellers" value={travellers} onChange={e => setTravellers(e.target.value)}
                 className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-green-500 focus:bg-white transition-all">
-                <option value="1">1 traveller</option>
-                <option value="2">2 travellers</option>
-                <option value="family">Family (2+2)</option>
-                <option value="group">Group (5+)</option>
+                <option value="1">{t('travellers1')}</option>
+                <option value="2">{t('travellers2')}</option>
+                <option value="family">{t('travellersFamily')}</option>
+                <option value="group">{t('travellersGroup')}</option>
               </select>
             </div>
           </div>
           <button onClick={openAll}
             className="w-full bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(16,185,129,0.3)]">
-            Get Insurance Quote →
+            {t('getQuote')} →
           </button>
-          <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">Prices from £3/day. Opens Ekta Traveling so you can get a quote.</p>
+          <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">{t('quoteNote')}</p>
         </div>
 
         {/* App-store badge row — sits under the search form on the dark hero. */}
@@ -203,9 +179,9 @@ export default function InsurancePage() {
       </section>
 
       <section className="max-w-[1100px] mx-auto px-5 pb-10">
-        <p className="text-[.65rem] font-extrabold uppercase tracking-[3px] text-[#8E95A9] mb-1.5">Live Quote Partner</p>
-        <h2 className="font-poppins text-[1.4rem] font-black text-[#1A1D2B] mb-2">Get an instant quote</h2>
-        <p className="text-[.78rem] text-[#5C6378] font-semibold mb-6 max-w-[640px]">Ekta Traveling is itself a marketplace — one form, prices from 30+ underwriters including AIG, Allianz, ERV and Mondial.</p>
+        <p className="text-[.65rem] font-extrabold uppercase tracking-[3px] text-[#8E95A9] mb-1.5">{t('liveQuotePartner')}</p>
+        <h2 className="font-poppins text-[1.4rem] font-black text-[#1A1D2B] mb-2">{t('getInstantQuote')}</h2>
+        <p className="text-[.78rem] text-[#5C6378] font-semibold mb-6 max-w-[640px]">{t('ektaMarketplaceSub')}</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {PROVIDERS.map(p => (
             <a key={p.name} href={redirectUrl(p.url, p.name, destination || 'your trip', 'insurance')} target="_blank" rel="noopener"
@@ -213,10 +189,10 @@ export default function InsurancePage() {
               <div className="text-2xl mb-3">{p.logo}</div>
               <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                 <span className="font-poppins font-extrabold text-[.92rem] text-[#1A1D2B]">{p.name}</span>
-                <span className="text-[.58rem] font-black uppercase tracking-[1.5px] px-2 py-0.5 rounded-full bg-green-50 text-green-600">{p.badge}</span>
+                <span className="text-[.58rem] font-black uppercase tracking-[1.5px] px-2 py-0.5 rounded-full bg-green-50 text-green-600">{t(`providers.${p.k}.badge`)}</span>
               </div>
-              <p className="text-[.75rem] text-[#5C6378] font-semibold leading-relaxed mb-3">{p.desc}</p>
-              <span className="text-[.72rem] font-black text-green-600 group-hover:underline">Get a Quote →</span>
+              <p className="text-[.75rem] text-[#5C6378] font-semibold leading-relaxed mb-3">{t(`providers.${p.k}.desc`)}</p>
+              <span className="text-[.72rem] font-black text-green-600 group-hover:underline">{t('getAQuote')} →</span>
             </a>
           ))}
         </div>
@@ -228,21 +204,21 @@ export default function InsurancePage() {
           their tracking IDs and remove the "affiliate pending" badge. */}
       <section className="max-w-[1100px] mx-auto px-5 pb-16">
         <div className="flex items-center justify-between flex-wrap gap-3 mb-2">
-          <p className="text-[.65rem] font-extrabold uppercase tracking-[3px] text-[#8E95A9]">Compare Elsewhere</p>
-          <span className="text-[.6rem] font-bold text-[#8E95A9] bg-[#F8FAFC] border border-[#F1F3F7] px-2.5 py-1 rounded-full">No affiliate code · direct site link</span>
+          <p className="text-[.65rem] font-extrabold uppercase tracking-[3px] text-[#8E95A9]">{t('compareElsewhere')}</p>
+          <span className="text-[.6rem] font-bold text-[#8E95A9] bg-[#F8FAFC] border border-[#F1F3F7] px-2.5 py-1 rounded-full">{t('noAffiliateCode')}</span>
         </div>
-        <h2 className="font-poppins text-[1.4rem] font-black text-[#1A1D2B] mb-2">Other reputable insurers</h2>
-        <p className="text-[.78rem] text-[#5C6378] font-semibold mb-6 max-w-[640px]">We list these so you can sanity-check the marketplace price. Affiliate partnerships are in progress — for now JetMeAway earns nothing on these clicks.</p>
+        <h2 className="font-poppins text-[1.4rem] font-black text-[#1A1D2B] mb-2">{t('otherInsurers')}</h2>
+        <p className="text-[.78rem] text-[#5C6378] font-semibold mb-6 max-w-[640px]">{t('compareSub')}</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {COMPARE_LINKS.map(c => (
             <a key={c.name} href={c.url} target="_blank" rel="noopener nofollow sponsored"
               className="block p-5 bg-white border border-[#F1F3F7] rounded-2xl hover:border-emerald-200 hover:shadow-md transition-all group">
               <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                 <span className="font-poppins font-extrabold text-[.92rem] text-[#1A1D2B]">{c.name}</span>
-                <span className="text-[.55rem] font-black uppercase tracking-[1.5px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-100">{c.note}</span>
+                <span className="text-[.55rem] font-black uppercase tracking-[1.5px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-100">{t('affiliatePending')}</span>
               </div>
-              <p className="text-[.75rem] text-[#5C6378] font-semibold leading-relaxed mb-3">{c.desc}</p>
-              <span className="text-[.72rem] font-black text-emerald-600 group-hover:underline">Visit {c.name} →</span>
+              <p className="text-[.75rem] text-[#5C6378] font-semibold leading-relaxed mb-3">{t(`compareLinks.${c.k}`)}</p>
+              <span className="text-[.72rem] font-black text-emerald-600 group-hover:underline">{t('visit', {name: c.name})} →</span>
             </a>
           ))}
         </div>
@@ -251,21 +227,14 @@ export default function InsurancePage() {
       {/* What's covered */}
       <section className="max-w-[860px] mx-auto px-5 pb-16">
         <div className="bg-[#F8FAFC] border border-[#F1F3F7] rounded-3xl p-8">
-          <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-5">What Good Travel Insurance Covers</h3>
+          <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-5">{t('whatCovers')}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {[
-              ['Emergency Medical', 'Hospital stays, treatment & medical repatriation — essential for USA/Caribbean.'],
-              ['Trip Cancellation', 'Get your money back if you must cancel due to illness, bereavement or redundancy.'],
-              ['Delayed & Missed Flights', 'Compensation for delays over 2+ hours plus missed connections.'],
-              ['Baggage Loss & Delay', 'Reimbursement for lost, stolen or delayed luggage and contents.'],
-              ['Personal Liability', 'Cover if you accidentally injure someone or damage their property.'],
-              ['24/7 Emergency Assistance', 'Round-the-clock support line — critical if something goes wrong abroad.'],
-            ].map(([title, body]) => (
-              <div key={title} className="flex gap-3 bg-white border border-[#F1F3F7] rounded-xl p-3.5">
+            {(['emergencyMedical','tripCancellation','delayedFlights','baggageLoss','personalLiability','emergencyAssistance'] as const).map((ck) => (
+              <div key={ck} className="flex gap-3 bg-white border border-[#F1F3F7] rounded-xl p-3.5">
                 <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-1.5" />
                 <div>
-                  <div className="font-poppins font-bold text-[.82rem] text-[#1A1D2B] mb-0.5">{title}</div>
-                  <p className="text-[.72rem] text-[#5C6378] font-semibold leading-relaxed">{body}</p>
+                  <div className="font-poppins font-bold text-[.82rem] text-[#1A1D2B] mb-0.5">{t(`covers.${ck}.title`)}</div>
+                  <p className="text-[.72rem] text-[#5C6378] font-semibold leading-relaxed">{t(`covers.${ck}.body`)}</p>
                 </div>
               </div>
             ))}

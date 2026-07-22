@@ -320,5 +320,95 @@
     "fareUpdatedFrom": "Fare updated from {price}",
     "total": "Total",
     "includesTaxes": "Includes all taxes and fees. No booking fees added by JetMeAway."
+  },
+  "insurance": {
+    "selectRegionAlert": "Please select a destination region",
+    "badge": "Travel Insurance",
+    "titlePre": "Travel",
+    "titleHighlight": "Protected",
+    "heroSub": "Medical cover, cancellation & luggage — get the right policy for your trip.",
+    "coverType": "Cover Type",
+    "cover": {
+      "single": {
+        "label": "Single Trip",
+        "desc": "One trip, best value"
+      },
+      "annual": {
+        "label": "Annual Multi-Trip",
+        "desc": "Frequent travellers"
+      },
+      "backpacker": {
+        "label": "Backpacker",
+        "desc": "Long-stay travel"
+      },
+      "winter": {
+        "label": "Winter Sports",
+        "desc": "Ski & snowboard"
+      }
+    },
+    "destinationRegion": "Destination Region",
+    "selectDestination": "Select destination...",
+    "regionEurope": "Europe",
+    "regionWorldwideExUsa": "Worldwide (excl. USA)",
+    "regionWorldwideIncUsa": "Worldwide (incl. USA)",
+    "regionUkOnly": "UK Only",
+    "calendar": "Calendar",
+    "travellers": "Travellers",
+    "travellers1": "1 traveller",
+    "travellers2": "2 travellers",
+    "travellersFamily": "Family (2+2)",
+    "travellersGroup": "Group (5+)",
+    "getQuote": "Get Insurance Quote",
+    "quoteNote": "Prices from £3/day. Opens Ekta Traveling so you can get a quote.",
+    "liveQuotePartner": "Live Quote Partner",
+    "getInstantQuote": "Get an instant quote",
+    "ektaMarketplaceSub": "Ekta Traveling is itself a marketplace — one form, prices from 30+ underwriters including AIG, Allianz, ERV and Mondial.",
+    "providers": {
+      "ekta": {
+        "badge": "Best Value",
+        "desc": "Marketplace of 30+ insurers including AIG, Allianz & ERV. Cover from £3/day."
+      }
+    },
+    "getAQuote": "Get a Quote",
+    "compareElsewhere": "Compare Elsewhere",
+    "noAffiliateCode": "No affiliate code · direct site link",
+    "otherInsurers": "Other reputable insurers",
+    "compareSub": "We list these so you can sanity-check the marketplace price. Affiliate partnerships are in progress — for now JetMeAway earns nothing on these clicks.",
+    "compareLinks": {
+      "staysure": "UK's largest travel insurer for over-50s and pre-existing conditions.",
+      "safetywing": "Nomad cover for long-stay travellers and remote workers — monthly billing.",
+      "axa": "Single-trip and annual cover from a major UK insurer. FCA-regulated.",
+      "worldNomads": "Adventure-friendly cover popular with backpackers and gap-year travellers.",
+      "allianz": "Trip cancellation, medical and emergency assistance worldwide."
+    },
+    "affiliatePending": "Affiliate pending",
+    "visit": "Visit {name}",
+    "whatCovers": "What Good Travel Insurance Covers",
+    "covers": {
+      "emergencyMedical": {
+        "title": "Emergency Medical",
+        "body": "Hospital stays, treatment & medical repatriation — essential for USA/Caribbean."
+      },
+      "tripCancellation": {
+        "title": "Trip Cancellation",
+        "body": "Get your money back if you must cancel due to illness, bereavement or redundancy."
+      },
+      "delayedFlights": {
+        "title": "Delayed & Missed Flights",
+        "body": "Compensation for delays over 2+ hours plus missed connections."
+      },
+      "baggageLoss": {
+        "title": "Baggage Loss & Delay",
+        "body": "Reimbursement for lost, stolen or delayed luggage and contents."
+      },
+      "personalLiability": {
+        "title": "Personal Liability",
+        "body": "Cover if you accidentally injure someone or damage their property."
+      },
+      "emergencyAssistance": {
+        "title": "24/7 Emergency Assistance",
+        "body": "Round-the-clock support line — critical if something goes wrong abroad."
+      }
+    }
   }
 }
