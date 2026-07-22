@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 /**
  * Main category nav — shown on desktop and in the mobile sticky bar.
@@ -193,8 +194,10 @@ export default function Header() {
             </div>
           </nav>
 
-          {/* RIGHT: Currency badge + Contact button + mobile hamburger */}
+          {/* RIGHT: Language + currency badges + Contact button + mobile hamburger */}
           <div className="flex items-center gap-2">
+            {/* Language switcher — auto-detected via proxy.ts, manual override here */}
+            <LanguageSwitcher />
             {/* Currency / region badge — display-only for now (we only price in GBP).
                 Union Jack is an inline SVG so it renders on Windows (which has no flag-emoji glyphs). */}
             <span

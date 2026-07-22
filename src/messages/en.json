@@ -1,0 +1,8 @@
+{
+  "common": {
+    "pricesInGbp": "Prices are shown in GBP (£)"
+  },
+  "header": {
+    "language": "Language"
+  }
+}
