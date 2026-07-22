@@ -1,8 +1,84 @@
 {
   "common": {
-    "pricesInGbp": "الأسعار معروضة بالجنيه الإسترليني (£)"
+    "pricesInGbp": "الأسعار معروضة بالجنيه الإسترليني (£)",
+    "loading": "جارٍ التحميل…"
   },
   "header": {
-    "language": "اللغة"
+    "language": "اللغة",
+    "nav": {
+      "blog": "المدونة",
+      "trips": "رحلاتي",
+      "hotels": "الفنادق",
+      "flights": "الطيران",
+      "packages": "الباقات",
+      "activities": "الأنشطة",
+      "carHire": "تأجير السيارات",
+      "esim": "شريحة eSIM",
+      "destinations": "الوجهات",
+      "aboutUs": "من نحن",
+      "discover": "اكتشف",
+      "myTrips": "رحلاتي",
+      "contact": "اتصل بنا",
+      "home": "الرئيسية",
+      "privacyPolicy": "سياسة الخصوصية",
+      "termsOfService": "شروط الخدمة"
+    },
+    "sections": {
+      "compare": "قارن الأسعار",
+      "discover": "اكتشف",
+      "yourAccount": "حسابك",
+      "company": "الشركة"
+    },
+    "aria": {
+      "closeMenu": "إغلاق القائمة",
+      "openMenu": "فتح القائمة",
+      "mainMenu": "القائمة الرئيسية",
+      "mobileCategories": "فئات التصفح"
+    }
+  },
+  "footer": {
+    "tagline": "كشّاف سفرك الذكي. قارن رحلات الطيران والفنادق والباقات والمزيد من أكثر من 15 مزوّدًا موثوقًا.",
+    "compare": "قارن",
+    "company": "الشركة",
+    "dealAlerts": "تنبيهات العروض",
+    "links": {
+      "flights": "الطيران",
+      "hotels": "الفنادق",
+      "packages": "الباقات",
+      "carHire": "تأجير السيارات",
+      "insurance": "التأمين",
+      "esimPlans": "باقات eSIM",
+      "about": "من نحن",
+      "blog": "المدونة",
+      "travelData": "بيانات السفر",
+      "privacyPolicy": "سياسة الخصوصية",
+      "termsOfService": "شروط الخدمة",
+      "refundPolicy": "سياسة الاسترداد",
+      "affiliateDisclosure": "إفصاح الشراكة",
+      "financialProtection": "الحماية المالية",
+      "contactUs": "اتصل بنا"
+    },
+    "affiliateNotice": "قد نحصل على عمولات عند الحجز عبر روابطنا دون أي تكلفة إضافية عليك.",
+    "affiliateLink": "اقرأ إفصاح الشراكة",
+    "bookingSupport": "دعم الحجوزات",
+    "free": "مجاني",
+    "support247": "متاح على مدار الساعة للحجوزات النشطة. راسلنا على <email>contact@jetmeaway.co.uk</email> لأي استفسارات أخرى.",
+    "atolNotice": "الباقات الشاملة للطيران محمية بموجب ATOL عبر Expedia ‏(5788) و‏Trip.com ‏(11572). <link>اقرأ إشعار الحماية المالية</link>.",
+    "popularDestinations": "وجهات شائعة",
+    "followUs": "تابع JetMeAway",
+    "allRightsReserved": "جميع الحقوق محفوظة.",
+    "cities": {
+      "dubai": "دبي",
+      "istanbul": "إسطنبول",
+      "barcelona": "برشلونة",
+      "london": "لندن",
+      "marrakech": "مراكش",
+      "budapest": "بودابست",
+      "lisbon": "لشبونة",
+      "porto": "بورتو",
+      "muscat": "مسقط",
+      "abuDhabi": "أبوظبي",
+      "doha": "الدوحة"
+    }
   }
 }

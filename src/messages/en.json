@@ -1,8 +1,84 @@
 {
   "common": {
-    "pricesInGbp": "Prices are shown in GBP (£)"
+    "pricesInGbp": "Prices are shown in GBP (£)",
+    "loading": "Loading…"
   },
   "header": {
-    "language": "Language"
+    "language": "Language",
+    "nav": {
+      "blog": "Blog",
+      "trips": "Trips",
+      "hotels": "Hotels",
+      "flights": "Flights",
+      "packages": "Packages",
+      "activities": "Activities",
+      "carHire": "Car Hire",
+      "esim": "eSIM",
+      "destinations": "Destinations",
+      "aboutUs": "About Us",
+      "discover": "Discover",
+      "myTrips": "My Trips",
+      "contact": "Contact",
+      "home": "Home",
+      "privacyPolicy": "Privacy Policy",
+      "termsOfService": "Terms of Service"
+    },
+    "sections": {
+      "compare": "Compare",
+      "discover": "Discover",
+      "yourAccount": "Your account",
+      "company": "Company"
+    },
+    "aria": {
+      "closeMenu": "Close menu",
+      "openMenu": "Open menu",
+      "mainMenu": "Main menu",
+      "mobileCategories": "Mobile categories"
+    }
+  },
+  "footer": {
+    "tagline": "Your AI-powered travel scout. Compare flights, hotels, packages & more from 15+ trusted providers.",
+    "compare": "Compare",
+    "company": "Company",
+    "dealAlerts": "Deal Alerts",
+    "links": {
+      "flights": "Flights",
+      "hotels": "Hotels",
+      "packages": "Packages",
+      "carHire": "Car Hire",
+      "insurance": "Insurance",
+      "esimPlans": "eSIM Plans",
+      "about": "About",
+      "blog": "Blog",
+      "travelData": "Travel Data",
+      "privacyPolicy": "Privacy Policy",
+      "termsOfService": "Terms of Service",
+      "refundPolicy": "Refund Policy",
+      "affiliateDisclosure": "Affiliate Disclosure",
+      "financialProtection": "Financial Protection",
+      "contactUs": "Contact Us"
+    },
+    "affiliateNotice": "We may earn commissions when you book through our links at no extra cost to you.",
+    "affiliateLink": "Read our Affiliate Disclosure",
+    "bookingSupport": "Booking Support",
+    "free": "Free",
+    "support247": "24/7 for active bookings. Email <email>contact@jetmeaway.co.uk</email> for other enquiries.",
+    "atolNotice": "Flight-inclusive packages are ATOL protected via Expedia (5788) & Trip.com (11572). <link>Read our Financial Protection Notice</link>.",
+    "popularDestinations": "Popular Destinations",
+    "followUs": "Follow JetMeAway",
+    "allRightsReserved": "All rights reserved.",
+    "cities": {
+      "dubai": "Dubai",
+      "istanbul": "Istanbul",
+      "barcelona": "Barcelona",
+      "london": "London",
+      "marrakech": "Marrakech",
+      "budapest": "Budapest",
+      "lisbon": "Lisbon",
+      "porto": "Porto",
+      "muscat": "Muscat",
+      "abuDhabi": "Abu Dhabi",
+      "doha": "Doha"
+    }
   }
 }
