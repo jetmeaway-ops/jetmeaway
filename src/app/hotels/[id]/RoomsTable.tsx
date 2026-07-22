@@ -21,6 +21,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 
 /* Lightweight room-metadata shape the RoomsTable accepts. Matches the shape
    exported by /api/hotels/details — photos, size, beds, amenities, maximum
@@ -111,13 +112,14 @@ export const SCOUT_TOKENS = {
    to title case and pick up the inclusions for the "choices" column. */
 const BOARD_MEANS = (raw: string) => {
   const b = raw.trim().toLowerCase();
-  if (!b || b === 'room only' || b === 'ro') return { label: 'Room Only', breakfast: false, lunch: false, dinner: false, allInclusive: false };
-  if (b === 'bb' || b.includes('breakfast')) return { label: 'Bed & Breakfast', breakfast: true, lunch: false, dinner: false, allInclusive: false };
-  if (b === 'hb' || b.includes('half board')) return { label: 'Half Board', breakfast: true, lunch: false, dinner: true, allInclusive: false };
-  if (b === 'fb' || b.includes('full board')) return { label: 'Full Board', breakfast: true, lunch: true, dinner: true, allInclusive: false };
-  if (b.includes('all') && b.includes('incl')) return { label: 'All Inclusive', breakfast: true, lunch: true, dinner: true, allInclusive: true };
+  if (!b || b === 'room only' || b === 'ro') return { key: 'roomOnly', label: 'Room Only', breakfast: false, lunch: false, dinner: false, allInclusive: false };
+  if (b === 'bb' || b.includes('breakfast')) return { key: 'bb', label: 'Bed & Breakfast', breakfast: true, lunch: false, dinner: false, allInclusive: false };
+  if (b === 'hb' || b.includes('half board')) return { key: 'hb', label: 'Half Board', breakfast: true, lunch: false, dinner: true, allInclusive: false };
+  if (b === 'fb' || b.includes('full board')) return { key: 'fb', label: 'Full Board', breakfast: true, lunch: true, dinner: true, allInclusive: false };
+  if (b.includes('all') && b.includes('incl')) return { key: 'ai', label: 'All Inclusive', breakfast: true, lunch: true, dinner: true, allInclusive: true };
   // Fallback: keep the supplier's label but title-case it
   return {
+    key: 'other',
     label: raw.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
     breakfast: false, lunch: false, dinner: false, allInclusive: false,
   };
@@ -222,6 +224,7 @@ function RateRow({
   onReserve: () => void;
   onShowDetails?: () => void;
 }) {
+  const t = useTranslations('hotelDetail');
   const board = BOARD_MEANS(rate.boardType);
 
   /* Row title resolution (Phase-2):
@@ -229,7 +232,7 @@ function RateRow({
      2. roomName prop  — table-level fallback for single-room hotels
      3. board.label    — graceful Phase-1 fallback ("All Inclusive" in Playfair
                          reads like a boutique title — happy coincidence)   */
-  const title = rate.roomName || roomName || board.label;
+  const title = rate.roomName || roomName || (board.key === 'other' ? board.label : t('board.' + board.key));
   const showBoardSubtitle = Boolean(rate.roomName || roomName);
 
   // Phase-4: derive the top-3 in-room amenity highlights once per render.
@@ -263,7 +266,7 @@ function RateRow({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onShowDetails?.(); }}
-            aria-label={`See photos of ${title}`}
+            aria-label={t('seePhotosOf', { title })}
             className="flex-shrink-0 w-[88px] h-[68px] md:w-[104px] md:h-[80px] rounded-xl overflow-hidden border border-[#E8ECF4] bg-[#F1F3F7] group relative"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -285,7 +288,7 @@ function RateRow({
           </h3>
           {showBoardSubtitle && (
             <div className="text-[.68rem] font-semibold text-slate-500 uppercase tracking-[2px] mt-1">
-              {board.label}
+              {board.key === 'other' ? board.label : t('board.' + board.key)}
             </div>
           )}
 
@@ -300,7 +303,7 @@ function RateRow({
                 <SpecPill icon="fa-bed" label={truncate(roomMeta.beds, 32)} />
               )}
               {roomMeta.maxOccupancy && (
-                <SpecPill icon="fa-user-group" label={`Sleeps ${roomMeta.maxOccupancy}`} />
+                <SpecPill icon="fa-user-group" label={t('sleeps', { n: roomMeta.maxOccupancy })} />
               )}
             </div>
           )}
@@ -326,7 +329,7 @@ function RateRow({
               onClick={(e) => { e.stopPropagation(); onShowDetails(); }}
               className="mt-2.5 inline-flex items-center gap-1 text-[.74rem] font-bold text-[#0066FF] hover:text-[#0a1628] transition-colors"
             >
-              See room details & photos
+              {t('seeRoomDetails')}
               <i className="fa-solid fa-arrow-right text-[.62rem]" />
             </button>
           )}
@@ -335,10 +338,10 @@ function RateRow({
 
       {/* ─── Column 2: Scout Choices (board + cancellation + Wi-Fi) ─── */}
       <div className="flex flex-col gap-2 md:gap-2 md:pt-0.5">
-        {board.breakfast && <Choice tone="positive">Breakfast included</Choice>}
-        {board.allInclusive && <Choice tone="positive">All meals &amp; drinks included</Choice>}
+        {board.breakfast && <Choice tone="positive">{t('breakfastIncluded')}</Choice>}
+        {board.allInclusive && <Choice tone="positive">{t('allMealsDrinks')}</Choice>}
         {!board.breakfast && !board.allInclusive && (
-          <Choice tone="neutral">Room only — meals not included</Choice>
+          <Choice tone="neutral">{t('roomOnlyMeals')}</Choice>
         )}
         {(() => {
           // v2-plan step-2: surface the exact cancel deadline when the
@@ -348,19 +351,19 @@ function RateRow({
           if (rate.refundable) {
             return (
               <Choice tone="positive">
-                {deadline ? `Free cancellation until ${deadline}` : 'Free cancellation'}
+                {deadline ? t('freeCancellationUntil', { date: deadline }) : t('freeCancellation')}
               </Choice>
             );
           }
-          return <Choice tone="neutral">Non-refundable</Choice>;
+          return <Choice tone="neutral">{t('nonRefundable')}</Choice>;
         })()}
         {/* v2-plan step-3: "Pay at hotel" — only when the rate genuinely
             supports it. Silent otherwise (Scout rule — we never invent a
             positive). */}
         {isPayAtHotel(rate.paymentTypes) && (
-          <Choice tone="positive">No prepayment — pay at the property</Choice>
+          <Choice tone="positive">{t('noPrepayment')}</Choice>
         )}
-        <Choice tone="positive">High-speed Wi-Fi</Choice>
+        <Choice tone="positive">{t('highSpeedWifi')}</Choice>
       </div>
 
       {/* ─── Column 3: Price + CTA ─── */}
@@ -371,7 +374,7 @@ function RateRow({
           {rate.negotiatedPrice != null && rate.marketPrice != null && rate.negotiatedPrice < rate.marketPrice && (
             <>
               <span className="inline-block text-[.55rem] font-black uppercase tracking-[1.2px] bg-gradient-to-r from-orange-500 to-amber-500 text-white px-2 py-0.5 rounded-full mb-1">
-                Scout Deal
+                {t('scoutDeal')}
               </span>
               <div className="text-[.8rem] text-slate-400 font-bold line-through leading-none">
                 {fmtGBP(rate.marketPrice)}
@@ -382,19 +385,19 @@ function RateRow({
             {fmtGBP(rate.totalPrice)}
           </div>
           <div className="text-[.62rem] font-semibold text-slate-400 uppercase tracking-[1.5px] mt-1">
-            Total for {rooms > 1 ? `${rooms} rooms · ` : ''}{nights} {nights === 1 ? 'night' : 'nights'}
+            {t('totalFor')} {rooms > 1 ? t('roomsSep', { rooms }) : ''}{nights} {t('nightWord', { count: nights })}
           </div>
           <div className="text-[.68rem] font-medium text-slate-500 mt-1">
-            {fmtGBP(rate.pricePerNight)} / night{rooms > 1 ? ` for ${rooms} rooms` : ''} · {rate.excludedTaxes && rate.excludedTaxes > 0 ? 'incl. VAT' : 'all taxes & fees included'}
+            {fmtGBP(rate.pricePerNight)} {t('perNightSlash')}{rooms > 1 ? ` ${t('forNRooms', { rooms })}` : ''} · {rate.excludedTaxes && rate.excludedTaxes > 0 ? t('inclVat') : t('allTaxesIncluded')}
           </div>
           {rate.excludedTaxes != null && rate.excludedTaxes > 0 && (
             <div className="text-[.66rem] font-medium text-slate-500 mt-0.5">
-              + {fmtGBP(rate.excludedTaxes)} city tax payable at the property
+              + {fmtGBP(rate.excludedTaxes)} {t('cityTaxPayable')}
             </div>
           )}
           {rate.negotiatedPrice != null && rate.marketPrice != null && rate.negotiatedPrice < rate.marketPrice && (
             <div className="text-[.68rem] font-bold text-emerald-600 mt-1">
-              You save {fmtGBP(rate.marketPrice - rate.negotiatedPrice)}
+              {t('youSave')} {fmtGBP(rate.marketPrice - rate.negotiatedPrice)}
             </div>
           )}
         </div>
@@ -410,7 +413,7 @@ function RateRow({
               : 'bg-white border border-[#0a1628] text-[#0a1628] hover:bg-[#0a1628] hover:text-white'
             }`}
         >
-          Secure this rate →
+          {t('secureThisRate')}
         </button>
       </div>
     </div>
@@ -455,6 +458,7 @@ export default function RoomsTable({
    *  modal so multiple rows share the same dialog instance. */
   onShowDetails?: (offerId: string) => void;
 }) {
+  const t = useTranslations('hotelDetail');
   const sorted = useMemo(() => [...offers].sort((a, b) => a.totalPrice - b.totalPrice), [offers]);
 
   if (!sorted || sorted.length === 0) return null;
@@ -463,10 +467,10 @@ export default function RoomsTable({
     <section className="bg-white border border-[#E8ECF4] rounded-3xl p-2 md:p-3 shadow-[0_4px_24px_rgba(10,22,40,0.04)]">
       <div className="px-4 md:px-5 pt-4 pb-3 flex items-baseline justify-between">
         <h2 className="font-[var(--font-playfair)] font-black text-[1.35rem] md:text-[1.55rem] text-[#0a1628] tracking-tight">
-          Choose your rate
+          {t('chooseYourRate')}
         </h2>
         <p className="text-[.68rem] font-semibold text-slate-500 uppercase tracking-[1.5px] hidden md:block">
-          {sorted.length} option{sorted.length === 1 ? '' : 's'} · cheapest first
+          {t('optionsCount', { count: sorted.length })} · {t('cheapestFirst')}
         </p>
       </div>
 

@@ -13,6 +13,7 @@ import RoomDetailModal from './RoomDetailModal';
 import HotelBackdrop from '@/components/HotelBackdrop';
 import { chooseDefaultTab } from '@/lib/silentScout';
 import { vibeTagsForSearchedCity } from '@/data/destinations';
+import { useTranslations } from 'next-intl';
 
 // Leaflet touches `window` on import, so SSR must be disabled. ScoutSidebar
 // renders its own Leaflet map when embedded on the detail page, replacing the
@@ -190,12 +191,12 @@ function Stars({ count }: { count: number | null }) {
 
 /** BACKLOG B2: Booking-style verbal label for an aggregate review score. */
 function scoreLabel(score: number): string {
-  if (score >= 9) return 'Superb';
-  if (score >= 8) return 'Very good';
-  if (score >= 7) return 'Good';
-  if (score >= 6) return 'Pleasant';
-  if (score >= 4) return 'Mixed';
-  return 'Limited feedback';
+  if (score >= 9) return 'superb';
+  if (score >= 8) return 'veryGood';
+  if (score >= 7) return 'good';
+  if (score >= 6) return 'pleasant';
+  if (score >= 4) return 'mixed';
+  return 'limited';
 }
 
 /** BACKLOG B2: "2025-11-03" → "Nov 2025". Degrades to raw string on bad input. */
@@ -218,6 +219,7 @@ export default function HotelDetailPage() {
   const sp = useSearchParams();
   const router = useRouter();
   const id = params?.id || '';
+  const t = useTranslations('hotelDetail');
 
   const [hotel, setHotel] = useState<HotelDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -348,10 +350,10 @@ export default function HotelDetailPage() {
         const res = await fetch(`/api/hotels/details/${encodeURIComponent(id)}`, { cache: 'force-cache' });
         const data = await res.json();
         if (cancelled) return;
-        if (!data.success) setError(data.error || 'Hotel not found');
+        if (!data.success) setError(data.error || t('hotelNotFound'));
         else setHotel(data.hotel);
       } catch (e: unknown) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Network error');
+        if (!cancelled) setError(e instanceof Error ? e.message : t('networkError'));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -499,22 +501,22 @@ export default function HotelDetailPage() {
     return (
       <div className="rounded-xl border border-[#E8ECF4] p-3 space-y-2.5 bg-white">
         <div className="flex items-center justify-between">
-          <span className="text-[.82rem] font-semibold text-[#5C6378]">Adults</span>
+          <span className="text-[.82rem] font-semibold text-[#5C6378]">{t('adults')}</span>
           <div className="flex items-center gap-2.5">
-            <button type="button" aria-label="Fewer adults" className={stepBtn} disabled={adultsN <= 1}
+            <button type="button" aria-label={t('fewerAdults')} className={stepBtn} disabled={adultsN <= 1}
               onClick={() => updateOccupancy(adultsN - 1, ages)}>−</button>
             <span className="w-5 text-center font-black text-[#1A1D2B]">{adultsN}</span>
-            <button type="button" aria-label="More adults" className={stepBtn} disabled={adultsN >= 6}
+            <button type="button" aria-label={t('moreAdults')} className={stepBtn} disabled={adultsN >= 6}
               onClick={() => updateOccupancy(adultsN + 1, ages)}>+</button>
           </div>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-[.82rem] font-semibold text-[#5C6378]">Children</span>
+          <span className="text-[.82rem] font-semibold text-[#5C6378]">{t('children')}</span>
           <div className="flex items-center gap-2.5">
-            <button type="button" aria-label="Fewer children" className={stepBtn} disabled={childCount <= 0}
+            <button type="button" aria-label={t('fewerChildren')} className={stepBtn} disabled={childCount <= 0}
               onClick={() => updateOccupancy(adultsN, ages.slice(0, -1))}>−</button>
             <span className="w-5 text-center font-black text-[#1A1D2B]">{childCount}</span>
-            <button type="button" aria-label="More children" className={stepBtn} disabled={childCount >= 4}
+            <button type="button" aria-label={t('moreChildren')} className={stepBtn} disabled={childCount >= 4}
               onClick={() => updateOccupancy(adultsN, [...ages, 7])}>+</button>
           </div>
         </div>
@@ -522,7 +524,7 @@ export default function HotelDetailPage() {
           <div className="flex flex-wrap gap-2 pt-1">
             {ages.map((age, i) => (
               <label key={i} className="inline-flex items-center gap-1.5 text-[.72rem] font-bold text-[#5C6378]">
-                Child {i + 1}
+                {t('childN', { n: i + 1 })}
                 <select value={age}
                   className="rounded-lg border border-[#E8ECF4] bg-[#F8FAFC] px-1.5 py-1 text-[.75rem] font-bold text-[#1A1D2B]"
                   onChange={(e) => {
@@ -531,7 +533,7 @@ export default function HotelDetailPage() {
                     updateOccupancy(adultsN, next);
                   }}>
                   {Array.from({ length: 18 }, (_, a) => (
-                    <option key={a} value={a}>{a === 0 ? '<1' : a}</option>
+                    <option key={a} value={a}>{a === 0 ? t('underOne') : a}</option>
                   ))}
                 </select>
               </label>
@@ -539,16 +541,16 @@ export default function HotelDetailPage() {
           </div>
         )}
         <div className="flex items-center justify-between">
-          <span className="text-[.82rem] font-semibold text-[#5C6378]">Rooms</span>
+          <span className="text-[.82rem] font-semibold text-[#5C6378]">{t('roomsLabel')}</span>
           <div className="flex items-center gap-2.5">
-            <button type="button" aria-label="Fewer rooms" className={stepBtn} disabled={roomsN <= 1}
+            <button type="button" aria-label={t('fewerRooms')} className={stepBtn} disabled={roomsN <= 1}
               onClick={() => updateOccupancy(adultsN, ages, roomsN - 1)}>−</button>
             <span className="w-5 text-center font-black text-[#1A1D2B]">{roomsN}</span>
-            <button type="button" aria-label="More rooms" className={stepBtn} disabled={roomsN >= 3}
+            <button type="button" aria-label={t('moreRooms')} className={stepBtn} disabled={roomsN >= 3}
               onClick={() => updateOccupancy(adultsN, ages, roomsN + 1)}>+</button>
           </div>
         </div>
-        <p className="text-[.66rem] text-[#8E95A9] font-medium">Prices update live for your party size.</p>
+        <p className="text-[.66rem] text-[#8E95A9] font-medium">{t('pricesUpdateLive')}</p>
       </div>
     );
   };
@@ -625,10 +627,10 @@ export default function HotelDetailPage() {
         }),
       });
       const data = await res.json();
-      if (!data.success) throw new Error(data.error || 'Could not start booking');
+      if (!data.success) throw new Error(data.error || t('couldNotStartBooking'));
       window.location.assign(`/hotels/checkout/${encodeURIComponent(data.ref)}`);
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Unexpected error');
+      alert(e instanceof Error ? e.message : t('unexpectedError'));
       setStartingBooking(false);
     }
   };
@@ -666,10 +668,10 @@ export default function HotelDetailPage() {
         }),
       });
       const data = await res.json();
-      if (!data.success) throw new Error(data.error || 'Could not start booking');
+      if (!data.success) throw new Error(data.error || t('couldNotStartBooking'));
       window.location.assign(`/hotels/checkout/${encodeURIComponent(data.ref)}`);
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Unexpected error');
+      alert(e instanceof Error ? e.message : t('unexpectedError'));
       setStartingBooking(false);
     }
   };
@@ -680,7 +682,7 @@ export default function HotelDetailPage() {
         <Header />
         <main className="max-w-[1100px] mx-auto px-5 pt-40 lg:pt-32 pb-16 text-center">
           <div className="inline-block w-8 h-8 border-4 border-[#E8ECF4] border-t-orange-500 rounded-full animate-spin" />
-          <p className="mt-4 text-sm font-semibold text-[#5C6378]">Loading hotel…</p>
+          <p className="mt-4 text-sm font-semibold text-[#5C6378]">{t('loadingHotel')}</p>
         </main>
         <Footer />
       </>
@@ -693,8 +695,8 @@ export default function HotelDetailPage() {
         <Header />
         <main className="max-w-[1100px] mx-auto px-5 pt-40 lg:pt-32 pb-16">
           <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
-            <p className="font-poppins font-bold text-red-700">{error || 'Hotel not found'}</p>
-            <a href={city ? `/hotels?destination=${encodeURIComponent(city)}&checkin=${checkin}&checkout=${checkout}&adults=${adults}` : '/hotels'} className="inline-block mt-4 text-sm font-bold text-[#0066FF] underline">← Back to hotels</a>
+            <p className="font-poppins font-bold text-red-700">{error || t('hotelNotFound')}</p>
+            <a href={city ? `/hotels?destination=${encodeURIComponent(city)}&checkin=${checkin}&checkout=${checkout}&adults=${adults}` : '/hotels'} className="inline-block mt-4 text-sm font-bold text-[#0066FF] underline">{t('backToHotels')}</a>
           </div>
         </main>
         <Footer />
@@ -842,23 +844,23 @@ export default function HotelDetailPage() {
               return qs ? `/hotels?${qs}` : '/hotels';
             })()}
             className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-white border border-[#E8ECF4] text-[.78rem] font-poppins font-bold text-[#0a1628] hover:bg-[#FCFAF5] hover:border-[#E8D8A8] shadow-[0_2px_10px_rgba(10,22,40,0.04)] transition-colors"
-            aria-label="Back to search results"
+            aria-label={t('backToSearchAria')}
           >
             <i className="fa-solid fa-arrow-left text-[.7rem]" />
-            Back to search{city ? ` in ${city}` : ' results'}
+            {t('backToSearch')}{city ? ` ${t('inCity', { city })}` : ` ${t('resultsWord')}`}
           </a>
         </div>
 
         {/* Phase-5: Breadcrumb — Home / Hotels / {City} / {Hotel} — anchored
             left so the hotel title sits on its own line below. Uses native
             <nav> + aria-label for screen readers. */}
-        <nav aria-label="Breadcrumb" className="text-[.72rem] font-semibold text-[#8E95A9]">
+        <nav aria-label={t('breadcrumbAria')} className="text-[.72rem] font-semibold text-[#8E95A9]">
           <ol className="flex flex-wrap items-center gap-1.5">
-            <li><a href="/" className="hover:text-[#0066FF] transition-colors">Home</a></li>
+            <li><a href="/" className="hover:text-[#0066FF] transition-colors">{t('home')}</a></li>
             <li aria-hidden>›</li>
             <li>
               <a href={city ? `/hotels?destination=${encodeURIComponent(city)}&checkin=${checkin}&checkout=${checkout}&adults=${adults}` : '/hotels'} className="hover:text-[#0066FF] transition-colors">
-                Hotels
+                {t('hotels')}
               </a>
             </li>
             {city && (
@@ -896,15 +898,15 @@ export default function HotelDetailPage() {
             <div className="mt-3 flex flex-wrap gap-2">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[.68rem] font-bold">
                 <i className="fa-solid fa-receipt text-[.62rem]" />
-                Prices include all taxes & fees
+                {t('pricesInclTaxes')}
               </span>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#FAF3E6] border border-[#E8D8A8] text-[#8a6d00] text-[.68rem] font-bold">
                 <i className="fa-solid fa-hand-holding-dollar text-[.62rem]" />
-                No booking fees
+                {t('noBookingFees')}
               </span>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[.68rem] font-bold">
                 <i className="fa-solid fa-shield-halved text-[.62rem]" />
-                Scout Price Match
+                {t('scoutPriceMatch')}
               </span>
             </div>
           </div>
@@ -957,7 +959,7 @@ export default function HotelDetailPage() {
                 <>
                   <button
                     type="button"
-                    aria-label="Previous photo"
+                    aria-label={t('prevPhoto')}
                     onClick={() => {
                       const el = galleryRef.current;
                       if (!el) return;
@@ -970,7 +972,7 @@ export default function HotelDetailPage() {
                   </button>
                   <button
                     type="button"
-                    aria-label="Next photo"
+                    aria-label={t('nextPhoto')}
                     onClick={() => {
                       const el = galleryRef.current;
                       if (!el) return;
@@ -1013,22 +1015,22 @@ export default function HotelDetailPage() {
             Uses native anchor links so keyboard + screen-reader navigation
             comes for free. */}
         <nav
-          aria-label="Sections"
+          aria-label={t('sectionsAria')}
           className="sticky top-[72px] z-20 -mx-5 md:-mx-0 px-5 md:px-0 py-2 bg-white/90 backdrop-blur-md border-y border-[#E8ECF4] mb-6"
         >
           <ul className="flex gap-1 overflow-x-auto text-[.78rem] font-semibold">
-            <li><a href="#rooms" className="inline-block px-3 py-1.5 rounded-full hover:bg-[#FAF3E6] text-[#0a1628] transition-colors">Rooms &amp; rates</a></li>
+            <li><a href="#rooms" className="inline-block px-3 py-1.5 rounded-full hover:bg-[#FAF3E6] text-[#0a1628] transition-colors">{t('navRooms')}</a></li>
             {hotel.description && (
-              <li><a href="#overview" className="inline-block px-3 py-1.5 rounded-full hover:bg-[#FAF3E6] text-[#0a1628] transition-colors">Overview</a></li>
+              <li><a href="#overview" className="inline-block px-3 py-1.5 rounded-full hover:bg-[#FAF3E6] text-[#0a1628] transition-colors">{t('navOverview')}</a></li>
             )}
             {hotel.amenities.length > 0 && (
-              <li><a href="#facilities" className="inline-block px-3 py-1.5 rounded-full hover:bg-[#FAF3E6] text-[#0a1628] transition-colors">Facilities</a></li>
+              <li><a href="#facilities" className="inline-block px-3 py-1.5 rounded-full hover:bg-[#FAF3E6] text-[#0a1628] transition-colors">{t('navFacilities')}</a></li>
             )}
             {typeof hotel.latitude === 'number' && typeof hotel.longitude === 'number' && (
-              <li><a href="#location" className="inline-block px-3 py-1.5 rounded-full hover:bg-[#FAF3E6] text-[#0a1628] transition-colors">Location</a></li>
+              <li><a href="#location" className="inline-block px-3 py-1.5 rounded-full hover:bg-[#FAF3E6] text-[#0a1628] transition-colors">{t('navLocation')}</a></li>
             )}
             {(hotel.checkInTime || hotel.checkOutTime) && (
-              <li><a href="#policies" className="inline-block px-3 py-1.5 rounded-full hover:bg-[#FAF3E6] text-[#0a1628] transition-colors">Policies</a></li>
+              <li><a href="#policies" className="inline-block px-3 py-1.5 rounded-full hover:bg-[#FAF3E6] text-[#0a1628] transition-colors">{t('navPolicies')}</a></li>
             )}
             {/* BACKLOG B2 (2026-04-21, order tweak 2026-04-21): Reviews anchor
                 is always shown — even when we have zero reviews the section
@@ -1043,7 +1045,7 @@ export default function HotelDetailPage() {
                 have reviews so we don't print "Reviews 0" on empty. */}
             <li>
               <a href="#reviews" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-[#FAF3E6] text-[#0a1628] transition-colors">
-                Reviews
+                {t('navReviews')}
                 {hotel.reviews && hotel.reviews.count > 0 && (
                   <span className="inline-flex items-center rounded-full bg-[#FAF3E6] ring-1 ring-[#E8D8A8] text-[#8a6d00] text-[.66rem] font-black px-2 py-0.5 tabular-nums">
                     {hotel.reviews.count.toLocaleString()}
@@ -1067,7 +1069,7 @@ export default function HotelDetailPage() {
             <div className="md:hidden mb-4">
               <div className="text-[.7rem] font-black uppercase tracking-[1px] text-[#8E95A9] mb-1.5">
                 <i className="fa-solid fa-user-group text-[.65rem] mr-1.5" />
-                Who&apos;s staying?
+                {t('whoStaying')}
               </div>
               {renderOccupancyPicker()}
             </div>
@@ -1086,9 +1088,7 @@ export default function HotelDetailPage() {
                   <div className="mb-3 flex items-start gap-2.5 rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-[.8rem] font-semibold text-[#1A1D2B]">
                     <i className="fa-solid fa-circle-info text-[#0066FF] mt-0.5" />
                     <span>
-                      Your party of {Math.max(1, parseInt(adults) || 2) + Math.max(0, parseInt(children) || 0)} is
-                      booked as <strong>{rooms} rooms</strong> at this hotel — every price below is the total
-                      for all {rooms} rooms together.
+                      {t('partyBookedPre', { party: Math.max(1, parseInt(adults) || 2) + Math.max(0, parseInt(children) || 0) })} <strong>{t('roomsBold', { rooms })}</strong> {t('partyBookedPost', { rooms })}
                     </span>
                   </div>
                 )}
@@ -1096,7 +1096,7 @@ export default function HotelDetailPage() {
                   <div className="absolute inset-x-0 top-3 z-10 flex justify-center">
                     <span className="inline-flex items-center gap-2 rounded-full bg-[#0a1628] text-white text-[.75rem] font-bold px-4 py-2 shadow-lg">
                       <span className="inline-block w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                      Updating prices…
+                      {t('updatingPrices')}
                     </span>
                   </div>
                 )}
@@ -1126,13 +1126,13 @@ export default function HotelDetailPage() {
                 <div className="mb-5 bg-white border border-[#E8ECF4] rounded-2xl p-6 text-center">
                   <p className="text-[.9rem] font-bold text-[#1A1D2B] mb-1">
                     {canSplit
-                      ? `No single room sleeps ${party} guests on these dates`
-                      : 'No live rates for these dates'}
+                      ? t('noSingleRoom', { party })
+                      : t('noLiveRatesDates')}
                   </p>
                   <p className="text-[.8rem] text-[#5C6378] font-medium mb-4">
                     {canSplit
-                      ? 'Most hotels take bigger groups across two rooms side by side.'
-                      : 'Try different dates in the panel — prices reload instantly.'}
+                      ? t('biggerGroups')
+                      : t('tryDifferentDatesPanel')}
                   </p>
                   {canSplit && (
                     <button
@@ -1141,7 +1141,7 @@ export default function HotelDetailPage() {
                       className="inline-flex items-center gap-2 rounded-full bg-[#0066FF] px-5 py-2.5 text-[.82rem] font-black text-white hover:bg-[#0052CC] transition-colors"
                     >
                       <i className="fa-solid fa-bed" />
-                      Search 2 rooms instead
+                      {t('search2Rooms')}
                     </button>
                   )}
                 </div>
@@ -1150,7 +1150,7 @@ export default function HotelDetailPage() {
 
             {hotel.description && (
               <section id="overview" className="bg-white border border-[#E8ECF4] rounded-2xl p-6 mb-5 scroll-mt-[140px]">
-                <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-3">About this hotel</h2>
+                <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-3">{t('aboutThisHotel')}</h2>
                 <p className="text-[.88rem] text-[#5C6378] font-medium leading-relaxed whitespace-pre-line">
                   {hotel.description.slice(0, 1200)}{hotel.description.length > 1200 ? '…' : ''}
                 </p>
@@ -1158,7 +1158,7 @@ export default function HotelDetailPage() {
                   <div className="mt-4 pt-4 border-t border-[#E8ECF4]">
                     <div className="text-[.66rem] font-black uppercase tracking-[1px] text-[#8E95A9] mb-1.5">
                       <i className="fa-brands fa-google text-[.7rem] mr-1.5" />
-                      Google says
+                      {t('googleSays')}
                     </div>
                     <p className="text-[.84rem] text-[#1A1D2B] font-medium italic leading-relaxed">
                       {googleInfo.editorialSummary}
@@ -1173,7 +1173,7 @@ export default function HotelDetailPage() {
                 present so we don't show an empty card. */}
             {googleInfo && (googleInfo.phone || googleInfo.websiteUri || googleInfo.openingHours?.length || googleInfo.googleMapsUri) && (
               <section className="bg-white border border-[#E8ECF4] rounded-2xl p-6 mb-5">
-                <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-3">Hotel info</h2>
+                <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-3">{t('hotelInfo')}</h2>
                 <ul className="space-y-2.5 text-[.84rem]">
                   {googleInfo.phone && (
                     <li className="flex items-start gap-3">
@@ -1195,7 +1195,7 @@ export default function HotelDetailPage() {
                     <li className="flex items-start gap-3">
                       <i className="fa-solid fa-map-location-dot text-[#0066FF] mt-1 w-4 text-center" />
                       <a href={googleInfo.googleMapsUri} target="_blank" rel="nofollow noopener noreferrer" className="text-[#0a1628] font-semibold hover:underline">
-                        View on Google Maps
+                        {t('viewGoogleMaps')}
                       </a>
                     </li>
                   )}
@@ -1203,7 +1203,7 @@ export default function HotelDetailPage() {
                     <li className="flex items-start gap-3">
                       <i className="fa-solid fa-clock text-[#0066FF] mt-1 w-4 text-center" />
                       <div className="flex-1">
-                        <div className="text-[#0a1628] font-semibold mb-1">Reception hours</div>
+                        <div className="text-[#0a1628] font-semibold mb-1">{t('receptionHours')}</div>
                         <ul className="text-[.76rem] text-[#5C6378] font-medium space-y-0.5">
                           {googleInfo.openingHours.map((line, i) => (
                             <li key={i}>{line}</li>
@@ -1218,7 +1218,7 @@ export default function HotelDetailPage() {
 
             {typeof hotel.latitude === 'number' && typeof hotel.longitude === 'number' && (
               <section id="location" className="bg-white border border-[#E8ECF4] rounded-2xl p-6 mb-5 scroll-mt-[140px]">
-                <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-3">Location</h2>
+                <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-3">{t('locationTitle')}</h2>
                 {hotel.address && (
                   <p className="text-[.82rem] text-[#5C6378] font-semibold mb-3">
                     {hotel.address}{hotel.city ? `, ${hotel.city}` : ''}
@@ -1246,9 +1246,9 @@ export default function HotelDetailPage() {
 
             {hotel.amenities.length > 0 && (
               <section id="facilities" className="bg-white border border-[#E8ECF4] rounded-2xl p-6 mb-5 scroll-mt-[140px]">
-                <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-1">Most popular facilities</h2>
+                <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-1">{t('mostPopularFacilities')}</h2>
                 <p className="text-[.74rem] text-[#8E95A9] font-semibold mb-4">
-                  What this property offers to every guest — pulled live from the hotel&apos;s own facility list.
+                  {t('facilitiesBody')}
                 </p>
                 {/* Phase-5: Amenity chip grid — each amenity gets a dedicated
                     icon drawn from HOTEL_AMENITY_ICON_MAP. Unknown amenities
@@ -1270,7 +1270,7 @@ export default function HotelDetailPage() {
                 </div>
                 {hotel.amenities.length > 30 && (
                   <p className="mt-4 text-[.72rem] text-[#5C6378] font-semibold">
-                    +{hotel.amenities.length - 30} more facilities available at the property
+                    {t('moreFacilities', { count: hotel.amenities.length - 30 })}
                   </p>
                 )}
               </section>
@@ -1278,9 +1278,9 @@ export default function HotelDetailPage() {
 
             {(hotel.checkInTime || hotel.checkOutTime || (hotel.policies && hotel.policies.length > 0)) && (
               <section id="policies" className="bg-white border border-[#E8ECF4] rounded-2xl p-6 mb-5 scroll-mt-[140px]">
-                <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-1">House rules &amp; policies</h2>
+                <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-1">{t('houseRules')}</h2>
                 <p className="text-[.74rem] text-[#8E95A9] font-semibold mb-4">
-                  Straight from the property — times, parking, pets, children.
+                  {t('policiesBody')}
                 </p>
 
                 {/* Check-in / Check-out as a pair of champagne tiles — same
@@ -1291,7 +1291,7 @@ export default function HotelDetailPage() {
                     {hotel.checkInTime && (
                       <div className="rounded-xl bg-[#FAF3E6]/60 ring-1 ring-[#E8D8A8]/60 p-3.5">
                         <div className="text-[.62rem] font-black uppercase tracking-[1.5px] text-[#8a6d00] mb-1">
-                          Check-in from
+                          {t('checkinFrom')}
                         </div>
                         <div className="font-[var(--font-playfair)] font-black text-[1.35rem] text-[#0a1628] leading-none">
                           {hotel.checkInTime}
@@ -1301,7 +1301,7 @@ export default function HotelDetailPage() {
                     {hotel.checkOutTime && (
                       <div className="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-3.5">
                         <div className="text-[.62rem] font-black uppercase tracking-[1.5px] text-slate-500 mb-1">
-                          Check-out by
+                          {t('checkoutBy')}
                         </div>
                         <div className="font-[var(--font-playfair)] font-black text-[1.35rem] text-[#0a1628] leading-none">
                           {hotel.checkOutTime}
@@ -1349,9 +1349,9 @@ export default function HotelDetailPage() {
             <section id="reviews" className="bg-white border border-[#E8ECF4] rounded-2xl p-6 mb-5 scroll-mt-[140px]">
               <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
                 <div>
-                  <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-1">Guest reviews</h2>
+                  <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-1">{t('guestReviews')}</h2>
                   <p className="text-[.74rem] text-[#8E95A9] font-semibold">
-                    Verified reviews from recent guests — pulled live from our property partner.
+                    {t('reviewsBody')}
                   </p>
                 </div>
                 {hotel.reviews && typeof hotel.reviews.averageScore === 'number' && hotel.reviews.count > 0 ? (
@@ -1361,18 +1361,18 @@ export default function HotelDetailPage() {
                         {hotel.reviews.averageScore.toFixed(1)}
                       </div>
                       <div className="text-[.58rem] font-black uppercase tracking-wider text-emerald-700 mt-1">
-                        out of 10
+                        {t('outOf10')}
                       </div>
                     </div>
                     <div className="text-[.75rem]">
                       <div className="font-poppins font-black text-[.92rem] text-[#0a1628] leading-tight">
-                        {scoreLabel(hotel.reviews.averageScore)}
+                        {t('score.' + scoreLabel(hotel.reviews.averageScore))}
                       </div>
                       {/* User request 2026-04-21: label "Reviews" on top, total
                           count directly underneath — two-line stack so the
                           number reads as the dominant datum. */}
                       <div className="text-[#8E95A9] font-semibold text-[.66rem] uppercase tracking-[.8px] mt-1">
-                        Reviews
+                        {t('navReviews')}
                       </div>
                       <div className="text-[#0a1628] font-poppins font-black text-[1.05rem] leading-tight">
                         {hotel.reviews.count.toLocaleString()}
@@ -1469,14 +1469,14 @@ export default function HotelDetailPage() {
                     the last review card. */}
                 <div className="mt-5 pt-4 border-t border-[#E8ECF4] flex flex-wrap items-center justify-between gap-3">
                   <p className="text-[.82rem] text-[#0a1628] font-poppins font-bold">
-                    Showing {Math.min(5, hotel.reviews.list.length)} of{' '}
+                    {t('showingReviewsPre', { shown: Math.min(5, hotel.reviews.list.length) })}{' '}
                     <span className="font-black">{hotel.reviews!.count.toLocaleString()}</span>{' '}
-                    verified guest review{hotel.reviews!.count === 1 ? '' : 's'}
+                    {t('verifiedGuestReview', { count: hotel.reviews!.count })}
                   </p>
                   {typeof hotel.reviews.averageScore === 'number' && (
                     <p className="text-[.72rem] text-[#5C6378] font-semibold">
                       <i className="fa-solid fa-shield-check text-emerald-600 mr-1.5" />
-                      {scoreLabel(hotel.reviews.averageScore)} · {hotel.reviews.averageScore.toFixed(1)}/10 average
+                      {t('score.' + scoreLabel(hotel.reviews.averageScore))} · {hotel.reviews.averageScore.toFixed(1)}{t('outOf10Average')}
                     </p>
                   )}
                 </div>
@@ -1488,7 +1488,7 @@ export default function HotelDetailPage() {
                     a competitor. */}
                 <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 ring-1 ring-emerald-200 text-emerald-800 text-[.72rem] font-bold">
                   <i className="fa-solid fa-shield-halved text-[.7rem]" aria-hidden />
-                  {hotel.reviews.count.toLocaleString()} verified guest reviews
+                  {hotel.reviews.count.toLocaleString()} {t('verifiedGuestReviewsWord')}
                 </div>
                 </>
                   );
@@ -1497,10 +1497,10 @@ export default function HotelDetailPage() {
                 <div className="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-5 text-center">
                   <i className="fa-solid fa-comment-dots text-[1.1rem] text-slate-400 mb-2" />
                   <p className="font-poppins font-bold text-[.86rem] text-[#0a1628] mb-1">
-                    No reviews yet
+                    {t('noReviewsYet')}
                   </p>
                   <p className="text-[.74rem] text-[#5C6378] font-medium max-w-[380px] mx-auto">
-                    This property hasn&apos;t been reviewed on our network yet. Once guests complete their stay, their feedback will appear here.
+                    {t('noReviewsBody')}
                   </p>
                 </div>
               )}
@@ -1516,10 +1516,10 @@ export default function HotelDetailPage() {
                     <div>
                       <h3 className="font-poppins font-black text-[1rem] text-[#1A1D2B] mb-1">
                         <i className="fa-brands fa-google text-[.86rem] mr-2" />
-                        Google reviews
+                        {t('googleReviews')}
                       </h3>
                       <p className="text-[.72rem] text-[#8E95A9] font-semibold">
-                        Live from Google — independent traveller feedback.
+                        {t('googleReviewsBody')}
                       </p>
                     </div>
                     {typeof googleInfo.rating === 'number' && (
@@ -1529,13 +1529,13 @@ export default function HotelDetailPage() {
                             {googleInfo.rating.toFixed(1)}
                           </div>
                           <div className="text-[.58rem] font-black uppercase tracking-wider text-amber-700 mt-1">
-                            out of 5
+                            {t('outOf5')}
                           </div>
                         </div>
                         {typeof googleInfo.ratingCount === 'number' && googleInfo.ratingCount > 0 && (
                           <div className="text-[.75rem]">
                             <div className="text-[#8E95A9] font-semibold text-[.66rem] uppercase tracking-[.8px]">
-                              Google reviews
+                              {t('googleReviews')}
                             </div>
                             <div className="text-[#0a1628] font-poppins font-black text-[1.05rem] leading-tight">
                               {googleInfo.ratingCount.toLocaleString()}
@@ -1581,7 +1581,7 @@ export default function HotelDetailPage() {
                     ))}
                   </ul>
                   <p className="mt-4 text-[.66rem] text-[#8E95A9] font-medium">
-                    Reviews shown via the Google Places API — Google branding remains the property of Google.
+                    {t('googleAttribution')}
                   </p>
                 </div>
               )}
@@ -1607,7 +1607,7 @@ export default function HotelDetailPage() {
                 'bg-blue-50 text-blue-600 border border-blue-200'
               }`}>
                 <i className={`fa-solid ${signalType === 'high_demand' ? 'fa-fire' : signalType === 'selling_fast' ? 'fa-bolt' : 'fa-circle-info'} text-[.6rem]`} />
-                Scout Alert: {signalType.replace(/_/g, ' ')}
+                {t('scoutAlert')}: {signalType.replace(/_/g, ' ')}
               </div>
             )}
 
@@ -1616,13 +1616,13 @@ export default function HotelDetailPage() {
                 price when rates haven't loaded yet. */}
             {(selectedRate || price) && (
               <>
-                <div className="text-[.7rem] font-bold text-[#8E95A9] uppercase tracking-wide">Total for {parseInt(rooms) > 1 ? `${rooms} rooms · ` : ''}{numNights || '—'} night{numNights !== 1 ? 's' : ''}</div>
+                <div className="text-[.7rem] font-bold text-[#8E95A9] uppercase tracking-wide">{t('totalFor')} {parseInt(rooms) > 1 ? t('roomsSep', { rooms }) : ''}{numNights || '—'} {t('nightWord', { count: numNights })}</div>
                 {selectedRate && selectedRate.negotiatedPrice != null && selectedRate.marketPrice != null && selectedRate.negotiatedPrice < selectedRate.marketPrice ? (
                   /* Phase-3: selected row carries its own Scout Deal — show
                      ribbon + strike-through market + emerald savings line,
                      sourced from the row (not the URL params). */
                   <div className="mt-1">
-                    <span className="inline-block text-[.55rem] font-black uppercase tracking-[1.2px] bg-gradient-to-r from-orange-500 to-amber-500 text-white px-2 py-0.5 rounded-full mb-1">Scout Deal</span>
+                    <span className="inline-block text-[.55rem] font-black uppercase tracking-[1.2px] bg-gradient-to-r from-orange-500 to-amber-500 text-white px-2 py-0.5 rounded-full mb-1">{t('scoutDeal')}</span>
                     <div className="text-[.85rem] text-[#8E95A9] font-bold line-through">
                       {currency === 'GBP' ? '£' : `${currency} `}{selectedRate.marketPrice.toFixed(2)}
                     </div>
@@ -1630,7 +1630,7 @@ export default function HotelDetailPage() {
                       {currency === 'GBP' ? '£' : `${currency} `}{selectedRate.negotiatedPrice.toFixed(2)}
                     </div>
                     <div className="text-[.68rem] text-green-600 font-bold mt-0.5">
-                      You save {currency === 'GBP' ? '£' : `${currency} `}{(selectedRate.marketPrice - selectedRate.negotiatedPrice).toFixed(2)}
+                      {t('youSave')} {currency === 'GBP' ? '£' : `${currency} `}{(selectedRate.marketPrice - selectedRate.negotiatedPrice).toFixed(2)}
                     </div>
                   </div>
                 ) : selectedRate ? (
@@ -1639,7 +1639,7 @@ export default function HotelDetailPage() {
                   </div>
                 ) : mktPrice != null && negPrice != null && negPrice < mktPrice ? (
                   <div className="mt-1">
-                    <span className="inline-block text-[.55rem] font-black uppercase tracking-[1.2px] bg-gradient-to-r from-orange-500 to-amber-500 text-white px-2 py-0.5 rounded-full mb-1">Scout Deal</span>
+                    <span className="inline-block text-[.55rem] font-black uppercase tracking-[1.2px] bg-gradient-to-r from-orange-500 to-amber-500 text-white px-2 py-0.5 rounded-full mb-1">{t('scoutDeal')}</span>
                     <div className="text-[.85rem] text-[#8E95A9] font-bold line-through">
                       {currency === 'GBP' ? '£' : `${currency} `}{mktPrice.toFixed(2)}
                     </div>
@@ -1647,7 +1647,7 @@ export default function HotelDetailPage() {
                       {currency === 'GBP' ? '£' : `${currency} `}{negPrice.toFixed(2)}
                     </div>
                     <div className="text-[.68rem] text-green-600 font-bold mt-0.5">
-                      You save {currency === 'GBP' ? '£' : `${currency} `}{(mktPrice - negPrice).toFixed(2)}
+                      {t('youSave')} {currency === 'GBP' ? '£' : `${currency} `}{(mktPrice - negPrice).toFixed(2)}
                     </div>
                   </div>
                 ) : (
@@ -1662,7 +1662,7 @@ export default function HotelDetailPage() {
                     No comparative claims against named competitors. */}
                 <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[.7rem] font-bold leading-snug">
                   <span aria-hidden="true">💰</span>
-                  Live wholesale rate · Free cancellation on flexible rates
+                  {t('liveWholesaleFlexible')}
                 </div>
               </>
             )}
@@ -1681,8 +1681,8 @@ export default function HotelDetailPage() {
                 end={pickDates ? pickDates.end : checkout}
                 minDate={new Date().toISOString().split('T')[0]}
                 accent="orange"
-                startWord="check-in"
-                endWord="check-out"
+                startWord={t('wordCheckin')}
+                endWord={t('wordCheckout')}
                 onChange={(next) => {
                   setPickDates(next);
                   if (next.start && next.end) {
@@ -1698,7 +1698,7 @@ export default function HotelDetailPage() {
                   }
                 }}
               />
-              {rooms !== '1' && <div className="flex justify-between"><span>Rooms</span><strong className="text-[#1A1D2B]">{rooms}</strong></div>}
+              {rooms !== '1' && <div className="flex justify-between"><span>{t('roomsLabel')}</span><strong className="text-[#1A1D2B]">{rooms}</strong></div>}
             </div>
 
             {/* Stay schedule — Scout voice.
@@ -1710,24 +1710,24 @@ export default function HotelDetailPage() {
             {(hotel.checkInTime || hotel.checkOutTime) && (
               <div className="mt-4 bg-[#FAF3E6]/60 ring-1 ring-[#E8D8A8]/60 rounded-xl p-3">
                 <div className="text-[.62rem] font-black uppercase tracking-[1.5px] text-[#8a6d00] mb-2">
-                  Your stay schedule
+                  {t('staySchedule')}
                 </div>
                 <div className="space-y-1.5 text-[.78rem]">
                   {hotel.checkInTime && (
                     <div className="flex items-center gap-2">
                       <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" aria-hidden />
-                      <span className="font-semibold text-[#0a1628]">Check-in from <strong>{hotel.checkInTime}</strong></span>
+                      <span className="font-semibold text-[#0a1628]">{t('checkinFrom')} <strong>{hotel.checkInTime}</strong></span>
                     </div>
                   )}
                   {hotel.checkOutTime && (
                     <div className="flex items-center gap-2">
                       <span className="inline-block w-1.5 h-1.5 rounded-full border border-slate-400 shrink-0" aria-hidden />
-                      <span className="font-medium text-slate-600">Check-out by <strong className="text-[#0a1628]">{hotel.checkOutTime}</strong></span>
+                      <span className="font-medium text-slate-600">{t('checkoutBy')} <strong className="text-[#0a1628]">{hotel.checkOutTime}</strong></span>
                     </div>
                   )}
                 </div>
                 <p className="text-[.66rem] text-slate-500 font-medium mt-2 leading-snug">
-                  Arriving early? Reception will store your bags so you can wander.
+                  {t('arrivingEarly')}
                 </p>
               </div>
             )}
@@ -1746,12 +1746,12 @@ export default function HotelDetailPage() {
                     effRefundable ? (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[.72rem] font-bold bg-emerald-50 border border-emerald-200 text-emerald-700">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" aria-hidden />
-                        Free cancellation
+                        {t('freeCancellation')}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[.72rem] font-semibold bg-slate-50 border border-slate-200 text-slate-500">
                         <span className="w-1.5 h-1.5 rounded-full border border-slate-300" aria-hidden />
-                        Non-refundable
+                        {t('nonRefundable')}
                       </span>
                     )
                   )}
@@ -1799,10 +1799,10 @@ export default function HotelDetailPage() {
                 {startingBooking || ratesLoading ? (
                   <>
                     <span className="inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    {startingBooking ? 'Starting…' : 'Updating price…'}
+                    {startingBooking ? t('starting') : t('updatingPrice')}
                   </>
                 ) : (
-                  <><i className="fa-solid fa-lock text-[.78rem]" /> Reserve with Scout →</>
+                  <><i className="fa-solid fa-lock text-[.78rem]" /> {t('reserveWithScout')}</>
                 )}
               </button>
             ) : (
@@ -1824,10 +1824,10 @@ export default function HotelDetailPage() {
                 })()}
                 className="block text-center w-full mt-5 bg-orange-500 hover:bg-orange-600 text-white font-poppins font-black text-[.9rem] py-3.5 rounded-xl transition-all"
               >
-                Search dates to book
+                {t('searchDatesToBook')}
               </a>
             )}
-            <p className="text-[.65rem] text-[#8E95A9] font-semibold text-center mt-2">Secure checkout · Free cancellation on most rates</p>
+            <p className="text-[.65rem] text-[#8E95A9] font-semibold text-center mt-2">{t('secureCheckoutNote')}</p>
           </aside>
         </div>
 
@@ -1835,7 +1835,7 @@ export default function HotelDetailPage() {
         {(similarLoading || similarHotels.length > 0) && (
           <section className="mt-10">
             <h2 className="font-poppins font-black text-[1.3rem] text-[#1A1D2B] mb-5">
-              More Hotels in {city || 'this area'}
+              {t('moreHotelsIn', { city: city || t('thisArea') })}
             </h2>
 
             {similarLoading ? (
@@ -1892,14 +1892,14 @@ export default function HotelDetailPage() {
                         )}
                         <div className="flex items-end justify-between mt-2">
                           <div>
-                            <span className="text-[.6rem] text-[#8E95A9] font-semibold">from </span>
+                            <span className="text-[.6rem] text-[#8E95A9] font-semibold">{t('fromWord')} </span>
                             <span className="font-poppins font-black text-[1.2rem] text-[#1A1D2B] leading-none">
                               £{Math.round(sh.pricePerNight)}
                             </span>
-                            <span className="text-[.6rem] text-[#8E95A9] font-semibold">/night</span>
+                            <span className="text-[.6rem] text-[#8E95A9] font-semibold">{t('perNight')}</span>
                           </div>
                           <span className="text-[#0066FF] text-[.68rem] font-bold group-hover:translate-x-0.5 transition-transform">
-                            View →
+                            {t('viewArrow')}
                           </span>
                         </div>
                       </div>
@@ -1920,7 +1920,7 @@ export default function HotelDetailPage() {
         <div className="md:hidden fixed bottom-0 left-0 right-0 z-[150] bg-white/98 backdrop-blur-md border-t border-[#E8ECF4] shadow-[0_-8px_24px_rgba(10,22,40,0.12)] px-4 py-3 flex items-center justify-between gap-3">
           <div>
             <div className="text-[.58rem] font-semibold text-slate-500 uppercase tracking-[1.5px]">
-              Total for {parseInt(rooms) > 1 ? `${rooms} rooms · ` : ''}{numNights || '—'} {numNights === 1 ? 'night' : 'nights'}
+              {t('totalFor')} {parseInt(rooms) > 1 ? t('roomsSep', { rooms }) : ''}{numNights || '—'} {t('nightWord', { count: numNights })}
             </div>
             <div className="font-[var(--font-playfair)] font-black text-[1.4rem] text-[#0a1628] leading-none">
               {currency === 'GBP' ? '£' : `${currency} `}
@@ -1928,7 +1928,7 @@ export default function HotelDetailPage() {
             </div>
             {selectedRate?.excludedTaxes != null && selectedRate.excludedTaxes > 0 && (
               <div className="text-[.62rem] font-medium text-slate-500 mt-0.5">
-                + £{Math.round(selectedRate.excludedTaxes)} city tax at property
+                + £{Math.round(selectedRate.excludedTaxes)} {t('cityTaxAtProperty')}
               </div>
             )}
           </div>
@@ -1944,7 +1944,7 @@ export default function HotelDetailPage() {
             {startingBooking || ratesLoading ? (
               <span className="inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
             ) : (
-              <><i className="fa-solid fa-lock text-[.72rem]" /> Reserve →</>
+              <><i className="fa-solid fa-lock text-[.72rem]" /> {t('reserveShort')}</>
             )}
           </button>
         </div>
