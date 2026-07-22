@@ -80,5 +80,160 @@
       "abuDhabi": "Abu Dhabi",
       "doha": "Doha"
     }
+  },
+  "home": {
+    "aria": {
+      "providers": "Trusted travel providers",
+      "stats": "Key statistics"
+    },
+    "hero": {
+      "eyebrow": "UK's Smartest Travel Comparison",
+      "titlePre": "Find Your Perfect Trip for",
+      "titleHighlight": "Less",
+      "sub": "Compare flights, hotels, car hire and more from 15+ trusted providers. Real prices, in seconds."
+    },
+    "stats": {
+      "providers": "Providers",
+      "hotels": "Hotels",
+      "bookingFees": "Booking Fees",
+      "aiAssistant": "AI Assistant"
+    },
+    "trust": {
+      "locked": "Prices locked at booking.",
+      "never": "We never call or email you for extra payment."
+    },
+    "search": {
+      "placeholder": "Where will Scout take you?",
+      "go": "Go",
+      "recent": "Pick up where you left off",
+      "surpriseMe": "Surprise me"
+    },
+    "sections": {
+      "simpleProcess": "Simple Process",
+      "howItWorks": "How It Works",
+      "allInOnePlace": "All In One Place",
+      "whatWeCompare": "What We Compare",
+      "trendingThisWeek": "Trending This Week",
+      "trendingDestinations": "Trending Destinations"
+    },
+    "live": "Live",
+    "steps": {
+      "search": {
+        "title": "Search",
+        "desc": "Enter your destination, dates, and preferences. We instantly scan 15+ trusted travel providers."
+      },
+      "compare": {
+        "title": "Compare",
+        "desc": "See real prices side-by-side from Expedia, Trip.com, Aviasales and more. No hidden fees."
+      },
+      "book": {
+        "title": "Book",
+        "desc": "Choose the best deal and book directly with the provider. We never charge booking fees."
+      }
+    },
+    "categories": {
+      "hotels": {
+        "name": "Hotels",
+        "desc": "Compare 2M+ properties from top providers"
+      },
+      "flights": {
+        "name": "Flights",
+        "desc": "250+ airports with real-time pricing"
+      },
+      "packages": {
+        "name": "Packages",
+        "desc": "All-inclusive holiday bundles"
+      },
+      "carHire": {
+        "name": "Car Hire",
+        "desc": "7 providers, best rates guaranteed"
+      },
+      "esim": {
+        "name": "eSIM",
+        "desc": "Data plans for 150+ countries"
+      },
+      "explore": {
+        "name": "Explore",
+        "desc": "Tours, activities & experiences"
+      }
+    },
+    "trending": {
+      "sharmElSheikh": {
+        "eyebrow": "Egypt",
+        "title": "Sharm El Sheikh",
+        "hint": "Winter sun · Red Sea reefs"
+      },
+      "marrakech": {
+        "eyebrow": "Morocco",
+        "title": "Marrakech",
+        "hint": "Souks, riads & desert escapes"
+      },
+      "berlin": {
+        "eyebrow": "Germany",
+        "title": "Berlin",
+        "hint": "Year-round culture city break"
+      },
+      "budapest": {
+        "eyebrow": "Hungary",
+        "title": "Budapest",
+        "hint": "Thermal baths & Danube nights"
+      },
+      "colombo": {
+        "eyebrow": "Sri Lanka",
+        "title": "Colombo",
+        "hint": "Gateway to beaches & tea hills"
+      },
+      "badenBaden": {
+        "eyebrow": "Germany",
+        "title": "Baden-Baden",
+        "hint": "Black Forest bathing & elite spas"
+      }
+    },
+    "scout": {
+      "badge": "Scout Reports",
+      "heading": "Scout Your Next Destination",
+      "sub": "Deep neighbourhood intelligence for 19+ cities. Morning rituals, wellness ecosystems and private-stay picks, vetted by our scouts.",
+      "exploreAll": "Explore All Destinations",
+      "cards": {
+        "dubai": {
+          "city": "Dubai",
+          "country": "UAE"
+        },
+        "istanbul": {
+          "city": "Istanbul",
+          "country": "Turkey"
+        },
+        "islamabad": {
+          "city": "Islamabad",
+          "country": "Pakistan"
+        },
+        "lahore": {
+          "city": "Lahore",
+          "country": "Pakistan"
+        },
+        "budapest": {
+          "city": "Budapest",
+          "country": "Hungary"
+        },
+        "lisbon": {
+          "city": "Lisbon",
+          "country": "Portugal"
+        },
+        "rome": {
+          "city": "Rome",
+          "country": "Italy"
+        },
+        "marrakech": {
+          "city": "Marrakech",
+          "country": "Morocco"
+        }
+      }
+    },
+    "cta": {
+      "titlePre": "Ready to Find Your",
+      "titleHighlight": "Best Deal?",
+      "sub": "Live prices from 15+ trusted providers — no markups, no booking fees",
+      "button": "Compare Hotel Prices Now"
+    }
   }
 }
