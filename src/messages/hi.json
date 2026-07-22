@@ -1,7 +1,8 @@
 {
   "common": {
     "pricesInGbp": "कीमतें ब्रिटिश पाउंड (£) में दिखाई गई हैं",
-    "loading": "लोड हो रहा है…"
+    "loading": "लोड हो रहा है…",
+    "language": "भाषा"
   },
   "header": {
     "language": "भाषा",

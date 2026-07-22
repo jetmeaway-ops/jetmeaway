@@ -1,7 +1,8 @@
 {
   "common": {
     "pricesInGbp": "قیمتیں برطانوی پاؤنڈ (£) میں دکھائی گئی ہیں",
-    "loading": "لوڈ ہو رہا ہے…"
+    "loading": "لوڈ ہو رہا ہے…",
+    "language": "زبان"
   },
   "header": {
     "language": "زبان",

@@ -1,7 +1,8 @@
 {
   "common": {
     "pricesInGbp": "الأسعار معروضة بالجنيه الإسترليني (£)",
-    "loading": "جارٍ التحميل…"
+    "loading": "جارٍ التحميل…",
+    "language": "اللغة"
   },
   "header": {
     "language": "اللغة",
