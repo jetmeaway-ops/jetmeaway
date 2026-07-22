@@ -575,5 +575,114 @@
         "body": "Specialist car hire sites often have younger driver surcharges that are 30-50% lower than international chains."
       }
     }
+  },
+  "explore": {
+    "heroBadge": "Explore",
+    "heroTitlePre": "Things To",
+    "heroTitleHighlight": "Do",
+    "heroSub": "Compare activities, tours & experiences from 2 trusted providers.",
+    "destPlaceholder": "City — e.g. Barcelona, Dubai, Rome",
+    "freeCancellation": "Free cancellation",
+    "likelyToSellOut": "Likely to sell out",
+    "from": "From",
+    "viewDeal": "View deal →",
+    "destination": "Destination",
+    "date": "Date",
+    "pickDate": "Pick a date",
+    "activity": "Activity",
+    "allActivities": "All Activities",
+    "grpCore": "🧭 Core Adventure",
+    "grpLifestyle": "🥗 Lifestyle & Culture",
+    "grpActivity": "⚡ Activity Level",
+    "grpAudience": "👥 Audience & Vibe",
+    "act": {
+      "toursSightseeing": "Tours & Sightseeing",
+      "attractionsLandmarks": "Attractions & Landmarks",
+      "dayTripsExcursions": "Day Trips & Excursions",
+      "skipLine": "Skip-the-Line Entry",
+      "foodDrink": "Food & Drink",
+      "morningRituals": "Morning Rituals & Coffee",
+      "hiddenGems": "Hidden Gems",
+      "classesWorkshops": "Classes & Workshops",
+      "wellnessSpa": "Wellness & Spa",
+      "fitnessGyms": "Fitness & Gyms",
+      "adventureSports": "Adventure & Sports",
+      "natureOutdoors": "Nature & Outdoors",
+      "familyFriendly": "Family Friendly",
+      "nightlife": "Nightlife & Entertainment",
+      "shoppingFashion": "Shopping & Fashion",
+      "relaxationHush": "Relaxation & Hush Spots"
+    },
+    "exploreBtn": "Explore Activities →",
+    "topToursIn": "Top tours & activities in {dest}",
+    "liveFromViator": "Live results from Viator — click any card to book",
+    "errLoadTours": "Could not load live tours. Browse providers below instead.",
+    "noMatchPre": "No live Viator inventory matched",
+    "forWord": "for",
+    "noMatchPost": "Try a different city or scroll down to compare on GetYourGuide and Viator.",
+    "compareOtherProviders": "Compare on other providers for {dest}",
+    "compareSub": "Each provider has different activities and prices — compare them all",
+    "searchProvider": "Search {name} →",
+    "topExperiencesIn": "Top experiences in {dest}",
+    "via": "via {provider}",
+    "fromLower": "from",
+    "viewOnProvider": "View on {provider} →",
+    "flightsTo": "Flights to {dest}",
+    "flightsSub": "Compare across 5 providers.",
+    "compareFlights": "Compare Flights →",
+    "hotelsIn": "Hotels in {dest}",
+    "hotelsSub": "Find and compare the best rates.",
+    "compareHotels": "Compare Hotels →",
+    "packageTo": "Package to {dest}",
+    "packageSub": "Flight + hotel bundles.",
+    "viewPackages": "View Packages →",
+    "tryAnother": "Try Another Destination",
+    "popularForActivities": "Popular Destinations for Activities",
+    "plusActivities": "+ activities",
+    "tipsTitle": "Tips for Booking Activities",
+    "tips": {
+      "skipLine": {
+        "title": "Book skip-the-line tickets",
+        "body": "Popular attractions sell out fast. Skip-the-line tickets save hours of waiting."
+      },
+      "compare": {
+        "title": "Compare across providers",
+        "body": "The same tour can be 20-30% cheaper on one provider vs another."
+      },
+      "cancellation": {
+        "title": "Check cancellation policies",
+        "body": "Look for free cancellation up to 24h before — plans change."
+      },
+      "combo": {
+        "title": "Book combo deals",
+        "body": "Multi-attraction passes often save 30-40% vs individual tickets."
+      }
+    },
+    "provider": {
+      "getyourguide": {
+        "tagline": "450,000+ activities worldwide",
+        "points": {
+          "p1": "Free cancellation up to 24h",
+          "p2": "Instant confirmation",
+          "p3": "Mobile tickets"
+        }
+      },
+      "viator": {
+        "tagline": "A TripAdvisor company — trusted reviews",
+        "points": {
+          "p1": "300,000+ experiences",
+          "p2": "Lowest price guarantee",
+          "p3": "Verified reviews"
+        }
+      }
+    },
+    "expType": {
+      "tours": "Tours",
+      "food": "Food",
+      "attractions": "Attractions",
+      "dayTrips": "Day Trips",
+      "adventure": "Adventure",
+      "family": "Family"
+    }
   }
 }

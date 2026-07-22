@@ -575,5 +575,114 @@
         "body": "المواقع المتخصصة غالبًا ما تفرض رسومًا على السائقين الأصغر أقل بنسبة 30-50% من الشركات الدولية."
       }
     }
+  },
+  "explore": {
+    "heroBadge": "استكشف",
+    "heroTitlePre": "أشياء",
+    "heroTitleHighlight": "لتفعلها",
+    "heroSub": "قارن الأنشطة والجولات والتجارب من مزودَين موثوقَين.",
+    "destPlaceholder": "المدينة — مثل برشلونة، دبي، روما",
+    "freeCancellation": "إلغاء مجاني",
+    "likelyToSellOut": "قد ينفد قريبًا",
+    "from": "من",
+    "viewDeal": "عرض الصفقة ←",
+    "destination": "الوجهة",
+    "date": "التاريخ",
+    "pickDate": "اختر تاريخًا",
+    "activity": "النشاط",
+    "allActivities": "كل الأنشطة",
+    "grpCore": "🧭 مغامرات أساسية",
+    "grpLifestyle": "🥗 نمط الحياة والثقافة",
+    "grpActivity": "⚡ مستوى النشاط",
+    "grpAudience": "👥 الجمهور والأجواء",
+    "act": {
+      "toursSightseeing": "جولات ومعالم",
+      "attractionsLandmarks": "معالم ومزارات",
+      "dayTripsExcursions": "رحلات يومية",
+      "skipLine": "دخول بدون طابور",
+      "foodDrink": "طعام وشراب",
+      "morningRituals": "طقوس الصباح والقهوة",
+      "hiddenGems": "جواهر خفية",
+      "classesWorkshops": "دروس وورش",
+      "wellnessSpa": "عافية وسبا",
+      "fitnessGyms": "لياقة وصالات",
+      "adventureSports": "مغامرة ورياضة",
+      "natureOutdoors": "طبيعة وهواء طلق",
+      "familyFriendly": "مناسب للعائلة",
+      "nightlife": "حياة ليلية وترفيه",
+      "shoppingFashion": "تسوق وأزياء",
+      "relaxationHush": "استرخاء وأماكن هادئة"
+    },
+    "exploreBtn": "استكشف الأنشطة ←",
+    "topToursIn": "أفضل الجولات والأنشطة في {dest}",
+    "liveFromViator": "نتائج مباشرة من Viator — انقر أي بطاقة للحجز",
+    "errLoadTours": "تعذّر تحميل الجولات المباشرة. تصفّح المزودين أدناه بدلًا من ذلك.",
+    "noMatchPre": "لا يوجد مخزون Viator مباشر يطابق",
+    "forWord": "لـ",
+    "noMatchPost": "جرّب مدينة أخرى أو مرّر للأسفل للمقارنة على GetYourGuide وViator.",
+    "compareOtherProviders": "قارن على مزودين آخرين لـ {dest}",
+    "compareSub": "لكل مزود أنشطة وأسعار مختلفة — قارنها جميعًا",
+    "searchProvider": "ابحث في {name} ←",
+    "topExperiencesIn": "أفضل التجارب في {dest}",
+    "via": "عبر {provider}",
+    "fromLower": "من",
+    "viewOnProvider": "شاهد على {provider} ←",
+    "flightsTo": "رحلات إلى {dest}",
+    "flightsSub": "قارن عبر 5 مزودين.",
+    "compareFlights": "قارن الرحلات ←",
+    "hotelsIn": "فنادق في {dest}",
+    "hotelsSub": "ابحث وقارن أفضل الأسعار.",
+    "compareHotels": "قارن الفنادق ←",
+    "packageTo": "باقة إلى {dest}",
+    "packageSub": "باقات طيران + فندق.",
+    "viewPackages": "عرض الباقات ←",
+    "tryAnother": "جرّب وجهة أخرى",
+    "popularForActivities": "وجهات شائعة للأنشطة",
+    "plusActivities": "+ نشاط",
+    "tipsTitle": "نصائح لحجز الأنشطة",
+    "tips": {
+      "skipLine": {
+        "title": "احجز تذاكر تخطي الطابور",
+        "body": "المعالم الشهيرة تنفد بسرعة. تذاكر تخطي الطابور توفر ساعات من الانتظار."
+      },
+      "compare": {
+        "title": "قارن بين المزودين",
+        "body": "الجولة نفسها قد تكون أرخص بنسبة 20-30% لدى مزود عن آخر."
+      },
+      "cancellation": {
+        "title": "تحقق من سياسات الإلغاء",
+        "body": "ابحث عن إلغاء مجاني حتى 24 ساعة قبل الموعد — الخطط تتغير."
+      },
+      "combo": {
+        "title": "احجز عروض الباقات",
+        "body": "تذاكر المعالم المتعددة غالبًا توفر 30-40% مقارنة بالتذاكر الفردية."
+      }
+    },
+    "provider": {
+      "getyourguide": {
+        "tagline": "أكثر من 450,000 نشاط حول العالم",
+        "points": {
+          "p1": "إلغاء مجاني حتى 24 ساعة",
+          "p2": "تأكيد فوري",
+          "p3": "تذاكر عبر الجوال"
+        }
+      },
+      "viator": {
+        "tagline": "شركة تابعة لـ TripAdvisor — تقييمات موثوقة",
+        "points": {
+          "p1": "أكثر من 300,000 تجربة",
+          "p2": "ضمان أقل سعر",
+          "p3": "تقييمات موثقة"
+        }
+      }
+    },
+    "expType": {
+      "tours": "جولات",
+      "food": "طعام",
+      "attractions": "معالم",
+      "dayTrips": "رحلات يومية",
+      "adventure": "مغامرة",
+      "family": "عائلي"
+    }
   }
 }

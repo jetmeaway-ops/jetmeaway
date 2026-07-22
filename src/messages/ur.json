@@ -575,5 +575,114 @@
         "body": "خصوصی کار کرائے سائٹس اکثر نوجوان ڈرائیور سرچارج بین الاقوامی کمپنیوں سے 30-50% کم رکھتی ہیں۔"
       }
     }
+  },
+  "explore": {
+    "heroBadge": "دریافت کریں",
+    "heroTitlePre": "کرنے کے",
+    "heroTitleHighlight": "کام",
+    "heroSub": "2 معتبر فراہم کنندگان سے سرگرمیوں، ٹورز اور تجربات کا موازنہ کریں۔",
+    "destPlaceholder": "شہر — مثلاً بارسلونا، دبئی، روم",
+    "freeCancellation": "مفت منسوخی",
+    "likelyToSellOut": "جلد ختم ہو سکتا ہے",
+    "from": "سے",
+    "viewDeal": "ڈیل دیکھیں ←",
+    "destination": "منزل",
+    "date": "تاریخ",
+    "pickDate": "تاریخ منتخب کریں",
+    "activity": "سرگرمی",
+    "allActivities": "تمام سرگرمیاں",
+    "grpCore": "🧭 بنیادی مہم جوئی",
+    "grpLifestyle": "🥗 طرزِ زندگی اور ثقافت",
+    "grpActivity": "⚡ سرگرمی کی سطح",
+    "grpAudience": "👥 سامعین اور ماحول",
+    "act": {
+      "toursSightseeing": "ٹورز اور سیر",
+      "attractionsLandmarks": "مقامات اور نشانیاں",
+      "dayTripsExcursions": "یک روزہ سفر",
+      "skipLine": "بغیر قطار داخلہ",
+      "foodDrink": "کھانا پینا",
+      "morningRituals": "صبح کے معمولات اور کافی",
+      "hiddenGems": "پوشیدہ جواہر",
+      "classesWorkshops": "کلاسز اور ورکشاپس",
+      "wellnessSpa": "ویلنس اور سپا",
+      "fitnessGyms": "فٹنس اور جم",
+      "adventureSports": "مہم جوئی اور کھیل",
+      "natureOutdoors": "قدرت اور کھلی فضا",
+      "familyFriendly": "خاندان کے لیے موزوں",
+      "nightlife": "نائٹ لائف اور تفریح",
+      "shoppingFashion": "خریداری اور فیشن",
+      "relaxationHush": "آرام اور پرسکون مقامات"
+    },
+    "exploreBtn": "سرگرمیاں دریافت کریں ←",
+    "topToursIn": "{dest} میں بہترین ٹورز اور سرگرمیاں",
+    "liveFromViator": "Viator سے لائیو نتائج — بک کرنے کے لیے کسی کارڈ پر کلک کریں",
+    "errLoadTours": "لائیو ٹورز لوڈ نہیں ہو سکے۔ اس کے بجائے نیچے فراہم کنندگان دیکھیں۔",
+    "noMatchPre": "کوئی لائیو Viator انوینٹری میل نہیں کھاتی",
+    "forWord": "برائے",
+    "noMatchPost": "کوئی اور شہر آزمائیں یا GetYourGuide اور Viator پر موازنے کے لیے نیچے سکرول کریں۔",
+    "compareOtherProviders": "{dest} کے لیے دیگر فراہم کنندگان پر موازنہ کریں",
+    "compareSub": "ہر فراہم کنندہ کی مختلف سرگرمیاں اور قیمتیں ہیں — سب کا موازنہ کریں",
+    "searchProvider": "{name} میں تلاش کریں ←",
+    "topExperiencesIn": "{dest} میں بہترین تجربات",
+    "via": "بذریعہ {provider}",
+    "fromLower": "سے",
+    "viewOnProvider": "{provider} پر دیکھیں ←",
+    "flightsTo": "{dest} کے لیے پروازیں",
+    "flightsSub": "5 فراہم کنندگان میں موازنہ کریں۔",
+    "compareFlights": "پروازوں کا موازنہ ←",
+    "hotelsIn": "{dest} میں ہوٹل",
+    "hotelsSub": "بہترین نرخ تلاش اور موازنہ کریں۔",
+    "compareHotels": "ہوٹلوں کا موازنہ ←",
+    "packageTo": "{dest} کے لیے پیکج",
+    "packageSub": "پرواز + ہوٹل بنڈل۔",
+    "viewPackages": "پیکجز دیکھیں ←",
+    "tryAnother": "کوئی اور منزل آزمائیں",
+    "popularForActivities": "سرگرمیوں کے لیے مقبول منزلیں",
+    "plusActivities": "+ سرگرمیاں",
+    "tipsTitle": "سرگرمیاں بک کرنے کے لیے تجاویز",
+    "tips": {
+      "skipLine": {
+        "title": "بغیر قطار ٹکٹ بک کریں",
+        "body": "مقبول مقامات جلد بک جاتے ہیں۔ بغیر قطار ٹکٹ گھنٹوں کا انتظار بچاتے ہیں۔"
+      },
+      "compare": {
+        "title": "فراہم کنندگان کا موازنہ کریں",
+        "body": "وہی ٹور ایک فراہم کنندہ پر دوسرے سے 20-30% سستا ہو سکتا ہے۔"
+      },
+      "cancellation": {
+        "title": "منسوخی پالیسیاں چیک کریں",
+        "body": "موقع سے 24 گھنٹے پہلے تک مفت منسوخی تلاش کریں — منصوبے بدلتے ہیں۔"
+      },
+      "combo": {
+        "title": "کومبو ڈیلز بک کریں",
+        "body": "متعدد مقامات کے پاسز اکثر انفرادی ٹکٹوں سے 30-40% بچاتے ہیں۔"
+      }
+    },
+    "provider": {
+      "getyourguide": {
+        "tagline": "دنیا بھر میں 450,000+ سرگرمیاں",
+        "points": {
+          "p1": "24 گھنٹے تک مفت منسوخی",
+          "p2": "فوری تصدیق",
+          "p3": "موبائل ٹکٹ"
+        }
+      },
+      "viator": {
+        "tagline": "TripAdvisor کی کمپنی — معتبر جائزے",
+        "points": {
+          "p1": "300,000+ تجربات",
+          "p2": "کم ترین قیمت کی ضمانت",
+          "p3": "تصدیق شدہ جائزے"
+        }
+      }
+    },
+    "expType": {
+      "tours": "ٹورز",
+      "food": "کھانا",
+      "attractions": "مقامات",
+      "dayTrips": "یک روزہ سفر",
+      "adventure": "مہم جوئی",
+      "family": "خاندانی"
+    }
   }
 }

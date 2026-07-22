@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import DateRangePicker from '@/components/DateRangePicker';
 import { redirectUrl } from '@/lib/redirect';
 import AppStoreBadges from '@/components/AppStoreBadges';
+import { useTranslations } from 'next-intl';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DESTINATIONS
@@ -114,6 +115,7 @@ const POPULAR = [
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function DestinationPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const t = useTranslations('explore');
   const [open, setOpen] = useState(false);
   const ref = { current: null as HTMLDivElement | null };
 
@@ -124,7 +126,7 @@ function DestinationPicker({ value, onChange }: { value: string; onChange: (v: s
 
   return (
     <div ref={el => { ref.current = el; }} className="relative">
-      <input type="text" placeholder="City — e.g. Barcelona, Dubai, Rome" value={value} autoComplete="off"
+      <input type="text" placeholder={t('destPlaceholder')} value={value} autoComplete="off"
         onChange={e => { onChange(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 200)}
@@ -179,6 +181,7 @@ function StarRating({ rating }: { rating: number }) {
 }
 
 function TourCard({ tour }: { tour: Tour }) {
+  const t = useTranslations('explore');
   const likelyToSellOut = tour.flags.includes('LIKELY_TO_SELL_OUT');
   const currencySymbol = tour.currency === 'GBP' ? '£' : tour.currency === 'USD' ? '$' : tour.currency === 'EUR' ? '€' : tour.currency;
 
@@ -217,12 +220,12 @@ function TourCard({ tour }: { tour: Tour }) {
         <div className="absolute top-2 left-2 flex flex-col gap-1.5">
           {tour.freeCancellation && (
             <span className="bg-emerald-500 text-white text-[.58rem] font-bold px-2 py-0.5 rounded-full shadow">
-              Free cancellation
+              {t('freeCancellation')}
             </span>
           )}
           {likelyToSellOut && (
             <span className="bg-red-500 text-white text-[.58rem] font-bold px-2 py-0.5 rounded-full shadow">
-              Likely to sell out
+              {t('likelyToSellOut')}
             </span>
           )}
         </div>
@@ -254,13 +257,13 @@ function TourCard({ tour }: { tour: Tour }) {
         {/* Price */}
         <div className="mt-auto pt-2 border-t border-[#F1F3F7] flex items-end justify-between">
           <div>
-            <span className="text-[.6rem] text-[#8E95A9] font-semibold block">From</span>
+            <span className="text-[.6rem] text-[#8E95A9] font-semibold block">{t('from')}</span>
             <span className="font-poppins font-black text-[1.15rem] text-[#1A1D2B]">
               {currencySymbol}{tour.fromPrice.toFixed(2)}
             </span>
           </div>
           <span className="text-[.7rem] font-bold text-teal-600 group-hover:text-teal-700 transition-colors">
-            View deal →
+            {t('viewDeal')}
           </span>
         </div>
       </div>
@@ -272,7 +275,14 @@ function TourCard({ tour }: { tour: Tour }) {
    MAIN PAGE
    ═══════════════════════════════════════════════════════════════════════════ */
 
+const PROVIDER_KEY: Record<string, string> = { 'GetYourGuide': 'getyourguide', 'Viator': 'viator' };
+const EXP_TYPE_KEY: Record<string, string> = {
+  'Tours': 'tours', 'Food': 'food', 'Attractions': 'attractions',
+  'Day Trips': 'dayTrips', 'Adventure': 'adventure', 'Family': 'family',
+};
+
 function ExploreContent() {
+  const t = useTranslations('explore');
   const [destination, setDestination] = useState('');
   const [travelDate, setTravelDate] = useState('');
   const [activity, setActivity] = useState('');
@@ -343,7 +353,7 @@ function ExploreContent() {
         setTours(data.tours || []);
       })
       .catch(() => {
-        setToursError('Could not load live tours. Browse providers below instead.');
+        setToursError(t('errLoadTours'));
       })
       .finally(() => {
         setToursLoading(false);
@@ -378,11 +388,11 @@ function ExploreContent() {
         <div className="max-w-[860px] mx-auto bg-white border border-[#E8ECF4] rounded-3xl p-6 shadow-[0_8px_40px_rgba(20,184,166,0.08)]">
           <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-3 mb-3">
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Destination</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">{t('destination')}</label>
               <DestinationPicker value={destination} onChange={setDestination} />
             </div>
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Date</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">{t('date')}</label>
               <DateRangePicker
                 start={travelDate}
                 end=""
@@ -390,43 +400,43 @@ function ExploreContent() {
                 onChange={(next) => setTravelDate(next.start)}
                 accent="emerald"
                 oneWay
-                placeholder="Pick a date"
+                placeholder={t('pickDate')}
               />
             </div>
           </div>
           <div className="mb-3">
-            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Activity</label>
+            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">{t('activity')}</label>
             <select value={activity} onChange={e => setActivity(e.target.value)}
               className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-teal-400 focus:bg-white transition-all">
-              <option value="">All Activities</option>
-              <optgroup label="🧭 Core Adventure">
-                <option value="Tours & Sightseeing">Tours & Sightseeing</option>
-                <option value="Attractions & Landmarks">Attractions & Landmarks</option>
-                <option value="Day Trips & Excursions">Day Trips & Excursions</option>
-                <option value="Skip-the-Line Entry">Skip-the-Line Entry</option>
+              <option value="">{t('allActivities')}</option>
+              <optgroup label={t('grpCore')}>
+                <option value="Tours & Sightseeing">{t('act.toursSightseeing')}</option>
+                <option value="Attractions & Landmarks">{t('act.attractionsLandmarks')}</option>
+                <option value="Day Trips & Excursions">{t('act.dayTripsExcursions')}</option>
+                <option value="Skip-the-Line Entry">{t('act.skipLine')}</option>
               </optgroup>
-              <optgroup label="🥗 Lifestyle & Culture">
-                <option value="Food & Drink">Food & Drink</option>
-                <option value="Morning Rituals & Coffee">Morning Rituals & Coffee</option>
-                <option value="Hidden Gems">Hidden Gems</option>
-                <option value="Classes & Workshops">Classes & Workshops</option>
+              <optgroup label={t('grpLifestyle')}>
+                <option value="Food & Drink">{t('act.foodDrink')}</option>
+                <option value="Morning Rituals & Coffee">{t('act.morningRituals')}</option>
+                <option value="Hidden Gems">{t('act.hiddenGems')}</option>
+                <option value="Classes & Workshops">{t('act.classesWorkshops')}</option>
               </optgroup>
-              <optgroup label="⚡ Activity Level">
-                <option value="Wellness & Spa">Wellness & Spa</option>
-                <option value="Fitness & Gyms">Fitness & Gyms</option>
-                <option value="Adventure & Sports">Adventure & Sports</option>
-                <option value="Nature & Outdoors">Nature & Outdoors</option>
+              <optgroup label={t('grpActivity')}>
+                <option value="Wellness & Spa">{t('act.wellnessSpa')}</option>
+                <option value="Fitness & Gyms">{t('act.fitnessGyms')}</option>
+                <option value="Adventure & Sports">{t('act.adventureSports')}</option>
+                <option value="Nature & Outdoors">{t('act.natureOutdoors')}</option>
               </optgroup>
-              <optgroup label="👥 Audience & Vibe">
-                <option value="Family Friendly">Family Friendly</option>
-                <option value="Nightlife & Entertainment">Nightlife & Entertainment</option>
-                <option value="Shopping & Fashion">Shopping & Fashion</option>
-                <option value="Relaxation & Hush Spots">Relaxation & Hush Spots</option>
+              <optgroup label={t('grpAudience')}>
+                <option value="Family Friendly">{t('act.familyFriendly')}</option>
+                <option value="Nightlife & Entertainment">{t('act.nightlife')}</option>
+                <option value="Shopping & Fashion">{t('act.shoppingFashion')}</option>
+                <option value="Relaxation & Hush Spots">{t('act.relaxationHush')}</option>
               </optgroup>
             </select>
           </div>
           <button onClick={handleSearch} className="w-full bg-teal-500 hover:bg-teal-600 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(20,184,166,0.3)]">
-            Explore Activities →
+            {t('exploreBtn')}
           </button>
         </div>
 
@@ -439,10 +449,10 @@ function ExploreContent() {
           {/* Live Viator Tours */}
           <section id="explore-results" className="max-w-[1000px] mx-auto px-5 pt-8 pb-6">
             <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-1">
-              Top tours & activities in {searchedDest}
+              {t('topToursIn', { dest: searchedDest })}
             </h2>
             <p className="text-[.78rem] text-[#8E95A9] font-semibold mb-5">
-              Live results from Viator — click any card to book
+              {t('liveFromViator')}
             </p>
 
             {toursLoading && (
@@ -482,9 +492,9 @@ function ExploreContent() {
             {!toursLoading && !toursError && tours.length === 0 && (
               <div className="bg-[#F8FAFC] border border-[#E8ECF4] rounded-2xl p-5 mb-6">
                 <p className="text-[.82rem] text-[#5C6378] font-semibold">
-                  No live Viator inventory matched <strong className="text-[#1A1D2B]">{searchedDest}</strong>
-                  {activity ? <> for <strong className="text-[#1A1D2B]">{activity}</strong></> : null}.
-                  Try a different city or scroll down to compare on GetYourGuide and Viator.
+                  {t('noMatchPre')} <strong className="text-[#1A1D2B]">{searchedDest}</strong>
+                  {activity ? <> {t('forWord')} <strong className="text-[#1A1D2B]">{activity}</strong></> : null}.
+                  {' '}{t('noMatchPost')}
                 </p>
               </div>
             )}
@@ -493,10 +503,10 @@ function ExploreContent() {
           {/* Provider cards */}
           <section className="max-w-[900px] mx-auto px-5 pt-4 pb-6">
             <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-2">
-              Compare on other providers for {searchedDest}
+              {t('compareOtherProviders', { dest: searchedDest })}
             </h2>
             <p className="text-[.78rem] text-[#8E95A9] font-semibold mb-5">
-              Each provider has different activities and prices — compare them all
+              {t('compareSub')}
             </p>
             <div className="space-y-4">
               {PROVIDERS.map(p => {
@@ -509,13 +519,13 @@ function ExploreContent() {
                           <span className="text-2xl">{p.logo}</span>
                           <div>
                             <h3 className="font-poppins font-black text-[1rem] text-[#1A1D2B]">{p.name}</h3>
-                            <p className="text-[.72rem] text-[#8E95A9] font-semibold">{p.tagline}</p>
+                            <p className="text-[.72rem] text-[#8E95A9] font-semibold">{PROVIDER_KEY[p.name] ? t('provider.' + PROVIDER_KEY[p.name] + '.tagline') : p.tagline}</p>
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-3 mt-3">
-                          {p.points.map(pt => (
+                          {p.points.map((pt, pi) => (
                             <span key={pt} className="text-[.68rem] font-semibold text-[#5C6378] bg-[#F8FAFC] border border-[#F1F3F7] px-2.5 py-1 rounded-full">
-                              ✓ {pt}
+                              ✓ {PROVIDER_KEY[p.name] ? t('provider.' + PROVIDER_KEY[p.name] + '.points.p' + (pi + 1)) : pt}
                             </span>
                           ))}
                         </div>
@@ -523,7 +533,7 @@ function ExploreContent() {
                       <a href={redirectUrl(url, p.name, searchedDest, 'explore')}
                         target="_blank" rel="noopener noreferrer sponsored"
                         className="bg-teal-500 hover:bg-teal-600 text-white font-poppins font-bold text-[.82rem] px-6 py-3 rounded-xl transition-all whitespace-nowrap shadow-sm">
-                        Search {p.name} →
+                        {t('searchProvider', { name: p.name })}
                       </a>
                     </div>
                   </div>
@@ -536,7 +546,7 @@ function ExploreContent() {
           {experiences.length > 0 && (
             <section className="max-w-[900px] mx-auto px-5 pb-6">
               <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-4">
-                Top experiences in {searchedDest}
+                {t('topExperiencesIn', { dest: searchedDest })}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {experiences.map((exp, i) => {
@@ -546,19 +556,19 @@ function ExploreContent() {
                     <div key={i} className="bg-white border border-[#E8ECF4] rounded-2xl p-5 hover:shadow-md transition-all">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1">
-                          <span className="text-[.6rem] font-black uppercase tracking-[1.5px] text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full">{exp.type}</span>
+                          <span className="text-[.6rem] font-black uppercase tracking-[1.5px] text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full">{EXP_TYPE_KEY[exp.type] ? t('expType.' + EXP_TYPE_KEY[exp.type]) : exp.type}</span>
                           <h3 className="font-poppins font-bold text-[.88rem] text-[#1A1D2B] mt-2 mb-1">{exp.name}</h3>
-                          <p className="text-[.72rem] text-[#8E95A9] font-semibold">via {exp.provider}</p>
+                          <p className="text-[.72rem] text-[#8E95A9] font-semibold">{t('via', { provider: exp.provider })}</p>
                         </div>
                         <div className="text-right flex-shrink-0">
                           <div className="font-poppins font-black text-[1.2rem] text-[#1A1D2B]">£{exp.from}</div>
-                          <div className="text-[.6rem] text-[#8E95A9] font-semibold">from</div>
+                          <div className="text-[.6rem] text-[#8E95A9] font-semibold">{t('fromLower')}</div>
                         </div>
                       </div>
                       <a href={redirectUrl(url, exp.provider, searchedDest, 'explore')}
                         target="_blank" rel="noopener noreferrer sponsored"
                         className="mt-3 block w-full text-center bg-teal-50 hover:bg-teal-100 text-teal-700 font-poppins font-bold text-[.75rem] py-2.5 rounded-xl transition-all border border-teal-200">
-                        View on {exp.provider} →
+                        {t('viewOnProvider', { provider: exp.provider })}
                       </a>
                     </div>
                   );
@@ -571,29 +581,29 @@ function ExploreContent() {
           <section className="max-w-[900px] mx-auto px-5 pb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-5">
               <span className="text-2xl mb-2 block">✈</span>
-              <h3 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">Flights to {searchedDest}</h3>
-              <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">Compare across 5 providers.</p>
+              <h3 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">{t('flightsTo', { dest: searchedDest })}</h3>
+              <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">{t('flightsSub')}</p>
               <a href={`/flights?to=${encodeURIComponent(searchedDest)}`}
                 className="inline-block px-4 py-2 rounded-xl border-2 border-[#0066FF] text-[#0066FF] font-poppins font-bold text-[.75rem] hover:bg-blue-50 transition-colors">
-                Compare Flights →
+                {t('compareFlights')}
               </a>
             </div>
             <div className="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-100 rounded-2xl p-5">
               <span className="text-2xl mb-2 block">🏨</span>
-              <h3 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">Hotels in {searchedDest}</h3>
-              <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">Find and compare the best rates.</p>
+              <h3 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">{t('hotelsIn', { dest: searchedDest })}</h3>
+              <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">{t('hotelsSub')}</p>
               <a href={`/hotels?destination=${encodeURIComponent(searchedDest)}`}
                 className="inline-block px-4 py-2 rounded-xl border-2 border-orange-500 text-orange-500 font-poppins font-bold text-[.75rem] hover:bg-orange-50 transition-colors">
-                Compare Hotels →
+                {t('compareHotels')}
               </a>
             </div>
             <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-100 rounded-2xl p-5">
               <span className="text-2xl mb-2 block">📦</span>
-              <h3 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">Package to {searchedDest}</h3>
-              <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">Flight + hotel bundles.</p>
+              <h3 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">{t('packageTo', { dest: searchedDest })}</h3>
+              <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">{t('packageSub')}</p>
               <a href={`/packages?dest=${encodeURIComponent(searchedDest)}`}
                 className="inline-block px-4 py-2 rounded-xl border-2 border-purple-500 text-purple-500 font-poppins font-bold text-[.75rem] hover:bg-purple-50 transition-colors">
-                View Packages →
+                {t('viewPackages')}
               </a>
             </div>
           </section>
@@ -605,7 +615,7 @@ function ExploreContent() {
           Pre-search the destination on click and scroll back up. */}
       <section className="max-w-[1000px] mx-auto px-5 py-8">
         <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-4">
-          {searched ? 'Try Another Destination' : 'Popular Destinations for Activities'}
+          {searched ? t('tryAnother') : t('popularForActivities')}
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {POPULAR.map(d => (
@@ -639,7 +649,7 @@ function ExploreContent() {
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-4">
                 <div className="font-poppins font-black text-white text-[.95rem]">{d.name}</div>
-                <div className="text-[.65rem] text-white/70 font-semibold">{d.count.toLocaleString()}+ activities</div>
+                <div className="text-[.65rem] text-white/70 font-semibold">{d.count.toLocaleString()}{t('plusActivities')}</div>
               </div>
             </button>
           ))}
@@ -649,13 +659,13 @@ function ExploreContent() {
       {/* Tips */}
       <section className="max-w-[860px] mx-auto px-5 pb-16">
         <div className="bg-[#F8FAFC] border border-[#F1F3F7] rounded-3xl p-8">
-          <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">Tips for Booking Activities</h3>
+          <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">{t('tipsTitle')}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
-              ['Book skip-the-line tickets', 'Popular attractions sell out fast. Skip-the-line tickets save hours of waiting.'],
-              ['Compare across providers', 'The same tour can be 20-30% cheaper on one provider vs another.'],
-              ['Check cancellation policies', 'Look for free cancellation up to 24h before — plans change.'],
-              ['Book combo deals', 'Multi-attraction passes often save 30-40% vs individual tickets.'],
+              [t('tips.skipLine.title'), t('tips.skipLine.body')],
+              [t('tips.compare.title'), t('tips.compare.body')],
+              [t('tips.cancellation.title'), t('tips.cancellation.body')],
+              [t('tips.combo.title'), t('tips.combo.body')],
             ].map(([title, body]) => (
               <div key={title} className="flex gap-3">
                 <div className="w-1.5 flex-shrink-0 rounded-full bg-gradient-to-b from-teal-400 to-emerald-500 self-stretch" />

@@ -575,5 +575,114 @@
         "body": "विशेषज्ञ कार किराया साइट्स अक्सर युवा ड्राइवर सरचार्ज अंतरराष्ट्रीय कंपनियों से 30-50% कम रखती हैं।"
       }
     }
+  },
+  "explore": {
+    "heroBadge": "एक्सप्लोर करें",
+    "heroTitlePre": "करने के",
+    "heroTitleHighlight": "काम",
+    "heroSub": "2 भरोसेमंद प्रदाताओं से गतिविधियों, टूर और अनुभवों की तुलना करें।",
+    "destPlaceholder": "शहर — जैसे बार्सिलोना, दुबई, रोम",
+    "freeCancellation": "मुफ्त रद्दीकरण",
+    "likelyToSellOut": "जल्द बिक सकता है",
+    "from": "से",
+    "viewDeal": "डील देखें →",
+    "destination": "गंतव्य",
+    "date": "तिथि",
+    "pickDate": "एक तिथि चुनें",
+    "activity": "गतिविधि",
+    "allActivities": "सभी गतिविधियाँ",
+    "grpCore": "🧭 मुख्य रोमांच",
+    "grpLifestyle": "🥗 जीवनशैली और संस्कृति",
+    "grpActivity": "⚡ गतिविधि स्तर",
+    "grpAudience": "👥 दर्शक और माहौल",
+    "act": {
+      "toursSightseeing": "टूर और दर्शनीय स्थल",
+      "attractionsLandmarks": "आकर्षण और स्थल",
+      "dayTripsExcursions": "दिन की यात्राएँ",
+      "skipLine": "स्किप-द-लाइन प्रवेश",
+      "foodDrink": "खाना-पीना",
+      "morningRituals": "सुबह की रस्में और कॉफी",
+      "hiddenGems": "छिपे रत्न",
+      "classesWorkshops": "कक्षाएँ और कार्यशालाएँ",
+      "wellnessSpa": "वेलनेस और स्पा",
+      "fitnessGyms": "फिटनेस और जिम",
+      "adventureSports": "रोमांच और खेल",
+      "natureOutdoors": "प्रकृति और बाहरी",
+      "familyFriendly": "परिवार के अनुकूल",
+      "nightlife": "नाइटलाइफ और मनोरंजन",
+      "shoppingFashion": "खरीदारी और फैशन",
+      "relaxationHush": "विश्राम और शांत स्थान"
+    },
+    "exploreBtn": "गतिविधियाँ एक्सप्लोर करें →",
+    "topToursIn": "{dest} में शीर्ष टूर और गतिविधियाँ",
+    "liveFromViator": "Viator से लाइव परिणाम — बुक करने के लिए किसी कार्ड पर क्लिक करें",
+    "errLoadTours": "लाइव टूर लोड नहीं हो सके। इसके बजाय नीचे प्रदाता देखें।",
+    "noMatchPre": "कोई लाइव Viator इन्वेंट्री मेल नहीं खाई",
+    "forWord": "के लिए",
+    "noMatchPost": "कोई दूसरा शहर आज़माएँ या GetYourGuide और Viator पर तुलना के लिए नीचे स्क्रॉल करें।",
+    "compareOtherProviders": "{dest} के लिए अन्य प्रदाताओं पर तुलना करें",
+    "compareSub": "प्रत्येक प्रदाता की अलग गतिविधियाँ और कीमतें हैं — सभी की तुलना करें",
+    "searchProvider": "{name} में खोजें →",
+    "topExperiencesIn": "{dest} में शीर्ष अनुभव",
+    "via": "{provider} के माध्यम से",
+    "fromLower": "से",
+    "viewOnProvider": "{provider} पर देखें →",
+    "flightsTo": "{dest} के लिए उड़ानें",
+    "flightsSub": "5 प्रदाताओं में तुलना करें।",
+    "compareFlights": "उड़ानों की तुलना →",
+    "hotelsIn": "{dest} में होटल",
+    "hotelsSub": "सर्वोत्तम दरें खोजें और तुलना करें।",
+    "compareHotels": "होटलों की तुलना →",
+    "packageTo": "{dest} के लिए पैकेज",
+    "packageSub": "उड़ान + होटल बंडल।",
+    "viewPackages": "पैकेज देखें →",
+    "tryAnother": "कोई अन्य गंतव्य आज़माएँ",
+    "popularForActivities": "गतिविधियों के लिए लोकप्रिय गंतव्य",
+    "plusActivities": "+ गतिविधियाँ",
+    "tipsTitle": "गतिविधियाँ बुक करने के सुझाव",
+    "tips": {
+      "skipLine": {
+        "title": "स्किप-द-लाइन टिकट बुक करें",
+        "body": "लोकप्रिय आकर्षण तेजी से बिकते हैं। स्किप-द-लाइन टिकट घंटों की प्रतीक्षा बचाते हैं।"
+      },
+      "compare": {
+        "title": "प्रदाताओं में तुलना करें",
+        "body": "वही टूर एक प्रदाता पर दूसरे से 20-30% सस्ता हो सकता है।"
+      },
+      "cancellation": {
+        "title": "रद्दीकरण नीतियाँ जाँचें",
+        "body": "24 घंटे पहले तक मुफ्त रद्दीकरण देखें — योजनाएँ बदलती हैं।"
+      },
+      "combo": {
+        "title": "कॉम्बो डील बुक करें",
+        "body": "बहु-आकर्षण पास अक्सर अलग टिकटों से 30-40% बचाते हैं।"
+      }
+    },
+    "provider": {
+      "getyourguide": {
+        "tagline": "दुनिया भर में 450,000+ गतिविधियाँ",
+        "points": {
+          "p1": "24 घंटे तक मुफ्त रद्दीकरण",
+          "p2": "तुरंत पुष्टि",
+          "p3": "मोबाइल टिकट"
+        }
+      },
+      "viator": {
+        "tagline": "एक TripAdvisor कंपनी — भरोसेमंद समीक्षाएँ",
+        "points": {
+          "p1": "300,000+ अनुभव",
+          "p2": "न्यूनतम मूल्य गारंटी",
+          "p3": "सत्यापित समीक्षाएँ"
+        }
+      }
+    },
+    "expType": {
+      "tours": "टूर",
+      "food": "भोजन",
+      "attractions": "आकर्षण",
+      "dayTrips": "दिन की यात्राएँ",
+      "adventure": "रोमांच",
+      "family": "पारिवारिक"
+    }
   }
 }
