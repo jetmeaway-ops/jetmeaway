@@ -8,6 +8,7 @@ import { redirectUrl } from '@/lib/redirect';
 import { PageSchema } from '@/lib/page-schema';
 import { ESIM_FAQS } from '@/lib/page-faqs';
 import AppStoreBadges from '@/components/AppStoreBadges';
+import { useTranslations } from 'next-intl';
 
 // ─── Country → ISO-2 code mapping ─────────────────────────────────────────
 const COUNTRY_ISO: Record<string, string> = {
@@ -204,7 +205,32 @@ function getPlansForCountry(country: string, days: number): CuratedPlan[] {
   return plans.sort((a, b) => a.price - b.price);
 }
 
+const PLAN_BADGE_KEY: Record<string, string> = {
+  'Most Popular': 'mostPopular',
+  'Best for Calls': 'bestForCalls',
+  'Most Data': 'mostData',
+  'Unlimited': 'unlimited',
+  'Multi-Country': 'multiCountry',
+};
+const HIGHLIGHT_KEY: Record<string, string> = {
+  'Instant activation': 'instantActivation',
+  'QR code delivery': 'qrDelivery',
+  '200+ countries': 'countries200',
+  'Includes calls & SMS': 'callsSms',
+  'Unlimited plans available': 'unlimitedAvailable',
+  'Easy app': 'easyApp',
+  'Heavy usage': 'heavyUsage',
+  '5G in select areas': 'fiveGSelect',
+  'Hotspot enabled': 'hotspot',
+  'Unlimited data': 'unlimitedData',
+  'No speed throttle': 'noThrottle',
+  'Use in 100+ countries': 'use100Countries',
+  'Top-up anytime': 'topupAnytime',
+  'Auto top-up': 'autoTopup',
+};
+
 export default function ESIMPage() {
+  const t = useTranslations('esim');
   const [country, setCountry] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -254,7 +280,7 @@ export default function ESIMPage() {
   }, []);
 
   function handleSearch() {
-    if (!country) { alert('Please enter a destination country'); return; }
+    if (!country) { alert(t('enterCountryAlert')); return; }
     setPlans(getPlansForCountry(country, parseInt(duration)));
     setSearched(true);
     fetchLivePackages(country);
@@ -295,21 +321,21 @@ export default function ESIMPage() {
         </div>
 
         <div className="max-w-[860px] mx-auto text-center mb-10 relative z-[1]">
-          <span className="inline-flex items-center gap-1.5 backdrop-blur-md bg-gradient-to-r from-indigo-500/15 to-cyan-500/15 border border-cyan-300/30 text-cyan-300 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4 shadow-[0_4px_20px_rgba(34,211,238,0.25)]"><span className="text-base leading-none">📱</span> eSIM Data Plans</span>
+          <span className="inline-flex items-center gap-1.5 backdrop-blur-md bg-gradient-to-r from-indigo-500/15 to-cyan-500/15 border border-cyan-300/30 text-cyan-300 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4 shadow-[0_4px_20px_rgba(34,211,238,0.25)]"><span className="text-base leading-none">📱</span> {t('badge')}</span>
           <h1 className="font-poppins text-[2.6rem] md:text-[3.8rem] font-black text-white leading-[1.05] tracking-tight mb-3">
-            Stay Connected <em className="italic bg-gradient-to-br from-cyan-300 via-blue-400 to-indigo-500 bg-clip-text text-transparent">Anywhere</em>
+            {t('heroTitlePre')} <em className="italic bg-gradient-to-br from-cyan-300 via-blue-400 to-indigo-500 bg-clip-text text-transparent">{t('heroTitleHighlight')}</em>
           </h1>
           {/* No dollar prices on a UK site — providers price in USD but our
               audience reads GBP; keep the hook currency-free (2026-07-02). */}
-          <p className="text-[1rem] text-white/60 font-semibold max-w-[520px] mx-auto">No roaming charges. No SIM swapping. Just scan a QR code and go — plans from a few pounds.</p>
+          <p className="text-[1rem] text-white/60 font-semibold max-w-[520px] mx-auto">{t('heroSub')}</p>
         </div>
 
         {/* What is eSIM — glass on dark */}
         <div className="max-w-[860px] mx-auto mb-8 backdrop-blur-md bg-white/[.06] border border-cyan-300/20 rounded-2xl p-5 flex gap-4 items-start relative z-[1]">
           <div className="text-2xl">💡</div>
           <div>
-            <div className="font-poppins font-black text-[.85rem] text-white mb-1">What is an eSIM?</div>
-            <p className="text-[.78rem] text-white/70 font-semibold leading-relaxed">An eSIM is a digital SIM you install on your phone without a physical card. Buy a local data plan online, scan the QR code, and you&apos;re connected — no queues at airport kiosks, no roaming bills.</p>
+            <div className="font-poppins font-black text-[.85rem] text-white mb-1">{t('whatIsTitle')}</div>
+            <p className="text-[.78rem] text-white/70 font-semibold leading-relaxed">{t('whatIsBody')}</p>
           </div>
         </div>
 
@@ -332,37 +358,37 @@ export default function ESIMPage() {
           .animate-twinkle-delay{animation:twinkle 3.2s ease-in-out infinite;animation-delay:1.6s;}
         `}</style>
           <div className="mb-3">
-            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Destination Country</label>
-            <CountryPicker value={country} onChange={setCountry} placeholder="Where are you travelling? — e.g. Morocco, Thailand, USA" />
+            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">{t('destinationCountry')}</label>
+            <CountryPicker value={country} onChange={setCountry} placeholder={t('countryPlaceholder')} />
           </div>
           <div className="mb-3">
-            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Calendar</label>
+            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">{t('calendar')}</label>
             <DateRangePicker
               start={startDate}
               end={endDate}
               minDate={new Date().toISOString().split('T')[0]}
               accent="indigo"
-              startWord="travel from"
-              endWord="travel until"
+              startWord={t('travelFrom')}
+              endWord={t('travelUntil')}
               onChange={({ start: s, end: e }) => { setStartDate(s); setEndDate(e); }}
             />
           </div>
           <div className="mb-4">
-            <label htmlFor="esim-trip-duration" className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Trip Duration {startDate && endDate ? '(auto-calculated)' : ''}</label>
+            <label htmlFor="esim-trip-duration" className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">{t('tripDuration')} {startDate && endDate ? t('autoCalculated') : ''}</label>
             <select id="esim-trip-duration" value={duration} onChange={e => setDuration(e.target.value)}
               className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-indigo-500 focus:bg-white transition-all">
-              <option value="3">3 days (city break)</option>
-              <option value="7">7 days (one week)</option>
-              <option value="14">14 days (two weeks)</option>
-              <option value="30">30 days (one month)</option>
-              <option value="90">90 days (long stay)</option>
+              <option value="3">{t('dur3')}</option>
+              <option value="7">{t('dur7')}</option>
+              <option value="14">{t('dur14')}</option>
+              <option value="30">{t('dur30')}</option>
+              <option value="90">{t('dur90')}</option>
             </select>
           </div>
           <button onClick={handleSearch}
             className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(79,70,229,0.3)]">
-            Compare eSIM Plans →
+            {t('comparePlans')}
           </button>
-          <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">Instant activation. Works on all eSIM-compatible iPhones & Android devices.</p>
+          <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">{t('instantActivationNote')}</p>
         </div>
 
         {/* App-store badge row — sits under the search form on the dark hero. */}
@@ -378,7 +404,7 @@ export default function ESIMPage() {
             <div className="bg-white border border-[#E8ECF4] rounded-2xl p-8 text-center mb-8">
               <div className="flex items-center justify-center gap-3">
                 <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                <span className="text-[.9rem] font-bold text-[#5C6378]">Loading live eSIM plans...</span>
+                <span className="text-[.9rem] font-bold text-[#5C6378]">{t('loadingLive')}</span>
               </div>
             </div>
           )}
@@ -387,11 +413,11 @@ export default function ESIMPage() {
               <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <h2 className="font-poppins font-black text-[1.3rem] text-[#1A1D2B]">Buy Direct</h2>
-                    <span className="text-[.55rem] font-black uppercase tracking-[1.5px] bg-gradient-to-r from-[#0066FF] to-[#4C8BFF] text-white px-2.5 py-1 rounded-full">Live Prices</span>
+                    <h2 className="font-poppins font-black text-[1.3rem] text-[#1A1D2B]">{t('buyDirect')}</h2>
+                    <span className="text-[.55rem] font-black uppercase tracking-[1.5px] bg-gradient-to-r from-[#0066FF] to-[#4C8BFF] text-white px-2.5 py-1 rounded-full">{t('livePrices')}</span>
                   </div>
                   <p className="text-[.72rem] text-[#8E95A9] font-semibold">
-                    {livePackages.length} eSIM package{livePackages.length !== 1 ? 's' : ''} for {country} · instant QR code activation
+                    {t('packageCount', { count: livePackages.length, country })}
                   </p>
                 </div>
               </div>
@@ -403,7 +429,7 @@ export default function ESIMPage() {
                   return (
                     <div key={pkg.packageId} className={`bg-white border rounded-2xl p-5 flex flex-col transition-all hover:shadow-lg ${i === 0 ? 'border-[#0066FF] ring-1 ring-blue-100' : 'border-[#E8ECF4]'}`}>
                       {i === 0 && (
-                        <span className="self-start text-[.55rem] font-black uppercase tracking-[1.5px] bg-[#0066FF] text-white px-2.5 py-1 rounded-full mb-3">Cheapest</span>
+                        <span className="self-start text-[.55rem] font-black uppercase tracking-[1.5px] bg-[#0066FF] text-white px-2.5 py-1 rounded-full mb-3">{t('cheapest')}</span>
                       )}
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-2xl">📱</span>
@@ -411,7 +437,7 @@ export default function ESIMPage() {
                       </div>
                       <div className="flex flex-wrap gap-2 mb-3">
                         <span className="flex items-center gap-1 text-[.68rem] font-bold text-[#5C6378]">
-                          <span className="text-sm">📅</span> {pkg.validityDays} days
+                          <span className="text-sm">📅</span> {t('nDays', { count: pkg.validityDays })}
                         </span>
                         <span className="flex items-center gap-1 text-[.68rem] font-bold text-[#5C6378]">
                           <span className="text-sm">📶</span> 4G/LTE
@@ -419,10 +445,10 @@ export default function ESIMPage() {
                       </div>
                       <div className="flex flex-wrap gap-1.5 mb-4">
                         <span className="flex items-center gap-1 text-[.58rem] font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
-                          <span className="text-green-500">✓</span> Instant QR code
+                          <span className="text-green-500">✓</span> {t('instantQr')}
                         </span>
                         <span className="flex items-center gap-1 text-[.58rem] font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
-                          <span className="text-green-500">✓</span> No SIM swap
+                          <span className="text-green-500">✓</span> {t('noSimSwap')}
                         </span>
                       </div>
                       <div className="mt-auto">
@@ -436,7 +462,7 @@ export default function ESIMPage() {
                           type="button"
                           className="w-full bg-gradient-to-r from-[#0066FF] to-[#4C8BFF] hover:from-[#0052CC] hover:to-[#3B7AEE] text-white font-poppins font-black text-[.78rem] py-3 rounded-xl transition-all shadow-[0_2px_10px_rgba(0,102,255,0.25)] flex items-center justify-center gap-2"
                         >
-                          <i className="fa-solid fa-lock text-[.65rem]" /> Buy Direct →
+                          <i className="fa-solid fa-lock text-[.65rem]" /> {t('buyDirectBtn')}
                         </button>
                       </div>
                     </div>
@@ -447,7 +473,7 @@ export default function ESIMPage() {
           )}
           {!liveLoading && liveError && (
             <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-8 text-center">
-              <p className="text-[.78rem] font-semibold text-amber-700">Live eSIM plans unavailable for {country} — compare affiliate providers below</p>
+              <p className="text-[.78rem] font-semibold text-amber-700">{t('liveUnavailable', { country })}</p>
             </div>
           )}
 
@@ -457,14 +483,14 @@ export default function ESIMPage() {
           <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
             <div>
               <h2 className="font-poppins font-black text-[1.3rem] text-[#1A1D2B]">
-                eSIM Plans for {country}
-                <span className="text-[#8E95A9] font-semibold text-[1rem]"> · {days} day{days !== 1 ? 's' : ''}</span>
+                {t('plansForTitle', { country })}
+                <span className="text-[#8E95A9] font-semibold text-[1rem]">{' · '}{t('nDays', { count: days })}</span>
               </h2>
               <p className="text-[.72rem] text-[#8E95A9] font-semibold mt-0.5">
-                {plans.length} plans from {PROVIDERS.length} providers · prices are estimated
+                {t('plansSummary', { plans: plans.length, providers: PROVIDERS.length })}
               </p>
             </div>
-            <span className="text-[.7rem] font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full">{plans.length} plans</span>
+            <span className="text-[.7rem] font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full">{t('plansCountChip', { count: plans.length })}</span>
           </div>
 
           {/* Plan cards */}
@@ -477,7 +503,7 @@ export default function ESIMPage() {
                     <span className="text-4xl mb-1">{plan.logo}</span>
                     <span className="font-poppins font-black text-[.85rem] text-indigo-700">{plan.provider}</span>
                     {i === 0 && (
-                      <span className="absolute top-3 left-3 text-[.6rem] font-black uppercase tracking-[1.5px] bg-indigo-600 text-white px-2.5 py-1 rounded-full shadow-md">Cheapest</span>
+                      <span className="absolute top-3 left-3 text-[.6rem] font-black uppercase tracking-[1.5px] bg-indigo-600 text-white px-2.5 py-1 rounded-full shadow-md">{t('cheapest')}</span>
                     )}
                   </div>
 
@@ -485,29 +511,29 @@ export default function ESIMPage() {
                   <div className="flex-1 p-5 flex flex-col">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <h3 className="font-poppins font-bold text-[1.05rem] text-[#1A1D2B]">{plan.data}</h3>
-                        <span className="text-[.6rem] font-black uppercase tracking-[1px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600">{plan.badge}</span>
+                        <h3 className="font-poppins font-bold text-[1.05rem] text-[#1A1D2B]">{plan.data === 'Unlimited' ? t('unlimited') : plan.data}</h3>
+                        <span className="text-[.6rem] font-black uppercase tracking-[1px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600">{PLAN_BADGE_KEY[plan.badge] ? t('planBadge.' + PLAN_BADGE_KEY[plan.badge]) : plan.badge}</span>
                         {plan.data === 'Unlimited' && (
-                          <span className="text-[.6rem] font-black uppercase tracking-[1px] px-2 py-0.5 rounded-full bg-green-50 text-green-600">No Limits</span>
+                          <span className="text-[.6rem] font-black uppercase tracking-[1px] px-2 py-0.5 rounded-full bg-green-50 text-green-600">{t('noLimits')}</span>
                         )}
                       </div>
 
                       {/* Specs */}
                       <div className="flex flex-wrap gap-2.5 mb-2.5 mt-1.5">
                         <span className="flex items-center gap-1 text-[.68rem] font-bold text-[#5C6378]">
-                          <span className="text-sm">📅</span> {plan.validity}
+                          <span className="text-sm">📅</span> {t('nDays', { count: parseInt(plan.validity) })}
                         </span>
                         <span className="flex items-center gap-1 text-[.68rem] font-bold text-[#5C6378]">
                           <span className="text-sm">📶</span> {plan.speed}
                         </span>
                         {plan.calls && (
                           <span className="flex items-center gap-1 text-[.68rem] font-bold text-green-600">
-                            <span className="text-sm">📞</span> Calls included
+                            <span className="text-sm">📞</span> {t('callsIncluded')}
                           </span>
                         )}
                         {plan.sms && (
                           <span className="flex items-center gap-1 text-[.68rem] font-bold text-green-600">
-                            <span className="text-sm">💬</span> SMS included
+                            <span className="text-sm">💬</span> {t('smsIncluded')}
                           </span>
                         )}
                       </div>
@@ -516,7 +542,7 @@ export default function ESIMPage() {
                       <div className="flex flex-wrap gap-1.5 mb-3">
                         {plan.highlights.map(h => (
                           <span key={h} className="flex items-center gap-1 text-[.62rem] font-bold text-green-700 bg-green-50 px-2 py-1 rounded-full">
-                            <span className="text-green-500">✓</span> {h}
+                            <span className="text-green-500">✓</span> {HIGHLIGHT_KEY[h] ? t('highlight.' + HIGHLIGHT_KEY[h]) : h}
                           </span>
                         ))}
                       </div>
@@ -526,16 +552,16 @@ export default function ESIMPage() {
                     <div className="border-t border-[#F1F3F7] pt-3 mt-1">
                       <div className="flex items-center justify-between flex-wrap gap-3">
                         <div>
-                          <span className="text-[.62rem] text-[#8E95A9] font-semibold">estimated from</span>
+                          <span className="text-[.62rem] text-[#8E95A9] font-semibold">{t('estimatedFrom')}</span>
                           <div className="font-poppins font-black text-[1.4rem] text-[#1A1D2B] leading-none">
                             {plan.currency}{plan.price.toFixed(2)}
                           </div>
-                          <span className="text-[.6rem] text-[#8E95A9] font-medium">{plan.data} · {plan.validity} · prices vary on provider site</span>
+                          <span className="text-[.6rem] text-[#8E95A9] font-medium">{t('pricesVary', { data: plan.data === 'Unlimited' ? t('unlimited') : plan.data, validity: t('nDays', { count: parseInt(plan.validity) }) })}</span>
                         </div>
                         <a href={redirectUrl(PROVIDERS.find(p => p.name === plan.provider)?.getUrl(country) || '#', plan.provider, country, 'esim')}
                           target="_blank" rel="noopener noreferrer sponsored"
                           className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-poppins font-bold text-[.8rem] px-5 py-2.5 rounded-xl transition-all shadow-[0_2px_10px_rgba(79,70,229,0.2)]">
-                          Get on {plan.provider} <span>→</span>
+                          {t('getOn', { provider: plan.provider })} <span>→</span>
                         </a>
                       </div>
                     </div>
@@ -547,7 +573,7 @@ export default function ESIMPage() {
 
           {/* All providers quick links */}
           <div className="bg-[#F8FAFC] border border-[#F1F3F7] rounded-2xl p-5 mb-6">
-            <p className="text-[.7rem] font-bold text-[#8E95A9] uppercase tracking-[2px] mb-3">Compare all providers for {country}</p>
+            <p className="text-[.7rem] font-bold text-[#8E95A9] uppercase tracking-[2px] mb-3">{t('compareAll', { country })}</p>
             <div className="flex flex-wrap gap-2">
               {PROVIDERS.map(p => (
                 <a key={p.name} href={redirectUrl(p.getUrl(country), p.name, country, 'esim')} target="_blank" rel="noopener noreferrer sponsored"
@@ -567,13 +593,13 @@ export default function ESIMPage() {
       {/* Compatibility */}
       <section className="max-w-[860px] mx-auto px-5 pb-16">
         <div className="bg-[#F8FAFC] border border-[#F1F3F7] rounded-3xl p-8">
-          <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">Is My Phone eSIM Compatible?</h3>
+          <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">{t('compatTitle')}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
-              ['iPhone', 'iPhone XS and newer (all models from 2018+). iPhone 14 onwards is eSIM-only in USA.'],
-              ['Samsung', 'Galaxy S20 and newer, Galaxy Z Fold & Flip series, most 2020+ flagships.'],
-              ['Google Pixel', 'Pixel 3a, 4, 5, 6, 7, 8 and newer all support eSIM.'],
-              ['Check your phone', 'Go to Settings > General > About > look for "Available SIM" or "Digital SIM".'],
+              ['iPhone', t('compat.iphone')],
+              ['Samsung', t('compat.samsung')],
+              ['Google Pixel', t('compat.pixel')],
+              [t('compat.checkTitle'), t('compat.checkBody')],
             ].map(([title, body]) => (
               <div key={title} className="flex gap-3">
                 <div className="w-1.5 flex-shrink-0 rounded-full bg-gradient-to-b from-indigo-500 to-blue-600 self-stretch" />

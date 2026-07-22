@@ -320,5 +320,170 @@
     "fareUpdatedFrom": "کرایہ {price} سے اپ ڈیٹ ہوا",
     "total": "کل",
     "includesTaxes": "تمام ٹیکس اور فیس شامل ہیں۔ JetMeAway کوئی بکنگ فیس نہیں لیتا۔"
+  },
+  "insurance": {
+    "selectRegionAlert": "براہِ کرم منزل کا خطہ منتخب کریں",
+    "badge": "سفری انشورنس",
+    "titlePre": "سفر",
+    "titleHighlight": "محفوظ",
+    "heroSub": "طبی کور، منسوخی اور سامان — اپنے سفر کے لیے درست پالیسی حاصل کریں۔",
+    "coverType": "کور کی قسم",
+    "cover": {
+      "single": {
+        "label": "ایک سفر",
+        "desc": "ایک سفر، بہترین قیمت"
+      },
+      "annual": {
+        "label": "سالانہ متعدد سفر",
+        "desc": "کثرت سے سفر کرنے والوں کے لیے"
+      },
+      "backpacker": {
+        "label": "بیک پیکر",
+        "desc": "طویل قیام"
+      },
+      "winter": {
+        "label": "سرمائی کھیل",
+        "desc": "اسکیئنگ اور اسنو بورڈ"
+      }
+    },
+    "destinationRegion": "منزل کا خطہ",
+    "selectDestination": "منزل منتخب کریں...",
+    "regionEurope": "یورپ",
+    "regionWorldwideExUsa": "دنیا بھر (امریکہ کے علاوہ)",
+    "regionWorldwideIncUsa": "دنیا بھر (امریکہ سمیت)",
+    "regionUkOnly": "صرف برطانیہ",
+    "calendar": "کیلنڈر",
+    "travellers": "مسافر",
+    "travellers1": "1 مسافر",
+    "travellers2": "2 مسافر",
+    "travellersFamily": "خاندان (2+2)",
+    "travellersGroup": "گروپ (5+)",
+    "getQuote": "انشورنس کوٹ حاصل کریں",
+    "quoteNote": "قیمتیں £3 یومیہ سے۔ کوٹ کے لیے Ekta Traveling کھلتا ہے۔",
+    "liveQuotePartner": "لائیو کوٹ پارٹنر",
+    "getInstantQuote": "فوری کوٹ حاصل کریں",
+    "ektaMarketplaceSub": "Ekta Traveling خود ایک مارکیٹ پلیس ہے — ایک فارم، 30 سے زائد انشورنس کمپنیوں بشمول AIG، Allianz، ERV اور Mondial سے قیمتیں۔",
+    "providers": {
+      "ekta": {
+        "badge": "بہترین قیمت",
+        "desc": "30 سے زائد انشورنس کمپنیوں کی مارکیٹ پلیس بشمول AIG، Allianz اور ERV۔ کور £3 یومیہ سے۔"
+      }
+    },
+    "getAQuote": "کوٹ حاصل کریں",
+    "compareElsewhere": "کہیں اور موازنہ کریں",
+    "noAffiliateCode": "کوئی ملحقہ کوڈ نہیں · براہِ راست سائٹ لنک",
+    "otherInsurers": "دیگر معتبر انشورنس کمپنیاں",
+    "compareSub": "ہم یہ اس لیے درج کرتے ہیں کہ آپ مارکیٹ پلیس کی قیمت پرکھ سکیں۔ ملحقہ شراکتیں جاری ہیں — فی الحال JetMeAway ان کلکس سے کچھ نہیں کماتا۔",
+    "compareLinks": {
+      "staysure": "50 سال سے زائد عمر اور پہلے سے موجود بیماریوں کے لیے برطانیہ کی سب سے بڑی سفری انشورنس کمپنی۔",
+      "safetywing": "طویل قیام کے مسافروں اور ریموٹ ورکرز کے لیے کور — ماہانہ بلنگ۔",
+      "axa": "ایک بڑی برطانوی انشورنس کمپنی سے واحد سفر اور سالانہ کور۔ FCA سے منظم۔",
+      "worldNomads": "مہم جوئی کے لیے موزوں کور، بیک پیکرز اور گیپ ایئر مسافروں میں مقبول۔",
+      "allianz": "دنیا بھر میں سفر کی منسوخی، طبی اور ہنگامی مدد۔"
+    },
+    "affiliatePending": "شراکت زیرِ التوا",
+    "visit": "{name} دیکھیں",
+    "whatCovers": "اچھی سفری انشورنس کیا کور کرتی ہے",
+    "covers": {
+      "emergencyMedical": {
+        "title": "ہنگامی طبی",
+        "body": "ہسپتال میں قیام، علاج اور طبی وطن واپسی — امریکہ/کیریبین کے لیے ضروری۔"
+      },
+      "tripCancellation": {
+        "title": "سفر کی منسوخی",
+        "body": "اگر آپ کو بیماری، سوگ یا ملازمت ختم ہونے کی وجہ سے منسوخ کرنا پڑے تو اپنی رقم واپس حاصل کریں۔"
+      },
+      "delayedFlights": {
+        "title": "تاخیر اور چھوٹی پروازیں",
+        "body": "2+ گھنٹے کی تاخیر پر معاوضہ اور چھوٹے کنکشن۔"
+      },
+      "baggageLoss": {
+        "title": "سامان کا نقصان اور تاخیر",
+        "body": "کھوئے، چوری شدہ یا تاخیر زدہ سامان اور اس کے مواد کی تلافی۔"
+      },
+      "personalLiability": {
+        "title": "ذاتی ذمہ داری",
+        "body": "اگر آپ غلطی سے کسی کو زخمی کریں یا اس کی املاک کو نقصان پہنچائیں تو کور۔"
+      },
+      "emergencyAssistance": {
+        "title": "24/7 ہنگامی مدد",
+        "body": "چوبیس گھنٹے سپورٹ لائن — بیرونِ ملک کچھ غلط ہونے پر نہایت اہم۔"
+      }
+    }
+  },
+  "esim": {
+    "badge": "eSIM ڈیٹا پلانز",
+    "heroTitlePre": "جڑے رہیں",
+    "heroTitleHighlight": "کہیں بھی",
+    "heroSub": "کوئی رومنگ چارجز نہیں۔ کوئی سِم بدلنا نہیں۔ بس QR کوڈ اسکین کریں اور چل پڑیں — پلان چند پاؤنڈ سے شروع۔",
+    "whatIsTitle": "eSIM کیا ہے؟",
+    "whatIsBody": "eSIM ایک ڈیجیٹل سِم ہے جو آپ بغیر کسی فزیکل کارڈ کے اپنے فون پر انسٹال کرتے ہیں۔ آن لائن مقامی ڈیٹا پلان خریدیں، QR کوڈ اسکین کریں، اور آپ جڑ جاتے ہیں — ایئرپورٹ کیوسک پر قطاریں نہیں، رومنگ بل نہیں۔",
+    "destinationCountry": "منزل کا ملک",
+    "countryPlaceholder": "آپ کہاں سفر کر رہے ہیں؟ — مثلاً مراکش، تھائی لینڈ، امریکہ",
+    "calendar": "کیلنڈر",
+    "travelFrom": "سفر بتاریخ",
+    "travelUntil": "سفر تا",
+    "tripDuration": "سفر کا دورانیہ",
+    "autoCalculated": "(خودکار حساب شدہ)",
+    "dur3": "3 دن (مختصر قیام)",
+    "dur7": "7 دن (ایک ہفتہ)",
+    "dur14": "14 دن (دو ہفتے)",
+    "dur30": "30 دن (ایک ماہ)",
+    "dur90": "90 دن (طویل قیام)",
+    "comparePlans": "eSIM پلانز کا موازنہ کریں ←",
+    "instantActivationNote": "فوری ایکٹیویشن۔ تمام eSIM سے ہم آہنگ iPhone اور Android آلات پر کام کرتا ہے۔",
+    "enterCountryAlert": "براہِ کرم منزل کا ملک درج کریں",
+    "loadingLive": "لائیو eSIM پلانز لوڈ ہو رہے ہیں...",
+    "buyDirect": "براہِ راست خریدیں",
+    "livePrices": "لائیو قیمتیں",
+    "packageCount": "{count, plural, one {# eSIM پیکج} other {# eSIM پیکجز}} برائے {country} · فوری QR کوڈ ایکٹیویشن",
+    "cheapest": "سب سے سستا",
+    "nDays": "{count, plural, one {# دن} other {# دن}}",
+    "instantQr": "فوری QR کوڈ",
+    "noSimSwap": "سِم بدلنے کی ضرورت نہیں",
+    "buyDirectBtn": "براہِ راست خریدیں ←",
+    "liveUnavailable": "{country} کے لیے لائیو eSIM پلانز دستیاب نہیں — نیچے ملحقہ فراہم کنندگان کا موازنہ کریں",
+    "plansForTitle": "{country} کے لیے eSIM پلانز",
+    "plansSummary": "{providers} فراہم کنندگان کے {plans} پلان · قیمتیں تخمینی ہیں",
+    "plansCountChip": "{count} پلان",
+    "unlimited": "لامحدود",
+    "noLimits": "کوئی حد نہیں",
+    "callsIncluded": "کالز شامل",
+    "smsIncluded": "SMS شامل",
+    "estimatedFrom": "تخمینی طور پر",
+    "pricesVary": "{data} · {validity} · قیمتیں فراہم کنندہ کی سائٹ پر مختلف ہوتی ہیں",
+    "getOn": "{provider} پر حاصل کریں",
+    "compareAll": "{country} کے لیے تمام فراہم کنندگان کا موازنہ کریں",
+    "compatTitle": "کیا میرا فون eSIM کے قابل ہے؟",
+    "planBadge": {
+      "mostPopular": "سب سے مقبول",
+      "bestForCalls": "کالز کے لیے بہترین",
+      "mostData": "سب سے زیادہ ڈیٹا",
+      "unlimited": "لامحدود",
+      "multiCountry": "متعدد ممالک"
+    },
+    "highlight": {
+      "instantActivation": "فوری ایکٹیویشن",
+      "qrDelivery": "QR کوڈ ڈیلیوری",
+      "countries200": "200+ ممالک",
+      "callsSms": "کالز اور SMS شامل",
+      "unlimitedAvailable": "لامحدود پلان دستیاب",
+      "easyApp": "آسان ایپ",
+      "heavyUsage": "بھاری استعمال",
+      "fiveGSelect": "منتخب علاقوں میں 5G",
+      "hotspot": "ہاٹ اسپاٹ فعال",
+      "unlimitedData": "لامحدود ڈیٹا",
+      "noThrottle": "رفتار میں کمی نہیں",
+      "use100Countries": "100+ ممالک میں استعمال کریں",
+      "topupAnytime": "کسی بھی وقت ٹاپ اپ",
+      "autoTopup": "خودکار ٹاپ اپ"
+    },
+    "compat": {
+      "iphone": "iPhone XS اور نئے (2018+ کے تمام ماڈل)۔ iPhone 14 سے آگے امریکہ میں صرف eSIM ہے۔",
+      "samsung": "Galaxy S20 اور نئے، Galaxy Z Fold اور Flip سیریز، زیادہ تر 2020+ فلیگ شپ۔",
+      "pixel": "Pixel 3a، 4، 5، 6، 7، 8 اور نئے سبھی eSIM سپورٹ کرتے ہیں۔",
+      "checkTitle": "اپنا فون چیک کریں",
+      "checkBody": "ترتیبات > جنرل > About پر جائیں > \"دستیاب سِم\" یا \"ڈیجیٹل سِم\" تلاش کریں۔"
+    }
   }
 }
