@@ -4,6 +4,7 @@ import TrustBar from '@/components/TrustBar';
 import { LazyHotelsContent } from './hotels-lazy';
 import { PageSchema } from '@/lib/page-schema';
 import { HOTELS_FAQS } from '@/lib/page-faqs';
+import { getTranslations } from 'next-intl/server';
 
 export const runtime = 'edge';
 
@@ -17,7 +18,8 @@ export const metadata = {
   alternates: { canonical: 'https://jetmeaway.co.uk/hotels' },
 };
 
-export default function HotelsPage() {
+export default async function HotelsPage() {
+  const t = await getTranslations('hotels');
   return (
     <>
       <PageSchema crumbs={[{ name: 'Hotels', path: '/hotels' }]} faqs={HOTELS_FAQS} />
@@ -44,14 +46,14 @@ export default function HotelsPage() {
           <div className="mx-auto max-w-[640px] mb-4 backdrop-blur-md bg-emerald-500/10 border border-emerald-300/30 rounded-2xl px-4 py-2.5 flex items-center justify-center gap-2.5 shadow-[0_4px_20px_rgba(16,185,129,0.2)]">
             <span className="text-base leading-none" aria-hidden="true">🏆</span>
             <p className="text-[.78rem] sm:text-[.82rem] font-semibold text-emerald-100 leading-snug text-left">
-              Compare <span className="text-white font-bold">30+ wholesale rates</span> in seconds — UK-registered, no booking fees
+              {t('valueProp1')} <span className="text-white font-bold">{t('valueProp2')}</span> {t('valueProp3')}
             </p>
           </div>
-          <span className="inline-flex items-center gap-1.5 backdrop-blur-md bg-gradient-to-r from-amber-500/15 to-rose-500/15 border border-amber-300/30 text-amber-300 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4 shadow-[0_4px_20px_rgba(245,158,11,0.25)]"><span className="text-base leading-none">🏨</span> Hotel Comparison</span>
+          <span className="inline-flex items-center gap-1.5 backdrop-blur-md bg-gradient-to-r from-amber-500/15 to-rose-500/15 border border-amber-300/30 text-amber-300 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4 shadow-[0_4px_20px_rgba(245,158,11,0.25)]"><span className="text-base leading-none">🏨</span> {t('heroBadge')}</span>
           <h1 className="font-poppins text-[2.4rem] md:text-[3.6rem] font-black text-white leading-[1.05] tracking-tight mb-3">
-            Find the <em className="italic bg-gradient-to-br from-amber-300 via-orange-400 to-rose-500 bg-clip-text text-transparent">Best</em> Hotels
+            {t('heroTitlePre')} <em className="italic bg-gradient-to-br from-amber-300 via-orange-400 to-rose-500 bg-clip-text text-transparent">{t('heroTitleHighlight')}</em> {t('heroTitlePost')}
           </h1>
-          <p className="text-[1rem] text-white/60 font-semibold max-w-[520px] mx-auto">Compare trusted hotel providers — real prices shown right here.</p>
+          <p className="text-[1rem] text-white/60 font-semibold max-w-[520px] mx-auto">{t('heroSub')}</p>
         </div>
 
         <LazyHotelsContent />

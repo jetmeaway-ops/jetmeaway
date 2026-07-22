@@ -33,6 +33,7 @@ import { decodeFromParams, encodeOccupancy } from '@/lib/occupancy';
 // the URL effect closes the race.
 import AppStoreBadges from '@/components/AppStoreBadges';
 import DestinationBackdrop from '@/components/DestinationBackdrop';
+import { useTranslations } from 'next-intl';
 
 const ScoutSidebar = dynamic(() => import('@/components/ScoutSidebar'), { ssr: false });
 const HotelMap = dynamic(() => import('@/components/HotelMap'), { ssr: false });
@@ -881,6 +882,7 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
   stayParams?: StayParams;
 }) {
   const [open, setOpen] = useState(false);
+  const t = useTranslations('hotels');
   const [apiResults, setApiResults] = useState<PlaceResult[]>([]);
   const [searching, setSearching] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -927,17 +929,17 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
     if (t === 'neighborhood' || t === 'sublocality' || t === 'sublocality_level_1') return 'fa-map-pin';
     return 'fa-location-dot';
   };
-  const typeLabel = (t: string) => {
-    if (t === 'airport' || t === 'aerodrome') return 'Airport';
-    if (t === 'hotel' || t === 'lodging') return 'Hotel';
-    if (t === 'neighborhood' || t === 'sublocality' || t === 'sublocality_level_1') return 'Area';
-    return 'City';
+  const typeLabel = (ty: string) => {
+    if (ty === 'airport' || ty === 'aerodrome') return t('typeAirport');
+    if (ty === 'hotel' || ty === 'lodging') return t('typeHotel');
+    if (ty === 'neighborhood' || ty === 'sublocality' || ty === 'sublocality_level_1') return t('typeArea');
+    return t('typeCity');
   };
 
   return (
     <div ref={ref} className="relative">
       <div className="relative">
-        <input ref={inputRef} type="text" placeholder="City, area, airport or hotel name" value={value} autoComplete="off"
+        <input ref={inputRef} type="text" placeholder={t('destPlaceholder')} value={value} autoComplete="off"
           onChange={e => handleInput(e.target.value)}
           // Sticky search re-entry pattern (after hotel pick + browser back):
           //   • setOpen(true) re-opens the dropdown
@@ -995,14 +997,14 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
                 <span className="font-poppins font-bold text-[.85rem] text-[#1A1D2B] block truncate">{l.label}</span>
                 <span className="text-[.68rem] text-[#8E95A9] font-semibold block truncate">{l.sublabel}</span>
               </div>
-              <span className="text-[.55rem] font-black text-orange-500 uppercase tracking-wider ml-auto flex-shrink-0">Landmark</span>
+              <span className="text-[.55rem] font-black text-orange-500 uppercase tracking-wider ml-auto flex-shrink-0">{t('landmark')}</span>
             </li>
           ))}
           {/* API results (live from LiteAPI) */}
           {apiResults.length > 0 && (
             <>
               <li className="px-4 py-1.5 text-[.58rem] font-black uppercase tracking-[2px] text-[#8E95A9] bg-[#F8FAFC] border-b border-[#F1F3F7]">
-                Global Search
+                {t('globalSearch')}
               </li>
               {apiResults.slice(0, 12).map(p => (
                 <li key={p.isLiteApiHotel ? `hotel-${p.id}` : `place-${p.id}`} onMouseDown={async () => {
@@ -1170,7 +1172,7 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
             <>
               {q.length >= 2 && (
                 <li className="px-4 py-1.5 text-[.58rem] font-black uppercase tracking-[2px] text-[#8E95A9] bg-[#F8FAFC] border-b border-[#F1F3F7]">
-                  {searching ? 'Searching...' : 'Popular Destinations'}
+                  {searching ? t('searching') : t('popularDestinations')}
                 </li>
               )}
               {staticFiltered.map(c => (
@@ -1192,8 +1194,8 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
           {apiResults.length === 0 && staticFiltered.length === 0 && q.length >= 2 && !searching && (
             <li onMouseDown={() => { setOpen(false); }}
               className="px-4 py-3 cursor-pointer hover:bg-orange-50 transition-colors font-poppins font-semibold text-[.85rem] text-[#1A1D2B]">
-              <span className="text-orange-500">Search &quot;{value}&quot;</span>
-              <span className="text-[#8E95A9] text-[.78rem] ml-2">-- we cover cities worldwide</span>
+              <span className="text-orange-500">{t('searchWord')} &quot;{value}&quot;</span>
+              <span className="text-[#8E95A9] text-[.78rem] ml-2">{t('coverWorldwide')}</span>
             </li>
           )}
         </ul>
@@ -1243,6 +1245,7 @@ function OccupancyPicker({
 
   // Caps mirror src/lib/occupancy.ts. Re-stated as locals so the JSX
   // reads cleanly without importing 5 constants.
+  const t = useTranslations('hotels');
   const MAX_ROOMS_UI = 5;
   const MAX_TOTAL = 9;
   const MAX_ADULTS_ROOM = 4;
@@ -1317,7 +1320,7 @@ function OccupancyPicker({
         onClick={() => onSet(Math.max(min, value - 1))}
         className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-orange-400 transition-all disabled:opacity-30"
         disabled={value <= min}
-        aria-label="decrement"
+        aria-label={t('decrementAria')}
       >−</button>
       <span className="font-poppins font-black text-[.95rem] text-[#1A1D2B] w-5 text-center">{value}</span>
       <button
@@ -1325,13 +1328,13 @@ function OccupancyPicker({
         onClick={() => onSet(Math.min(max, value + 1))}
         className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-orange-400 transition-all disabled:opacity-30"
         disabled={value >= max || !!disabledPlus}
-        aria-label="increment"
+        aria-label={t('incrementAria')}
       >+</button>
     </div>
   );
 
   // Button label: same compact summary as before.
-  const label = `${adults} Adult${adults !== 1 ? 's' : ''}${children > 0 ? ` · ${children} Child${children !== 1 ? 'ren' : ''}` : ''} · ${rooms} Room${rooms !== 1 ? 's' : ''}`;
+  const label = `${t('adultsCount', { count: adults })}${children > 0 ? ` · ${t('childrenLong', { count: children })}` : ''} · ${t('roomsCount', { count: rooms })}`;
 
   return (
     <div ref={ref} className="relative">
@@ -1360,7 +1363,7 @@ function OccupancyPicker({
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-poppins font-black text-[.82rem] text-[#1A1D2B]">
-                    Room {idx + 1}
+                    {t('roomN', { n: idx + 1 })}
                   </span>
                   {roomsArr.length > 1 && (
                     <button
@@ -1368,13 +1371,13 @@ function OccupancyPicker({
                       onClick={() => removeRoom(idx)}
                       className="text-[.7rem] font-bold text-orange-500 hover:text-orange-600"
                     >
-                      Remove
+                      {t('remove')}
                     </button>
                   )}
                 </div>
                 <div className="flex items-center justify-between py-1.5">
                   <div>
-                    <span className="font-poppins font-semibold text-[.78rem] text-[#1A1D2B]">Adults</span>
+                    <span className="font-poppins font-semibold text-[.78rem] text-[#1A1D2B]">{t('adults')}</span>
                   </div>
                   <Stepper
                     value={room.adults}
@@ -1386,8 +1389,8 @@ function OccupancyPicker({
                 </div>
                 <div className="flex items-center justify-between py-1.5">
                   <div>
-                    <span className="font-poppins font-semibold text-[.78rem] text-[#1A1D2B]">Children</span>
-                    <div className="text-[.65rem] text-[#8E95A9]">Ages 0 to 17</div>
+                    <span className="font-poppins font-semibold text-[.78rem] text-[#1A1D2B]">{t('children')}</span>
+                    <div className="text-[.65rem] text-[#8E95A9]">{t('ages0to17')}</div>
                   </div>
                   <Stepper
                     value={room.childAges.length}
@@ -1401,7 +1404,7 @@ function OccupancyPicker({
                   <div className="grid grid-cols-2 gap-2 mt-1.5">
                     {room.childAges.map((age, ageIdx) => (
                       <div key={ageIdx}>
-                        <div className="text-[.6rem] text-[#8E95A9] mb-1">Child {ageIdx + 1} age</div>
+                        <div className="text-[.6rem] text-[#8E95A9] mb-1">{t('childNAge', { n: ageIdx + 1 })}</div>
                         <select
                           value={age}
                           onChange={(e) => setRoomChildAge(idx, ageIdx, Number(e.target.value))}
@@ -1409,7 +1412,7 @@ function OccupancyPicker({
                         >
                           {Array.from({ length: 18 }, (_, a) => a).map((a) => (
                             <option key={a} value={a}>
-                              {a < 1 ? 'Under 1' : a}
+                              {a < 1 ? t('underOne') : a}
                             </option>
                           ))}
                         </select>
@@ -1426,17 +1429,17 @@ function OccupancyPicker({
             disabled={roomsArr.length >= MAX_ROOMS_UI || remaining < 1}
             className="w-full mt-1 mb-2 text-[.78rem] font-bold text-orange-500 hover:text-orange-600 disabled:opacity-40 disabled:cursor-not-allowed py-1.5 border-2 border-dashed border-orange-200 rounded-xl"
           >
-            + Add another room
+            {t('addRoom')}
           </button>
           <p className="text-[.6rem] text-[#8E95A9] font-semibold text-center">
-            Max {MAX_TOTAL} guests across {MAX_ROOMS_UI} rooms · {remaining} left
+            {t('maxGuests', { max: MAX_TOTAL, rooms: MAX_ROOMS_UI, left: remaining })}
           </p>
           <button
             type="button"
             onClick={() => setOpen(false)}
             className="w-full mt-3 bg-orange-500 hover:bg-orange-600 text-white font-poppins font-bold text-[.8rem] py-2 rounded-xl transition-colors"
           >
-            Done
+            {t('done')}
           </button>
         </div>
       )}
@@ -1449,8 +1452,9 @@ function OccupancyPicker({
  * "Any" is the default; picking a minimum filters search results server-side.
  */
 function StarFilter({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const t = useTranslations('hotels');
   const options: { label: string; value: number }[] = [
-    { label: 'Any', value: 0 },
+    { label: t('anyStar'), value: 0 },
     { label: '3★+', value: 3 },
     { label: '4★+', value: 4 },
     { label: '5★', value: 5 },
@@ -1506,6 +1510,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
   // so customers picking based on which airport their flight lands at
   // can decide for themselves — single-airport labels were misleading
   // when two airports sit roughly equidistant in different directions.
+  const t = useTranslations('hotels');
   const hasCoords = typeof hotel.lat === 'number' && typeof hotel.lng === 'number';
   const milesFromCentre = hasCoords && cityCentre
     ? haversineMi(hotel.lat!, hotel.lng!, cityCentre.lat, cityCentre.lng)
@@ -1569,7 +1574,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
         onClick={onToggleCompare}
         disabled={!isCompared && compareFull}
         aria-pressed={isCompared}
-        title={isCompared ? 'Remove from compare' : compareFull ? 'Compare limit reached (3)' : 'Add to compare'}
+        title={isCompared ? t('removeFromCompare') : compareFull ? t('compareLimitReached') : t('addToCompare')}
         className={`absolute z-10 top-2.5 right-2.5 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[.66rem] font-bold shadow-sm transition-all ${
           isCompared
             ? 'bg-orange-500 text-white hover:bg-orange-600'
@@ -1581,7 +1586,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
         <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center ${isCompared ? 'bg-white border-white' : 'border-[#C5CBD9]'}`}>
           {isCompared && <i className="fa-solid fa-check text-[.55rem] text-orange-500" />}
         </span>
-        Compare
+        {t('compare')}
       </button>
       <div className="grid grid-cols-1 md:grid-cols-[240px_1fr_auto] gap-0">
         {/* Image */}
@@ -1603,7 +1608,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
           {/* Scout "recommendation" pill — champagne + gold ring, not clearance-sale orange */}
           {isCheapest && (
             <span className="absolute top-3 left-3 text-[.55rem] font-black uppercase tracking-[1.5px] bg-[#FAF3E6] text-[#8a6d00] ring-1 ring-[#E8D8A8] px-2.5 py-1 rounded-full shadow-sm">
-              Scout Pick
+              {t('scoutPick')}
             </span>
           )}
         </a>
@@ -1621,7 +1626,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
                       {h.reviewScore.toFixed(1)}
                     </span>
                   )}
-                  <span>{h.reviewCount.toLocaleString()} reviews</span>
+                  <span>{h.reviewCount.toLocaleString()} {t('reviewsWord')}</span>
                 </span>
               )}
             </div>
@@ -1632,7 +1637,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
                 {milesFromCentre != null && (
                   <span className="inline-flex items-center gap-1">
                     <i className="fa-solid fa-location-dot text-[.62rem] text-[#287DFA]" />
-                    {fmtMi(milesFromCentre)} mi from centre
+                    {fmtMi(milesFromCentre)} {t('miFromCentre')}
                   </span>
                 )}
                 {milesFromCentre != null && airportsNearby.length > 0 && <span className="text-[#287DFA]/40">·</span>}
@@ -1648,8 +1653,8 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
             )}
             {nights > 0 && (
               <p className="text-[.72rem] text-[#5C6378] font-semibold">
-                {nights} night{nights !== 1 ? 's' : ''} · {adults} adult{adults !== 1 ? 's' : ''}
-                {children > 0 && `, ${children} ${children === 1 ? 'child' : 'children'}`}
+                {t('nightsCount', { count: nights })} · {t('adultsShort', { count: adults })}
+                {children > 0 && `, ${t('childrenShort', { count: children })}`}
               </p>
             )}
             {/* Scout voice: emerald solid for positive, slate outline for
@@ -1658,12 +1663,12 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
               displayRefundable ? (
                 <span className="inline-flex items-center gap-1.5 mt-1.5 text-[.7rem] font-bold text-emerald-700">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" aria-hidden />
-                  Free cancellation
+                  {t('freeCancellation')}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1.5 mt-1.5 text-[.7rem] font-semibold text-slate-500">
                   <span className="w-1.5 h-1.5 rounded-full border border-slate-300" aria-hidden />
-                  Non-refundable
+                  {t('nonRefundable')}
                 </span>
               )
             )}
@@ -1701,12 +1706,12 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
                 className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FAF3E6] ring-1 ring-[#E8D8A8] text-[#6b5500] text-[.7rem] font-bold hover:bg-[#F5E9C8] transition-colors w-fit"
               >
                 <i className="fa-solid fa-sparkles text-[.6rem]" />
-                {roomCount} room type{roomCount !== 1 ? 's' : ''} available
+                {t('roomTypesAvailable', { count: roomCount })}
                 <span className="opacity-70">→</span>
               </a>
             );
           })()}
-          <a href={detailHref} className="text-[.7rem] text-orange-600 font-bold mt-2 inline-block">View details →</a>
+          <a href={detailHref} className="text-[.7rem] text-orange-600 font-bold mt-2 inline-block">{t('viewDetails')}</a>
         </div>
 
         {/* Price + Actions — extra top padding on desktop so price sits below
@@ -1715,7 +1720,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
           <div className="text-right">
             {/* Scout Deal badge — negotiated rate is lower than market */}
             {h.marketPerNight != null && h.negotiatedPerNight != null && h.negotiatedPerNight < h.marketPerNight && (
-              <span className="inline-block text-[.55rem] font-black uppercase tracking-[1.2px] bg-gradient-to-r from-orange-500 to-amber-500 text-white px-2 py-0.5 rounded-full mb-1.5">Scout Deal</span>
+              <span className="inline-block text-[.55rem] font-black uppercase tracking-[1.2px] bg-gradient-to-r from-orange-500 to-amber-500 text-white px-2 py-0.5 rounded-full mb-1.5">{t('scoutDeal')}</span>
             )}
             {priceView === 'perPerson' ? (
               <>
@@ -1728,11 +1733,11 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
                   return (
                     <>
                       {h.marketPrice != null && h.negotiatedPrice != null && h.negotiatedPrice < h.marketPrice && (
-                        <div className="text-[.72rem] text-[#8E95A9] font-bold line-through mb-0.5">£{Math.round(h.marketPrice / guests)}/person</div>
+                        <div className="text-[.72rem] text-[#8E95A9] font-bold line-through mb-0.5">£{Math.round(h.marketPrice / guests)}{t('perPerson')}</div>
                       )}
-                      <div className="font-[var(--font-playfair)] font-black text-[1.65rem] text-[#0a1628] tracking-tight leading-none">£{Math.round(displayTotal / guests)}<span className="text-[.7rem] font-semibold text-[#8E95A9] tracking-normal">/person</span></div>
+                      <div className="font-[var(--font-playfair)] font-black text-[1.65rem] text-[#0a1628] tracking-tight leading-none">£{Math.round(displayTotal / guests)}<span className="text-[.7rem] font-semibold text-[#8E95A9] tracking-normal">{t('perPerson')}</span></div>
                       {nights > 0 && (
-                        <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">£{displayTotal} total · {nights} night{nights !== 1 ? 's' : ''} · {guests} guest{guests !== 1 ? 's' : ''}</div>
+                        <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">£{displayTotal} {t('total')} · {t('nightsCount', { count: nights })} · {t('guestsCount', { count: guests })}</div>
                       )}
                     </>
                   );
@@ -1741,18 +1746,18 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
             ) : (
               <>
                 {h.marketPerNight != null && h.negotiatedPerNight != null && h.negotiatedPerNight < h.marketPerNight && (
-                  <div className="text-[.72rem] text-[#8E95A9] font-bold line-through mb-0.5">£{h.marketPerNight}/night</div>
+                  <div className="text-[.72rem] text-[#8E95A9] font-bold line-through mb-0.5">£{h.marketPerNight}{t('perNight')}</div>
                 )}
-                <div className="font-[var(--font-playfair)] font-black text-[1.65rem] text-[#0a1628] tracking-tight leading-none">£{displayPrice}<span className="text-[.7rem] font-semibold text-[#8E95A9] tracking-normal">/night</span></div>
+                <div className="font-[var(--font-playfair)] font-black text-[1.65rem] text-[#0a1628] tracking-tight leading-none">£{displayPrice}<span className="text-[.7rem] font-semibold text-[#8E95A9] tracking-normal">{t('perNight')}</span></div>
                 {nights > 0 && (
-                  <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">£{displayTotal} total for {nights} night{nights !== 1 ? 's' : ''}</div>
+                  <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">£{displayTotal} {t('totalFor')} {t('nightsCount', { count: nights })}</div>
                 )}
                 {/* Trust chip — the "why us" proof. Many comparison sites
                     show pre-tax headline prices; our displayed price is
                     all-in. Loud, green, never missed. */}
                 <span className="inline-flex items-center gap-1 mt-1.5 text-[.68rem] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
                   <i className="fa-solid fa-circle-check text-[.62rem]" aria-hidden />
-                  Total Price (Inc. All Taxes &amp; Fees)
+                  {t('totalPriceInclTaxes')}
                 </span>
               </>
             )}
@@ -1763,7 +1768,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
                 named competitors. */}
             <span className="inline-flex items-center gap-1 mt-1.5 text-[.68rem] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
               <i className="fa-solid fa-circle-check text-[.62rem]" aria-hidden />
-              Live wholesale rate · No booking fees
+              {t('liveWholesale')}
             </span>
             {/* Signal type badge */}
             {h.signalType && (
@@ -1780,9 +1785,9 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
           <div className="flex flex-col items-end gap-1.5 w-full mt-1">
             <BookDirectButton hotel={bookHotel} checkIn={checkin} checkOut={checkout} adults={adults} nights={nights} city={searchedDest} detailHref={detailHref} />
             <div className="flex flex-wrap gap-x-3 gap-y-0.5 justify-end text-[10px] text-[#9CA3AF] font-medium">
-              <span>✅ No hidden fees</span>
-              <span>✅ Free cancellation</span>
-              <span>✅ Secure payment</span>
+              <span>✅ {t('noHiddenFees')}</span>
+              <span>✅ {t('freeCancellation')}</span>
+              <span>✅ {t('securePayment')}</span>
             </div>
           </div>
         </div>
@@ -1796,9 +1801,10 @@ function BoardSelector({ options, selected, onSelect }: {
   selected: number;
   onSelect: (idx: number) => void;
 }) {
+  const t = useTranslations('hotels');
   return (
     <div className="mt-1.5">
-      <p className="text-[.6rem] font-bold text-[#8E95A9] uppercase tracking-[1px] mb-1">Board type</p>
+      <p className="text-[.6rem] font-bold text-[#8E95A9] uppercase tracking-[1px] mb-1">{t('boardTypeLabel')}</p>
       <div className="flex flex-col gap-1">
         {options.map((opt, idx) => (
           <button key={idx} type="button" onClick={() => onSelect(idx)}
@@ -1841,13 +1847,14 @@ function BookDirectButton({
   city: string;
   detailHref: string;
 }) {
+  const t = useTranslations('hotels');
   if (!hotel.offerId) return null;
   return (
     <a
       href={detailHref}
       className="inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-full bg-[#0a0f2e] hover:bg-[#111827] text-[#f5a623] font-poppins font-semibold text-[.72rem] whitespace-nowrap transition-all duration-200 hover:scale-[1.02] shadow-sm"
     >
-      <i className="fa-solid fa-lock mr-1.5" /> Book Direct — Best Price →
+      <i className="fa-solid fa-lock mr-1.5" /> {t('bookDirect')}
     </a>
   );
 }
@@ -1857,10 +1864,10 @@ function BookDirectButton({
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const LOADING_MSGS = [
-  'Searching live rates...',
-  'Comparing wholesale prices...',
-  'Finding the best rates...',
-  'Checking direct availability...',
+  'loadingSearching',
+  'loadingComparing',
+  'loadingFinding',
+  'loadingChecking',
 ];
 
 function HotelSkeletonCard() {
@@ -1896,6 +1903,7 @@ function HotelSkeletonCard() {
 }
 
 function LoadingState({ dest }: { dest: string }) {
+  const t = useTranslations('hotels');
   const [msgIdx, setMsgIdx] = useState(0);
   const [progress, setProgress] = useState(0);
 
@@ -1912,8 +1920,8 @@ function LoadingState({ dest }: { dest: string }) {
           <div className="h-full bg-gradient-to-r from-orange-400 to-amber-500 rounded-full transition-all duration-100" style={{ width: `${progress}%` }} />
         </div>
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <span className="text-[.85rem] font-bold text-[#1A1D2B]">{LOADING_MSGS[msgIdx]}</span>
-          <p className="text-[.72rem] text-[#8E95A9] font-semibold">Building stays in <strong className="text-[#1A1D2B]">{dest}</strong></p>
+          <span className="text-[.85rem] font-bold text-[#1A1D2B]">{t(LOADING_MSGS[msgIdx])}</span>
+          <p className="text-[.72rem] text-[#8E95A9] font-semibold">{t('buildingStaysIn')} <strong className="text-[#1A1D2B]">{dest}</strong></p>
         </div>
       </div>
       <div className="space-y-3">
@@ -1938,6 +1946,7 @@ function CompareTray({ hotels, nights, priceView, adults, childCount, onRemove, 
   onOpen: () => void;
 }) {
   const guests = Math.max(1, adults + childCount);
+  const t = useTranslations('hotels');
   const priceLabel = (h: HotelResult) => {
     const total = h.totalPrice ?? h.pricePerNight * Math.max(1, nights);
     if (priceView === 'total') return `£${Math.round(total)}`;
@@ -1947,8 +1956,8 @@ function CompareTray({ hotels, nights, priceView, adults, childCount, onRemove, 
     <div className="fixed bottom-0 inset-x-0 z-40 px-3 pb-3 pointer-events-none">
       <div className="max-w-[1000px] mx-auto pointer-events-auto">
         <div className="bg-white/95 backdrop-blur border border-orange-200 shadow-2xl rounded-2xl px-4 py-3 flex items-center gap-3 flex-wrap">
-          <span className="text-[.7rem] font-black uppercase tracking-wider text-orange-600">Compare</span>
-          <span className="text-[.72rem] font-bold text-[#8E95A9]">{hotels.length} of 3 selected</span>
+          <span className="text-[.7rem] font-black uppercase tracking-wider text-orange-600">{t('compare')}</span>
+          <span className="text-[.72rem] font-bold text-[#8E95A9]">{t('ofSelected', { count: hotels.length })}</span>
           <div className="flex items-center gap-2 flex-1 min-w-0 overflow-x-auto">
             {hotels.map(h => (
               <span key={h.id} className="inline-flex items-center gap-1.5 bg-[#FAF3E6] ring-1 ring-[#E8D8A8] text-[#6b5500] text-[.7rem] font-bold px-2.5 py-1 rounded-full shrink-0">
@@ -1958,7 +1967,7 @@ function CompareTray({ hotels, nights, priceView, adults, childCount, onRemove, 
                 <button
                   type="button"
                   onClick={() => onRemove(h.id)}
-                  aria-label={`Remove ${h.name}`}
+                  aria-label={t('removeAria', { name: h.name })}
                   className="ml-0.5 w-4 h-4 rounded-full hover:bg-[#E8D8A8]/40 flex items-center justify-center"
                 >
                   <i className="fa-solid fa-xmark text-[.55rem]" />
@@ -1972,7 +1981,7 @@ function CompareTray({ hotels, nights, priceView, adults, childCount, onRemove, 
               onClick={onClear}
               className="text-[.7rem] font-bold text-[#8E95A9] hover:text-[#1A1D2B] px-2 py-1"
             >
-              Clear
+              {t('clear')}
             </button>
             <button
               type="button"
@@ -1980,7 +1989,7 @@ function CompareTray({ hotels, nights, priceView, adults, childCount, onRemove, 
               disabled={hotels.length < 2}
               className={`text-[.78rem] font-black px-4 py-2 rounded-full transition-all ${hotels.length < 2 ? 'bg-[#F1F3F7] text-[#8E95A9] cursor-not-allowed' : 'bg-orange-500 text-white hover:bg-orange-600 shadow-sm'}`}
             >
-              Compare {hotels.length >= 2 ? `${hotels.length} hotels` : '(pick 2+)'} →
+              {hotels.length >= 2 ? t('compareNHotels', { count: hotels.length }) : t('comparePickPrompt')}
             </button>
           </div>
         </div>
@@ -2011,10 +2020,11 @@ function CompareModal({ hotels, nights, priceView, adults, childCount, buildDeta
   }, [onClose]);
 
   const guests = Math.max(1, adults + childCount);
+  const t = useTranslations('hotels');
   const priceCell = (h: HotelResult) => {
     const total = h.totalPrice ?? h.pricePerNight * Math.max(1, nights);
     const main = priceView === 'total' ? `£${Math.round(total)}` : `£${Math.round(total / guests)}`;
-    const sub = priceView === 'total' ? `total · ${nights || 1}n · ${guests}g` : `per person · total ${nights || 1}n`;
+    const sub = priceView === 'total' ? t('subTotal', { nights: nights || 1, guests }) : t('subPerPerson', { nights: nights || 1 });
     return { main, sub };
   };
   const cheapestTotal = hotels.reduce((min, h) => {
@@ -2027,13 +2037,13 @@ function CompareModal({ hotels, nights, priceView, adults, childCount, buildDeta
       <div className="bg-white rounded-3xl shadow-2xl max-w-[1100px] w-full my-6 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#F1F3F7]">
           <div>
-            <h2 className="font-[var(--font-playfair)] font-black text-[1.25rem] text-[#0a1628]">Side-by-side comparison</h2>
-            <p className="text-[.72rem] text-[#8E95A9] font-semibold">{hotels.length} hotels · cheapest total highlighted</p>
+            <h2 className="font-[var(--font-playfair)] font-black text-[1.25rem] text-[#0a1628]">{t('sideBySide')}</h2>
+            <p className="text-[.72rem] text-[#8E95A9] font-semibold">{t('hotelsCheapestHighlighted', { count: hotels.length })}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close comparison"
+            aria-label={t('closeCompare')}
             className="w-9 h-9 rounded-full hover:bg-[#F1F3F7] flex items-center justify-center text-[#5C6378]"
           >
             <i className="fa-solid fa-xmark" />
@@ -2063,13 +2073,13 @@ function CompareModal({ hotels, nights, priceView, adults, childCount, buildDeta
                       }} /> : <div className="w-full h-full flex items-center justify-center text-3xl">🛏</div>}
                     {isCheapest && (
                       <span className="absolute top-2 left-2 text-[.55rem] font-black uppercase tracking-[1.5px] bg-[#FAF3E6] text-[#8a6d00] ring-1 ring-[#E8D8A8] px-2 py-0.5 rounded-full">
-                        Cheapest total
+                        {t('cheapestTotal')}
                       </span>
                     )}
                     <button
                       type="button"
                       onClick={() => onRemove(h.id)}
-                      aria-label={`Remove ${h.name}`}
+                      aria-label={t('removeAria', { name: h.name })}
                       className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/95 hover:bg-white text-[#5C6378] flex items-center justify-center shadow"
                     >
                       <i className="fa-solid fa-xmark text-[.7rem]" />
@@ -2080,23 +2090,23 @@ function CompareModal({ hotels, nights, priceView, adults, childCount, buildDeta
                     <h3 className="font-[var(--font-playfair)] font-black text-[1rem] text-[#0a1628] leading-tight">{h.name}</h3>
                     {h.district && <p className="text-[.7rem] text-[#8E95A9] font-semibold">📍 {h.district}</p>}
                     <dl className="mt-1 space-y-1.5 text-[.72rem]">
-                      <Row label="Price" value={<><span className="font-black text-[.95rem] text-[#0a1628]">{pc.main}</span><span className="block text-[.65rem] text-[#8E95A9] font-semibold">{pc.sub}</span></>} />
-                      <Row label="Per night" value={<span className="font-bold text-[#1A1D2B]">£{Math.round(h.pricePerNight)}</span>} />
-                      <Row label="Board" value={<span className="text-[#1A1D2B] font-semibold">{h.boardType || '—'}</span>} />
-                      <Row label="Cancellation" value={
+                      <Row label={t('rowPrice')} value={<><span className="font-black text-[.95rem] text-[#0a1628]">{pc.main}</span><span className="block text-[.65rem] text-[#8E95A9] font-semibold">{pc.sub}</span></>} />
+                      <Row label={t('rowPerNight')} value={<span className="font-bold text-[#1A1D2B]">£{Math.round(h.pricePerNight)}</span>} />
+                      <Row label={t('rowBoard')} value={<span className="text-[#1A1D2B] font-semibold">{h.boardType || '—'}</span>} />
+                      <Row label={t('rowCancellation')} value={
                         typeof h.refundable === 'boolean'
                           ? (h.refundable
-                            ? <span className="text-emerald-700 font-bold">Free</span>
-                            : <span className="text-slate-500 font-semibold">Non-refundable</span>)
+                            ? <span className="text-emerald-700 font-bold">{t('free')}</span>
+                            : <span className="text-slate-500 font-semibold">{t('nonRefundable')}</span>)
                           : <span className="text-[#8E95A9]">—</span>
                       } />
-                      <Row label="Bookable" value={h.bookable ? <span className="text-emerald-700 font-bold">Direct</span> : <span className="text-slate-500 font-semibold">Via partner</span>} />
+                      <Row label={t('rowBookable')} value={h.bookable ? <span className="text-emerald-700 font-bold">{t('direct')}</span> : <span className="text-slate-500 font-semibold">{t('viaPartner')}</span>} />
                     </dl>
                     <a
                       href={buildDetailHref(h)}
                       className="mt-auto inline-flex items-center justify-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white font-poppins font-bold text-[.75rem] px-3 py-2 rounded-full transition-all"
                     >
-                      View rooms →
+                      {t('viewRooms')}
                     </a>
                   </div>
                 </div>
@@ -2137,6 +2147,7 @@ function Stars({ count }: { count: number }) {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function HotelsContent() {
+  const t = useTranslations('hotels');
   const [destination, setDestination] = useState('');
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   // Optional WGS84 coords from the autocomplete pick — forwarded to the
@@ -2459,9 +2470,9 @@ function HotelsContent() {
     // as a frozen page to some users (and to automation), and the message
     // vanishes on dismiss so it teaches nothing (2026-07-02 audit — the
     // "Search Hotels does nothing / page hangs" report was these alerts).
-    if (!destination) { setFormError('Type a destination to search — city, landmark or hotel name.'); return; }
-    if (!checkin) { setFormError('Pick a check-in date to search.'); return; }
-    if (!checkout) { setFormError('Pick a check-out date to search.'); return; }
+    if (!destination) { setFormError(t('errNoDestination')); return; }
+    if (!checkin) { setFormError(t('errNoCheckin')); return; }
+    if (!checkout) { setFormError(t('errNoCheckout')); return; }
     setFormError('');
 
     // Track the search submission so we can see which destinations get
@@ -2666,7 +2677,7 @@ function HotelsContent() {
 
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
     } catch {
-      setApiError('Could not load hotel prices. Please try again.');
+      setApiError(t('apiErrorGeneric'));
       setLoading(false);
     }
     // 2026-05-16 — `roomsArr` belongs in the deps. handleSearch reads
@@ -2959,7 +2970,7 @@ function HotelsContent() {
         `}</style>
           {/* Destination */}
           <div className="mb-3">
-            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Destination</label>
+            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">{t('destination')}</label>
             <DestinationPicker
               value={destination}
               onChange={setDestination}
@@ -2981,19 +2992,19 @@ function HotelsContent() {
           {/* Dates + Guests */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Calendar</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">{t('calendar')}</label>
               <DateRangePicker
                 start={checkin}
                 end={checkout}
                 minDate={today}
                 accent="orange"
-                startWord="check-in"
-                endWord="check-out"
+                startWord={t('wordCheckin')}
+                endWord={t('wordCheckout')}
                 onChange={({ start: ci, end: co }) => { setCheckin(ci); setCheckout(co); }}
               />
             </div>
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Guests &amp; Rooms</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">{t('guestsRooms')}</label>
               <OccupancyPicker
                 adults={adults}
                 children={childCount}
@@ -3013,19 +3024,19 @@ function HotelsContent() {
 
           {/* Star filter + Board type */}
           <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
-            <label className="text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9]">Hotel class</label>
+            <label className="text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9]">{t('hotelClass')}</label>
             <StarFilter value={minStars} onChange={setMinStars} />
           </div>
           <div className="mb-4">
-            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Board type</label>
+            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">{t('boardTypeLabel')}</label>
             <div className="flex flex-wrap gap-1.5">
               {[
-                { label: 'Any', value: 'any' },
-                { label: 'Room Only', value: 'room only' },
-                { label: 'Breakfast', value: 'breakfast' },
-                { label: 'Half Board', value: 'half board' },
-                { label: 'Full Board', value: 'full board' },
-                { label: 'All Inclusive', value: 'all inclusive' },
+                { label: t('boardAny'), value: 'any' },
+                { label: t('boardRoomOnly'), value: 'room only' },
+                { label: t('boardBreakfast'), value: 'breakfast' },
+                { label: t('boardHalfBoard'), value: 'half board' },
+                { label: t('boardFullBoard'), value: 'full board' },
+                { label: t('boardAllInclusive'), value: 'all inclusive' },
               ].map(opt => (
                 <button key={opt.value} type="button" onClick={() => setBoardFilter(opt.value)}
                   className={`px-3 py-1.5 rounded-lg text-[.72rem] font-bold transition-all ${boardFilter === opt.value ? 'bg-orange-500 text-white shadow-sm' : 'bg-[#F1F3F7] text-[#5C6378] hover:bg-orange-50'}`}>
@@ -3041,12 +3052,12 @@ function HotelsContent() {
               onClick={() => setRefundableOnly(v => !v)}>
               <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${refundableOnly ? 'translate-x-4' : ''}`} />
             </div>
-            <span className="text-[.78rem] font-bold text-[#1A1D2B] group-hover:text-green-600 transition-colors">Free cancellation only</span>
+            <span className="text-[.78rem] font-bold text-[#1A1D2B] group-hover:text-green-600 transition-colors">{t('freeCancellationOnly')}</span>
           </label>
 
           <button onClick={handleSearch} disabled={loading}
             className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(245,158,11,0.3)]">
-            {loading ? 'Searching…' : 'Search Hotels →'}
+            {loading ? t('searchingBtn') : t('searchHotels')}
           </button>
           {formError ? (
             <p className="text-center text-[.72rem] text-red-600 font-bold mt-1.5" role="alert">
@@ -3054,7 +3065,7 @@ function HotelsContent() {
               {formError}
             </p>
           ) : (
-            <p className="text-center text-[11px] leading-snug text-[#8E95A9] font-semibold mt-1.5">Book directly — no redirects, no hidden fees, best price guaranteed</p>
+            <p className="text-center text-[11px] leading-snug text-[#8E95A9] font-semibold mt-1.5">{t('bookDirectNote')}</p>
           )}
         </div>
 
@@ -3070,12 +3081,12 @@ function HotelsContent() {
           <div className="max-w-[1100px] mx-auto">
           {/* Section header */}
           <div className="text-center mb-8">
-            <span className="inline-block bg-white/70 backdrop-blur-sm border border-orange-300/50 text-orange-700 text-[.62rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-3 shadow-[0_4px_12px_rgba(120,60,20,0.12)]">Hot Hotel Deals</span>
+            <span className="inline-block bg-white/70 backdrop-blur-sm border border-orange-300/50 text-orange-700 text-[.62rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-3 shadow-[0_4px_12px_rgba(120,60,20,0.12)]">{t('hotHotelDeals')}</span>
             <h2 className="font-poppins font-black text-[1.8rem] md:text-[2.4rem] text-[#3a1f10] leading-tight mb-2">
-              Trending Destinations
+              {t('trendingDestinations')}
             </h2>
             <p className="text-[.88rem] text-[#6b4a32] font-semibold max-w-[480px] mx-auto">
-              Real prices from top hotels — updated every few hours
+              {t('realPricesUpdated')}
             </p>
           </div>
 
@@ -3112,7 +3123,7 @@ function HotelsContent() {
                       <div className="absolute inset-0 z-10 bg-white/70 backdrop-blur-sm flex items-center justify-center">
                         <span className="inline-flex items-center gap-2 text-[.72rem] font-black text-orange-600">
                           <span className="inline-block w-3.5 h-3.5 border-2 border-orange-300 border-t-orange-600 rounded-full animate-spin" />
-                          Starting booking…
+                          {t('startingBooking')}
                         </span>
                       </div>
                     )}
@@ -3169,19 +3180,19 @@ function HotelsContent() {
                           </div>
                         </>
                       ) : (
-                        <p className="text-[.72rem] text-[#8E95A9] font-semibold mb-2">{deal.hotelCount} hotels available</p>
+                        <p className="text-[.72rem] text-[#8E95A9] font-semibold mb-2">{t('hotelsAvailable', { count: deal.hotelCount })}</p>
                       )}
 
                       <div className="flex items-end justify-between">
                         <div>
-                          <span className="text-[.6rem] text-[#8E95A9] font-semibold">from</span>
+                          <span className="text-[.6rem] text-[#8E95A9] font-semibold">{t('fromWord')}</span>
                           <span className="font-poppins font-black text-[1.3rem] text-[#1A1D2B] leading-none ml-1">
                             £{Math.round(deal.cheapestPrice!)}
                           </span>
-                          <span className="text-[.65rem] text-[#8E95A9] font-semibold">/night</span>
+                          <span className="text-[.65rem] text-[#8E95A9] font-semibold">{t('perNight')}</span>
                         </div>
                         <span className="text-orange-500 text-[.68rem] font-bold group-hover:translate-x-0.5 transition-transform">
-                          View →
+                          {t('viewArrow')}
                         </span>
                       </div>
                     </div>
@@ -3205,10 +3216,10 @@ function HotelsContent() {
                 </div>
                 <div className="flex-1 text-center md:text-left">
                   <h3 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-1">
-                    Deal of the Day — {bestDeal.flag} {bestDeal.city}
+                    {t('dealOfTheDay')} {bestDeal.flag} {bestDeal.city}
                   </h3>
                   <p className="text-[.82rem] text-[#5C6378] font-semibold">
-                    {h.name} {h.stars > 0 && `· ${'★'.repeat(h.stars)}`} {h.boardType && `· ${h.boardType}`} — from <strong className="text-orange-600">£{Math.round(h.pricePerNight)}/night</strong> for 4 nights
+                    {h.name} {h.stars > 0 && `· ${'★'.repeat(h.stars)}`} {h.boardType && `· ${h.boardType}`} — {t('fromWord')} <strong className="text-orange-600">£{Math.round(h.pricePerNight)}{t('perNight')}</strong> {t('forNNights', { count: 4 })}
                   </p>
                 </div>
                 <a
@@ -3223,7 +3234,7 @@ function HotelsContent() {
                   )}
                   className="flex-shrink-0 bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-poppins font-black text-[.85rem] px-6 py-3 rounded-xl transition-all shadow-[0_4px_20px_rgba(245,158,11,0.3)]"
                 >
-                  {dealBookingId === h.id ? 'Starting…' : 'View Deal →'}
+                  {dealBookingId === h.id ? t('startingShort') : t('viewDeal')}
                 </a>
               </div>
             );
@@ -3249,7 +3260,7 @@ function HotelsContent() {
             <p className="text-[.85rem] font-bold text-red-600 mb-3">{apiError}</p>
             <button onClick={handleSearch}
               className="bg-orange-500 hover:bg-orange-600 text-white font-poppins font-bold text-[.82rem] px-6 py-2.5 rounded-xl transition-all">
-              Try Again
+              {t('tryAgain')}
             </button>
           </div>
         </section>
@@ -3265,10 +3276,10 @@ function HotelsContent() {
                 <div className="flex items-center gap-3">
                   <span className="text-xl">🏷</span>
                   <span className="font-poppins font-black text-[1rem] text-[#1A1D2B]">
-                    {hotels!.length} hotel{hotels!.length !== 1 ? 's' : ''} found in {searchedDest} from <span className="text-orange-600">£{cheapest.pricePerNight}/night</span>
+                    {t('hotelsFound', { count: hotels!.length, dest: searchedDest })} {t('fromWord')} <span className="text-orange-600">£{cheapest.pricePerNight}{t('perNight')}</span>
                   </span>
                 </div>
-                <p className="text-[.7rem] text-[#8E95A9] font-semibold">Prices based on recent searches — click any hotel for live pricing</p>
+                <p className="text-[.7rem] text-[#8E95A9] font-semibold">{t('pricesRecentSearches')}</p>
               </div>
             </section>
           )}
@@ -3319,7 +3330,7 @@ function HotelsContent() {
             <section className="max-w-[1000px] mx-auto px-5 pb-3">
               <SaveSearchButton
                 type="hotel"
-                label={`Hotels in ${searchedDest || destination} · ${checkin} → ${checkout} · ${adults + childCount} guest${adults + childCount === 1 ? '' : 's'}`}
+                label={t('saveSearchLabel', { dest: searchedDest || destination, checkin, checkout, guests: adults + childCount })}
                 criteria={{
                   destination: searchedDest || destination,
                   placeId: selectedPlaceId ?? undefined,
@@ -3353,7 +3364,7 @@ function HotelsContent() {
                     onClick={() => setViewMode('list')}
                     className={`px-4 py-2 rounded-lg text-[.78rem] font-poppins font-bold transition-all flex items-center gap-1.5 ${viewMode === 'list' ? 'bg-white text-[#1A1D2B] shadow-sm' : 'text-[#5C6378]'}`}
                   >
-                    <i className="fa-solid fa-list text-[.72rem]" /> List
+                    <i className="fa-solid fa-list text-[.72rem]" /> {t('list')}
                   </button>
                   <button
                     type="button"
@@ -3361,7 +3372,7 @@ function HotelsContent() {
                     disabled={geoHotels.length === 0}
                     className={`px-4 py-2 rounded-lg text-[.78rem] font-poppins font-bold transition-all flex items-center gap-1.5 ${viewMode === 'map' ? 'bg-white text-[#1A1D2B] shadow-sm' : 'text-[#5C6378]'} disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
-                    <i className="fa-solid fa-map-location-dot text-[.72rem]" /> Map
+                    <i className="fa-solid fa-map-location-dot text-[.72rem]" /> {t('map')}
                   </button>
                 </div>
 
@@ -3372,36 +3383,36 @@ function HotelsContent() {
                     onClick={() => setPriceView('total')}
                     className={`px-3 py-1.5 rounded-lg text-[.72rem] font-poppins font-bold transition-all ${priceView === 'total' ? 'bg-white text-[#1A1D2B] shadow-sm' : 'text-[#5C6378]'}`}
                   >
-                    Total price
+                    {t('totalPriceToggle')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setPriceView('perPerson')}
                     className={`px-3 py-1.5 rounded-lg text-[.72rem] font-poppins font-bold transition-all ${priceView === 'perPerson' ? 'bg-white text-[#1A1D2B] shadow-sm' : 'text-[#5C6378]'}`}
                   >
-                    Per person
+                    {t('perPersonToggle')}
                   </button>
                 </div>
 
                 {/* Sort dropdown */}
                 <div className="flex items-center gap-2">
-                  <label htmlFor="hotel-sort" className="text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9]">Sort by</label>
+                  <label htmlFor="hotel-sort" className="text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9]">{t('sortBy')}</label>
                   <select
                     id="hotel-sort"
                     value={sortBy}
                     onChange={e => setSortBy(e.target.value as SortBy)}
                     className="px-3 py-2 rounded-xl border border-[#E8ECF4] bg-white text-[.8rem] font-bold text-[#1A1D2B] outline-none focus:border-orange-400 cursor-pointer"
                   >
-                    <option value="recommended">Recommended</option>
-                    <option value="price-asc">Price: Low to High</option>
-                    <option value="price-desc">Price: High to Low</option>
-                    <option value="distance" disabled={!cityCentre}>Distance from centre</option>
+                    <option value="recommended">{t('sortRecommended')}</option>
+                    <option value="price-asc">{t('sortPriceAsc')}</option>
+                    <option value="price-desc">{t('sortPriceDesc')}</option>
+                    <option value="distance" disabled={!cityCentre}>{t('sortDistance')}</option>
                   </select>
                 </div>
 
                 {/* Results-per-page selector */}
                 <div className="flex items-center gap-2">
-                  <label htmlFor="hotel-page-size" className="text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9]">Per page</label>
+                  <label htmlFor="hotel-page-size" className="text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9]">{t('perPage')}</label>
                   <select
                     id="hotel-page-size"
                     value={pageSize}
@@ -3413,7 +3424,7 @@ function HotelsContent() {
                     <option value={30}>30</option>
                     <option value={50}>50</option>
                     <option value={100}>100</option>
-                    <option value={0}>All</option>
+                    <option value={0}>{t('allOption')}</option>
                   </select>
                 </div>
               </div>
@@ -3537,21 +3548,21 @@ function HotelsContent() {
             <section className="max-w-[1000px] mx-auto px-5 pb-10">
               <nav
                 role="navigation"
-                aria-label="Hotel results pagination"
+                aria-label={t('paginationAria')}
                 className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white border border-[#E8ECF4] rounded-2xl px-5 py-4"
               >
                 <div className="text-[.78rem] text-[#5C6378] font-semibold">
-                  Showing <span className="font-black text-[#1A1D2B]">{pageStart + 1}–{pageEnd}</span> of <span className="font-black text-[#1A1D2B]">{totalResults}</span> hotels
+                  {t('showingPre')} <span className="font-black text-[#1A1D2B]">{pageStart + 1}–{pageEnd}</span> {t('showingOf')} <span className="font-black text-[#1A1D2B]">{totalResults}</span> {t('hotelsWord')}
                 </div>
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => onChangePage(safePage - 1)}
                     disabled={safePage <= 1}
-                    aria-label="Previous page"
+                    aria-label={t('prevPageAria')}
                     className="px-3 py-2 rounded-lg border border-[#E8ECF4] bg-white text-[.78rem] font-bold text-[#1A1D2B] hover:bg-[#F8FAFC] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
-                    ← Prev
+                    {t('prevPage')}
                   </button>
                   {/* Compact page-number buttons. Show first, last, current,
                       ±1 around current, and ellipses for skipped ranges. */}
@@ -3571,7 +3582,7 @@ function HotelsContent() {
                         type="button"
                         onClick={() => onChangePage(p)}
                         aria-current={p === safePage ? 'page' : undefined}
-                        aria-label={`Page ${p}`}
+                        aria-label={t('pageAria', { n: p })}
                         className={`min-w-[36px] px-3 py-2 rounded-lg text-[.78rem] font-bold transition-colors ${p === safePage ? 'bg-[#0a1628] text-white' : 'border border-[#E8ECF4] bg-white text-[#1A1D2B] hover:bg-[#F8FAFC]'}`}
                       >
                         {p}
@@ -3582,10 +3593,10 @@ function HotelsContent() {
                     type="button"
                     onClick={() => onChangePage(safePage + 1)}
                     disabled={safePage >= totalPages}
-                    aria-label="Next page"
+                    aria-label={t('nextPageAria')}
                     className="px-3 py-2 rounded-lg border border-[#E8ECF4] bg-white text-[.78rem] font-bold text-[#1A1D2B] hover:bg-[#F8FAFC] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
-                    Next →
+                    {t('nextPage')}
                   </button>
                 </div>
               </nav>
@@ -3605,10 +3616,10 @@ function HotelsContent() {
               <div className="flex flex-col items-center justify-center text-center bg-white border border-[#E8ECF4] rounded-3xl px-6 py-10 shadow-[0_8px_30px_rgba(10,22,40,0.08)]">
                 <div className="text-5xl mb-4" aria-hidden>🏨</div>
                 <h3 className="font-poppins font-black text-[1.2rem] text-[#1A1D2B] mb-2">
-                  No live rates right now
+                  {t('noLiveRates')}
                 </h3>
                 <p className="text-[.85rem] text-[#5C6378] font-semibold max-w-sm mb-6 leading-relaxed">
-                  We couldn&apos;t find bookable rooms for those dates. Try adjusting your dates or guests, or search a nearby destination.
+                  {t('noLiveRatesBody')}
                 </p>
                 <div className="flex flex-col gap-3 w-full max-w-xs">
                   <button
@@ -3616,13 +3627,13 @@ function HotelsContent() {
                     onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                     className="w-full py-3 rounded-2xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.85rem] transition-all shadow-[0_4px_14px_rgba(0,102,255,0.25)]"
                   >
-                    🔍 Adjust Search
+                    🔍 {t('adjustSearch')}
                   </button>
                   <a
                     href="/packages"
                     className="w-full py-3 rounded-2xl border border-[#E8ECF4] hover:bg-[#F8FAFC] text-[#1A1D2B] font-poppins font-semibold text-[.85rem] text-center transition-all"
                   >
-                    📦 Try Holiday Packages Instead
+                    📦 {t('tryPackages')}
                   </a>
                 </div>
               </div>
@@ -3635,22 +3646,22 @@ function HotelsContent() {
               {/* Flights */}
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-5">
                 <span className="text-2xl mb-2 block">✈</span>
-                <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">Flights to {searchedDest}</h4>
-                <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">Need a flight too? Compare across our providers.</p>
+                <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">{t('flightsTo', { dest: searchedDest })}</h4>
+                <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">{t('needFlightToo')}</p>
                 <a href={`/flights?to=${encodeURIComponent(searchedDest)}`}
                   className="inline-block bg-white hover:bg-blue-50 text-[#0066FF] font-poppins font-bold text-[.75rem] px-4 py-2 rounded-lg border border-blue-200 transition-all">
-                  Compare Flights →
+                  {t('compareFlights')}
                 </a>
               </div>
 
               {/* Car Hire */}
               <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100 rounded-2xl p-5">
                 <span className="text-2xl mb-2 block">🚗</span>
-                <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">Car Hire in {searchedDest}</h4>
-                <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">Explore {searchedDest} on your own terms.</p>
+                <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">{t('carHireIn', { dest: searchedDest })}</h4>
+                <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">{t('exploreOnTerms', { dest: searchedDest })}</p>
                 <a href={`/cars?location=${encodeURIComponent(searchedDest)}`}
                   className="inline-block bg-white hover:bg-amber-50 text-amber-600 font-poppins font-bold text-[.75rem] px-4 py-2 rounded-lg border border-amber-200 transition-all">
-                  Compare Car Hire →
+                  {t('compareCarHire')}
                 </a>
               </div>
             </div>
@@ -3661,13 +3672,13 @@ function HotelsContent() {
       {/* ── Tips ── */}
       <section className="max-w-[860px] mx-auto px-5 pb-16">
         <div className="bg-[#F8FAFC] border border-[#F1F3F7] rounded-3xl p-8">
-          <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">Tips for Finding Cheaper Hotels</h3>
+          <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">{t('tipsTitle')}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
-              ['Book 2–3 weeks ahead', 'Last-minute deals exist, but the best prices are typically 2–3 weeks before travel.'],
-              ['Compare across providers', 'The same hotel can vary by 20–40% across different booking sites.'],
-              ['Check cancellation policies', 'Free cancellation rates let you book now and keep looking for better deals.'],
-              ['Consider location carefully', 'A cheaper hotel in the right area can save on transport and give a better experience.'],
+              [t('tips.bookAhead.title'), t('tips.bookAhead.body')],
+              [t('tips.compareProviders.title'), t('tips.compareProviders.body')],
+              [t('tips.cancellation.title'), t('tips.cancellation.body')],
+              [t('tips.location.title'), t('tips.location.body')],
             ].map(([title, body]) => (
               <div key={title} className="flex gap-3">
                 <div className="w-1.5 flex-shrink-0 rounded-full bg-gradient-to-b from-orange-400 to-amber-500 self-stretch" />
