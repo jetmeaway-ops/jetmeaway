@@ -485,5 +485,95 @@
       "checkTitle": "Check your phone",
       "checkBody": "Go to Settings > General > About > look for \"Available SIM\" or \"Digital SIM\"."
     }
+  },
+  "cars": {
+    "badge": "Car Rental Comparison",
+    "heroTitlePre": "Hire a Car",
+    "heroTitleHighlight": "Anywhere",
+    "heroSub": "Compare trusted car rental providers — real prices, no hidden fees.",
+    "pickupLocation": "Pickup Location",
+    "pickupPlaceholder": "Airport — e.g. Barcelona Airport (BCN)",
+    "differentReturn": "Return to a different location",
+    "returnLocation": "Return Location",
+    "returnPlaceholder": "Where are you dropping off?",
+    "calendar": "Calendar",
+    "wordPickup": "pickup",
+    "wordReturn": "return",
+    "driverAge": "Driver Age",
+    "pickupTime": "Pickup Time",
+    "returnTime": "Return Time",
+    "dailyBudget": "Daily Budget",
+    "searchBtn": "Search Car Rentals →",
+    "verifiedNote": "Pick from {count} verified airports · Compare real live prices on EconomyBookings & Trip.com",
+    "carHireIn": "Car hire in {city}",
+    "to": "to",
+    "nDays": "{count, plural, one {# day} other {# days}}",
+    "carTypesNote": "{count} car types · Live prices on EconomyBookings & Trip.com",
+    "sortPriceAsc": "Price: Low to High",
+    "sortPriceDesc": "Price: High to Low",
+    "sortSeats": "Most Seats",
+    "liveResultsP1": "Live results · Provider 1",
+    "liveResultsP2": "Live results · Provider 2",
+    "compareGlobalSuppliers": "Compare rates from global suppliers",
+    "freeCancellation": "Free cancellation",
+    "payAtPickup": "Pay at pickup option",
+    "suppliersInclude": "Suppliers include:",
+    "seats": "{count, plural, one {# seat} other {# seats}}",
+    "bags": "{count, plural, one {# bag} other {# bags}}",
+    "doors": "{count, plural, one {# door} other {# doors}}",
+    "aircon": "A/C",
+    "payNowOrLater": "Pay now or later",
+    "estimatedFrom": "estimated from",
+    "perDay": "/day",
+    "totalForDays": "~£{total} total for {count, plural, one {# day} other {# days}}",
+    "noCarsMatch": "No cars match your budget filter",
+    "clearBudget": "Clear budget filter",
+    "bookOnEco": "Book on EconomyBookings →",
+    "bookOnTrip": "Book on Trip.com →",
+    "tipsTitle": "Tips for Cheaper Car Rentals",
+    "loadingChecking": "Checking availability...",
+    "loadingComparing": "Comparing prices...",
+    "comparingCarHireIn": "Comparing car hire in",
+    "errChoosePickup": "Choose a pickup airport to search.",
+    "errPickupNotListed": "Pick a pickup airport from the dropdown list — only listed airports are supported.",
+    "errPickupDate": "Pick a pickup date to search.",
+    "errReturnDate": "Pick a return date to search.",
+    "errChooseReturn": "Choose a return location to search.",
+    "errReturnNotListed": "Pick a return location from the dropdown list — only listed airports are supported.",
+    "carName": {
+      "mini": "Mini",
+      "economy": "Economy",
+      "compact": "Compact",
+      "midSize": "Mid-size",
+      "suv": "SUV",
+      "premium": "Premium",
+      "peopleCarrier": "People Carrier",
+      "convertible": "Convertible"
+    },
+    "budget": {
+      "anyBudget": "Any budget",
+      "under15": "Under £15/day",
+      "under25": "Under £25/day",
+      "under35": "Under £35/day",
+      "under50": "Under £50/day"
+    },
+    "tips": {
+      "bookEarly": {
+        "title": "Book early, pick up off-airport",
+        "body": "Off-airport depots are 20-40% cheaper. Take a taxi from arrivals — still worth it."
+      },
+      "fuel": {
+        "title": "Always take full-to-full fuel",
+        "body": "Return with a full tank — \"full-to-empty\" deals sound cheap but rarely are."
+      },
+      "excess": {
+        "title": "Decline excess waiver at the desk",
+        "body": "Buy third-party excess insurance for ~£3/day instead of £15-25/day at the counter."
+      },
+      "under25": {
+        "title": "Under 25? Compare specialist sites",
+        "body": "Specialist car hire sites often have younger driver surcharges that are 30-50% lower than international chains."
+      }
+    }
   }
 }

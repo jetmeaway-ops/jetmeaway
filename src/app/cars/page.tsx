@@ -9,6 +9,7 @@ import { PageSchema } from '@/lib/page-schema';
 import { CARS_FAQS } from '@/lib/page-faqs';
 import { saveSticky, loadSticky, type StickyCars } from '@/lib/sticky-search';
 import AppStoreBadges from '@/components/AppStoreBadges';
+import { useTranslations } from 'next-intl';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    LOCATIONS — verified EconomyBookings airports
@@ -288,11 +289,12 @@ function LocationPicker({ value, onChange, placeholder }: {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const LOADING_MSGS = [
-  'Checking availability...',
-  'Comparing prices...',
+  'loadingChecking',
+  'loadingComparing',
 ];
 
 function LoadingState({ loc }: { loc: string }) {
+  const t = useTranslations('cars');
   const [msgIdx, setMsgIdx] = useState(0);
   const [progress, setProgress] = useState(0);
 
@@ -310,9 +312,9 @@ function LoadingState({ loc }: { loc: string }) {
         </div>
         <div className="flex items-center justify-center gap-3 mb-3">
           <div className="w-5 h-5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
-          <span className="text-[.9rem] font-bold text-[#5C6378]">{LOADING_MSGS[msgIdx]}</span>
+          <span className="text-[.9rem] font-bold text-[#5C6378]">{t(LOADING_MSGS[msgIdx])}</span>
         </div>
-        <p className="text-[.78rem] text-[#8E95A9] font-semibold">Comparing car hire in <strong className="text-[#1A1D2B]">{loc}</strong></p>
+        <p className="text-[.78rem] text-[#8E95A9] font-semibold">{t('comparingCarHireIn')} <strong className="text-[#1A1D2B]">{loc}</strong></p>
       </div>
     </section>
   );
@@ -370,7 +372,17 @@ function extractCity(loc: string): string {
    MAIN PAGE
    ═══════════════════════════════════════════════════════════════════════════ */
 
+const CAR_NAME_KEY: Record<string, string> = {
+  'Mini': 'mini', 'Economy': 'economy', 'Compact': 'compact', 'Mid-size': 'midSize',
+  'SUV': 'suv', 'Premium': 'premium', 'People Carrier': 'peopleCarrier', 'Convertible': 'convertible',
+};
+const BUDGET_KEY: Record<string, string> = {
+  'Any budget': 'anyBudget', 'Under £15/day': 'under15', 'Under £25/day': 'under25',
+  'Under £35/day': 'under35', 'Under £50/day': 'under50',
+};
+
 function CarsContent() {
+  const t = useTranslations('cars');
   const [location, setLocation] = useState('');
   const [returnLocation, setReturnLocation] = useState('');
   const [differentReturn, setDifferentReturn] = useState(false);
@@ -447,17 +459,17 @@ function CarsContent() {
   const handleSearch = useCallback(() => {
     // Inline validation — never alert(). Blocking dialogs read as a frozen
     // page and the message vanishes on dismiss (2026-07-02 audit).
-    if (!location) { setFormError('Choose a pickup airport to search.'); return; }
+    if (!location) { setFormError(t('errChoosePickup')); return; }
     if (!findLocation(location)) {
-      setFormError('Pick a pickup airport from the dropdown list — only listed airports are supported.');
+      setFormError(t('errPickupNotListed'));
       return;
     }
-    if (!pickupDate) { setFormError('Pick a pickup date to search.'); return; }
-    if (!dropoffDate) { setFormError('Pick a return date to search.'); return; }
+    if (!pickupDate) { setFormError(t('errPickupDate')); return; }
+    if (!dropoffDate) { setFormError(t('errReturnDate')); return; }
     if (differentReturn) {
-      if (!returnLocation) { setFormError('Choose a return location to search.'); return; }
+      if (!returnLocation) { setFormError(t('errChooseReturn')); return; }
       if (!findLocation(returnLocation)) {
-        setFormError('Pick a return location from the dropdown list — only listed airports are supported.');
+        setFormError(t('errReturnNotListed'));
         return;
       }
     }
@@ -568,11 +580,11 @@ function CarsContent() {
         </div>
 
         <div className="max-w-[860px] mx-auto text-center mb-10 relative z-[1]">
-          <span className="inline-flex items-center gap-1.5 backdrop-blur-md bg-gradient-to-r from-emerald-500/15 to-teal-500/15 border border-emerald-300/30 text-emerald-300 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4 shadow-[0_4px_20px_rgba(16,185,129,0.25)]"><span className="text-base leading-none">🚗</span> Car Rental Comparison</span>
+          <span className="inline-flex items-center gap-1.5 backdrop-blur-md bg-gradient-to-r from-emerald-500/15 to-teal-500/15 border border-emerald-300/30 text-emerald-300 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-4 shadow-[0_4px_20px_rgba(16,185,129,0.25)]"><span className="text-base leading-none">🚗</span> {t('badge')}</span>
           <h1 className="font-poppins text-[2.6rem] md:text-[3.8rem] font-black text-white leading-[1.05] tracking-tight mb-3">
-            Hire a Car <em className="italic bg-gradient-to-br from-emerald-300 via-teal-400 to-cyan-400 bg-clip-text text-transparent">Anywhere</em>
+            {t('heroTitlePre')} <em className="italic bg-gradient-to-br from-emerald-300 via-teal-400 to-cyan-400 bg-clip-text text-transparent">{t('heroTitleHighlight')}</em>
           </h1>
-          <p className="text-[1rem] text-white/60 font-semibold max-w-[520px] mx-auto">Compare trusted car rental providers — real prices, no hidden fees.</p>
+          <p className="text-[1rem] text-white/60 font-semibold max-w-[520px] mx-auto">{t('heroSub')}</p>
         </div>
 
         <div className="max-w-[860px] mx-auto bg-white border border-white/20 rounded-3xl p-6 shadow-[0_30px_70px_-20px_rgba(0,0,0,0.6),0_8px_24px_-8px_rgba(16,185,129,0.3),0_0_0_1px_rgba(110,231,183,0.08)] relative z-[1]">
@@ -594,8 +606,8 @@ function CarsContent() {
         `}</style>
           {/* Pickup location */}
           <div className="mb-3">
-            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Pickup Location</label>
-            <LocationPicker value={location} onChange={setLocation} placeholder="Airport — e.g. Barcelona Airport (BCN)" />
+            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">{t('pickupLocation')}</label>
+            <LocationPicker value={location} onChange={setLocation} placeholder={t('pickupPlaceholder')} />
           </div>
 
           {/* Different return toggle */}
@@ -603,12 +615,12 @@ function CarsContent() {
             <label className="flex items-center gap-2 cursor-pointer mb-2 justify-center">
               <input type="checkbox" checked={differentReturn} onChange={e => setDifferentReturn(e.target.checked)}
                 className="w-4 h-4 rounded border-[#E8ECF4] text-emerald-500 focus:ring-emerald-500 accent-emerald-500" />
-              <span className="text-[.75rem] font-bold text-[#5C6378]">Return to a different location</span>
+              <span className="text-[.75rem] font-bold text-[#5C6378]">{t('differentReturn')}</span>
             </label>
             {differentReturn && (
               <div>
-                <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Return Location</label>
-                <LocationPicker value={returnLocation} onChange={setReturnLocation} placeholder="Where are you dropping off?" />
+                <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">{t('returnLocation')}</label>
+                <LocationPicker value={returnLocation} onChange={setReturnLocation} placeholder={t('returnPlaceholder')} />
               </div>
             )}
           </div>
@@ -616,31 +628,31 @@ function CarsContent() {
           {/* Calendar (shared range picker) + times + driver age */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Calendar</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">{t('calendar')}</label>
               <DateRangePicker
                 start={pickupDate}
                 end={dropoffDate}
                 minDate={today}
                 accent="emerald"
-                startWord="pickup"
-                endWord="return"
+                startWord={t('wordPickup')}
+                endWord={t('wordReturn')}
                 onChange={({ start: s, end: e }) => { setPickupDate(s); setDropoffDate(e); }}
               />
             </div>
             <div>
-              <label htmlFor="cars-driver-age" className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Driver Age</label>
+              <label htmlFor="cars-driver-age" className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">{t('driverAge')}</label>
               <input id="cars-driver-age" type="number" min={18} max={99} value={driverAge} onChange={e => setDriverAge(e.target.value)}
                 className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-emerald-500 focus:bg-white transition-all" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div>
-              <label htmlFor="cars-pickup-time" className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Pickup Time</label>
+              <label htmlFor="cars-pickup-time" className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">{t('pickupTime')}</label>
               <input id="cars-pickup-time" type="time" value={pickupTime} onChange={e => setPickupTime(e.target.value)}
                 className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-emerald-500 focus:bg-white transition-all" />
             </div>
             <div>
-              <label htmlFor="cars-dropoff-time" className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Return Time</label>
+              <label htmlFor="cars-dropoff-time" className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">{t('returnTime')}</label>
               <input id="cars-dropoff-time" type="time" value={dropoffTime} onChange={e => setDropoffTime(e.target.value)}
                 className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-emerald-500 focus:bg-white transition-all" />
             </div>
@@ -648,12 +660,12 @@ function CarsContent() {
 
           {/* Budget filter */}
           <div className="mb-4">
-            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Daily Budget</label>
+            <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">{t('dailyBudget')}</label>
             <div className="flex flex-wrap gap-1.5">
               {BUDGET_OPTIONS.map(opt => (
                 <button key={opt.label} type="button" onClick={() => setBudget(opt.max)}
                   className={`px-3 py-1.5 rounded-lg text-[.72rem] font-bold transition-all ${budget === opt.max ? 'bg-emerald-500 text-white shadow-sm' : 'bg-[#F1F3F7] text-[#5C6378] hover:bg-emerald-50'}`}>
-                  {opt.label}
+                  {BUDGET_KEY[opt.label] ? t('budget.' + BUDGET_KEY[opt.label]) : opt.label}
                 </button>
               ))}
             </div>
@@ -661,7 +673,7 @@ function CarsContent() {
 
           <button onClick={handleSearch}
             className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(16,185,129,0.3)]">
-            Search Car Rentals →
+            {t('searchBtn')}
           </button>
           {formError ? (
             <p className="text-center text-[.72rem] text-red-600 font-bold mt-2.5" role="alert">
@@ -669,7 +681,7 @@ function CarsContent() {
               {formError}
             </p>
           ) : (
-            <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">Pick from {LOCATIONS.length} verified airports · Compare real live prices on EconomyBookings & Trip.com</p>
+            <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">{t('verifiedNote', { count: LOCATIONS.length })}</p>
           )}
         </div>
 
@@ -688,15 +700,15 @@ function CarsContent() {
             <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-2xl px-6 py-4 flex items-center justify-between flex-wrap gap-3">
               <div>
                 <h2 className="font-poppins font-black text-[1.15rem] text-[#1A1D2B]">
-                  Car hire in {city} — {pickupDate} to {dropoffDate}{days ? ` (${days} day${days !== 1 ? 's' : ''})` : ''}
+                  {t('carHireIn', { city })} — {pickupDate} {t('to')} {dropoffDate}{days ? ` (${t('nDays', { count: days })})` : ''}
                 </h2>
-                <p className="text-[.75rem] text-[#5C6378] font-semibold mt-1">{filteredCars.length} car types · Live prices on EconomyBookings & Trip.com</p>
+                <p className="text-[.75rem] text-[#5C6378] font-semibold mt-1">{t('carTypesNote', { count: filteredCars.length })}</p>
               </div>
               <select value={sortBy} onChange={e => setSortBy(e.target.value as 'price-asc' | 'price-desc' | 'seats')}
                 className="px-3 py-2 rounded-lg border border-[#E8ECF4] bg-white text-[.78rem] font-semibold text-[#1A1D2B] outline-none focus:border-emerald-500">
-                <option value="price-asc">Price: Low to High</option>
-                <option value="price-desc">Price: High to Low</option>
-                <option value="seats">Most Seats</option>
+                <option value="price-asc">{t('sortPriceAsc')}</option>
+                <option value="price-desc">{t('sortPriceDesc')}</option>
+                <option value="seats">{t('sortSeats')}</option>
               </select>
             </div>
           </section>
@@ -706,17 +718,17 @@ function CarsContent() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <a href={ebHref} target="_blank" rel="noopener sponsored"
                 className="block bg-gradient-to-br from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-2xl p-5 shadow-[0_8px_30px_rgba(16,185,129,0.25)] transition-all">
-                <div className="text-[.6rem] font-black uppercase tracking-[2px] opacity-80 mb-1">Live results · Provider 1</div>
+                <div className="text-[.6rem] font-black uppercase tracking-[2px] opacity-80 mb-1">{t('liveResultsP1')}</div>
                 <div className="font-poppins font-black text-[1.05rem]">EconomyBookings →</div>
                 <div className="text-[.72rem] font-semibold opacity-90 mt-0.5">Hertz · Europcar · Avis · Sixt · Enterprise</div>
-                <div className="inline-block text-[.62rem] font-bold bg-white/20 px-2.5 py-1 rounded-md mt-2">Free cancellation</div>
+                <div className="inline-block text-[.62rem] font-bold bg-white/20 px-2.5 py-1 rounded-md mt-2">{t('freeCancellation')}</div>
               </a>
               <a href={tripHref} target="_blank" rel="noopener sponsored"
                 className="block bg-gradient-to-br from-[#1A1D2B] to-[#0F1119] hover:from-[#0F1119] hover:to-black text-white rounded-2xl p-5 shadow-[0_8px_30px_rgba(15,17,25,0.25)] transition-all">
-                <div className="text-[.6rem] font-black uppercase tracking-[2px] opacity-80 mb-1">Live results · Provider 2</div>
+                <div className="text-[.6rem] font-black uppercase tracking-[2px] opacity-80 mb-1">{t('liveResultsP2')}</div>
                 <div className="font-poppins font-black text-[1.05rem]">Trip.com →</div>
-                <div className="text-[.72rem] font-semibold opacity-90 mt-0.5">Compare rates from global suppliers</div>
-                <div className="inline-block text-[.62rem] font-bold bg-white/20 px-2.5 py-1 rounded-md mt-2">Pay at pickup option</div>
+                <div className="text-[.72rem] font-semibold opacity-90 mt-0.5">{t('compareGlobalSuppliers')}</div>
+                <div className="inline-block text-[.62rem] font-bold bg-white/20 px-2.5 py-1 rounded-md mt-2">{t('payAtPickup')}</div>
               </a>
             </div>
           </section>
@@ -724,7 +736,7 @@ function CarsContent() {
           {/* Supplier banner */}
           <section className="max-w-[1000px] mx-auto px-5 pb-4">
             <div className="flex items-center gap-2 overflow-x-auto pb-1">
-              <span className="text-[.65rem] font-bold text-[#8E95A9] uppercase tracking-wider whitespace-nowrap mr-1">Suppliers include:</span>
+              <span className="text-[.65rem] font-bold text-[#8E95A9] uppercase tracking-wider whitespace-nowrap mr-1">{t('suppliersInclude')}</span>
               {SUPPLIER_LOGOS.map(s => (
                 <span key={s.name} className="flex-shrink-0 px-2.5 py-1 rounded-md text-[.62rem] font-black uppercase tracking-wide"
                   style={{ backgroundColor: s.bg, color: s.color }}>
@@ -753,40 +765,40 @@ function CarsContent() {
                             el.style.display = 'none';
                             el.parentElement!.innerHTML = '<div class="flex items-center justify-center h-full"><span class="text-4xl">🚗</span></div>';
                           }} />
-                        <span className="absolute top-3 left-3 text-[.6rem] font-black uppercase tracking-[1px] bg-emerald-500 text-white px-2.5 py-1 rounded-full">{car.name}</span>
+                        <span className="absolute top-3 left-3 text-[.6rem] font-black uppercase tracking-[1px] bg-emerald-500 text-white px-2.5 py-1 rounded-full">{CAR_NAME_KEY[car.name] ? t('carName.' + CAR_NAME_KEY[car.name]) : car.name}</span>
                       </div>
 
                       {/* Car info */}
                       <div className="p-5 flex flex-col justify-center">
-                        <h3 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-0.5">{car.name}</h3>
+                        <h3 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-0.5">{CAR_NAME_KEY[car.name] ? t('carName.' + CAR_NAME_KEY[car.name]) : car.name}</h3>
                         <p className="text-[.78rem] text-[#8E95A9] font-semibold mb-3">{car.example}</p>
                         <div className="flex flex-wrap gap-3 mb-3">
                           <span className="flex items-center gap-1 text-[.72rem] font-semibold text-[#5C6378]">
-                            <i className="fa-solid fa-user text-[.65rem] text-emerald-500" /> {car.seats} seats
+                            <i className="fa-solid fa-user text-[.65rem] text-emerald-500" /> {t('seats', { count: car.seats })}
                           </span>
                           <span className="flex items-center gap-1 text-[.72rem] font-semibold text-[#5C6378]">
-                            <i className="fa-solid fa-suitcase text-[.65rem] text-emerald-500" /> {car.bags} bag{car.bags !== 1 ? 's' : ''}
+                            <i className="fa-solid fa-suitcase text-[.65rem] text-emerald-500" /> {t('bags', { count: car.bags })}
                           </span>
                           <span className="flex items-center gap-1 text-[.72rem] font-semibold text-[#5C6378]">
-                            <i className="fa-solid fa-door-open text-[.65rem] text-emerald-500" /> {car.doors} doors
+                            <i className="fa-solid fa-door-open text-[.65rem] text-emerald-500" /> {t('doors', { count: car.doors })}
                           </span>
                           <span className="flex items-center gap-1 text-[.72rem] font-semibold text-[#5C6378]">
-                            <i className="fa-solid fa-snowflake text-[.65rem] text-emerald-500" /> A/C
+                            <i className="fa-solid fa-snowflake text-[.65rem] text-emerald-500" /> {t('aircon')}
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          <span className="text-[.66rem] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">Free cancellation</span>
-                          <span className="text-[.66rem] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md">Pay now or later</span>
+                          <span className="text-[.66rem] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">{t('freeCancellation')}</span>
+                          <span className="text-[.66rem] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md">{t('payNowOrLater')}</span>
                         </div>
                       </div>
 
                       {/* Price + book CTA */}
                       <div className="p-5 flex flex-col items-end justify-center gap-3 border-t md:border-t-0 md:border-l border-[#F1F3F7] min-w-[200px]">
                         <div className="text-right">
-                          <div className="text-[.65rem] text-[#8E95A9] font-semibold">estimated from</div>
-                          <div className="font-poppins font-black text-[1.6rem] text-[#1A1D2B] leading-none">£{car.fromPrice}<span className="text-[.7rem] font-semibold text-[#8E95A9]">/day</span></div>
+                          <div className="text-[.65rem] text-[#8E95A9] font-semibold">{t('estimatedFrom')}</div>
+                          <div className="font-poppins font-black text-[1.6rem] text-[#1A1D2B] leading-none">£{car.fromPrice}<span className="text-[.7rem] font-semibold text-[#8E95A9]">{t('perDay')}</span></div>
                           {days && days > 1 && (
-                            <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">~£{totalEst} total for {days} day{days !== 1 ? 's' : ''}</div>
+                            <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">{t('totalForDays', { total: totalEst, count: days })}</div>
                           )}
                         </div>
                         <div className="flex flex-col gap-1.5 w-full md:w-auto">
@@ -805,8 +817,8 @@ function CarsContent() {
                 );
               }) : (
                 <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
-                  <p className="text-[.85rem] font-bold text-amber-800 mb-2">No cars match your budget filter</p>
-                  <button type="button" onClick={() => setBudget(Infinity)} className="text-[.78rem] font-bold text-emerald-600 hover:underline">Clear budget filter</button>
+                  <p className="text-[.85rem] font-bold text-amber-800 mb-2">{t('noCarsMatch')}</p>
+                  <button type="button" onClick={() => setBudget(Infinity)} className="text-[.78rem] font-bold text-emerald-600 hover:underline">{t('clearBudget')}</button>
                 </div>
               )}
             </div>
@@ -817,11 +829,11 @@ function CarsContent() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <a href={ebHref} target="_blank" rel="noopener sponsored"
                 className="block text-center bg-emerald-500 hover:bg-emerald-600 text-white font-poppins font-black text-[.9rem] py-4 rounded-xl transition-colors">
-                Book on EconomyBookings →
+                {t('bookOnEco')}
               </a>
               <a href={tripHref} target="_blank" rel="noopener sponsored"
                 className="block text-center bg-[#1A1D2B] hover:bg-[#0F1119] text-white font-poppins font-black text-[.9rem] py-4 rounded-xl transition-colors">
-                Book on Trip.com →
+                {t('bookOnTrip')}
               </a>
             </div>
           </section>
@@ -832,13 +844,13 @@ function CarsContent() {
       {/* ── Tips section (always visible) ── */}
       <section className="max-w-[860px] mx-auto px-5 pb-16">
         <div className="bg-[#F8FAFC] border border-[#F1F3F7] rounded-3xl p-8">
-          <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">Tips for Cheaper Car Rentals</h3>
+          <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">{t('tipsTitle')}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
-              ['Book early, pick up off-airport', 'Off-airport depots are 20-40% cheaper. Take a taxi from arrivals — still worth it.'],
-              ['Always take full-to-full fuel', 'Return with a full tank — "full-to-empty" deals sound cheap but rarely are.'],
-              ['Decline excess waiver at the desk', 'Buy third-party excess insurance for ~£3/day instead of £15-25/day at the counter.'],
-              ['Under 25? Compare specialist sites', 'Specialist car hire sites often have younger driver surcharges that are 30-50% lower than international chains.'],
+              [t('tips.bookEarly.title'), t('tips.bookEarly.body')],
+              [t('tips.fuel.title'), t('tips.fuel.body')],
+              [t('tips.excess.title'), t('tips.excess.body')],
+              [t('tips.under25.title'), t('tips.under25.body')],
             ].map(([title, body]) => (
               <div key={title} className="flex gap-3">
                 <div className="w-1.5 flex-shrink-0 rounded-full bg-gradient-to-b from-emerald-500 to-teal-500 self-stretch" />

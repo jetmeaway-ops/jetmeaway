@@ -485,5 +485,95 @@
       "checkTitle": "अपना फोन जाँचें",
       "checkBody": "सेटिंग्स > जनरल > About पर जाएँ > \"उपलब्ध सिम\" या \"डिजिटल सिम\" खोजें।"
     }
+  },
+  "cars": {
+    "badge": "कार किराया तुलना",
+    "heroTitlePre": "कार किराए पर लें",
+    "heroTitleHighlight": "कहीं भी",
+    "heroSub": "भरोसेमंद कार किराया प्रदाताओं की तुलना करें — वास्तविक कीमतें, कोई छिपा शुल्क नहीं।",
+    "pickupLocation": "पिकअप स्थान",
+    "pickupPlaceholder": "एयरपोर्ट — जैसे बार्सिलोना एयरपोर्ट (BCN)",
+    "differentReturn": "किसी अन्य स्थान पर वापसी",
+    "returnLocation": "वापसी स्थान",
+    "returnPlaceholder": "आप कहाँ वापस कर रहे हैं?",
+    "calendar": "कैलेंडर",
+    "wordPickup": "पिकअप",
+    "wordReturn": "वापसी",
+    "driverAge": "ड्राइवर आयु",
+    "pickupTime": "पिकअप समय",
+    "returnTime": "वापसी समय",
+    "dailyBudget": "दैनिक बजट",
+    "searchBtn": "कार किराया खोजें →",
+    "verifiedNote": "{count} सत्यापित एयरपोर्ट में से चुनें · EconomyBookings और Trip.com पर वास्तविक लाइव कीमतों की तुलना करें",
+    "carHireIn": "{city} में कार किराया",
+    "to": "से",
+    "nDays": "{count, plural, one {# दिन} other {# दिन}}",
+    "carTypesNote": "{count} कार प्रकार · EconomyBookings और Trip.com पर लाइव कीमतें",
+    "sortPriceAsc": "कीमत: कम से अधिक",
+    "sortPriceDesc": "कीमत: अधिक से कम",
+    "sortSeats": "सबसे अधिक सीटें",
+    "liveResultsP1": "लाइव परिणाम · प्रदाता 1",
+    "liveResultsP2": "लाइव परिणाम · प्रदाता 2",
+    "compareGlobalSuppliers": "वैश्विक आपूर्तिकर्ताओं से दरों की तुलना करें",
+    "freeCancellation": "मुफ्त रद्दीकरण",
+    "payAtPickup": "पिकअप पर भुगतान विकल्प",
+    "suppliersInclude": "आपूर्तिकर्ताओं में शामिल:",
+    "seats": "{count, plural, one {# सीट} other {# सीटें}}",
+    "bags": "{count, plural, one {# बैग} other {# बैग}}",
+    "doors": "{count, plural, one {# दरवाज़ा} other {# दरवाज़े}}",
+    "aircon": "A/C",
+    "payNowOrLater": "अभी या बाद में भुगतान",
+    "estimatedFrom": "अनुमानित रूप से",
+    "perDay": "/दिन",
+    "totalForDays": "~£{total} कुल {count, plural, one {# दिन} other {# दिन}} के लिए",
+    "noCarsMatch": "आपके बजट फ़िल्टर से कोई कार मेल नहीं खाती",
+    "clearBudget": "बजट फ़िल्टर साफ़ करें",
+    "bookOnEco": "EconomyBookings पर बुक करें →",
+    "bookOnTrip": "Trip.com पर बुक करें →",
+    "tipsTitle": "सस्ती कार किराया के लिए सुझाव",
+    "loadingChecking": "उपलब्धता जाँची जा रही है...",
+    "loadingComparing": "कीमतों की तुलना हो रही है...",
+    "comparingCarHireIn": "कार किराया की तुलना",
+    "errChoosePickup": "खोजने के लिए एक पिकअप एयरपोर्ट चुनें।",
+    "errPickupNotListed": "ड्रॉपडाउन सूची से पिकअप एयरपोर्ट चुनें — केवल सूचीबद्ध एयरपोर्ट समर्थित हैं।",
+    "errPickupDate": "खोजने के लिए पिकअप तिथि चुनें।",
+    "errReturnDate": "खोजने के लिए वापसी तिथि चुनें।",
+    "errChooseReturn": "खोजने के लिए वापसी स्थान चुनें।",
+    "errReturnNotListed": "ड्रॉपडाउन सूची से वापसी स्थान चुनें — केवल सूचीबद्ध एयरपोर्ट समर्थित हैं।",
+    "carName": {
+      "mini": "मिनी",
+      "economy": "इकोनॉमी",
+      "compact": "कॉम्पैक्ट",
+      "midSize": "मिड-साइज़",
+      "suv": "एसयूवी",
+      "premium": "प्रीमियम",
+      "peopleCarrier": "पीपल कैरियर",
+      "convertible": "कन्वर्टिबल"
+    },
+    "budget": {
+      "anyBudget": "कोई भी बजट",
+      "under15": "£15/दिन से कम",
+      "under25": "£25/दिन से कम",
+      "under35": "£35/दिन से कम",
+      "under50": "£50/दिन से कम"
+    },
+    "tips": {
+      "bookEarly": {
+        "title": "जल्दी बुक करें, एयरपोर्ट के बाहर पिकअप करें",
+        "body": "एयरपोर्ट के बाहर डिपो 20-40% सस्ते होते हैं। आगमन से टैक्सी लें — फिर भी फ़ायदेमंद।"
+      },
+      "fuel": {
+        "title": "हमेशा फुल-टू-फुल ईंधन लें",
+        "body": "गाड़ी भरे टैंक के साथ लौटाएँ — \"फुल-टू-एम्प्टी\" डील सस्ती लगती हैं पर शायद ही होती हैं।"
+      },
+      "excess": {
+        "title": "काउंटर पर एक्सेस वेवर से मना करें",
+        "body": "काउंटर पर £15-25/दिन के बजाय ~£3/दिन में थर्ड-पार्टी एक्सेस बीमा खरीदें।"
+      },
+      "under25": {
+        "title": "25 से कम? विशेषज्ञ साइट्स की तुलना करें",
+        "body": "विशेषज्ञ कार किराया साइट्स अक्सर युवा ड्राइवर सरचार्ज अंतरराष्ट्रीय कंपनियों से 30-50% कम रखती हैं।"
+      }
+    }
   }
 }

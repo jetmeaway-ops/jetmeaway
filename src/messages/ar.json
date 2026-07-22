@@ -485,5 +485,95 @@
       "checkTitle": "تحقق من هاتفك",
       "checkBody": "اذهب إلى الإعدادات > عام > حول > ابحث عن \"الشريحة المتاحة\" أو \"الشريحة الرقمية\"."
     }
+  },
+  "cars": {
+    "badge": "مقارنة تأجير السيارات",
+    "heroTitlePre": "استأجر سيارة",
+    "heroTitleHighlight": "أينما كنت",
+    "heroSub": "قارن بين شركات تأجير السيارات الموثوقة — أسعار حقيقية، بلا رسوم خفية.",
+    "pickupLocation": "موقع الاستلام",
+    "pickupPlaceholder": "المطار — مثل مطار برشلونة (BCN)",
+    "differentReturn": "الإرجاع في موقع مختلف",
+    "returnLocation": "موقع الإرجاع",
+    "returnPlaceholder": "أين ستُعيد السيارة؟",
+    "calendar": "التقويم",
+    "wordPickup": "الاستلام",
+    "wordReturn": "الإرجاع",
+    "driverAge": "عمر السائق",
+    "pickupTime": "وقت الاستلام",
+    "returnTime": "وقت الإرجاع",
+    "dailyBudget": "الميزانية اليومية",
+    "searchBtn": "ابحث عن سيارات ←",
+    "verifiedNote": "اختر من {count} مطارًا موثوقًا · قارن أسعارًا مباشرة حقيقية على EconomyBookings وTrip.com",
+    "carHireIn": "تأجير سيارات في {city}",
+    "to": "إلى",
+    "nDays": "{count, plural, zero {# يوم} one {يوم واحد} two {يومان} few {# أيام} many {# يومًا} other {# يوم}}",
+    "carTypesNote": "{count} أنواع سيارات · أسعار مباشرة على EconomyBookings وTrip.com",
+    "sortPriceAsc": "السعر: من الأقل للأعلى",
+    "sortPriceDesc": "السعر: من الأعلى للأقل",
+    "sortSeats": "الأكثر مقاعد",
+    "liveResultsP1": "نتائج مباشرة · المزود 1",
+    "liveResultsP2": "نتائج مباشرة · المزود 2",
+    "compareGlobalSuppliers": "قارن الأسعار من موردين عالميين",
+    "freeCancellation": "إلغاء مجاني",
+    "payAtPickup": "خيار الدفع عند الاستلام",
+    "suppliersInclude": "الموردون يشملون:",
+    "seats": "{count, plural, zero {# مقعد} one {مقعد واحد} two {مقعدان} few {# مقاعد} many {# مقعدًا} other {# مقعد}}",
+    "bags": "{count, plural, zero {# حقيبة} one {حقيبة واحدة} two {حقيبتان} few {# حقائب} many {# حقيبة} other {# حقيبة}}",
+    "doors": "{count, plural, zero {# باب} one {باب واحد} two {بابان} few {# أبواب} many {# بابًا} other {# باب}}",
+    "aircon": "مكيف",
+    "payNowOrLater": "ادفع الآن أو لاحقًا",
+    "estimatedFrom": "يبدأ تقديريًا من",
+    "perDay": "/يوم",
+    "totalForDays": "~£{total} إجمالي لـ {count, plural, zero {# يوم} one {يوم واحد} two {يومان} few {# أيام} many {# يومًا} other {# يوم}}",
+    "noCarsMatch": "لا توجد سيارات تطابق فلتر ميزانيتك",
+    "clearBudget": "امسح فلتر الميزانية",
+    "bookOnEco": "احجز على EconomyBookings ←",
+    "bookOnTrip": "احجز على Trip.com ←",
+    "tipsTitle": "نصائح لتأجير سيارات أرخص",
+    "loadingChecking": "جارٍ التحقق من التوفر...",
+    "loadingComparing": "جارٍ مقارنة الأسعار...",
+    "comparingCarHireIn": "مقارنة تأجير السيارات في",
+    "errChoosePickup": "اختر مطار الاستلام للبحث.",
+    "errPickupNotListed": "اختر مطار الاستلام من القائمة المنسدلة — المطارات المدرجة فقط مدعومة.",
+    "errPickupDate": "اختر تاريخ الاستلام للبحث.",
+    "errReturnDate": "اختر تاريخ الإرجاع للبحث.",
+    "errChooseReturn": "اختر موقع الإرجاع للبحث.",
+    "errReturnNotListed": "اختر موقع الإرجاع من القائمة المنسدلة — المواقع المدرجة فقط مدعومة.",
+    "carName": {
+      "mini": "صغيرة جدًا",
+      "economy": "اقتصادية",
+      "compact": "مدمجة",
+      "midSize": "متوسطة الحجم",
+      "suv": "دفع رباعي (SUV)",
+      "premium": "فاخرة",
+      "peopleCarrier": "عائلية كبيرة",
+      "convertible": "مكشوفة"
+    },
+    "budget": {
+      "anyBudget": "أي ميزانية",
+      "under15": "أقل من £15/يوم",
+      "under25": "أقل من £25/يوم",
+      "under35": "أقل من £35/يوم",
+      "under50": "أقل من £50/يوم"
+    },
+    "tips": {
+      "bookEarly": {
+        "title": "احجز مبكرًا، استلم خارج المطار",
+        "body": "مستودعات خارج المطار أرخص بنسبة 20-40%. خذ سيارة أجرة من صالة الوصول — يظل الأمر يستحق."
+      },
+      "fuel": {
+        "title": "دائمًا اختر ممتلئ إلى ممتلئ",
+        "body": "أعِد السيارة بخزان ممتلئ — عروض \"ممتلئ إلى فارغ\" تبدو رخيصة لكنها نادرًا ما تكون كذلك."
+      },
+      "excess": {
+        "title": "ارفض تأمين التحمّل عند المكتب",
+        "body": "اشترِ تأمين تحمّل من طرف ثالث بنحو £3/يوم بدلًا من £15-25/يوم عند المكتب."
+      },
+      "under25": {
+        "title": "أقل من 25 عامًا؟ قارن المواقع المتخصصة",
+        "body": "المواقع المتخصصة غالبًا ما تفرض رسومًا على السائقين الأصغر أقل بنسبة 30-50% من الشركات الدولية."
+      }
+    }
   }
 }

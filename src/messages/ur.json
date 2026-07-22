@@ -485,5 +485,95 @@
       "checkTitle": "اپنا فون چیک کریں",
       "checkBody": "ترتیبات > جنرل > About پر جائیں > \"دستیاب سِم\" یا \"ڈیجیٹل سِم\" تلاش کریں۔"
     }
+  },
+  "cars": {
+    "badge": "کار کرائے کا موازنہ",
+    "heroTitlePre": "کار کرائے پر لیں",
+    "heroTitleHighlight": "کہیں بھی",
+    "heroSub": "معتبر کار کرائے کے فراہم کنندگان کا موازنہ کریں — حقیقی قیمتیں، کوئی چھپی فیس نہیں۔",
+    "pickupLocation": "پک اپ مقام",
+    "pickupPlaceholder": "ایئرپورٹ — مثلاً بارسلونا ایئرپورٹ (BCN)",
+    "differentReturn": "کسی اور مقام پر واپسی",
+    "returnLocation": "واپسی کا مقام",
+    "returnPlaceholder": "آپ کہاں واپس کر رہے ہیں؟",
+    "calendar": "کیلنڈر",
+    "wordPickup": "پک اپ",
+    "wordReturn": "واپسی",
+    "driverAge": "ڈرائیور کی عمر",
+    "pickupTime": "پک اپ وقت",
+    "returnTime": "واپسی کا وقت",
+    "dailyBudget": "روزانہ بجٹ",
+    "searchBtn": "کار کرائے تلاش کریں ←",
+    "verifiedNote": "{count} تصدیق شدہ ایئرپورٹس میں سے چنیں · EconomyBookings اور Trip.com پر حقیقی لائیو قیمتوں کا موازنہ کریں",
+    "carHireIn": "{city} میں کار کرایہ",
+    "to": "تا",
+    "nDays": "{count, plural, one {# دن} other {# دن}}",
+    "carTypesNote": "{count} کار اقسام · EconomyBookings اور Trip.com پر لائیو قیمتیں",
+    "sortPriceAsc": "قیمت: کم سے زیادہ",
+    "sortPriceDesc": "قیمت: زیادہ سے کم",
+    "sortSeats": "سب سے زیادہ نشستیں",
+    "liveResultsP1": "لائیو نتائج · فراہم کنندہ 1",
+    "liveResultsP2": "لائیو نتائج · فراہم کنندہ 2",
+    "compareGlobalSuppliers": "عالمی سپلائرز سے نرخوں کا موازنہ کریں",
+    "freeCancellation": "مفت منسوخی",
+    "payAtPickup": "پک اپ پر ادائیگی کا اختیار",
+    "suppliersInclude": "سپلائرز میں شامل ہیں:",
+    "seats": "{count, plural, one {# نشست} other {# نشستیں}}",
+    "bags": "{count, plural, one {# بیگ} other {# بیگ}}",
+    "doors": "{count, plural, one {# دروازہ} other {# دروازے}}",
+    "aircon": "اے سی",
+    "payNowOrLater": "اب یا بعد میں ادائیگی",
+    "estimatedFrom": "تخمینی طور پر",
+    "perDay": "/دن",
+    "totalForDays": "~£{total} کل {count, plural, one {# دن} other {# دن}} کے لیے",
+    "noCarsMatch": "آپ کے بجٹ فلٹر سے کوئی کار میل نہیں کھاتی",
+    "clearBudget": "بجٹ فلٹر صاف کریں",
+    "bookOnEco": "EconomyBookings پر بک کریں ←",
+    "bookOnTrip": "Trip.com پر بک کریں ←",
+    "tipsTitle": "سستی کار کرائے کے لیے تجاویز",
+    "loadingChecking": "دستیابی چیک ہو رہی ہے...",
+    "loadingComparing": "قیمتوں کا موازنہ ہو رہا ہے...",
+    "comparingCarHireIn": "کار کرائے کا موازنہ",
+    "errChoosePickup": "تلاش کے لیے پک اپ ایئرپورٹ چنیں۔",
+    "errPickupNotListed": "ڈراپ ڈاؤن فہرست سے پک اپ ایئرپورٹ چنیں — صرف درج ایئرپورٹس معاون ہیں۔",
+    "errPickupDate": "تلاش کے لیے پک اپ تاریخ چنیں۔",
+    "errReturnDate": "تلاش کے لیے واپسی تاریخ چنیں۔",
+    "errChooseReturn": "تلاش کے لیے واپسی کا مقام چنیں۔",
+    "errReturnNotListed": "ڈراپ ڈاؤن فہرست سے واپسی کا مقام چنیں — صرف درج مقامات معاون ہیں۔",
+    "carName": {
+      "mini": "منی",
+      "economy": "اکانومی",
+      "compact": "کومپیکٹ",
+      "midSize": "درمیانہ سائز",
+      "suv": "ایس یو وی",
+      "premium": "پریمیم",
+      "peopleCarrier": "پیپل کیریئر",
+      "convertible": "کنورٹیبل"
+    },
+    "budget": {
+      "anyBudget": "کوئی بھی بجٹ",
+      "under15": "£15/دن سے کم",
+      "under25": "£25/دن سے کم",
+      "under35": "£35/دن سے کم",
+      "under50": "£50/دن سے کم"
+    },
+    "tips": {
+      "bookEarly": {
+        "title": "جلدی بک کریں، ایئرپورٹ سے باہر پک اپ کریں",
+        "body": "ایئرپورٹ سے باہر ڈپو 20-40% سستے ہوتے ہیں۔ آمد سے ٹیکسی لیں — پھر بھی فائدہ مند۔"
+      },
+      "fuel": {
+        "title": "ہمیشہ فُل ٹو فُل ایندھن لیں",
+        "body": "گاڑی بھرے ٹینک کے ساتھ واپس کریں — \"فُل ٹو ایمپٹی\" ڈیلز سستی لگتی ہیں مگر شاذ و نادر ہی ہوتی ہیں۔"
+      },
+      "excess": {
+        "title": "کاؤنٹر پر ایکسیس ویور سے انکار کریں",
+        "body": "کاؤنٹر پر £15-25/دن کے بجائے ~£3/دن میں تھرڈ پارٹی ایکسیس انشورنس خریدیں۔"
+      },
+      "under25": {
+        "title": "25 سے کم عمر؟ خصوصی سائٹس کا موازنہ کریں",
+        "body": "خصوصی کار کرائے سائٹس اکثر نوجوان ڈرائیور سرچارج بین الاقوامی کمپنیوں سے 30-50% کم رکھتی ہیں۔"
+      }
+    }
   }
 }
