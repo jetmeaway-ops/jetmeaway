@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import HotelBackdrop from '@/components/HotelBackdrop';
 import PaymentTrustStrip from '@/components/PaymentTrustStrip';
+import { useTranslations } from 'next-intl';
 
 // Lazy-load StripeCardForm so @stripe/react-stripe-js (and js.stripe.com)
 // is NEVER pulled in on LiteAPI checkouts. If loaded eagerly, Stripe's new
@@ -61,6 +62,7 @@ interface PendingSummary {
  * tickets from people surprised by non-refundable terms after booking.
  */
 function ScoutFinalCheck({ refundable, deadline }: { refundable: boolean | null | undefined; deadline?: string | null }) {
+  const t = useTranslations('hotelCheckout');
   if (refundable === null || refundable === undefined) return null;
   const isRefundable = refundable === true;
 
@@ -78,14 +80,14 @@ function ScoutFinalCheck({ refundable, deadline }: { refundable: boolean | null 
       <span className="text-xl leading-none mt-0.5" aria-hidden="true">{isRefundable ? '✅' : '⚠️'}</span>
       <div className="flex-1">
         <p className={`font-poppins font-black text-[.85rem] ${isRefundable ? 'text-green-800' : 'text-amber-900'}`}>
-          {isRefundable ? 'Scout Approved · Refundable booking' : 'Scout Warning · Non-refundable rate'}
+          {isRefundable ? t('scoutApproved') : t('scoutWarning')}
         </p>
         <p className={`text-[.72rem] font-semibold leading-snug mt-0.5 ${isRefundable ? 'text-green-700' : 'text-amber-800'}`}>
           {isRefundable
             ? deadlineLabel
-              ? `Flexibility included. Cancel free until ${deadlineLabel}.`
-              : 'Flexibility included. Cancel before the deadline shown in your confirmation email.'
-            : 'Best price, but locked in — no refunds or changes after booking. Make sure your travel insurance is active before paying.'}
+              ? t('flexCancelUntil', { deadline: deadlineLabel })
+              : t('flexCancelDeadline')
+            : t('lockedInWarning')}
         </p>
       </div>
     </div>
@@ -93,9 +95,10 @@ function ScoutFinalCheck({ refundable, deadline }: { refundable: boolean | null 
 }
 
 function StarRow({ count }: { count: number }) {
+  const t = useTranslations('hotelCheckout');
   if (!count || count < 1) return null;
   return (
-    <div className="flex items-center gap-0.5 mb-1" role="img" aria-label={`${count} star hotel`}>
+    <div className="flex items-center gap-0.5 mb-1" role="img" aria-label={t('starHotel', { count })}>
       {Array.from({ length: Math.min(5, Math.round(count)) }).map((_, i) => (
         <i key={i} className="fa-solid fa-star text-amber-400 text-[.7rem]" />
       ))}
@@ -108,6 +111,7 @@ type Step = 'locking' | 'price-warning' | 'guest' | 'saving' | 'payment' | 'done
 export default function HotelCheckoutPage() {
   const params = useParams<{ ref: string }>();
   const ref = params?.ref || '';
+  const t = useTranslations('hotelCheckout');
 
   const [booking, setBooking] = useState<PendingSummary | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -159,10 +163,10 @@ export default function HotelCheckoutPage() {
         const res = await fetch(`/api/hotels/pending/${encodeURIComponent(ref)}`, { cache: 'no-store' });
         const data = await res.json();
         if (cancelled) return;
-        if (!data.success) setLoadError(data.error || 'Could not load booking');
+        if (!data.success) setLoadError(data.error || t('couldNotLoadBooking'));
         else setBooking(data.booking);
       } catch (e: unknown) {
-        if (!cancelled) setLoadError(e instanceof Error ? e.message : 'Network error');
+        if (!cancelled) setLoadError(e instanceof Error ? e.message : t('networkError'));
       }
     })();
     return () => { cancelled = true; };
@@ -194,7 +198,7 @@ export default function HotelCheckoutPage() {
           // Server returns `message` (human-readable) when price drift
           // is rejected (>5% or >£5). Fall back to `error` (machine code)
           // for everything else.
-          throw new Error(data.message || data.error || 'Prebook failed');
+          throw new Error(data.message || data.error || t('prebookFailed'));
         }
 
         setPrebookResult({
@@ -206,10 +210,10 @@ export default function HotelCheckoutPage() {
 
         const warnings: string[] = [];
         if (data.priceDifferencePercent && data.priceDifferencePercent !== 0) {
-          warnings.push(`Price has changed by ${data.priceDifferencePercent}% since your search`);
+          warnings.push(t('priceChangedBy', { percent: data.priceDifferencePercent }));
         }
-        if (data.cancellationChanged) warnings.push('Cancellation policy has changed since your search');
-        if (data.boardChanged) warnings.push('Board/meal plan has changed since your search');
+        if (data.cancellationChanged) warnings.push(t('cancellationChanged'));
+        if (data.boardChanged) warnings.push(t('boardChanged'));
         setPrebookWarnings(warnings);
 
         // Show price-change warning if price differs, otherwise go to guest form
@@ -217,13 +221,13 @@ export default function HotelCheckoutPage() {
           setStep('price-warning');
         } else if (data.price == null) {
           // Prebook returned no price — rate may not be locked, warn user
-          setStepError('Could not verify the rate. The price may change at payment.');
+          setStepError(t('couldNotVerifyRate'));
           setStep('guest');
         } else {
           setStep('guest');
         }
       } catch (e: unknown) {
-        setStepError(e instanceof Error ? e.message : 'Could not lock rate');
+        setStepError(e instanceof Error ? e.message : t('couldNotLockRate'));
         setStep('error');
       }
     })();
@@ -256,7 +260,7 @@ export default function HotelCheckoutPage() {
     // 30s timeout — if LiteAPI CDN is slow, don't leave user on spinner forever
     const timeout = setTimeout(() => {
       if (!paymentInstanceRef.current) {
-        setStepError('Payment form took too long to load. Please refresh and try again.');
+        setStepError(t('paymentTimeout'));
         setStep('error');
       }
     }, 30_000);
@@ -266,7 +270,7 @@ export default function HotelCheckoutPage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const LiteAPIPayment = (window as any).LiteAPIPayment;
       if (!LiteAPIPayment) {
-        setStepError('Failed to load payment form. Please refresh and try again.');
+        setStepError(t('failedLoadPayment'));
         setStep('error');
         return;
       }
@@ -288,13 +292,13 @@ export default function HotelCheckoutPage() {
         setStep('payment');
       } catch (err) {
         console.error('[LiteAPIPayment] init failed:', err);
-        setStepError('Failed to initialize payment form. Please refresh and try again.');
+        setStepError(t('failedInitPayment'));
         setStep('error');
       }
     };
     script.onerror = () => {
       clearTimeout(timeout);
-      setStepError('Failed to load payment form. Please refresh and try again.');
+      setStepError(t('failedLoadPayment'));
       setStep('error');
     };
     document.head.appendChild(script);
@@ -303,7 +307,7 @@ export default function HotelCheckoutPage() {
   const handlePayNow = async () => {
     const pi = paymentInstanceRef.current;
     if (!pi) {
-      setPaymentError('Payment form is not ready. Please refresh the page.');
+      setPaymentError(t('paymentNotReady'));
       return;
     }
     setPayingNow(true);
@@ -325,7 +329,7 @@ export default function HotelCheckoutPage() {
         }
       }
     } catch (e: unknown) {
-      setPaymentError(e instanceof Error ? e.message : 'Payment failed. Please try again.');
+      setPaymentError(e instanceof Error ? e.message : t('paymentFailedRetry'));
       setPayingNow(false);
     }
   };
@@ -339,7 +343,7 @@ export default function HotelCheckoutPage() {
     // the user clicking a non-responsive button. Now we surface it so they
     // can refresh or wait for the rate-lock to finish instead of bouncing.
     if (!isDotw && !prebookResult) {
-      setStepError("Hold on — we're still locking your rate. Try again in a few seconds, or refresh if this keeps happening.");
+      setStepError(t('stillLockingRate'));
       return;
     }
     setStep('saving');
@@ -360,7 +364,7 @@ export default function HotelCheckoutPage() {
         }),
       });
       const saveData = await saveRes.json();
-      if (!saveData.success) throw new Error(saveData.error || 'Could not save guest details');
+      if (!saveData.success) throw new Error(saveData.error || t('couldNotSaveGuest'));
 
       if (isDotw) {
         // Create a Stripe PaymentIntent for the full stay total (pence).
@@ -381,7 +385,7 @@ export default function HotelCheckoutPage() {
           }),
         });
         const piData = await piRes.json();
-        if (!piData.clientSecret) throw new Error(piData.error || 'Could not create Stripe PaymentIntent');
+        if (!piData.clientSecret) throw new Error(piData.error || t('couldNotCreatePI'));
         setStripeClientSecret(piData.clientSecret);
         setStep('payment');
         return;
@@ -389,7 +393,7 @@ export default function HotelCheckoutPage() {
 
       initPaymentSdk(prebookResult!.secretKey, prebookResult!.prebookId, prebookResult!.transactionId);
     } catch (e: unknown) {
-      setStepError(e instanceof Error ? e.message : 'Unexpected error');
+      setStepError(e instanceof Error ? e.message : t('unexpectedError'));
       setStep('guest');
     }
   };
@@ -405,10 +409,10 @@ export default function HotelCheckoutPage() {
         body: JSON.stringify({ ref }),
       });
       const data = await res.json();
-      if (!data.success) throw new Error(data.error || 'Booking failed');
+      if (!data.success) throw new Error(data.error || t('bookingFailed'));
       router.push(`/success?ref=${encodeURIComponent(ref)}`);
     } catch (e: unknown) {
-      setPaymentError(e instanceof Error ? e.message : 'Could not finalise booking');
+      setPaymentError(e instanceof Error ? e.message : t('couldNotFinalise'));
       setPayingNow(false);
     }
   };
@@ -418,7 +422,7 @@ export default function HotelCheckoutPage() {
       <main className="max-w-[720px] mx-auto px-5 py-16">
         <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
           <p className="font-poppins font-bold text-red-700">{loadError}</p>
-          <a href="/hotels" className="inline-block mt-4 text-sm font-bold text-[#0066FF] underline">← Back to hotels</a>
+          <a href="/hotels" className="inline-block mt-4 text-sm font-bold text-[#0066FF] underline">{t('backToHotels')}</a>
         </div>
       </main>
     );
@@ -428,7 +432,7 @@ export default function HotelCheckoutPage() {
     return (
       <main className="max-w-[720px] mx-auto px-5 py-16 text-center">
         <div className="inline-block w-8 h-8 border-4 border-[#E8ECF4] border-t-[#0066FF] rounded-full animate-spin" />
-        <p className="mt-4 text-sm font-semibold text-[#5C6378]">Loading your booking…</p>
+        <p className="mt-4 text-sm font-semibold text-[#5C6378]">{t('loadingBooking')}</p>
       </main>
     );
   }
@@ -439,9 +443,9 @@ export default function HotelCheckoutPage() {
         page so the booking flow stays visually tied to the chosen hotel. */}
     <HotelBackdrop photos={[booking.thumbnail]} />
     <main className="max-w-[860px] mx-auto px-4 sm:px-5 py-6 sm:py-10">
-      <a href={`/hotels?destination=${encodeURIComponent(booking.city)}&checkin=${booking.checkIn}&checkout=${booking.checkOut}&adults=${booking.adults}`} className="text-[.78rem] font-bold text-[#0066FF] hover:underline">← Back to search</a>
-      <h1 className="font-poppins font-black text-[1.4rem] sm:text-[1.8rem] text-[#1A1D2B] mt-3 mb-1">Confirm your booking</h1>
-      <p className="text-[.82rem] text-[#5C6378] font-semibold mb-4">Ref: <span className="font-mono">{booking.ref}</span></p>
+      <a href={`/hotels?destination=${encodeURIComponent(booking.city)}&checkin=${booking.checkIn}&checkout=${booking.checkOut}&adults=${booking.adults}`} className="text-[.78rem] font-bold text-[#0066FF] hover:underline">{t('backToSearch')}</a>
+      <h1 className="font-poppins font-black text-[1.4rem] sm:text-[1.8rem] text-[#1A1D2B] mt-3 mb-1">{t('confirmBooking')}</h1>
+      <p className="text-[.82rem] text-[#5C6378] font-semibold mb-4">{t('refLabel')}: <span className="font-mono">{booking.ref}</span></p>
 
       {/* Checkout progress — gives the user the finish line so they don't
           abandon mid-flow. Maps internal steps:
@@ -452,12 +456,12 @@ export default function HotelCheckoutPage() {
         const done = booking.state === 'confirmed' || booking.state === 'paid';
         const onPayment = step === 'payment' || done;
         const stages: Array<{ label: string; active: boolean; complete: boolean }> = [
-          { label: 'Details', active: !onPayment, complete: onPayment },
-          { label: 'Secure Payment', active: step === 'payment' && !done, complete: done },
-          { label: 'Done', active: done, complete: done },
+          { label: t('stageDetails'), active: !onPayment, complete: onPayment },
+          { label: t('stageSecurePayment'), active: step === 'payment' && !done, complete: done },
+          { label: t('stageDone'), active: done, complete: done },
         ];
         return (
-          <ol className="flex items-center gap-2 mb-5 sm:mb-6" aria-label="Checkout progress">
+          <ol className="flex items-center gap-2 mb-5 sm:mb-6" aria-label={t('checkoutProgress')}>
             {stages.map((s, i) => (
               <li key={s.label} className="flex items-center gap-2 flex-1 last:flex-none">
                 <div
@@ -494,8 +498,8 @@ export default function HotelCheckoutPage() {
           {step === 'locking' && (
             <div className="text-center py-10">
               <div className="inline-block w-8 h-8 border-4 border-[#E8ECF4] border-t-[#0066FF] rounded-full animate-spin" />
-              <p className="mt-4 text-sm font-semibold text-[#5C6378]">Scout is verifying your rate with the hotel…</p>
-              <p className="mt-1 text-[.75rem] text-[#8E95A9]">This can take up to 30 seconds</p>
+              <p className="mt-4 text-sm font-semibold text-[#5C6378]">{t('verifyingRate')}</p>
+              <p className="mt-1 text-[.75rem] text-[#8E95A9]">{t('upTo30Seconds')}</p>
             </div>
           )}
 
@@ -506,20 +510,20 @@ export default function HotelCheckoutPage() {
                 <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-3">
                   <i className="fa-solid fa-triangle-exclamation text-amber-600 text-xl" />
                 </div>
-                <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-2">Price has changed</h2>
+                <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-2">{t('priceChangedTitle')}</h2>
                 <p className="text-[.82rem] text-[#5C6378] font-semibold mb-4">
-                  The hotel has updated their rate since your search.
+                  {t('hotelUpdatedRate')}
                 </p>
                 <div className="flex items-center justify-center gap-3 mb-4">
                   <div className="text-center">
-                    <p className="text-[.68rem] font-bold text-[#8E95A9] uppercase tracking-wide mb-0.5">Search price</p>
+                    <p className="text-[.68rem] font-bold text-[#8E95A9] uppercase tracking-wide mb-0.5">{t('searchPrice')}</p>
                     <p className="font-poppins font-black text-[1.15rem] text-[#8E95A9] line-through">
                       {fmtPrice(booking.totalPrice)}
                     </p>
                   </div>
                   <i className="fa-solid fa-arrow-right text-[#8E95A9] text-sm" />
                   <div className="text-center">
-                    <p className="text-[.68rem] font-bold text-[#1A1D2B] uppercase tracking-wide mb-0.5">Confirmed price</p>
+                    <p className="text-[.68rem] font-bold text-[#1A1D2B] uppercase tracking-wide mb-0.5">{t('confirmedPrice')}</p>
                     <p className={`font-poppins font-black text-[1.3rem] ${prebookResult.price > booking.totalPrice ? 'text-red-600' : 'text-green-600'}`}>
                       {fmtPrice(prebookResult.price)}
                     </p>
@@ -547,12 +551,12 @@ export default function HotelCheckoutPage() {
                     }}
                     className="bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-black text-[.88rem] px-6 py-3.5 rounded-xl transition-all shadow-[0_4px_20px_rgba(0,102,255,0.3)]"
                   >
-                    Continue at {fmtPrice(prebookResult.price)}
+                    {t('continueAt', { price: fmtPrice(prebookResult.price) })}
                   </button>
                   <a href="/hotels"
                     className="text-[.82rem] font-bold text-[#5C6378] hover:text-[#0066FF] px-6 py-3.5 rounded-xl border border-[#E8ECF4] transition-all text-center"
                   >
-                    Go back to search
+                    {t('goBackToSearch')}
                   </a>
                 </div>
               </div>
@@ -562,60 +566,60 @@ export default function HotelCheckoutPage() {
           {/* Step: Guest details form */}
           {step === 'guest' && (
             <>
-              <h2 className="font-poppins font-black text-[1.05rem] sm:text-[1.1rem] text-[#1A1D2B] mb-1">Lead guest details</h2>
+              <h2 className="font-poppins font-black text-[1.05rem] sm:text-[1.1rem] text-[#1A1D2B] mb-1">{t('leadGuestDetails')}</h2>
               {prebookResult?.price && prebookResult.price !== booking.totalPrice && (
                 <p className="text-[.75rem] font-semibold text-amber-700 mb-3">
                   <i className="fa-solid fa-circle-info mr-1" />
-                  Confirmed rate: {fmtPrice(prebookResult.price)}
+                  {t('confirmedRate', { price: fmtPrice(prebookResult.price) })}
                 </p>
               )}
               <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 mb-4 flex items-start gap-2">
                 <i className="fa-solid fa-passport text-amber-600 text-sm mt-0.5 flex-shrink-0" />
                 <p className="text-[.75rem] sm:text-[.78rem] text-amber-800 font-semibold leading-snug">
-                  Enter names exactly as they appear on your passport or ID.
+                  {t('passportNote')}
                 </p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <label className="block sm:col-span-2">
-                  <span className="text-[.7rem] font-bold text-[#5C6378] uppercase tracking-wide">Title</span>
+                  <span className="text-[.7rem] font-bold text-[#5C6378] uppercase tracking-wide">{t('fieldTitle')}</span>
                   <select
                     value={title}
                     onChange={e => setTitle(e.target.value)}
                     className="w-36 mt-1 px-3 py-3 sm:py-2.5 rounded-lg border border-[#E8ECF4] bg-white text-[16px] sm:text-[.88rem] font-semibold text-[#1A1D2B] outline-none focus:border-[#0066FF]"
                   >
-                    <option value="Mr">Mr</option>
-                    <option value="Mrs">Mrs</option>
-                    <option value="Ms">Ms</option>
-                    <option value="Miss">Miss</option>
-                    <option value="Mstr">Master</option>
+                    <option value="Mr">{t('titleMr')}</option>
+                    <option value="Mrs">{t('titleMrs')}</option>
+                    <option value="Ms">{t('titleMs')}</option>
+                    <option value="Miss">{t('titleMiss')}</option>
+                    <option value="Mstr">{t('titleMaster')}</option>
                   </select>
                 </label>
                 <label className="block">
-                  <span className="text-[.7rem] font-bold text-[#5C6378] uppercase tracking-wide">First name</span>
+                  <span className="text-[.7rem] font-bold text-[#5C6378] uppercase tracking-wide">{t('fieldFirstName')}</span>
                   <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)}
-                    placeholder="As on passport"
+                    placeholder={t('asOnPassport')}
                     className="w-full mt-1 px-3 py-3 sm:py-2.5 rounded-lg border border-[#E8ECF4] bg-white text-[16px] sm:text-[.88rem] font-semibold text-[#1A1D2B] outline-none focus:border-[#0066FF] placeholder:text-[#B0B8CC] placeholder:font-normal" />
                 </label>
                 <label className="block">
-                  <span className="text-[.7rem] font-bold text-[#5C6378] uppercase tracking-wide">Last name</span>
+                  <span className="text-[.7rem] font-bold text-[#5C6378] uppercase tracking-wide">{t('fieldLastName')}</span>
                   <input type="text" value={lastName} onChange={e => setLastName(e.target.value)}
-                    placeholder="As on passport"
+                    placeholder={t('asOnPassport')}
                     className="w-full mt-1 px-3 py-3 sm:py-2.5 rounded-lg border border-[#E8ECF4] bg-white text-[16px] sm:text-[.88rem] font-semibold text-[#1A1D2B] outline-none focus:border-[#0066FF] placeholder:text-[#B0B8CC] placeholder:font-normal" />
                 </label>
                 <label className="block sm:col-span-2">
-                  <span className="text-[.7rem] font-bold text-[#5C6378] uppercase tracking-wide">Email</span>
+                  <span className="text-[.7rem] font-bold text-[#5C6378] uppercase tracking-wide">{t('fieldEmail')}</span>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                     placeholder="you@example.com"
                     className="w-full mt-1 px-3 py-3 sm:py-2.5 rounded-lg border border-[#E8ECF4] bg-white text-[16px] sm:text-[.88rem] font-semibold text-[#1A1D2B] outline-none focus:border-[#0066FF] placeholder:text-[#B0B8CC] placeholder:font-normal" />
                 </label>
                 <label className="block sm:col-span-2">
-                  <span className="text-[.7rem] font-bold text-[#5C6378] uppercase tracking-wide">Phone</span>
+                  <span className="text-[.7rem] font-bold text-[#5C6378] uppercase tracking-wide">{t('fieldPhone')}</span>
                   <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
                     placeholder="+44 7911 123456"
                     className="w-full mt-1 px-3 py-3 sm:py-2.5 rounded-lg border border-[#E8ECF4] bg-white text-[16px] sm:text-[.88rem] font-semibold text-[#1A1D2B] outline-none focus:border-[#0066FF] placeholder:text-[#B0B8CC] placeholder:font-normal" />
                 </label>
                 <label className="block sm:col-span-2">
-                  <span className="text-[.7rem] font-bold text-[#5C6378] uppercase tracking-wide">Country code</span>
+                  <span className="text-[.7rem] font-bold text-[#5C6378] uppercase tracking-wide">{t('fieldCountryCode')}</span>
                   <input type="text" maxLength={2} value={nationality} onChange={e => setNationality(e.target.value.toUpperCase())}
                     placeholder="GB"
                     className="w-24 mt-1 px-3 py-3 sm:py-2.5 rounded-lg border border-[#E8ECF4] bg-white text-[16px] sm:text-[.88rem] font-semibold text-[#1A1D2B] outline-none focus:border-[#0066FF] uppercase placeholder:text-[#B0B8CC] placeholder:font-normal" />
@@ -630,19 +634,19 @@ export default function HotelCheckoutPage() {
                 <div className="flex items-center gap-2 mb-1">
                   <i className="fa-solid fa-feather-pointed text-[#8a6d00] text-[.8rem]" />
                   <span className="font-poppins font-black text-[.85rem] text-[#0a1628]">
-                    A note for the front desk
+                    {t('frontDeskNote')}
                   </span>
-                  <span className="text-[.65rem] font-semibold text-slate-500 ml-1">(optional)</span>
+                  <span className="text-[.65rem] font-semibold text-slate-500 ml-1">{t('optional')}</span>
                 </div>
                 <p className="text-[.72rem] font-medium text-slate-600 leading-snug mb-2.5">
-                  Early arrival, extra pillows, quiet room, high floor — we&apos;ll pass it along. The hotel does its best but can&apos;t promise every request.
+                  {t('frontDeskBody')}
                 </p>
                 <textarea
                   value={specialRequests}
                   onChange={(e) => setSpecialRequests(e.target.value.slice(0, 500))}
                   rows={4}
                   maxLength={500}
-                  placeholder="e.g. arriving after midnight, need extra blanket, high floor if possible…"
+                  placeholder={t('requestsPlaceholder')}
                   className="w-full px-3 py-2.5 rounded-lg border border-[#E8D8A8]/80 bg-white text-[16px] sm:text-[.85rem] font-medium text-[#1A1D2B] outline-none focus:border-[#0066FF] focus:ring-2 focus:ring-[#0066FF]/20 placeholder:text-[#B0B8CC] placeholder:font-normal resize-none"
                 />
                 <div className="text-right text-[.62rem] font-semibold text-slate-400 mt-1">
@@ -656,7 +660,7 @@ export default function HotelCheckoutPage() {
                   Keeps the user confident at the highest-friction click. */}
               <div className="mt-5 sm:mt-6 flex items-center justify-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-3 sm:px-4 py-2.5 text-[.74rem] sm:text-[.78rem] font-semibold text-emerald-800 leading-snug">
                 <span aria-hidden="true">🔒</span>
-                <span className="text-center">Secure payment · No booking fees · No hidden charges</span>
+                <span className="text-center">{t('reassurance')}</span>
               </div>
               <button
                 type="button"
@@ -664,13 +668,13 @@ export default function HotelCheckoutPage() {
                 disabled={!formOk}
                 className="w-full mt-3 bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-60 disabled:cursor-not-allowed text-white font-poppins font-black text-[.92rem] sm:text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(0,102,255,0.3)] flex items-center justify-center gap-2"
               >
-                <i className="fa-solid fa-credit-card text-[.85rem]" /> Continue to payment
+                <i className="fa-solid fa-credit-card text-[.85rem]" /> {t('continueToPayment')}
               </button>
               {stepError && (
                 <p className="text-[.72rem] font-bold text-red-600 mt-2 text-center">{stepError}</p>
               )}
               <p className="text-[.68rem] text-[#8E95A9] mt-3 font-semibold text-center">
-                You&apos;ll pay securely on the next step via Stripe — your card details are fully encrypted.
+                {t('stripeNote')}
               </p>
             </>
           )}
@@ -679,22 +683,22 @@ export default function HotelCheckoutPage() {
           {step === 'saving' && (
             <div className="text-center py-10">
               <div className="inline-block w-8 h-8 border-4 border-[#E8ECF4] border-t-[#0066FF] rounded-full animate-spin" />
-              <p className="mt-4 text-sm font-semibold text-[#5C6378]">Saving your details…</p>
+              <p className="mt-4 text-sm font-semibold text-[#5C6378]">{t('savingDetails')}</p>
             </div>
           )}
 
           {/* Step: LiteAPI Payment SDK form */}
           {step === 'payment' && (
             <>
-              <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-1">Secure payment</h2>
+              <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-1">{t('securePayment')}</h2>
               <p className="text-[.78rem] text-[#5C6378] font-semibold mb-4">
-                Enter your card details below. Your payment is encrypted and processed securely by Stripe.
+                {t('paymentBody')}
               </p>
               {paymentError && (
                 <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4 flex items-start gap-2.5">
                   <i className="fa-solid fa-circle-xmark text-red-600 text-sm mt-0.5" />
                   <div>
-                    <p className="text-[.78rem] text-red-700 font-bold">Payment failed</p>
+                    <p className="text-[.78rem] text-red-700 font-bold">{t('paymentFailed')}</p>
                     <p className="text-[.72rem] text-red-600 font-semibold">{paymentError}</p>
                   </div>
                 </div>
@@ -718,7 +722,7 @@ export default function HotelCheckoutPage() {
                     className="mt-0.5 w-4 h-4 accent-[#0066FF] shrink-0"
                   />
                   <span className="text-[.78rem] font-semibold text-amber-900 leading-snug">
-                    I confirm that I have read the booking conditions and understand that this hotel booking is <strong>non-refundable</strong>.
+                    {t('ackPre')} <strong>{t('nonRefundableWord')}</strong>.
                   </span>
                 </label>
               )}
@@ -739,7 +743,7 @@ export default function HotelCheckoutPage() {
                   ) : (
                     <div className="py-6 text-center text-[.78rem] text-[#5C6378] font-semibold">
                       <span className="inline-block w-5 h-5 border-2 border-[#E8ECF4] border-t-[#0066FF] rounded-full animate-spin mr-2 align-middle" />
-                      Preparing secure payment…
+                      {t('preparingPayment')}
                     </div>
                   )
                 ) : (
@@ -754,19 +758,19 @@ export default function HotelCheckoutPage() {
                       {payingNow ? (
                         <>
                           <span className="inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                          Processing…
+                          {t('processing')}
                         </>
                       ) : (
                         <>
                           <i className="fa-solid fa-lock text-[.8rem]" />
-                          Pay {prebookResult?.price ? fmtPrice(prebookResult.price) : booking ? fmtPrice(booking.totalPrice) : ''} now
+                          {t('payNow', { price: prebookResult?.price ? fmtPrice(prebookResult.price) : booking ? fmtPrice(booking.totalPrice) : '' })}
                         </>
                       )}
                     </button>
                   </>
                 )}
                 <p className="text-[.65rem] text-[#8E95A9] font-semibold text-center mt-2">
-                  By paying you agree to our <a href="/terms" className="underline">Terms of Service</a>
+                  {t('termsPre')} <a href="/terms" className="underline">{t('termsLink')}</a>
                 </p>
               </div>
             </>
@@ -805,13 +809,13 @@ export default function HotelCheckoutPage() {
                   </div>
 
                   <p className="text-center text-[.62rem] font-black uppercase tracking-[2px] text-[#8a6d00] mb-2">
-                    Scout Shield · Protection activated
+                    {t('scoutShield')}
                   </p>
                   <h2 className="text-center font-[var(--font-playfair)] font-black text-[1.5rem] md:text-[1.8rem] text-[#0a1628] leading-tight tracking-tight mb-3">
-                    That room just sold —<br className="hidden md:block" /> we stopped the payment.
+                    {t('roomJustSoldA')}<br className="hidden md:block" /> {t('roomJustSoldB')}
                   </h2>
                   <p className="text-center text-[.88rem] font-medium text-slate-600 leading-relaxed max-w-md mx-auto mb-5">
-                    The hotel sold this exact rate in the seconds between you clicking <em>Reserve</em> and our live inventory check. Unlike sites that take your money first and email apologies later, Scout never charges for a room we can&apos;t lock.
+                    {t('ghostBodyPre')} <em>{t('reserveWord')}</em> {t('ghostBodyPost')}
                   </p>
 
                   {/* Scout tokens row — "what just happened" in 3 beats */}
@@ -819,15 +823,15 @@ export default function HotelCheckoutPage() {
                     <ul className="space-y-2 text-[.78rem] font-semibold text-[#0a1628]">
                       <li className="flex items-start gap-2">
                         <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" aria-hidden />
-                        <span>No charge on your card — we didn&apos;t authorise payment.</span>
+                        <span>{t('noCharge')}</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" aria-hidden />
-                        <span>Your details are safe — no booking was created.</span>
+                        <span>{t('detailsSafe')}</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" aria-hidden />
-                        <span>Live rates for <strong>{booking.city || 'your dates'}</strong> are one click away.</span>
+                        <span>{t('liveRatesForPre')} <strong>{booking.city || t('yourDates')}</strong> {t('liveRatesForPost')}</span>
                       </li>
                     </ul>
                   </div>
@@ -837,13 +841,13 @@ export default function HotelCheckoutPage() {
                       href={backHref}
                       className="inline-flex items-center gap-2 font-poppins font-bold text-[.85rem] bg-[#0a1628] text-white rounded-full px-6 py-3 hover:bg-[#0066FF] transition-colors shadow-[0_6px_18px_rgba(10,22,40,0.18)]"
                     >
-                      See live rates in {booking.city || 'this city'} →
+                      {t('seeLiveRatesIn', { city: booking.city || t('thisCity') })}
                     </a>
                     <a
                       href="/hotels"
                       className="inline-flex items-center gap-2 font-poppins font-bold text-[.8rem] text-[#0a1628] hover:text-[#0066FF] transition-colors"
                     >
-                      Search somewhere else
+                      {t('searchSomewhereElse')}
                     </a>
                   </div>
                 </div>
@@ -856,10 +860,10 @@ export default function HotelCheckoutPage() {
                 <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">
                   <i className="fa-solid fa-xmark text-red-600 text-xl" />
                 </div>
-                <p className="font-poppins font-bold text-red-700 mb-2">{stepError || 'Something went wrong'}</p>
-                <p className="text-[.78rem] text-slate-500 mb-4 max-w-sm mx-auto">Your card wasn&apos;t charged. Let&apos;s try fresh rates.</p>
+                <p className="font-poppins font-bold text-red-700 mb-2">{stepError || t('somethingWrong')}</p>
+                <p className="text-[.78rem] text-slate-500 mb-4 max-w-sm mx-auto">{t('cardNotCharged')}</p>
                 <a href={backHref} className="text-sm font-bold text-[#0066FF] underline">
-                  Back to search
+                  {t('backToSearch')}
                 </a>
               </div>
             );
@@ -876,22 +880,22 @@ export default function HotelCheckoutPage() {
           <h3 className="font-poppins font-black text-[1rem] text-[#1A1D2B] mb-1">{booking.hotelName}</h3>
           {booking.city && <p className="text-[.75rem] text-[#8E95A9] font-semibold mb-3">📍 {booking.city}</p>}
           <div className="text-[.78rem] text-[#5C6378] font-semibold space-y-1 mb-4">
-            <div>Check-in: <strong className="text-[#1A1D2B]">{booking.checkIn}</strong></div>
-            <div>Check-out: <strong className="text-[#1A1D2B]">{booking.checkOut}</strong></div>
+            <div>{t('checkinLabel')}: <strong className="text-[#1A1D2B]">{booking.checkIn}</strong></div>
+            <div>{t('checkoutLabel')}: <strong className="text-[#1A1D2B]">{booking.checkOut}</strong></div>
             <div>
-              {booking.nights} night{booking.nights !== 1 ? 's' : ''} ·{' '}
-              {booking.adults} adult{booking.adults !== 1 ? 's' : ''}
+              {t('nightsCount', { count: booking.nights })} ·{' '}
+              {t('adultsCount', { count: booking.adults })}
               {(booking.children ?? 0) > 0 && (
                 <>
                   {' · '}
-                  {booking.children} child{booking.children !== 1 ? 'ren' : ''}
+                  {t('childrenCount', { count: booking.children ?? 0 })}
                   {Array.isArray(booking.childAges) && booking.childAges.length > 0 && (
-                    <span className="text-[#8E95A9]"> (ages {booking.childAges.join(', ')})</span>
+                    <span className="text-[#8E95A9]"> ({t('agesLabel')} {booking.childAges.join(', ')})</span>
                   )}
                 </>
               )}
               {(booking.rooms ?? 1) > 1 && (
-                <> · {booking.rooms} room{booking.rooms !== 1 ? 's' : ''}</>
+                <> · {t('roomsCount', { count: booking.rooms ?? 1 })}</>
               )}
             </div>
           </div>
@@ -901,19 +905,19 @@ export default function HotelCheckoutPage() {
           {(booking.checkInTime || booking.checkOutTime) && (
             <div className="bg-[#FAF3E6]/60 ring-1 ring-[#E8D8A8]/60 rounded-xl p-3 mb-4">
               <div className="text-[.6rem] font-black uppercase tracking-[1.5px] text-[#8a6d00] mb-1.5">
-                Your stay schedule
+                {t('staySchedule')}
               </div>
               <div className="space-y-1 text-[.75rem]">
                 {booking.checkInTime && (
                   <div className="flex items-center gap-2">
                     <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" aria-hidden />
-                    <span className="font-semibold text-[#0a1628]">Room ready from <strong>{booking.checkInTime}</strong></span>
+                    <span className="font-semibold text-[#0a1628]">{t('roomReadyFrom')} <strong>{booking.checkInTime}</strong></span>
                   </div>
                 )}
                 {booking.checkOutTime && (
                   <div className="flex items-center gap-2">
                     <span className="inline-block w-1.5 h-1.5 rounded-full border border-slate-400 shrink-0" aria-hidden />
-                    <span className="font-medium text-slate-600">Check-out by <strong className="text-[#0a1628]">{booking.checkOutTime}</strong></span>
+                    <span className="font-medium text-slate-600">{t('checkoutByInline')} <strong className="text-[#0a1628]">{booking.checkOutTime}</strong></span>
                   </div>
                 )}
               </div>
@@ -922,14 +926,14 @@ export default function HotelCheckoutPage() {
           {/* ── Price breakdown ── */}
           <div className="border-t border-[#E8ECF4] pt-3 space-y-1.5">
             <div className="flex items-center justify-between">
-              <span className="text-[.78rem] font-semibold text-[#5C6378]">Secure now</span>
+              <span className="text-[.78rem] font-semibold text-[#5C6378]">{t('secureNow')}</span>
               <span className="font-poppins font-bold text-[.9rem] text-[#1A1D2B]">
                 {fmtPrice(prebookResult?.price ?? booking.totalPrice)}
               </span>
             </div>
             {booking.localFees != null && booking.localFees > 0 && (
               <div className="flex items-center justify-between">
-                <span className="text-[.78rem] font-semibold text-[#5C6378]">Local fees <span className="text-[.68rem] text-[#8E95A9]">(pay at hotel)</span></span>
+                <span className="text-[.78rem] font-semibold text-[#5C6378]">{t('localFees')} <span className="text-[.68rem] text-[#8E95A9]">{t('payAtHotel')}</span></span>
                 <span className="font-poppins font-bold text-[.9rem] text-[#1A1D2B]">
                   {fmtPrice(booking.localFees)}
                 </span>
@@ -937,11 +941,11 @@ export default function HotelCheckoutPage() {
             )}
             {prebookResult?.price && prebookResult.price !== booking.totalPrice && (
               <div className="flex items-center justify-between text-[.72rem] text-amber-700 font-semibold">
-                <span>Price updated from {fmtPrice(booking.totalPrice)}</span>
+                <span>{t('priceUpdatedFrom', { price: fmtPrice(booking.totalPrice) })}</span>
               </div>
             )}
             <div className="flex items-center justify-between pt-1.5 border-t border-[#E8ECF4]">
-              <span className="text-[.82rem] font-bold text-[#1A1D2B]">Total</span>
+              <span className="text-[.82rem] font-bold text-[#1A1D2B]">{t('totalLabel')}</span>
               <span className="font-poppins font-black text-[1.3rem] text-[#1A1D2B]">
                 {fmtPrice((prebookResult?.price ?? booking.totalPrice) + (booking.localFees || 0))}
               </span>
@@ -958,19 +962,19 @@ export default function HotelCheckoutPage() {
               <div className="mt-2 rounded-lg bg-emerald-50 border border-emerald-200 p-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[.78rem] font-bold text-emerald-900">
-                    App promo · 2nd booking
+                    {t('appPromo')}
                   </span>
                   <span className="font-poppins font-extrabold text-[.95rem] text-emerald-900">
-                    £{((booking.promoDiscountPence ?? 500) / 100).toFixed(2)} cashback
+                    £{((booking.promoDiscountPence ?? 500) / 100).toFixed(2)} {t('cashback')}
                   </span>
                 </div>
                 <p className="mt-1 text-[.68rem] text-emerald-800 leading-snug">
-                  We&rsquo;ll send £5 to your card within 7 working days.{' '}
+                  {t('sendCashback')}{' '}
                   <Link
                     href="/terms/promo-second-booking"
                     className="underline hover:text-emerald-950"
                   >
-                    T&amp;Cs apply
+                    {t('tcsApply')}
                   </Link>
                   .
                 </p>
