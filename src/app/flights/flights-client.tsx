@@ -11,6 +11,7 @@ import SaveSearchButton from '@/components/SaveSearchButton';
 import { saveSticky, loadSticky, type StickyFlights } from '@/lib/sticky-search';
 import AppStoreBadges from '@/components/AppStoreBadges';
 import DestinationBackdrop from '@/components/DestinationBackdrop';
+import { useTranslations } from 'next-intl';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    AIRPORTS — 20 UK departures + 250+ worldwide destinations
@@ -815,6 +816,7 @@ function AutocompleteFrom({ value, onChange, initialCode }: {
 }) {
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
+  const t = useTranslations('flights');
   const [chosen, setChosen] = useState<AnyAirport | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const onChangeRef = useRef(onChange);
@@ -858,7 +860,7 @@ function AutocompleteFrom({ value, onChange, initialCode }: {
 
   return (
     <div ref={ref} className="relative">
-      <input type="text" placeholder="City or airport — e.g. London, DXB, MAN" value={q} autoComplete="off"
+      <input type="text" placeholder={t('fromPlaceholder')} value={q} autoComplete="off"
         onChange={e => { setQ(e.target.value); setChosen(null); onChange('', ''); setOpen(true); }}
         onFocus={() => setOpen(true)}
         className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-base md:text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-[#0066FF] focus:bg-white transition-all placeholder:text-[#B0B8CC]" />
@@ -878,7 +880,7 @@ function AutocompleteFrom({ value, onChange, initialCode }: {
                   <span className="text-xl flex-shrink-0">{a.flag ?? '🌍'}</span>
                   <div className="flex-1 min-w-0">
                     <span className="font-poppins font-bold text-[.85rem] text-[#1A1D2B]">{a.name}</span>
-                    <span className="text-[.7rem] text-[#8E95A9] ml-1.5">All airports</span>
+                    <span className="text-[.7rem] text-[#8E95A9] ml-1.5">{t('allAirports')}</span>
                   </div>
                   <span className="font-mono text-[.68rem] font-bold text-[#8E95A9]">{a.code}</span>
                 </>
@@ -913,6 +915,7 @@ function AutocompleteTo({ value, onChange, initialCode, initialCity }: {
 }) {
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
+  const t = useTranslations('flights');
   const [chosen, setChosen] = useState<Dest | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const onChangeRef = useRef(onChange);
@@ -988,7 +991,7 @@ function AutocompleteTo({ value, onChange, initialCode, initialCity }: {
 
   return (
     <div ref={ref} className="relative">
-      <input type="text" placeholder="City or airport — e.g. Barcelona, BCN, DXB" value={q} autoComplete="off"
+      <input type="text" placeholder={t('toPlaceholder')} value={q} autoComplete="off"
         onChange={e => { setQ(e.target.value); setChosen(null); onChange('', ''); setOpen(true); }}
         onFocus={() => setOpen(true)}
         className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-base md:text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-[#0066FF] focus:bg-white transition-all placeholder:text-[#B0B8CC]" />
@@ -1006,7 +1009,7 @@ function AutocompleteTo({ value, onChange, initialCode, initialCity }: {
               <span className="text-xl">{d.flag}</span>
               <div className="flex-1">
                 <span className="font-poppins font-bold text-[.85rem] text-[#1A1D2B]">{d.city}</span>
-                <span className="text-[.72rem] text-[#8E95A9] ml-1.5">{d.isGroup ? 'All airports' : d.country}</span>
+                <span className="text-[.72rem] text-[#8E95A9] ml-1.5">{d.isGroup ? t('allAirports') : d.country}</span>
               </div>
               <span className="font-mono text-[.68rem] font-bold text-[#8E95A9]">{d.code}</span>
             </li>
@@ -1051,10 +1054,11 @@ function PassengerPicker({ adults, children, infants, onChange }: {
     return () => document.removeEventListener('mousedown', fn);
   }, []);
 
+  const t = useTranslations('flights');
   const label = [
-    `${adults} Adult${adults !== 1 ? 's' : ''}`,
-    children > 0 ? `${children} Child${children !== 1 ? 'ren' : ''}` : null,
-    infants > 0 ? `${infants} Infant${infants !== 1 ? 's' : ''}` : null,
+    t('adultsCount', { count: adults }),
+    children > 0 ? t('childrenCount', { count: children }) : null,
+    infants > 0 ? t('infantsCount', { count: infants }) : null,
   ].filter(Boolean).join(', ');
 
   return (
@@ -1066,16 +1070,16 @@ function PassengerPicker({ adults, children, infants, onChange }: {
       </button>
       {open && (
         <div className="absolute z-50 w-72 mt-1.5 right-0 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl p-4">
-          <PaxRow label="Adults" sub="Age 12+" val={adults} min={1} max={9 - children - infants}
+          <PaxRow label={t('adults')} sub={t('age12plus')} val={adults} min={1} max={9 - children - infants}
             onDec={() => onChange(adults - 1, children, infants)} onInc={() => onChange(adults + 1, children, infants)} />
-          <PaxRow label="Children" sub="Age 2–11" val={children} min={0} max={9 - adults - infants}
+          <PaxRow label={t('children')} sub={t('age2to11')} val={children} min={0} max={9 - adults - infants}
             onDec={() => onChange(adults, children - 1, infants)} onInc={() => onChange(adults, children + 1, infants)} />
-          <PaxRow label="Infants" sub="Under 2" val={infants} min={0} max={Math.min(adults, 9 - adults - children)}
+          <PaxRow label={t('infants')} sub={t('under2')} val={infants} min={0} max={Math.min(adults, 9 - adults - children)}
             onDec={() => onChange(adults, children, infants - 1)} onInc={() => onChange(adults, children, infants + 1)} />
-          <p className="text-[.6rem] text-[#8E95A9] font-semibold mt-1">Max 9 passengers total</p>
+          <p className="text-[.6rem] text-[#8E95A9] font-semibold mt-1">{t('maxPassengers')}</p>
           <button type="button" onClick={() => setOpen(false)}
             className="w-full mt-3 bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.8rem] py-2.5 rounded-xl transition-colors">
-            Done
+            {t('done')}
           </button>
         </div>
       )}
@@ -1094,6 +1098,7 @@ type HotDeal = {
 };
 
 function HotDeals({ onSelect }: { onSelect: (destCode: string, destCity: string) => void }) {
+  const t = useTranslations('flights');
   const [deals, setDeals] = useState<HotDeal[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchedAt, setFetchedAt] = useState<string | null>(null);
@@ -1115,19 +1120,19 @@ function HotDeals({ onSelect }: { onSelect: (destCode: string, destCity: string)
     const ts = Date.parse(fetchedAt);
     if (!Number.isFinite(ts)) return null;
     const mins = Math.max(0, Math.round((Date.now() - ts) / 60000));
-    if (mins < 2) return 'just now';
-    if (mins < 60) return `${mins} min ago`;
+    if (mins < 2) return t('justNow');
+    if (mins < 60) return t('minAgo', { mins });
     const hrs = Math.round(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
+    if (hrs < 24) return t('hAgo', { hrs });
     const days = Math.round(hrs / 24);
-    return `${days}d ago`;
+    return t('dAgo', { days });
   })();
 
   if (loading) {
     return (
       <section className="max-w-[1100px] mx-auto px-5 py-8">
         <h2 className="font-poppins font-black text-[1.2rem] text-[#1A1D2B] mb-4">
-          <span className="text-[#0066FF]">🔥</span> Hot Flight Deals from London
+          <span className="text-[#0066FF]">🔥</span> {t('hotFlightDeals')}
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {Array.from({ length: 8 }).map((_, i) => (
@@ -1148,17 +1153,17 @@ function HotDeals({ onSelect }: { onSelect: (destCode: string, destCity: string)
     <section className="max-w-[1100px] mx-auto px-5 py-8">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <h2 className="font-poppins font-black text-[1.2rem] text-[#1A1D2B]">
-          <span className="text-[#0066FF]">🔥</span> Hot Flight Deals from London
+          <span className="text-[#0066FF]">🔥</span> {t('hotFlightDeals')}
         </h2>
         <span className="text-[.68rem] text-[#8E95A9] font-semibold">
-          Indicative prices{relativeUpdated ? ` · Updated ${relativeUpdated}` : ''} · Click to search live
+          {t('indicativePrices')}{relativeUpdated ? ` · ${t('updatedRel', { rel: relativeUpdated })}` : ''} · {t('clickToSearch')}
         </span>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         {deals.map(deal => {
           const depDate = deal.departureDate ? new Date(deal.departureDate) : null;
           const dateStr = depDate ? depDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '';
-          const stops = deal.transfers === 0 ? 'Direct' : deal.transfers === 1 ? '1 stop' : `${deal.transfers} stops`;
+          const stops = deal.transfers === 0 ? t('stopsDirect') : deal.transfers === 1 ? t('stops1') : t('stopsN', { n: deal.transfers });
           const durH = Math.floor((deal.duration || 0) / 60);
           const durM = (deal.duration || 0) % 60;
           const durStr = deal.duration ? `${durH}h${durM > 0 ? ` ${durM}m` : ''}` : '';
@@ -1179,7 +1184,7 @@ function HotDeals({ onSelect }: { onSelect: (destCode: string, destCity: string)
               </div>
               <div className="text-[.62rem] text-[#8E95A9] font-semibold space-y-0.5">
                 <div>{deal.airline} · {stops}{durStr ? ` · ${durStr}` : ''}</div>
-                {dateStr && <div>from {dateStr} · one-way pp</div>}
+                {dateStr && <div>{t('fromWord')} {dateStr} · {t('oneWayPp')}</div>}
               </div>
             </button>
           );
@@ -1194,11 +1199,11 @@ function HotDeals({ onSelect }: { onSelect: (destCode: string, destCity: string)
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const LOADING_MSGS = [
-  'Checking live fares...',
-  'Finding direct-bookable flights...',
-  'Comparing airlines...',
-  'Pricing your dates...',
-  'Finding you the best deal...',
+  'loadingFares',
+  'loadingDirect',
+  'loadingAirlines',
+  'loadingDates',
+  'loadingBest',
 ];
 
 function FlightSkeletonCard() {
@@ -1235,6 +1240,7 @@ function FlightSkeletonCard() {
 }
 
 function LoadingState({ origin, dest }: { origin: string; dest: string }) {
+  const t = useTranslations('flights');
   const [msgIdx, setMsgIdx] = useState(0);
   const [progress, setProgress] = useState(0);
 
@@ -1252,8 +1258,8 @@ function LoadingState({ origin, dest }: { origin: string; dest: string }) {
           <div className="h-full bg-gradient-to-r from-[#0066FF] to-[#4F46E5] rounded-full transition-all duration-100" style={{ width: `${progress}%` }} />
         </div>
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <span className="text-[.85rem] font-bold text-[#1A1D2B]">{LOADING_MSGS[msgIdx]}</span>
-          <p className="text-[.72rem] text-[#8E95A9] font-semibold">Building results for <strong className="text-[#1A1D2B]">{origin} → {dest}</strong></p>
+          <span className="text-[.85rem] font-bold text-[#1A1D2B]">{t(LOADING_MSGS[msgIdx])}</span>
+          <p className="text-[.72rem] text-[#8E95A9] font-semibold">{t('buildingResultsFor')} <strong className="text-[#1A1D2B]">{origin} → {dest}</strong></p>
         </div>
       </div>
       {/* Skeleton result cards — shape-of-content placeholders */}
@@ -1269,6 +1275,7 @@ function LoadingState({ origin, dest }: { origin: string; dest: string }) {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function PriceCalendar({ origin, dest, depDate }: { origin: string; dest: string; depDate: string }) {
+  const t = useTranslations('flights');
   const [data, setData] = useState<CalendarDay[] | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -1311,11 +1318,11 @@ function PriceCalendar({ origin, dest, depDate }: { origin: string; dest: string
 
   return (
     <div className="bg-white border border-[#E8ECF4] rounded-2xl p-6">
-      <h3 className="font-poppins font-black text-[1rem] text-[#1A1D2B] mb-1">Best Days to Fly {origin} → {dest}</h3>
+      <h3 className="font-poppins font-black text-[1rem] text-[#1A1D2B] mb-1">{t('bestDaysToFly')} {origin} → {dest}</h3>
       <p className="text-[.72rem] text-[#8E95A9] font-semibold mb-4">
-        <span className="inline-block w-2.5 h-2.5 rounded-sm bg-[#10b981] mr-1 align-middle" /> Cheap
-        <span className="inline-block w-2.5 h-2.5 rounded-sm bg-[#f59e0b] mx-1 ml-3 align-middle" /> Medium
-        <span className="inline-block w-2.5 h-2.5 rounded-sm bg-[#ef4444] mx-1 ml-3 align-middle" /> Expensive
+        <span className="inline-block w-2.5 h-2.5 rounded-sm bg-[#10b981] mr-1 align-middle" /> {t('cheap')}
+        <span className="inline-block w-2.5 h-2.5 rounded-sm bg-[#f59e0b] mx-1 ml-3 align-middle" /> {t('medium')}
+        <span className="inline-block w-2.5 h-2.5 rounded-sm bg-[#ef4444] mx-1 ml-3 align-middle" /> {t('expensive')}
       </p>
       <div className="flex gap-[3px] items-end h-36 overflow-x-auto pb-1">
         {sorted.map((d, i) => {
@@ -1334,7 +1341,7 @@ function PriceCalendar({ origin, dest, depDate }: { origin: string; dest: string
           );
         })}
       </div>
-      <p className="text-[.65rem] text-[#8E95A9] font-semibold mt-3 text-center">Hover over bars to see prices · Based on recent searches</p>
+      <p className="text-[.65rem] text-[#8E95A9] font-semibold mt-3 text-center">{t('hoverBars')}</p>
     </div>
   );
 }
@@ -1344,6 +1351,7 @@ function PriceCalendar({ origin, dest, depDate }: { origin: string; dest: string
    ═��═════════════════════════════════════════════════════════════════════════ */
 
 function FlightsContent() {
+  const t = useTranslations('flights');
   const router = useRouter();
   const [originCode, setOriginCode] = useState('');
   const [originCity, setOriginCity] = useState('');
@@ -1549,11 +1557,11 @@ function FlightsContent() {
     // Inline validation — never alert(). A blocking alert() dialog reads
     // as a frozen page to some users (and to automation), and dismissing
     // it teaches nothing because the message vanishes (2026-07-02 audit).
-    if (!originCode) { setFormError('Choose a departure airport to get started.'); return; }
-    if (!destCode) { setFormError('Choose a destination to search.'); return; }
-    if (!depDate) { setFormError('Pick a departure date to search.'); return; }
+    if (!originCode) { setFormError(t('errNoOrigin')); return; }
+    if (!destCode) { setFormError(t('errNoDest')); return; }
+    if (!depDate) { setFormError(t('errNoDepDate')); return; }
     if (tripType === 'return' && !retDate) {
-      setFormError('Add a return date — or switch to One-way above.');
+      setFormError(t('errNoRetDate'));
       return;
     }
     setFormError('');
@@ -1934,7 +1942,7 @@ function FlightsContent() {
         const data = await res.json();
 
         if (!res.ok || data.error) {
-          setApiError(data.error || 'Could not load flights. Please try again.');
+          setApiError(data.error || t('apiErrLoad'));
           setLoading(false);
           setScoutActive(false);
           return;
@@ -1946,7 +1954,7 @@ function FlightsContent() {
         void loadDateStrip((data.flights && data.flights.length > 0) ? data.flights[0].price : null);
         setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
       } catch {
-        setApiError('Could not load flights. Please check your connection and try again.');
+        setApiError(t('apiErrConnection'));
         setLoading(false);
         setScoutActive(false);
       }
@@ -2209,10 +2217,10 @@ function FlightsContent() {
           {/* Trip type + Cabin */}
           <div className="flex flex-wrap items-center gap-3 mb-5">
             <div className="flex gap-1.5 bg-[#F8FAFC] p-1 rounded-xl w-fit">
-              {(['return', 'one-way'] as const).map(t => (
-                <button key={t} onClick={() => { setTripType(t); if (t === 'one-way') setRetDate(''); }}
-                  className={`px-4 py-2 rounded-lg text-[.75rem] font-extrabold uppercase tracking-[1.5px] transition-all ${tripType === t ? 'bg-white text-[#0066FF] shadow-sm' : 'text-[#8E95A9] hover:text-[#1A1D2B]'}`}>
-                  {t === 'return' ? '↔ Return' : '→ One-way'}
+              {(['return', 'one-way'] as const).map(tt => (
+                <button key={tt} onClick={() => { setTripType(tt); if (tt === 'one-way') setRetDate(''); }}
+                  className={`px-4 py-2 rounded-lg text-[.75rem] font-extrabold uppercase tracking-[1.5px] transition-all ${tripType === tt ? 'bg-white text-[#0066FF] shadow-sm' : 'text-[#8E95A9] hover:text-[#1A1D2B]'}`}>
+                  {tt === 'return' ? t('tReturn') : t('tOneWay')}
                 </button>
               ))}
             </div>
@@ -2220,23 +2228,23 @@ function FlightsContent() {
               value={cabinClass}
               onChange={e => setCabinClass(e.target.value as typeof cabinClass)}
               className="bg-[#F8FAFC] border border-[#E8ECF4] rounded-xl px-3 py-2 text-[.75rem] font-extrabold uppercase tracking-[1.5px] text-[#1A1D2B] outline-none focus:border-[#0066FF] cursor-pointer"
-              aria-label="Cabin class"
+              aria-label={t('cabinClassAria')}
             >
-              <option value="economy">Economy</option>
-              <option value="premium_economy">Premium Economy</option>
-              <option value="business">Business</option>
-              <option value="first">First</option>
+              <option value="economy">{t('cabinEconomy')}</option>
+              <option value="premium_economy">{t('cabinPremium')}</option>
+              <option value="business">{t('cabinBusiness')}</option>
+              <option value="first">{t('cabinFirst')}</option>
             </select>
           </div>
 
           {/* From / To */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">From</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">{t('fromLabel')}</label>
               <AutocompleteFrom value={originCode} onChange={(code, city) => { setOriginCode(code); setOriginCity(city); }} initialCode={initOrigin} />
             </div>
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">To</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">{t('toLabel')}</label>
               <AutocompleteTo value={destCode} onChange={(code, city) => { setDestCode(code); setDestCity(city); }} initialCode={initDest} initialCity={destCity} />
             </div>
           </div>
@@ -2244,20 +2252,20 @@ function FlightsContent() {
           {/* Dates + Passengers */}
           <div className="grid gap-3 mb-4 grid-cols-1 sm:grid-cols-2">
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Calendar</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">{t('calendar')}</label>
               <DateRangePicker
                 start={depDate}
                 end={retDate}
                 minDate={today}
                 accent="blue"
                 oneWay={tripType !== 'return'}
-                startWord="departure"
-                endWord="return"
+                startWord={t('wordDeparture')}
+                endWord={t('wordReturn')}
                 onChange={({ start: s, end: e }) => { setDepDate(s); setRetDate(e); }}
               />
             </div>
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Passengers</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">{t('passengers')}</label>
               <PassengerPicker adults={adults} children={children} infants={infants}
                 onChange={(a, c, i) => { setAdults(a); setChildren(c); setInfants(i); }} />
             </div>
@@ -2273,10 +2281,10 @@ function FlightsContent() {
                   className="w-full bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-60 disabled:cursor-not-allowed text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(0,102,255,0.3)]"
                 >
                   {loading
-                    ? 'Searching…'
+                    ? t('searchingBtn')
                     : returnMissing
-                    ? 'Pick a return date to search'
-                    : 'Search 5 Providers →'}
+                    ? t('pickReturnDate')
+                    : t('search5Providers')}
                 </button>
                 {formError ? (
                   <p className="text-center text-[.72rem] text-red-600 font-bold mt-2.5" role="alert">
@@ -2285,11 +2293,11 @@ function FlightsContent() {
                   </p>
                 ) : returnMissing ? (
                   <p className="text-center text-[.68rem] text-amber-700 font-bold mt-2.5">
-                    Return trip selected — add a return date, or switch to One-way above.
+                    {t('returnMissingNote')}
                   </p>
                 ) : (
                   <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">
-                    Free comparison · Results shown here · Click any deal to book on the provider site
+                    {t('freeComparisonNote')}
                   </p>
                 )}
               </>
@@ -2341,7 +2349,7 @@ function FlightsContent() {
             <p className="text-[.85rem] font-bold text-red-600 mb-3">{apiError}</p>
             <button onClick={handleSearch}
               className="bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.82rem] px-6 py-2.5 rounded-xl transition-all">
-              Try Again
+              {t('tryAgain')}
             </button>
           </div>
         </section>
@@ -2357,9 +2365,9 @@ function FlightsContent() {
               <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-2xl px-5 py-3">
                 <span className="inline-flex h-2.5 w-2.5 rounded-full bg-[#0066FF] animate-pulse" />
                 <span className="font-poppins font-semibold text-[.85rem] text-[#1A1D2B]">
-                  Scout is checking airlines…
+                  {t('scoutChecking')}
                   {scoutAirlineCount > 0 && (
-                    <span className="text-[#5C6378] font-semibold"> {scoutAirlineCount} found so far</span>
+                    <span className="text-[#5C6378] font-semibold"> {t('foundSoFar', { count: scoutAirlineCount })}</span>
                   )}
                 </span>
               </div>
@@ -2373,11 +2381,11 @@ function FlightsContent() {
                 <div className="flex items-center gap-3">
                   <span className="text-xl">🏷</span>
                   <span className="font-poppins font-black text-[1rem] text-[#1A1D2B]">
-                    Cheapest found: <span className="text-green-600">£{priceView === 'total' ? Math.round(cheapest.price * (adults + children)) : cheapest.price}{priceView === 'total' ? ' total' : '/pp'}</span> with {cheapest.airline}
-                    {cheapest.transfers === 0 && <span className="text-green-600"> (direct)</span>}
+                    {t('cheapestFound')}: <span className="text-green-600">£{priceView === 'total' ? Math.round(cheapest.price * (adults + children)) : cheapest.price}{priceView === 'total' ? t('priceSuffixTotal') : t('priceSuffixPp')}</span> {t('withWord')} {cheapest.airline}
+                    {cheapest.transfers === 0 && <span className="text-green-600"> ({t('directLower')})</span>}
                   </span>
                 </div>
-                <p className="text-[.7rem] text-[#8E95A9] font-semibold">{cheapest.source === 'duffel' ? 'Live prices including all taxes & fees. Book directly.' : 'Prices are indicative based on recent searches. Click \'View Deal\' for live pricing from the provider.'}</p>
+                <p className="text-[.7rem] text-[#8E95A9] font-semibold">{cheapest.source === 'duffel' ? t('livePricesNote') : t('indicativePricesNote')}</p>
               </div>
             </section>
           )}
@@ -2405,7 +2413,7 @@ function FlightsContent() {
             <div className="flex items-center gap-2.5 bg-blue-50 border border-blue-200 rounded-2xl px-5 py-3">
               <i className="fa-solid fa-shield-halved text-[#0066FF] text-[.95rem]" />
               <p className="text-[.78rem] text-[#1A1D2B] font-semibold leading-snug">
-                <strong className="font-black">Price security:</strong> the fare you see is the fare you pay — live prices, locked at booking, with no JetMeAway markups or booking fees.
+                <strong className="font-black">{t('priceSecurity')}</strong> {t('priceSecurityBody')}
               </p>
             </div>
           </section>
@@ -2419,11 +2427,11 @@ function FlightsContent() {
                   onClick={() => setFiltersOpenMobile(v => !v)}
                   className="flex items-center gap-2 bg-white border border-[#E8ECF4] hover:border-[#0066FF] text-[#1A1D2B] font-poppins font-bold text-[.78rem] px-4 py-2 rounded-full shadow-sm transition-all"
                 >
-                  <span>⚙</span> Filters & Sort
+                  <span>⚙</span> {t('filtersSort')}
                   {filtersActive && <span className="w-1.5 h-1.5 rounded-full bg-[#0066FF]" />}
                 </button>
                 <div className="text-[.72rem] text-[#8E95A9] font-bold">
-                  {visibleFlights.length} of {directCount}
+                  {visibleFlights.length} {t('ofWord')} {directCount}
                 </div>
               </div>
 
@@ -2431,23 +2439,23 @@ function FlightsContent() {
                 {/* ─── Sidebar ─── */}
                 <aside className={`${filtersOpenMobile ? 'block' : 'hidden'} md:block md:sticky md:top-24 self-start bg-white border border-[#E8ECF4] rounded-2xl p-5 h-fit`}>
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-poppins font-black text-[.95rem] text-[#1A1D2B]">Filters</h3>
+                    <h3 className="font-poppins font-black text-[.95rem] text-[#1A1D2B]">{t('filters')}</h3>
                     {filtersActive && (
                       <button onClick={clearAllFilters} className="text-[.7rem] font-bold text-[#0066FF] hover:underline">
-                        Clear all
+                        {t('clearAll')}
                       </button>
                     )}
                   </div>
 
                   {/* Sort by */}
                   <div className="mb-5">
-                    <h4 className="font-poppins font-black text-[.78rem] text-[#1A1D2B] mb-2 uppercase tracking-wide">Sort by</h4>
+                    <h4 className="font-poppins font-black text-[.78rem] text-[#1A1D2B] mb-2 uppercase tracking-wide">{t('sortBy')}</h4>
                     <div className="space-y-1.5">
                       {([
-                        { v: 'price-asc', l: 'Least expensive' },
-                        { v: 'price-desc', l: 'Most expensive' },
-                        { v: 'duration-asc', l: 'Shortest duration' },
-                        { v: 'duration-desc', l: 'Longest duration' },
+                        { v: 'price-asc', l: t('sortLeast') },
+                        { v: 'price-desc', l: t('sortMost') },
+                        { v: 'duration-asc', l: t('sortShortest') },
+                        { v: 'duration-desc', l: t('sortLongest') },
                       ] as { v: SortBy; l: string }[]).map(o => (
                         <label key={o.v} className="flex items-center gap-2 cursor-pointer text-[.78rem] text-[#5C6378] font-semibold">
                           <input type="radio" name="sortby" checked={sortBy === o.v} onChange={() => setSortBy(o.v)} className="accent-[#0066FF]" />
@@ -2459,34 +2467,34 @@ function FlightsContent() {
 
                   {/* Price view */}
                   <div className="mb-5">
-                    <h4 className="font-poppins font-black text-[.78rem] text-[#1A1D2B] mb-2 uppercase tracking-wide">Show price</h4>
+                    <h4 className="font-poppins font-black text-[.78rem] text-[#1A1D2B] mb-2 uppercase tracking-wide">{t('showPrice')}</h4>
                     <div className="inline-flex bg-[#F1F3F7] rounded-xl p-1 w-full">
                       <button
                         type="button"
                         onClick={() => setPriceView('perPerson')}
                         className={`flex-1 px-3 py-1.5 rounded-lg text-[.72rem] font-poppins font-bold transition-all ${priceView === 'perPerson' ? 'bg-white text-[#1A1D2B] shadow-sm' : 'text-[#5C6378]'}`}
                       >
-                        Per person
+                        {t('perPerson')}
                       </button>
                       <button
                         type="button"
                         onClick={() => setPriceView('total')}
                         className={`flex-1 px-3 py-1.5 rounded-lg text-[.72rem] font-poppins font-bold transition-all ${priceView === 'total' ? 'bg-white text-[#1A1D2B] shadow-sm' : 'text-[#5C6378]'}`}
                       >
-                        Total
+                        {t('totalWord')}
                       </button>
                     </div>
                   </div>
 
                   {/* Stops */}
                   <div className="mb-5">
-                    <h4 className="font-poppins font-black text-[.78rem] text-[#1A1D2B] mb-2 uppercase tracking-wide">Stops</h4>
+                    <h4 className="font-poppins font-black text-[.78rem] text-[#1A1D2B] mb-2 uppercase tracking-wide">{t('stops')}</h4>
                     <div className="space-y-1.5">
                       {([
-                        { v: 'direct', l: 'Direct only' },
-                        { v: 'max1', l: '1 stop at most' },
-                        { v: 'max2', l: '2 stops at most' },
-                        { v: 'any', l: 'Any number of stops' },
+                        { v: 'direct', l: t('stopsDirectOnly') },
+                        { v: 'max1', l: t('stopsMax1') },
+                        { v: 'max2', l: t('stopsMax2') },
+                        { v: 'any', l: t('stopsAny') },
                       ] as { v: StopsFilter; l: string }[]).map(o => (
                         <label key={o.v} className="flex items-center gap-2 cursor-pointer text-[.78rem] text-[#5C6378] font-semibold">
                           <input type="radio" name="stops" checked={stopsFilter === o.v} onChange={() => setStopsFilter(o.v)} className="accent-[#0066FF]" />
@@ -2499,7 +2507,7 @@ function FlightsContent() {
                   {/* Airlines */}
                   {availableAirlines.length > 0 && (
                     <div className="mb-5">
-                      <h4 className="font-poppins font-black text-[.78rem] text-[#1A1D2B] mb-2 uppercase tracking-wide">Airlines</h4>
+                      <h4 className="font-poppins font-black text-[.78rem] text-[#1A1D2B] mb-2 uppercase tracking-wide">{t('airlines')}</h4>
                       <div className="space-y-1.5">
                         {availableAirlines.map(a => (
                           <label key={a} className="flex items-center gap-2 cursor-pointer text-[.78rem] text-[#5C6378] font-semibold">
@@ -2520,12 +2528,12 @@ function FlightsContent() {
 
                   {/* Flight number */}
                   <div className="mb-5">
-                    <h4 className="font-poppins font-black text-[.78rem] text-[#1A1D2B] mb-2 uppercase tracking-wide">Flight number</h4>
+                    <h4 className="font-poppins font-black text-[.78rem] text-[#1A1D2B] mb-2 uppercase tracking-wide">{t('flightNumber')}</h4>
                     <input
                       type="text"
                       value={flightNumFilter}
                       onChange={(e) => setFlightNumFilter(e.target.value)}
-                      placeholder="e.g. BA117"
+                      placeholder={t('flightNumberPlaceholder')}
                       className="w-full border border-[#E8ECF4] rounded-lg px-3 py-2 text-[.8rem] focus:outline-none focus:border-[#0066FF]"
                     />
                   </div>
@@ -2533,16 +2541,16 @@ function FlightsContent() {
                   {/* Take-off time */}
                   <div className="mb-5">
                     <div className="flex items-center justify-between mb-1">
-                      <h4 className="font-poppins font-black text-[.78rem] text-[#1A1D2B] uppercase tracking-wide">Take-off</h4>
+                      <h4 className="font-poppins font-black text-[.78rem] text-[#1A1D2B] uppercase tracking-wide">{t('takeoff')}</h4>
                       <span className="text-[.65rem] text-[#8E95A9] font-bold">
-                        {takeoffMin === 0 && takeoffMax === 1439 ? 'at any time' : `${minsToLabel(takeoffMin)} – ${minsToLabel(takeoffMax)}`}
+                        {takeoffMin === 0 && takeoffMax === 1439 ? t('atAnyTime') : `${minsToLabel(takeoffMin)} – ${minsToLabel(takeoffMax)}`}
                       </span>
                     </div>
-                    <label className="text-[.65rem] text-[#8E95A9] font-semibold block mb-0.5">Earliest</label>
+                    <label className="text-[.65rem] text-[#8E95A9] font-semibold block mb-0.5">{t('earliest')}</label>
                     <input type="range" min={0} max={1439} step={15} value={takeoffMin}
                       onChange={e => { const v = Number(e.target.value); setTakeoffMin(Math.min(v, takeoffMax)); }}
                       className="w-full accent-[#0066FF]" />
-                    <label className="text-[.65rem] text-[#8E95A9] font-semibold block mb-0.5 mt-1">Latest</label>
+                    <label className="text-[.65rem] text-[#8E95A9] font-semibold block mb-0.5 mt-1">{t('latest')}</label>
                     <input type="range" min={0} max={1439} step={15} value={takeoffMax}
                       onChange={e => { const v = Number(e.target.value); setTakeoffMax(Math.max(v, takeoffMin)); }}
                       className="w-full accent-[#0066FF]" />
@@ -2554,16 +2562,16 @@ function FlightsContent() {
                   {/* Landing time */}
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <h4 className="font-poppins font-black text-[.78rem] text-[#1A1D2B] uppercase tracking-wide">Landing</h4>
+                      <h4 className="font-poppins font-black text-[.78rem] text-[#1A1D2B] uppercase tracking-wide">{t('landing')}</h4>
                       <span className="text-[.65rem] text-[#8E95A9] font-bold">
-                        {landingMin === 0 && landingMax === 1439 ? 'at any time' : `${minsToLabel(landingMin)} – ${minsToLabel(landingMax)}`}
+                        {landingMin === 0 && landingMax === 1439 ? t('atAnyTime') : `${minsToLabel(landingMin)} – ${minsToLabel(landingMax)}`}
                       </span>
                     </div>
-                    <label className="text-[.65rem] text-[#8E95A9] font-semibold block mb-0.5">Earliest</label>
+                    <label className="text-[.65rem] text-[#8E95A9] font-semibold block mb-0.5">{t('earliest')}</label>
                     <input type="range" min={0} max={1439} step={15} value={landingMin}
                       onChange={e => { const v = Number(e.target.value); setLandingMin(Math.min(v, landingMax)); }}
                       className="w-full accent-[#0066FF]" />
-                    <label className="text-[.65rem] text-[#8E95A9] font-semibold block mb-0.5 mt-1">Latest</label>
+                    <label className="text-[.65rem] text-[#8E95A9] font-semibold block mb-0.5 mt-1">{t('latest')}</label>
                     <input type="range" min={0} max={1439} step={15} value={landingMax}
                       onChange={e => { const v = Number(e.target.value); setLandingMax(Math.max(v, landingMin)); }}
                       className="w-full accent-[#0066FF]" />
@@ -2577,11 +2585,11 @@ function FlightsContent() {
                 <div>
                   <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
                     <h3 className="font-poppins font-black text-[.9rem] text-[#1A1D2B]">
-                      {visibleFlights.length} of {directCount} direct-book flights
+                      {visibleFlights.length} {t('ofWord')} {directCount} {t('directBookFlights')}
                     </h3>
                     <SaveSearchButton
                       type="flight"
-                      label={`${originCity || originCode} → ${destCity || destCode} · ${depDate}${tripType === 'return' && retDate ? ` → ${retDate}` : ''} · ${adults + children + infants} passenger${adults + children + infants === 1 ? '' : 's'}`}
+                      label={`${originCity || originCode} → ${destCity || destCode} · ${depDate}${tripType === 'return' && retDate ? ` → ${retDate}` : ''} · ${t('passengersCount', { count: adults + children + infants })}`}
                       criteria={{
                         origin: originCode,
                         destination: destCode,
@@ -2610,14 +2618,14 @@ function FlightsContent() {
                       <span className="text-3xl mb-3 block">🔎</span>
                       {filtersActive ? (
                         <>
-                          <p className="font-poppins font-bold text-[.95rem] text-[#1A1D2B] mb-2">No flights match your filters.</p>
+                          <p className="font-poppins font-bold text-[.95rem] text-[#1A1D2B] mb-2">{t('noFlightsFilters')}</p>
                           <button onClick={clearAllFilters} className="text-[.78rem] text-[#0066FF] font-bold hover:underline">
-                            Clear all filters
+                            {t('clearAllFilters')}
                           </button>
                         </>
                       ) : (
                         <p className="font-poppins font-bold text-[.95rem] text-[#1A1D2B] mb-0">
-                          No direct-bookable flights for this route and date. Try nearby dates or a different London airport.
+                          {t('noDirectBookable')}
                         </p>
                       )}
                     </div>
@@ -2649,25 +2657,25 @@ function FlightsContent() {
                           <div>
                             <div className="font-poppins font-bold text-[.88rem] text-[#1A1D2B] flex items-center gap-2">
                               {f.airline}
-                              {isCheapest && <span className="text-[.55rem] font-black uppercase tracking-[1.5px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">Cheapest</span>}
+                              {isCheapest && <span className="text-[.55rem] font-black uppercase tracking-[1.5px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">{t('cheapest')}</span>}
                             </div>
                             {f.flight_number && <div className="text-[.65rem] text-[#8E95A9] font-semibold">{f.airlineCode} {f.flight_number}</div>}
                             {isKyte && (
                               <div
                                 className="flex items-center gap-1 text-emerald-700 text-[.7rem] font-bold mt-1"
-                                title="Bypassing third-party agents. This booking is handled directly with the airline via JetMeAway's secure scout engine — no markups, no booking fees, prices locked at booking."
+                                title={t('kyteTooltip')}
                               >
                                 <ShieldCheck size={12} strokeWidth={2.5} />
-                                Direct via {f.airline} · Live price
+                                {t('directVia', { airline: f.airline })} · {t('livePrice')}
                               </div>
                             )}
                             {isLiteapi && (
                               <div
                                 className="flex items-center gap-1 text-emerald-700 text-[.7rem] font-bold mt-1"
-                                title="Book direct on JetMeAway — secure checkout, price guaranteed at booking, no third-party agents."
+                                title={t('liteapiTooltip')}
                               >
                                 <ShieldCheck size={12} strokeWidth={2.5} />
-                                Book direct · Price guaranteed
+                                {t('bookDirectGuaranteed')}
                               </div>
                             )}
                           </div>
@@ -2687,7 +2695,7 @@ function FlightsContent() {
                               <div className="flex-1 h-px bg-[#D1D5DB]" />
                             </div>
                             <span className={`text-[.58rem] font-black uppercase tracking-[1px] ${f.transfers === 0 ? 'text-green-600' : 'text-orange-500'}`}>
-                              {f.stops}
+                              {f.transfers === 0 ? t('stopsDirect') : f.transfers === 1 ? t('stops1') : t('stopsN', { n: f.transfers })}
                             </span>
                           </div>
                           <div className="text-center min-w-[50px]">
@@ -2703,19 +2711,19 @@ function FlightsContent() {
                               <>
                                 <div className="font-poppins font-black text-[1.5rem] text-[#1A1D2B] leading-none">{f.currency}{Math.round(f.price * (adults + children))}</div>
                                 <div className="text-[.6rem] text-[#8E95A9] font-semibold">
-                                  total for {adults + children} passenger{adults + children !== 1 ? 's' : ''}{f.return_at ? ', return' : ', one-way'}
+                                  {t('totalForPassengers', { count: adults + children })}{f.return_at ? t('commaReturn') : t('commaOneWay')}
                                 </div>
                               </>
                             ) : (
                               <>
                                 <div className="font-poppins font-black text-[1.5rem] text-[#1A1D2B] leading-none">{f.currency}{f.price}</div>
                                 <div className="text-[.6rem] text-[#8E95A9] font-semibold">
-                                  {isDirect ? 'total price, per person' : `per person, ${f.return_at ? 'return' : 'one-way'}`}
+                                  {isDirect ? t('totalPricePerPerson') : t('perPersonTrip', { trip: f.return_at ? t('returnWord') : t('oneWayWord') })}
                                 </div>
                               </>
                             )}
                             {isDuffel && (
-                              <div className="text-[.55rem] text-green-600 font-bold mt-0.5">✓ Live price incl. taxes</div>
+                              <div className="text-[.55rem] text-green-600 font-bold mt-0.5">✓ {t('livePriceInclTaxes')}</div>
                             )}
                           </div>
                         </div>
@@ -2724,20 +2732,20 @@ function FlightsContent() {
                       {/* Return flight info */}
                       {f.return_at && f.duration_back > 0 && (
                         <div className="border-t border-[#F1F3F7] px-5 py-2.5 bg-[#FAFBFD] flex items-center gap-3 text-[.72rem] text-[#8E95A9] font-semibold">
-                          <span className="text-[#5C6378] font-bold">Return:</span>
+                          <span className="text-[#5C6378] font-bold">{t('returnLabel')}</span>
                           <span>{fmtDate(f.return_at)}, {fmtTime(f.return_at)} → {arrivalTime(f.return_at, f.duration_back)}</span>
-                          <span>({fmtDuration(f.duration_back)}, {f.transfers === 0 ? 'Direct' : f.stops})</span>
+                          <span>({fmtDuration(f.duration_back)}, {f.transfers === 0 ? t('stopsDirect') : f.transfers === 1 ? t('stops1') : t('stopsN', { n: f.transfers })})</span>
                         </div>
                       )}
 
                       {/* Direct booking on JetMeAway (Duffel / Kyte / LiteAPI) */}
                       <div className="border-t border-[#F1F3F7] px-5 py-3 bg-[#FAFBFD]">
-                        <div className="text-[.62rem] text-[#8E95A9] font-bold uppercase tracking-[1px] mb-2">Book direct on JetMeAway · no booking fees</div>
+                        <div className="text-[.62rem] text-[#8E95A9] font-bold uppercase tracking-[1px] mb-2">{t('bookDirectHeader')}</div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
                           {isDuffel && f.offer_id ? (
                             <a href={`/checkout/${f.offer_id}`}
                               className="flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 text-white font-poppins font-bold text-[.7rem] py-2 px-3 rounded-lg transition-all shadow-sm whitespace-nowrap col-span-2 sm:col-span-3 lg:col-span-5">
-                              ✓ Book direct — {f.currency}{priceView === 'total' ? Math.round(f.price * (adults + children)) : f.price}{priceView === 'total' ? ' total' : '/pp'} →
+                              ✓ {t('bookDirectShort')} — {f.currency}{priceView === 'total' ? Math.round(f.price * (adults + children)) : f.price}{priceView === 'total' ? t('priceSuffixTotal') : t('priceSuffixPp')} →
                             </a>
                           ) : isKyte && f.offer_id && f.link ? (
                             <a href={f.link}
@@ -2763,7 +2771,7 @@ function FlightsContent() {
                               title="Bypassing third-party agents. Booked directly with the airline via JetMeAway's secure scout engine — no markups, no booking fees."
                               className="flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-poppins font-bold text-[.7rem] py-2 px-3 rounded-lg transition-all shadow-sm whitespace-nowrap col-span-2 sm:col-span-3 lg:col-span-5">
                               <ShieldCheck size={14} strokeWidth={2.5} />
-                              Book direct — {f.currency}{priceView === 'total' ? Math.round(f.price * (adults + children)) : f.price}{priceView === 'total' ? ' total' : '/pp'} →
+                              {t('bookDirectShort')} — {f.currency}{priceView === 'total' ? Math.round(f.price * (adults + children)) : f.price}{priceView === 'total' ? t('priceSuffixTotal') : t('priceSuffixPp')} →
                             </a>
                           ) : isLiteapi && f.offer_id ? (
                             <button type="button"
@@ -2808,10 +2816,10 @@ function FlightsContent() {
                                 } catch { /* network hiccup — allow retry below */ }
                                 btn.dataset.busy = '';
                               }}
-                              title="Book direct on JetMeAway — secure checkout, price guaranteed at booking, no third-party agents."
+                              title={t('liteapiTooltip')}
                               className="flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-poppins font-bold text-[.7rem] py-2 px-3 rounded-lg transition-all shadow-sm whitespace-nowrap col-span-2 sm:col-span-3 lg:col-span-5 disabled:opacity-60">
                               <ShieldCheck size={14} strokeWidth={2.5} />
-                              Book direct — {f.currency}{priceView === 'total' ? Math.round(f.price * (adults + children)) : f.price}{priceView === 'total' ? ' total' : '/pp'} →
+                              {t('bookDirectShort')} — {f.currency}{priceView === 'total' ? Math.round(f.price * (adults + children)) : f.price}{priceView === 'total' ? t('priceSuffixTotal') : t('priceSuffixPp')} →
                             </button>
                           ) : (
                             PROVIDERS.map((p, pi) => {
@@ -2842,10 +2850,10 @@ function FlightsContent() {
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
                 <span className="text-3xl mb-3 block">🔎</span>
                 <p className="font-poppins font-bold text-[.95rem] text-[#1A1D2B] mb-2">
-                  No flights found for this route and date.
+                  {t('noFlightsFound')}
                 </p>
                 <p className="text-[.78rem] text-[#8E95A9] font-semibold">
-                  Try different dates or compare directly across our providers below.
+                  {t('tryDifferentDates')}
                 </p>
               </div>
             </section>
@@ -2853,7 +2861,7 @@ function FlightsContent() {
 
           {/* Section 3: Provider Comparison Strip */}
           <section className="max-w-[1000px] mx-auto px-5 pb-8">
-            <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">Compare This Route Across All Providers</h3>
+            <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">{t('compareRoute')}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
               {PROVIDERS.map(p => {
                 const url = p.getUrl(originCode, destCode, depDate, effectiveRet, adults, originCity, destCity);
@@ -2862,14 +2870,14 @@ function FlightsContent() {
                     <div className="w-10 h-10 rounded-lg bg-[#F8FAFC] border border-[#E8ECF4] flex items-center justify-center text-xl mb-2">{p.logo}</div>
                     <div className="font-poppins font-bold text-[.85rem] text-[#1A1D2B] mb-1">{p.name}</div>
                     {cheapest && (
-                      <div className="text-[.75rem] font-bold text-green-600 mb-2">From £{cheapest.price}</div>
+                      <div className="text-[.75rem] font-bold text-green-600 mb-2">{t('fromCap')} £{cheapest.price}</div>
                     )}
                     {!cheapest && (
-                      <div className="text-[.72rem] font-semibold text-[#8E95A9] mb-2">Check Price</div>
+                      <div className="text-[.72rem] font-semibold text-[#8E95A9] mb-2">{t('checkPrice')}</div>
                     )}
                     <a href={redirectUrl(url, p.name, destCity || destCode, 'flights')}
                       className="w-full bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.72rem] py-2 rounded-lg transition-all">
-                      Search {p.name} →
+                      {t('searchProvider', { name: p.name })}
                     </a>
                   </div>
                 );
@@ -2883,33 +2891,33 @@ function FlightsContent() {
               {/* Hotels */}
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-5">
                 <span className="text-2xl mb-2 block">🏨</span>
-                <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">Hotels in {destCity || destCode}</h4>
-                <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">Found your flight? Now find your hotel.</p>
+                <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">{t('hotelsIn', { dest: destCity || destCode })}</h4>
+                <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">{t('foundYourFlight')}</p>
                 <a href={`/hotels?destination=${encodeURIComponent(destCity || destCode)}${depDate ? `&checkin=${depDate}` : ''}${retDate ? `&checkout=${retDate}` : ''}`}
                   className="inline-block bg-white hover:bg-blue-50 text-[#0066FF] font-poppins font-bold text-[.75rem] px-4 py-2 rounded-lg border border-blue-200 transition-all">
-                  Compare Hotels →
+                  {t('compareHotels')}
                 </a>
               </div>
 
               {/* Car Hire */}
               <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100 rounded-2xl p-5">
                 <span className="text-2xl mb-2 block">🚗</span>
-                <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">Car Hire at {destCity || destCode}</h4>
-                <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">Need wheels when you land?</p>
+                <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">{t('carHireAt', { dest: destCity || destCode })}</h4>
+                <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">{t('needWheels')}</p>
                 <a href={`/cars?location=${encodeURIComponent(destCity || destCode)}`}
                   className="inline-block bg-white hover:bg-amber-50 text-amber-600 font-poppins font-bold text-[.75rem] px-4 py-2 rounded-lg border border-amber-200 transition-all">
-                  Compare Car Hire →
+                  {t('compareCarHire')}
                 </a>
               </div>
 
               {/* Packages */}
               <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-100 rounded-2xl p-5">
                 <span className="text-2xl mb-2 block">📦</span>
-                <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">Complete Package Deal</h4>
-                <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">Save up to 30% by booking flight + hotel together.</p>
+                <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">{t('completePackage')}</h4>
+                <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">{t('savePackage')}</p>
                 <a href={`/packages?from=${originCode}&to=${destCode}&depart=${depDate}&return=${retDate}`}
                   className="inline-block bg-white hover:bg-purple-50 text-purple-600 font-poppins font-bold text-[.75rem] px-4 py-2 rounded-lg border border-purple-200 transition-all">
-                  View Packages →
+                  {t('viewPackages')}
                 </a>
               </div>
             </div>
@@ -2925,13 +2933,13 @@ function FlightsContent() {
       {/* ── Tips ── */}
       <section className="max-w-[860px] mx-auto px-5 pb-16">
         <div className="bg-[#F8FAFC] border border-[#F1F3F7] rounded-3xl p-8">
-          <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">Tips for Finding Cheaper Flights</h3>
+          <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">{t('tipsTitle')}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
-              ['Book 6–8 weeks ahead', 'The sweet spot for short-haul. Long-haul is best 3–6 months out.'],
-              ['Fly mid-week', 'Tuesday & Wednesday departures are consistently cheaper than weekends.'],
-              ['Compare nearby airports', 'LTN/STN can be £50–£200 cheaper than LHR for the same route.'],
-              ['Use flexible dates', 'A ±3 day window can reveal huge price drops on every provider.'],
+              [t('tips.bookAhead.title'), t('tips.bookAhead.body')],
+              [t('tips.midWeek.title'), t('tips.midWeek.body')],
+              [t('tips.nearbyAirports.title'), t('tips.nearbyAirports.body')],
+              [t('tips.flexDates.title'), t('tips.flexDates.body')],
             ].map(([title, body]) => (
               <div key={title} className="flex gap-3">
                 <div className="w-1.5 flex-shrink-0 rounded-full bg-gradient-to-b from-[#0066FF] to-[#4F46E5] self-stretch" />
