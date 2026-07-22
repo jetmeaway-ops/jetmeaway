@@ -1,14 +1,19 @@
+'use client';
+
 import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
+import { useTranslations } from 'next-intl';
 import DealAlertForm from './DealAlertForm';
 import AppStoreBadges from './AppStoreBadges';
 import PaymentTrustStrip from './PaymentTrustStrip';
 
-/* Server component — copy comes from the `footer` namespace via next-intl
-   (getTranslations, not the client hook). Brand/partner names and the legal
-   company identifiers stay untranslated by design. */
-export default async function Footer() {
-  const t = await getTranslations('footer');
+/* Client component — copy comes from the `footer` namespace via next-intl's
+   useTranslations hook. Footer is rendered by BOTH server pages (home,
+   flights…) AND 'use client' pages (cars, esim, insurance); a server-only
+   getTranslations() would crash inside the client-page bundle, so the client
+   hook is the safe universal choice (still SSR'd, so no SEO loss). Brand/
+   partner names and the legal company identifiers stay untranslated by design. */
+export default function Footer() {
+  const t = useTranslations('footer');
   return (
     <footer className="bg-[#0F1119] pt-14 pb-7 px-5 mt-12">
       <div className="max-w-[1100px] mx-auto">
