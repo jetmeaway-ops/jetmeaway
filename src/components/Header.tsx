@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useTranslations } from 'next-intl';
 
 /**
  * Main category nav — shown on desktop and in the mobile sticky bar.
@@ -11,30 +13,33 @@ import { usePathname } from 'next/navigation';
  * On mobile, tapping "Discover" in the sticky bar jumps straight to
  * /explore rather than opening a dropdown.
  */
+/* Labels are next-intl keys under the `header` namespace (src/messages/*.json)
+   so the nav renders in the visitor's language. */
 const NAV = [
-  { href: '/hotels', label: 'Hotels', icon: '🏨' },
-  { href: '/flights', label: 'Flights', icon: '✈' },
-  { href: '/packages', label: 'Packages', icon: '📦' },
-];
+  { href: '/hotels', labelKey: 'nav.hotels', icon: '🏨' },
+  { href: '/flights', labelKey: 'nav.flights', icon: '✈' },
+  { href: '/packages', labelKey: 'nav.packages', icon: '📦' },
+] as const;
 
 /** Children of the Discover dropdown on desktop.
  *  Flights & eSIM live here now — they're lower-priority than the
  *  hotel-driven booking flow but still need to be one click away. */
 const DISCOVER_ITEMS = [
-  { href: '/explore', label: 'Activities', icon: '🎟️' },
-  { href: '/cars', label: 'Car Hire', icon: '🚗' },
-  { href: '/esim', label: 'eSIM', icon: '📱' },
-  { href: '/destinations', label: 'Destinations', icon: '🧭' },
-  { href: '/about', label: 'About Us', icon: 'ℹ️' },
-];
+  { href: '/explore', labelKey: 'nav.activities', icon: '🎟️' },
+  { href: '/cars', labelKey: 'nav.carHire', icon: '🚗' },
+  { href: '/esim', labelKey: 'nav.esim', icon: '📱' },
+  { href: '/destinations', labelKey: 'nav.destinations', icon: '🧭' },
+  { href: '/about', labelKey: 'nav.aboutUs', icon: 'ℹ️' },
+] as const;
 
 /** Mobile sticky category bar — same as NAV plus a flat Discover link. */
 const MOBILE_STICKY_NAV = [
   ...NAV,
-  { href: '/explore', label: 'Discover', icon: '🧭' },
-];
+  { href: '/explore', labelKey: 'nav.discover', icon: '🧭' },
+] as const;
 
 export default function Header() {
+  const t = useTranslations('header');
   const [mobileOpen, setMobileOpen] = useState(false);
   // Discover dropdown — needs to work on touch devices, not just hover.
   // The old pure-CSS group-hover approach broke on iPad Air landscape
@@ -89,7 +94,7 @@ export default function Header() {
               aria-label="JetMeAway Blog"
             >
               <span className="text-[.9rem] leading-none">📝</span>
-              <span>Blog</span>
+              <span>{t('nav.blog')}</span>
             </Link>
             <Link href="/" className="flex-shrink-0" aria-label="JetMeAway home">
               <Image
@@ -109,10 +114,10 @@ export default function Header() {
                   ? 'bg-[#FAF3E6] border border-[#E8D8A8] text-[#8a6d00]'
                   : 'text-slate-700 hover:text-[#0066FF] hover:bg-blue-50'
               }`}
-              aria-label="My Trips"
+              aria-label={t('nav.myTrips')}
             >
               <i className="fa-solid fa-suitcase-rolling text-[.85rem] leading-none" />
-              <span>Trips</span>
+              <span>{t('nav.trips')}</span>
             </Link>
           </div>
 
@@ -131,7 +136,7 @@ export default function Header() {
                   }`}
                 >
                   <span className="text-sm leading-none">{item.icon}</span>
-                  {item.label}
+                  {t(item.labelKey)}
                 </Link>
               );
             })}
@@ -157,7 +162,7 @@ export default function Header() {
                 aria-haspopup="true"
               >
                 <span className="text-sm leading-none" aria-hidden="true">🧭</span>
-                Discover
+                {t('nav.discover')}
                 <span className="text-[.6rem] opacity-60" aria-hidden="true">▾</span>
               </button>
               {/* Dropdown panel. pt-1 creates a hover-bridge so the mouse
@@ -185,7 +190,7 @@ export default function Header() {
                       }`}
                     >
                       <span className="text-[.95rem]">{item.icon}</span>
-                      {item.label}
+                      {t(item.labelKey)}
                     </Link>
                   ))}
                 </div>
@@ -193,8 +198,10 @@ export default function Header() {
             </div>
           </nav>
 
-          {/* RIGHT: Currency badge + Contact button + mobile hamburger */}
+          {/* RIGHT: Language + currency badges + Contact button + mobile hamburger */}
           <div className="flex items-center gap-2">
+            {/* Language switcher — auto-detected via proxy.ts, manual override here */}
+            <LanguageSwitcher />
             {/* Currency / region badge — display-only for now (we only price in GBP).
                 Union Jack is an inline SVG so it renders on Windows (which has no flag-emoji glyphs). */}
             <span
@@ -224,21 +231,21 @@ export default function Header() {
                   ? 'bg-[#FAF3E6] border border-[#E8D8A8] text-[#8a6d00]'
                   : 'border border-[#E8ECF4] text-[#0a1628] hover:bg-[#FAF3E6] hover:border-[#E8D8A8]'
               }`}
-              aria-label="My trips"
+              aria-label={t('nav.myTrips')}
             >
               <i className="fa-solid fa-suitcase-rolling text-[.78rem]" />
-              My Trips
+              {t('nav.myTrips')}
             </Link>
             <Link
               href="/contact"
               className="hidden md:inline-flex bg-[#0F1119] text-white px-4 py-2.5 rounded-xl font-bold text-[.78rem] transition-all hover:bg-[#0066FF] shadow-[0_4px_16px_rgba(0,0,0,0.12)]"
             >
-              Contact
+              {t('nav.contact')}
             </Link>
             {/* Hamburger */}
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+              aria-label={mobileOpen ? t('aria.closeMenu') : t('aria.openMenu')}
               aria-expanded={mobileOpen}
               aria-controls="mobile-menu"
               className="lg:hidden flex flex-col gap-[5px] p-2.5"
@@ -255,7 +262,7 @@ export default function Header() {
       <nav
         className="lg:hidden fixed left-0 right-0 z-[101] bg-white border-b border-slate-200 shadow-md"
         style={{ top: '90px' }}
-        aria-label="Mobile categories"
+        aria-label={t('aria.mobileCategories')}
       >
         <div className="flex overflow-x-auto gap-1.5 px-3 py-2.5" style={{ scrollbarWidth: 'none' }}>
           {MOBILE_STICKY_NAV.map(item => {
@@ -271,7 +278,7 @@ export default function Header() {
                 }`}
               >
                 <span className="text-xs">{item.icon}</span>
-                {item.label}
+                {t(item.labelKey)}
               </Link>
             );
           })}
@@ -286,11 +293,11 @@ export default function Header() {
         id="mobile-menu"
         role="dialog"
         aria-modal={mobileOpen ? 'true' : undefined}
-        aria-label="Main menu"
+        aria-label={t('aria.mainMenu')}
         aria-hidden={!mobileOpen}
         className={`fixed top-0 ${mobileOpen ? 'right-0' : '-right-full'} w-[300px] h-full bg-white z-[200] pt-20 px-5 transition-all duration-300 border-l border-slate-100 flex flex-col overflow-y-auto`}
       >
-        <p className="text-[.6rem] font-extrabold uppercase tracking-[2.5px] text-[#5C6378] mb-3 px-2">Compare</p>
+        <p className="text-[.6rem] font-extrabold uppercase tracking-[2.5px] text-[#5C6378] mb-3 px-2">{t('sections.compare')}</p>
         <div className="flex flex-col gap-0.5 mb-5">
           {NAV.map(item => {
             const active = isActive(item.href);
@@ -306,13 +313,13 @@ export default function Header() {
                 }`}
               >
                 <span className="text-lg w-6 text-center">{item.icon}</span>
-                {item.label}
+                {t(item.labelKey)}
               </Link>
             );
           })}
         </div>
 
-        <p className="text-[.6rem] font-extrabold uppercase tracking-[2.5px] text-[#5C6378] mb-3 px-2">Discover</p>
+        <p className="text-[.6rem] font-extrabold uppercase tracking-[2.5px] text-[#5C6378] mb-3 px-2">{t('sections.discover')}</p>
         <div className="flex flex-col gap-0.5 mb-5">
           <Link
             href="/blog"
@@ -334,14 +341,14 @@ export default function Header() {
               }`}
             >
               <span className="text-lg w-6 text-center">{item.icon}</span>
-              {item.label}
+              {t(item.labelKey)}
             </Link>
           ))}
         </div>
 
         {/* Mobile: My Trips — top of Company so it's easy to reach after the
             booking-related Compare / Discover stacks above. */}
-        <p className="text-[.6rem] font-extrabold uppercase tracking-[2.5px] text-[#5C6378] mb-3 px-2">Your account</p>
+        <p className="text-[.6rem] font-extrabold uppercase tracking-[2.5px] text-[#5C6378] mb-3 px-2">{t('sections.yourAccount')}</p>
         <div className="flex flex-col gap-0.5 mb-5">
           <Link
             href="/account"
@@ -351,25 +358,25 @@ export default function Header() {
             }`}
           >
             <span className="text-lg w-6 text-center">🧳</span>
-            My Trips
+            {t('nav.myTrips')}
           </Link>
         </div>
 
-        <p className="text-[.6rem] font-extrabold uppercase tracking-[2.5px] text-[#5C6378] mb-3 px-2">Company</p>
+        <p className="text-[.6rem] font-extrabold uppercase tracking-[2.5px] text-[#5C6378] mb-3 px-2">{t('sections.company')}</p>
         <div className="flex flex-col gap-0.5">
-          {[
-            { href: '/', label: 'Home' },
-            { href: '/contact', label: 'Contact' },
-            { href: '/privacy', label: 'Privacy Policy' },
-            { href: '/terms', label: 'Terms of Service' },
-          ].map(item => (
+          {([
+            { href: '/', labelKey: 'nav.home' },
+            { href: '/contact', labelKey: 'nav.contact' },
+            { href: '/privacy', labelKey: 'nav.privacyPolicy' },
+            { href: '/terms', labelKey: 'nav.termsOfService' },
+          ] as const).map(item => (
             <Link
               key={item.href}
               href={item.href}
               onClick={() => setMobileOpen(false)}
               className="block px-4 py-3 text-slate-600 font-semibold rounded-lg text-[.85rem] transition-all hover:text-[#0066FF] hover:bg-blue-50"
             >
-              {item.label}
+              {t(item.labelKey)}
             </Link>
           ))}
         </div>

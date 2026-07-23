@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 
 // ── UK Airports with exact coordinates ────────────────────────────────────────
 // First entry is the house default (London, all airports). Using the IATA
@@ -114,6 +115,7 @@ function getRecentSearches(): RecentSearch[] {
 }
 
 export default function FlightSearch() {
+  const t = useTranslations('home.search');
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<Dest[]>([]);
   const [showSugg, setShowSugg] = useState(false);
@@ -250,8 +252,8 @@ export default function FlightSearch() {
             onChange={e => handleInput(e.target.value)}
             onFocus={() => { if (query.trim()) handleInput(query); }}
             onKeyDown={e => { if (e.key === 'Enter') submitSearch(); }}
-            placeholder="Where will Scout take you?"
-            aria-label="Where will Scout take you"
+            placeholder={t('placeholder')}
+            aria-label={t('placeholder')}
             className="w-full px-2 py-2.5 bg-transparent outline-none font-poppins font-semibold text-[.95rem] sm:text-[1rem] text-white placeholder:text-white/45 placeholder:font-medium" />
 
           {showSugg && suggestions.length > 0 && (
@@ -273,10 +275,10 @@ export default function FlightSearch() {
 
         {/* Search button — orange CTA with subtle glow */}
         <button type="button" onMouseDown={submitSearch}
-          aria-label="Search"
+          aria-label={t('go')}
           className="flex-shrink-0 flex items-center justify-center gap-1.5 px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-gradient-to-br from-orange-400 to-orange-500 hover:from-orange-300 hover:to-orange-500 text-white font-poppins font-black text-[.78rem] sm:text-[.85rem] uppercase tracking-wider shadow-[0_8px_24px_-6px_rgba(249,115,22,0.6)] hover:shadow-[0_12px_28px_-6px_rgba(249,115,22,0.8)] transition-all">
           <i className="fa-solid fa-magnifying-glass text-[.78rem]" aria-hidden="true" />
-          <span className="hidden sm:inline">Go</span>
+          <span className="hidden sm:inline">{t('go')}</span>
         </button>
       </div>
 
@@ -285,7 +287,7 @@ export default function FlightSearch() {
         {/* Recent searches first — most personal */}
         {recentSearches.length > 0 && (
           <>
-            <span className="text-[.6rem] font-black uppercase tracking-[2px] text-orange-300/80 mr-1 hidden sm:inline">Pick up where you left off</span>
+            <span className="text-[.6rem] font-black uppercase tracking-[2px] text-orange-300/80 mr-1 hidden sm:inline">{t('recent')}</span>
             {recentSearches.map(s => {
               const dest = DESTINATIONS.find(d => d.code === s.code);
               return (
@@ -307,7 +309,7 @@ export default function FlightSearch() {
         ))}
         <button type="button" onMouseDown={surpriseMe}
           className="px-3 py-1.5 md:backdrop-blur-md bg-gradient-to-r from-purple-400/15 to-pink-400/15 hover:from-purple-400/25 hover:to-pink-400/25 border border-purple-300/30 hover:border-purple-300/60 rounded-full text-[.74rem] font-bold text-purple-100 transition-all">
-          🎲 Surprise me
+          🎲 {t('surpriseMe')}
         </button>
       </div>
     </div>

@@ -1,4 +1,9 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
+
+// i18n (Phase 1, 2026-07-17): loads src/i18n/request.ts per request so every
+// page can read the visitor's locale. No URL/routing changes.
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
   images: {
@@ -43,4 +48,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

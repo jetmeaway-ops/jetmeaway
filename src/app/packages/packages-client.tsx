@@ -5,6 +5,7 @@ import DateRangePicker from '@/components/DateRangePicker';
 import { redirectUrl } from '@/lib/redirect';
 import { saveSticky, loadSticky, type StickyPackages } from '@/lib/sticky-search';
 import AppStoreBadges from '@/components/AppStoreBadges';
+import { useTranslations } from 'next-intl';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DESTINATIONS (matches hotels page)
@@ -122,6 +123,7 @@ const DEST_IATA: Record<string, string> = {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function DestinationPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const t = useTranslations('packages');
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -162,7 +164,7 @@ function DestinationPicker({ value, onChange }: { value: string; onChange: (v: s
 
   return (
     <div ref={ref} className="relative">
-      <input type="text" placeholder="Where do you want to go? — e.g. Tenerife, Dubai, Bali" value={value} autoComplete="off"
+      <input type="text" placeholder={t('destPlaceholder')} value={value} autoComplete="off"
         onChange={e => { onChange(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
         className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-base md:text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-purple-500 focus:bg-white transition-all placeholder:text-[#B0B8CC]" />
@@ -171,7 +173,7 @@ function DestinationPicker({ value, onChange }: { value: string; onChange: (v: s
           {showFreeText && (
             <li onMouseDown={() => { setOpen(false); }}
               className="px-4 py-3 hover:bg-purple-50 cursor-pointer transition-colors border-b border-[#F1F3F7] font-poppins font-semibold text-[.88rem] text-[#1A1D2B]">
-              <span className="text-purple-600">Search</span> &ldquo;{value}&rdquo; <span className="text-[.7rem] text-[#8E95A9] font-medium">— we&rsquo;ll pass it to package providers</span>
+              <span className="text-purple-600">{t('searchWord')}</span> &ldquo;{value}&rdquo; <span className="text-[.7rem] text-[#8E95A9] font-medium">{t('passToProviders')}</span>
             </li>
           )}
           {filtered.map(c => (
@@ -187,6 +189,7 @@ function DestinationPicker({ value, onChange }: { value: string; onChange: (v: s
 }
 
 function FromPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const t = useTranslations('packages');
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -203,7 +206,7 @@ function FromPicker({ value, onChange }: { value: string; onChange: (v: string) 
 
   return (
     <div ref={ref} className="relative">
-      <input type="text" placeholder="Departure airport — e.g. London Heathrow" value={value} autoComplete="off"
+      <input type="text" placeholder={t('fromPlaceholder')} value={value} autoComplete="off"
         onChange={e => { onChange(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
         className="w-full px-4 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-base md:text-[.9rem] font-semibold text-[#1A1D2B] outline-none focus:border-purple-500 focus:bg-white transition-all placeholder:text-[#B0B8CC]" />
@@ -250,9 +253,10 @@ function PkgGuestPicker({ adults, children: ch, childrenAges, onChange }: {
     onChange(adults, ch, ages);
   }
 
+  const t = useTranslations('packages');
   const label = [
-    `${adults} Adult${adults !== 1 ? 's' : ''}`,
-    ch > 0 ? `${ch} Child${ch !== 1 ? 'ren' : ''}` : null,
+    t('adultsCount', { count: adults }),
+    ch > 0 ? t('childrenCount', { count: ch }) : null,
   ].filter(Boolean).join(', ');
 
   return (
@@ -265,7 +269,7 @@ function PkgGuestPicker({ adults, children: ch, childrenAges, onChange }: {
       {open && (
         <div className="absolute z-50 w-80 mt-1.5 right-0 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl p-4">
           <div className="flex items-center justify-between py-3 border-b border-[#F1F3F7]">
-            <div><div className="font-poppins font-bold text-[.85rem] text-[#1A1D2B]">Adults</div><div className="text-[.7rem] text-[#8E95A9]">Age 16+</div></div>
+            <div><div className="font-poppins font-bold text-[.85rem] text-[#1A1D2B]">{t('adults')}</div><div className="text-[.7rem] text-[#8E95A9]">{t('age16plus')}</div></div>
             <div className="flex items-center gap-3">
               <button type="button" onClick={() => setAdults(adults - 1)} disabled={adults <= 1} className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-purple-500 transition-all disabled:opacity-30">−</button>
               <span className="font-poppins font-black text-[.95rem] text-[#1A1D2B] w-5 text-center">{adults}</span>
@@ -273,7 +277,7 @@ function PkgGuestPicker({ adults, children: ch, childrenAges, onChange }: {
             </div>
           </div>
           <div className="flex items-center justify-between py-3 border-b border-[#F1F3F7]">
-            <div><div className="font-poppins font-bold text-[.85rem] text-[#1A1D2B]">Children</div><div className="text-[.7rem] text-[#8E95A9]">Age 0–15</div></div>
+            <div><div className="font-poppins font-bold text-[.85rem] text-[#1A1D2B]">{t('childrenLabel')}</div><div className="text-[.7rem] text-[#8E95A9]">{t('age0to15')}</div></div>
             <div className="flex items-center gap-3">
               <button type="button" onClick={() => setChildren(ch - 1)} disabled={ch <= 0} className="w-8 h-8 rounded-full border-2 border-[#E8ECF4] flex items-center justify-center text-[#5C6378] font-bold text-lg hover:border-purple-500 transition-all disabled:opacity-30">−</button>
               <span className="font-poppins font-black text-[.95rem] text-[#1A1D2B] w-5 text-center">{ch}</span>
@@ -282,15 +286,15 @@ function PkgGuestPicker({ adults, children: ch, childrenAges, onChange }: {
           </div>
           {ch > 0 && (
             <div className="py-3 border-b border-[#F1F3F7]">
-              <p className="text-[.68rem] font-bold text-[#8E95A9] uppercase tracking-[1.5px] mb-2">Child ages</p>
+              <p className="text-[.68rem] font-bold text-[#8E95A9] uppercase tracking-[1.5px] mb-2">{t('childAges')}</p>
               <div className="grid grid-cols-3 gap-2">
                 {Array.from({ length: ch }).map((_, i) => (
                   <div key={i} className="text-center">
-                    <div className="text-[.6rem] text-[#8E95A9] mb-1">Child {i + 1}</div>
+                    <div className="text-[.6rem] text-[#8E95A9] mb-1">{t('childN', { n: i + 1 })}</div>
                     <select value={childrenAges[i] ?? 5} onChange={e => setChildAge(i, Number(e.target.value))}
                       className="w-full text-center text-[.8rem] font-bold text-[#1A1D2B] bg-[#F8FAFC] border border-[#E8ECF4] rounded-lg py-1.5 outline-none focus:border-purple-500">
                       {Array.from({ length: 16 }, (_, a) => a).map(age => (
-                        <option key={age} value={age}>{age < 1 ? 'Under 1' : age}</option>
+                        <option key={age} value={age}>{age < 1 ? t('underOne') : age}</option>
                       ))}
                     </select>
                   </div>
@@ -299,7 +303,7 @@ function PkgGuestPicker({ adults, children: ch, childrenAges, onChange }: {
             </div>
           )}
           <button type="button" onClick={() => setOpen(false)}
-            className="w-full mt-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-poppins font-bold text-[.8rem] py-2.5 rounded-xl transition-colors">Done</button>
+            className="w-full mt-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-poppins font-bold text-[.8rem] py-2.5 rounded-xl transition-colors">{t('done')}</button>
         </div>
       )}
     </div>
@@ -311,14 +315,15 @@ function PkgGuestPicker({ adults, children: ch, childrenAges, onChange }: {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const LOADING_MSGS = [
-  'Checking flight prices...',
-  'Finding hotel rates...',
-  'Calculating package estimate...',
-  'Comparing Expedia packages...',
-  'Checking Trip.com deals...',
+  'loadingFlights',
+  'loadingHotels',
+  'loadingCalc',
+  'loadingExpedia',
+  'loadingTrip',
 ];
 
 function LoadingState({ dest }: { dest: string }) {
+  const t = useTranslations('packages');
   const [msgIdx, setMsgIdx] = useState(0);
   const [progress, setProgress] = useState(0);
 
@@ -336,9 +341,9 @@ function LoadingState({ dest }: { dest: string }) {
         </div>
         <div className="flex items-center justify-center gap-3 mb-3">
           <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
-          <span className="text-[.9rem] font-bold text-[#5C6378]">{LOADING_MSGS[msgIdx]}</span>
+          <span className="text-[.9rem] font-bold text-[#5C6378]">{t(LOADING_MSGS[msgIdx])}</span>
         </div>
-        <p className="text-[.78rem] text-[#8E95A9] font-semibold">Building package estimate for <strong className="text-[#1A1D2B]">{dest}</strong></p>
+        <p className="text-[.78rem] text-[#8E95A9] font-semibold">{t('buildingEstimateFor')} <strong className="text-[#1A1D2B]">{dest}</strong></p>
       </div>
     </section>
   );
@@ -709,20 +714,30 @@ const FAMILY_PACKAGES = [
   { name: 'Rhodes',    flag: '🇬🇷', dep: '2026-08-08', ret: '2026-08-15', pp: 569, tag: 'Greek Island', photo: 'https://images.unsplash.com/photo-1601581875309-fafbf2d3ed3a?w=600&h=400&fit=crop&fm=webp&q=75' },
 ];
 
+const FAMILY_TAG_KEY: Record<string, string> = {
+  'Year-Round Sun': 'yearRoundSun', 'School Holidays': 'schoolHolidays', 'All-Inclusive': 'allInclusive',
+  'Family Resorts': 'familyResorts', 'Algarve Coast': 'algarveCoast', 'Volcanic Beaches': 'volcanicBeaches',
+  'Costa del Sol': 'costaDelSol', 'Greek Island': 'greekIsland',
+};
+const BOARD_KEY: Record<string, string> = {
+  'Any': 'any', 'Room Only': 'roomOnly', 'Half Board': 'halfBoard', 'Full Board': 'fullBoard', 'All Inclusive': 'allInclusive',
+};
+
 function FamilyPackages() {
+  const t = useTranslations('packages');
   return (
     <section className="max-w-[1100px] mx-auto px-5 pb-12 pt-2">
       <div className="text-center mb-7">
         <span className="inline-flex items-center gap-1.5 bg-purple-50 text-purple-600 text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full mb-3">
-          ☀️ July & August · Family of 4
+          ☀️ {t('familyBadge')}
         </span>
         {/* Section sits on the dark galaxy backdrop — near-black heading
             text was unreadable on it (2026-07-02 audit). */}
         <h2 className="font-poppins text-[1.8rem] md:text-[2.2rem] font-black text-white leading-tight mb-2">
-          Pre-Built Summer Packages
+          {t('familyTitle')}
         </h2>
         <p className="text-[.85rem] text-white/60 font-semibold max-w-[560px] mx-auto">
-          7 nights from London · Click any deal to see live prices on Trip.com or Expedia — all dates &amp; travellers pre-filled
+          {t('familySub')}
         </p>
       </div>
 
@@ -739,16 +754,16 @@ function FamilyPackages() {
                   onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
                 <span className="absolute top-2.5 left-2.5 text-[.55rem] font-black uppercase tracking-[1.5px] bg-white/95 text-purple-600 px-2 py-1 rounded-full">
-                  {p.tag}
+                  {FAMILY_TAG_KEY[p.tag] ? t('familyTag.' + FAMILY_TAG_KEY[p.tag]) : p.tag}
                 </span>
                 <div className="absolute bottom-0 left-0 right-0 p-3">
                   <div className="font-poppins font-black text-white text-[1.1rem] leading-tight">{p.name} {p.flag}</div>
-                  <div className="text-[.66rem] text-white/85 font-semibold mt-0.5">{fmt(p.dep)} — {fmt(p.ret)} · 7 nights</div>
+                  <div className="text-[.66rem] text-white/85 font-semibold mt-0.5">{fmt(p.dep)} — {fmt(p.ret)} · {t('nightsCount', { count: 7 })}</div>
                 </div>
               </div>
               <div className="p-3 flex flex-col gap-1.5 flex-1">
                 <div className="text-[.7rem] text-[#5C6378] font-semibold mb-0.5">
-                  From <span className="font-poppins font-black text-[1rem] text-[#1A1D2B]">£{p.pp}</span> pp
+                  {t('fromWord')} <span className="font-poppins font-black text-[1rem] text-[#1A1D2B]">£{p.pp}</span> {t('pp')}
                 </div>
                 <a href={redirectUrl(tripUrl, 'Trip.com', p.name, 'packages')} target="_blank" rel="noopener sponsored"
                   className="bg-[#287DFA] hover:bg-[#1A6AE0] text-white font-poppins font-bold text-[.72rem] py-2 rounded-lg transition-all text-center">
@@ -782,6 +797,7 @@ interface FlightResult { price: number; airline: string; }
 interface HotelResult { name: string; pricePerNight: number; stars: number; }
 
 function PackagesContent() {
+  const t = useTranslations('packages');
   const [from, setFrom] = useState('');
   const [dest, setDest] = useState('');
   const [depDate, setDepDate] = useState('');
@@ -909,8 +925,8 @@ function PackagesContent() {
   }, [depDate]);
 
   const handleSearch = useCallback(async () => {
-    if (!dest) { alert('Please enter a destination'); return; }
-    if (!depDate) { alert('Please select a departure date'); return; }
+    if (!dest) { alert(t('alertDest')); return; }
+    if (!depDate) { alert(t('alertDepDate')); return; }
 
     setSearchedDest(dest);
     setSearchedFrom(from);
@@ -1012,29 +1028,29 @@ function PackagesContent() {
         `}</style>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">From</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">{t('fromLabel')}</label>
               <FromPicker value={from} onChange={setFrom} />
             </div>
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Destination</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">{t('destination')}</label>
               <DestinationPicker value={dest} onChange={setDest} />
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Calendar</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">{t('calendar')}</label>
               <DateRangePicker
                 start={depDate}
                 end={retDate}
                 minDate={today}
                 accent="purple"
-                startWord="departure"
-                endWord="return"
+                startWord={t('wordDeparture')}
+                endWord={t('wordReturn')}
                 onChange={({ start: s, end: e }) => { setDepDate(s); setRetDate(e); }}
               />
             </div>
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Duration</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">{t('duration')}</label>
               <select value={duration} onChange={handleDurationChange}
                 className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-purple-500 focus:bg-white transition-all">
                 {(() => {
@@ -1046,37 +1062,37 @@ function PackagesContent() {
                   const opts = Number.isFinite(current) && current > 0 && !presets.includes(current)
                     ? [current, ...presets].sort((a, b) => a - b)
                     : presets;
-                  return opts.map(n => <option key={n} value={n}>{n} night{n === 1 ? '' : 's'}</option>);
+                  return opts.map(n => <option key={n} value={n}>{t('nightsCount', { count: n })}</option>);
                 })()}
               </select>
             </div>
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">Guests</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5 text-center">{t('guests')}</label>
               <PkgGuestPicker adults={adults} children={children} childrenAges={childrenAges}
                 onChange={(a, c, ages) => { setAdults(a); setChildren(c); setChildrenAges(ages); }} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Star Rating</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">{t('starRating')}</label>
               <select value={starFilter} onChange={e => setStarFilter(e.target.value)}
                 className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-purple-500 focus:bg-white transition-all">
-                {STAR_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                {STAR_OPTIONS.map(s => <option key={s} value={s}>{s === 'Any' ? t('anyStar') : s}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">Board Type</label>
+              <label className="block text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9] mb-1.5">{t('boardType')}</label>
               <select value={boardFilter} onChange={e => setBoardFilter(e.target.value)}
                 className="w-full px-3 py-3.5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] text-[.82rem] font-semibold text-[#1A1D2B] outline-none focus:border-purple-500 focus:bg-white transition-all">
-                {BOARD_TYPES.map(b => <option key={b} value={b}>{b}</option>)}
+                {BOARD_TYPES.map(b => <option key={b} value={b}>{BOARD_KEY[b] ? t('board.' + BOARD_KEY[b]) : b}</option>)}
               </select>
             </div>
           </div>
           <button onClick={handleSearch}
             className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(124,58,237,0.3)]">
-            Search Packages →
+            {t('searchBtn')}
           </button>
-          <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">ATOL-protected options included · Book direct with providers</p>
+          <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">{t('atolNote')}</p>
         </div>
 
       {/* App-store badge row — sits under the search form on the dark hero. */}
@@ -1100,52 +1116,52 @@ function PackagesContent() {
             <section className="max-w-[900px] mx-auto px-5 pt-8 pb-4">
               <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-2xl p-6">
                 <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-4">
-                  Estimated Package Price: {searchedFrom ? searchedFrom.replace(/\s*\(.*\)$/, '') : 'UK'} → {searchedDest}
+                  {t('estimatedPackagePrice')}: {searchedFrom ? searchedFrom.replace(/\s*\(.*\)$/, '') : 'UK'} → {searchedDest}
                 </h2>
                 <div className="space-y-2.5 mb-4">
                   {cheapestFlight !== null && (
                     <div className="flex items-center justify-between">
-                      <span className="text-[.85rem] text-[#5C6378] font-semibold">✈️ Cheapest flight found</span>
+                      <span className="text-[.85rem] text-[#5C6378] font-semibold">✈️ {t('cheapestFlightFound')}</span>
                       <div className="text-right">
                         <span className="font-poppins font-black text-[1rem] text-[#1A1D2B]">£{cheapestFlight}</span>
-                        <span className="text-[.65rem] text-[#8E95A9] font-medium ml-1">return per person</span>
-                        <div className="text-[.6rem] text-[#8E95A9]">(via Aviasales data{flightAirline ? ` · ${flightAirline}` : ''})</div>
+                        <span className="text-[.65rem] text-[#8E95A9] font-medium ml-1">{t('returnPerPerson')}</span>
+                        <div className="text-[.6rem] text-[#8E95A9]">({t('viaAviasales')}{flightAirline ? ` · ${flightAirline}` : ''})</div>
                       </div>
                     </div>
                   )}
                   {cheapestHotel !== null && (
                     <>
                       <div className="flex items-center justify-between">
-                        <span className="text-[.85rem] text-[#5C6378] font-semibold">🏨 Cheapest hotel found</span>
+                        <span className="text-[.85rem] text-[#5C6378] font-semibold">🏨 {t('cheapestHotelFound')}</span>
                         <div className="text-right">
                           <span className="font-poppins font-black text-[1rem] text-[#1A1D2B]">£{cheapestHotel}</span>
-                          <span className="text-[.65rem] text-[#8E95A9] font-medium ml-1">/night</span>
-                          <div className="text-[.6rem] text-[#8E95A9]">(indicative price)</div>
+                          <span className="text-[.65rem] text-[#8E95A9] font-medium ml-1">{t('perNight')}</span>
+                          <div className="text-[.6rem] text-[#8E95A9]">{t('indicativePrice')}</div>
                         </div>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-[.85rem] text-[#5C6378] font-semibold">📅 {nights} night{nights !== 1 ? 's' : ''}</span>
+                        <span className="text-[.85rem] text-[#5C6378] font-semibold">📅 {t('nightsCount', { count: nights })}</span>
                         <span className="font-poppins font-black text-[1rem] text-[#1A1D2B]">£{hotelTotal}</span>
                       </div>
                     </>
                   )}
                   {estimatedTotal !== null && (
                     <div className="flex items-center justify-between pt-3 border-t border-purple-200">
-                      <span className="text-[.95rem] text-[#1A1D2B] font-black">💰 Estimated total from</span>
-                      <span className="font-poppins font-black text-[1.4rem] text-purple-600">£{estimatedTotal}<span className="text-[.7rem] font-semibold text-[#8E95A9] ml-1">per person</span></span>
+                      <span className="text-[.95rem] text-[#1A1D2B] font-black">💰 {t('estimatedTotalFrom')}</span>
+                      <span className="font-poppins font-black text-[1.4rem] text-purple-600">£{estimatedTotal}<span className="text-[.7rem] font-semibold text-[#8E95A9] ml-1">{t('perPerson')}</span></span>
                     </div>
                   )}
                   {!estimatedTotal && (
                     <div className="pt-3 border-t border-purple-200">
                       <p className="text-[.78rem] text-amber-700 font-semibold">
-                        ⚠️ Partial estimate — {cheapestFlight === null ? 'flight' : 'hotel'} pricing unavailable for this route. Check providers for complete package deals.
+                        ⚠️ {t('partialEstimate', { leg: cheapestFlight === null ? t('flightWord') : t('hotelWord') })}
                       </p>
                     </div>
                   )}
                 </div>
                 <div className="bg-white/60 rounded-xl px-4 py-3">
                   <p className="text-[.72rem] text-[#5C6378] font-semibold">
-                    ℹ️ This is an estimate based on booking flights and hotels separately. Package providers below may offer bundled deals that are 15–30% cheaper. Always compare.
+                    ℹ️ {t('estimateInfo')}
                   </p>
                 </div>
               </div>
@@ -1157,7 +1173,7 @@ function PackagesContent() {
             <section className="max-w-[900px] mx-auto px-5 pt-8 pb-4">
               <div className="bg-amber-50 border border-amber-200 rounded-2xl px-6 py-4">
                 <p className="text-[.82rem] text-amber-800 font-semibold">
-                  We couldn't estimate a price for this route. Compare live package deals directly with our providers below.
+                  {t('noEstimate')}
                 </p>
               </div>
             </section>
@@ -1172,24 +1188,24 @@ function PackagesContent() {
                 <div className="p-6">
                   <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
                     <div>
-                      <h3 className="font-poppins font-black text-[1.2rem] text-[#1A1D2B] mb-1">Expedia Packages</h3>
-                      <p className="text-[.82rem] text-[#5C6378] font-semibold">Flight + Hotel bundles with price guarantee</p>
+                      <h3 className="font-poppins font-black text-[1.2rem] text-[#1A1D2B] mb-1">{t('expediaPackages')}</h3>
+                      <p className="text-[.82rem] text-[#5C6378] font-semibold">{t('expediaSub')}</p>
                     </div>
                     <a href={redirectUrl(buildExpediaUrl(searchedDest, searchedFrom, depDate, effectiveReturn, adults, children, childrenAges, DEST_IATA[searchedDest.toLowerCase()]), 'Expedia', searchedDest, 'packages')}
                       className="flex-shrink-0 px-6 py-3 rounded-xl font-poppins font-black text-[.85rem] text-white bg-[#1B2B65] hover:bg-[#142050] transition-all shadow-md">
-                      Search Expedia Packages →
+                      {t('searchExpedia')}
                     </a>
                   </div>
                   <div className="flex flex-wrap gap-2.5 mb-4">
-                    {['Save up to 30% vs booking separately', 'ATOL protected for UK customers', 'Free cancellation on most packages', 'Earn Expedia Rewards points', 'Bundle with car hire for extra savings'].map(s => (
+                    {['Save up to 30% vs booking separately', 'ATOL protected for UK customers', 'Free cancellation on most packages', 'Earn Expedia Rewards points', 'Bundle with car hire for extra savings'].map((s, si) => (
                       <span key={s} className="flex items-center gap-1.5 text-[.73rem] font-semibold text-[#1A1D2B] bg-blue-50 rounded-full px-3 py-1.5">
-                        <span className="text-blue-500">✓</span> {s}
+                        <span className="text-blue-500">✓</span> {t('expediaFeatures.f' + (si + 1))}
                       </span>
                     ))}
                   </div>
                   <div className="bg-[#F8FAFC] rounded-xl px-4 py-3">
                     <p className="text-[.72rem] text-[#5C6378] font-semibold">
-                      📋 {searchedFrom ? searchedFrom.replace(/\s*\(.*\)$/, '') : 'UK'} → {searchedDest} · {depDate} — {effectiveReturn} · {nights} nights · {adults} adult{adults !== 1 ? 's' : ''}{children > 0 ? ` · ${children} child${children !== 1 ? 'ren' : ''}` : ''}
+                      📋 {searchedFrom ? searchedFrom.replace(/\s*\(.*\)$/, '') : 'UK'} → {searchedDest} · {depDate} — {effectiveReturn} · {t('nightsCount', { count: nights })} · {t('adultsCount', { count: adults })}{children > 0 ? ` · ${t('childrenCount', { count: children })}` : ''}
                     </p>
                   </div>
                 </div>
@@ -1201,24 +1217,24 @@ function PackagesContent() {
                 <div className="p-6">
                   <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
                     <div>
-                      <h3 className="font-poppins font-black text-[1.2rem] text-[#1A1D2B] mb-1">Trip.com Packages</h3>
-                      <p className="text-[.82rem] text-[#5C6378] font-semibold">Flight + Hotel deals from a global travel leader</p>
+                      <h3 className="font-poppins font-black text-[1.2rem] text-[#1A1D2B] mb-1">{t('tripPackages')}</h3>
+                      <p className="text-[.82rem] text-[#5C6378] font-semibold">{t('tripSub')}</p>
                     </div>
                     <a href={redirectUrl(buildTripUrl(searchedDest, searchedFrom, depDate, effectiveReturn, adults, children, childrenAges), 'Trip.com', searchedDest, 'packages')}
                       className="flex-shrink-0 px-6 py-3 rounded-xl font-poppins font-black text-[.85rem] text-white bg-[#287DFA] hover:bg-[#1A6AE0] transition-all shadow-md">
-                      Search Trip.com Packages →
+                      {t('searchTrip')}
                     </a>
                   </div>
                   <div className="flex flex-wrap gap-2.5 mb-4">
-                    {['Exclusive app-only package discounts', 'Price match guarantee', '24/7 customer support', 'Flexible cancellation options', 'Covers 200+ countries worldwide'].map(s => (
+                    {['Exclusive app-only package discounts', 'Price match guarantee', '24/7 customer support', 'Flexible cancellation options', 'Covers 200+ countries worldwide'].map((s, si) => (
                       <span key={s} className="flex items-center gap-1.5 text-[.73rem] font-semibold text-[#1A1D2B] bg-sky-50 rounded-full px-3 py-1.5">
-                        <span className="text-sky-500">✓</span> {s}
+                        <span className="text-sky-500">✓</span> {t('tripFeatures.f' + (si + 1))}
                       </span>
                     ))}
                   </div>
                   <div className="bg-[#F8FAFC] rounded-xl px-4 py-3">
                     <p className="text-[.72rem] text-[#5C6378] font-semibold">
-                      📋 {searchedFrom ? searchedFrom.replace(/\s*\(.*\)$/, '') : 'UK'} → {searchedDest} · {depDate} — {effectiveReturn} · {nights} nights · {adults} adult{adults !== 1 ? 's' : ''}{children > 0 ? ` · ${children} child${children !== 1 ? 'ren' : ''}` : ''}
+                      📋 {searchedFrom ? searchedFrom.replace(/\s*\(.*\)$/, '') : 'UK'} → {searchedDest} · {depDate} — {effectiveReturn} · {t('nightsCount', { count: nights })} · {t('adultsCount', { count: adults })}{children > 0 ? ` · ${t('childrenCount', { count: children })}` : ''}
                     </p>
                   </div>
                 </div>
@@ -1229,40 +1245,40 @@ function PackagesContent() {
           {/* Section 3 — DIY Package Builder */}
           <section className="max-w-[900px] mx-auto px-5 pb-6">
             <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 rounded-2xl p-6">
-              <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-2">Build Your Own Package & Save</h3>
-              <p className="text-[.8rem] text-[#5C6378] font-semibold mb-5">Sometimes booking flights and hotels separately gives you more flexibility and better prices. Use our tools to build your own package:</p>
+              <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-2">{t('diyTitle')}</h3>
+              <p className="text-[.8rem] text-[#5C6378] font-semibold mb-5">{t('diySub')}</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white rounded-xl p-5 border border-[#E8ECF4]">
                   <span className="text-2xl mb-2 block">✈️</span>
-                  <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">Find Flights</h4>
+                  <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">{t('findFlights')}</h4>
                   <p className="text-[.72rem] text-[#5C6378] font-semibold mb-3">
-                    {searchedFrom ? searchedFrom.replace(/\s*\(.*\)$/, '') : 'UK'} → {searchedDest}{cheapestFlight ? ` from £${cheapestFlight}` : ''}
+                    {searchedFrom ? searchedFrom.replace(/\s*\(.*\)$/, '') : 'UK'} → {searchedDest}{cheapestFlight ? ` ${t('fromLower')} £${cheapestFlight}` : ''}
                   </p>
                   <a href={`/flights?${searchedFrom ? `from=${encodeURIComponent(searchedFrom)}` : ''}${destIata ? `&to=${destIata}` : `&destCity=${encodeURIComponent(searchedDest)}`}&departure=${depDate}${effectiveReturn ? `&return=${effectiveReturn}` : ''}`}
                     className="inline-block px-4 py-2 rounded-xl border-2 border-[#0066FF] text-[#0066FF] font-poppins font-bold text-[.75rem] hover:bg-blue-50 transition-colors">
-                    Compare Flights →
+                    {t('compareFlights')}
                   </a>
                 </div>
                 <div className="bg-white rounded-xl p-5 border border-[#E8ECF4]">
                   <span className="text-2xl mb-2 block">🏨</span>
-                  <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">Find Hotels</h4>
+                  <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">{t('findHotels')}</h4>
                   <p className="text-[.72rem] text-[#5C6378] font-semibold mb-3">
-                    Hotels in {searchedDest}{cheapestHotel ? ` from £${cheapestHotel}/night` : ''}
+                    {t('hotelsInShort', { dest: searchedDest })}{cheapestHotel ? ` ${t('fromLower')} £${cheapestHotel}${t('perNight')}` : ''}
                   </p>
                   <a href={`/hotels?destination=${encodeURIComponent(searchedDest)}&checkin=${depDate}&checkout=${effectiveReturn}`}
                     className="inline-block px-4 py-2 rounded-xl border-2 border-orange-500 text-orange-500 font-poppins font-bold text-[.75rem] hover:bg-orange-50 transition-colors">
-                    Compare Hotels →
+                    {t('compareHotels')}
                   </a>
                 </div>
                 <div className="bg-white rounded-xl p-5 border border-[#E8ECF4]">
                   <span className="text-2xl mb-2 block">🚗</span>
-                  <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">Add Car Hire</h4>
+                  <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">{t('addCarHire')}</h4>
                   <p className="text-[.72rem] text-[#5C6378] font-semibold mb-3">
-                    Car hire in {searchedDest} from your arrival
+                    {t('carHireIn', { dest: searchedDest })}
                   </p>
                   <a href={`/cars?location=${encodeURIComponent(searchedDest)}&pickup=${depDate}&dropoff=${effectiveReturn}`}
                     className="inline-block px-4 py-2 rounded-xl border-2 border-emerald-500 text-emerald-500 font-poppins font-bold text-[.75rem] hover:bg-emerald-50 transition-colors">
-                    Compare Car Hire →
+                    {t('compareCarHire')}
                   </a>
                 </div>
               </div>
@@ -1271,7 +1287,7 @@ function PackagesContent() {
 
           {/* Section 4 — Popular Destinations */}
           <section className="max-w-[900px] mx-auto px-5 pb-8">
-            <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">Popular Package Destinations</h3>
+            <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">{t('popularTitle')}</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {POPULAR_DESTS.map(d => (
                 <a key={d.name} href={`/packages?dest=${encodeURIComponent(d.name)}&departure=${depDate || today}&return=${effectiveReturn || ''}`}
@@ -1282,7 +1298,7 @@ function PackagesContent() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                   <div className="absolute bottom-0 left-0 right-0 p-3">
                     <div className="font-poppins font-black text-white text-[.9rem]">{d.name} {d.flag}</div>
-                    <div className="text-[.68rem] text-white/80 font-semibold">Packages from £{d.est}pp</div>
+                    <div className="text-[.68rem] text-white/80 font-semibold">{t('packagesFrom')} £{d.est}{t('pp')}</div>
                   </div>
                 </a>
               ))}
@@ -1294,13 +1310,13 @@ function PackagesContent() {
       {/* ── Tips (always visible) ── */}
       <section className="max-w-[860px] mx-auto px-5 pb-16">
         <div className="bg-[#F8FAFC] border border-[#F1F3F7] rounded-3xl p-8">
-          <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">Tips for Finding the Best Package Holiday</h3>
+          <h3 className="font-poppins font-black text-[1.05rem] text-[#1A1D2B] mb-4">{t('tipsTitle')}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
-              ['Bundle beats building separately', 'Flight + hotel packages are typically 15–30% cheaper than booking each individually.'],
-              ['Check ATOL protection', 'UK law requires ATOL protection for flight-inclusive packages — always verify before paying.'],
-              ['All-inclusive vs room-only', 'AI resorts work best in destinations where eating out is expensive (Caribbean, Maldives).'],
-              ['Last-minute works for packages', 'Unlike flights, unsold package holidays drop sharply in price 2–3 weeks before departure.'],
+              [t('tips.bundle.title'), t('tips.bundle.body')],
+              [t('tips.atol.title'), t('tips.atol.body')],
+              [t('tips.allInclusive.title'), t('tips.allInclusive.body')],
+              [t('tips.lastMinute.title'), t('tips.lastMinute.body')],
             ].map(([title, body]) => (
               <div key={title} className="flex gap-3">
                 <div className="w-1.5 flex-shrink-0 rounded-full bg-gradient-to-b from-purple-500 to-indigo-600 self-stretch" />

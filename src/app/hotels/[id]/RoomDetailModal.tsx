@@ -23,6 +23,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 export interface RoomMetaLite {
   id: string;
@@ -76,6 +77,7 @@ export default function RoomDetailModal({
   reserving,
   fallbackPhotos,
 }: Props) {
+  const t = useTranslations('hotelDetail');
   const [activePhoto, setActivePhoto] = useState(0);
 
   // Close on Escape + lock body scroll while open.
@@ -108,7 +110,7 @@ export default function RoomDetailModal({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={`${room.name} — room details`}
+      aria-label={t('roomDetailsAria', { name: room.name })}
       className="fixed inset-0 z-[300] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-sm"
       onClick={onClose}
     >
@@ -119,7 +121,7 @@ export default function RoomDetailModal({
         {/* Close button */}
         <button
           type="button"
-          aria-label="Close"
+          aria-label={t('close')}
           onClick={onClose}
           className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/95 hover:bg-white text-[#0a1628] border border-[#E8ECF4] shadow-[0_4px_14px_rgba(10,22,40,0.18)] flex items-center justify-center transition-transform hover:scale-105"
         >
@@ -143,7 +145,7 @@ export default function RoomDetailModal({
                   <button
                     type="button"
                     onClick={() => setActivePhoto((p) => (p - 1 + photos.length) % photos.length)}
-                    aria-label="Previous photo"
+                    aria-label={t('prevPhoto')}
                     className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/95 text-[#0a1628] border border-[#E8ECF4] shadow flex items-center justify-center hover:scale-105 transition-transform"
                   >
                     <i className="fa-solid fa-chevron-left text-[.85rem]" />
@@ -151,7 +153,7 @@ export default function RoomDetailModal({
                   <button
                     type="button"
                     onClick={() => setActivePhoto((p) => (p + 1) % photos.length)}
-                    aria-label="Next photo"
+                    aria-label={t('nextPhoto')}
                     className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/95 text-[#0a1628] border border-[#E8ECF4] shadow flex items-center justify-center hover:scale-105 transition-transform"
                   >
                     <i className="fa-solid fa-chevron-right text-[.85rem]" />
@@ -198,14 +200,14 @@ export default function RoomDetailModal({
               )}
               {room.beds && <SpecChip icon="fa-bed" label={room.beds} />}
               {room.maxOccupancy && (
-                <SpecChip icon="fa-user-group" label={`Sleeps ${room.maxOccupancy}`} />
+                <SpecChip icon="fa-user-group" label={t('sleeps', { n: room.maxOccupancy })} />
               )}
               {boardLabel && <SpecChip icon="fa-utensils" label={boardLabel} />}
               {refundable === true && (
-                <SpecChip icon="fa-circle-check" label="Free cancellation" tone="positive" />
+                <SpecChip icon="fa-circle-check" label={t('freeCancellation')} tone="positive" />
               )}
               {refundable === false && (
-                <SpecChip icon="fa-circle-minus" label="Non-refundable" tone="neutral" />
+                <SpecChip icon="fa-circle-minus" label={t('nonRefundable')} tone="neutral" />
               )}
             </div>
 
@@ -213,7 +215,7 @@ export default function RoomDetailModal({
             {room.description && (
               <div className="mt-5">
                 <h3 className="font-poppins font-black text-[.78rem] text-[#0a1628] uppercase tracking-[1.8px] mb-2">
-                  About this room
+                  {t('aboutThisRoom')}
                 </h3>
                 <p className="text-[.88rem] text-[#5C6378] font-medium leading-relaxed">
                   {room.description.slice(0, 900)}
@@ -226,7 +228,7 @@ export default function RoomDetailModal({
             {room.amenities.length > 0 && (
               <div className="mt-6">
                 <h3 className="font-poppins font-black text-[.78rem] text-[#0a1628] uppercase tracking-[1.8px] mb-3">
-                  In this room
+                  {t('inThisRoom')}
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
                   {room.amenities.map((a, i) => (
@@ -250,16 +252,16 @@ export default function RoomDetailModal({
               </div>
             )}
             <div className="text-[.62rem] font-semibold text-slate-500 uppercase tracking-[1.5px] mt-1">
-              Total for {rooms > 1 ? `${rooms} rooms · ` : ''}{nights} {nights === 1 ? 'night' : 'nights'}
+              {t('totalFor')} {rooms > 1 ? t('roomsSep', { rooms }) : ''}{nights} {t('nightWord', { count: nights })}
               {pricePerNight != null && (
                 <span className="normal-case tracking-normal text-slate-400 font-medium">
-                  {' '}· {currencyPrefix}{pricePerNight.toFixed(2)} / night
+                  {' '}· {currencyPrefix}{pricePerNight.toFixed(2)} {t('perNightSlash')}
                 </span>
               )}
             </div>
             {excludedTaxes != null && excludedTaxes > 0 && (
               <div className="text-[.66rem] font-medium text-slate-500 mt-0.5">
-                + {fmtGBP(excludedTaxes)} city tax payable at the property
+                + {fmtGBP(excludedTaxes)} {t('cityTaxPayable')}
               </div>
             )}
           </div>
@@ -272,10 +274,10 @@ export default function RoomDetailModal({
             {reserving ? (
               <>
                 <span className="inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                Starting…
+                {t('starting')}
               </>
             ) : (
-              <>Secure this rate →</>
+              <>{t('secureThisRate')}</>
             )}
           </button>
         </div>

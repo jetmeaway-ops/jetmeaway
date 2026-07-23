@@ -4,6 +4,7 @@ import RotatingReviews from '@/components/RotatingReviews';
 import AppStoreBadges from '@/components/AppStoreBadges';
 import LondonHeroBackdrop from '@/components/LondonHeroBackdrop';
 import { LazyFlightSearch, LazyPopularDestinations, LazyTestimonials } from './homepage-client';
+import { getTranslations } from 'next-intl/server';
 
 // Homepage canonical. Declared here (not the root layout) so it doesn't
 // cascade to every child route — see the note in layout.tsx. Title,
@@ -149,9 +150,10 @@ const PROVIDERS = [
   'Klook', 'Airalo', 'Yesim', 'Webbeds', 'RateHawk', 'Kyte',
 ];
 
-function LogoScroll() {
+async function LogoScroll() {
+  const t = await getTranslations('home');
   return (
-    <section className="py-4 bg-[#C8D0E0] border-y border-[#b6c0d3] overflow-hidden" aria-label="Trusted travel providers">
+    <section className="py-4 bg-[#C8D0E0] border-y border-[#b6c0d3] overflow-hidden" aria-label={t('aria.providers')}>
       <div className="flex animate-scroll" aria-hidden="true">
         {[...PROVIDERS, ...PROVIDERS].map((name, i) => (
           // text-[#3a4154] passes WCAG AA (4.5:1) on the #C8D0E0 backdrop;
@@ -174,17 +176,18 @@ function LogoScroll() {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const STEPS = [
-  { num: '01', icon: 'fa-magnifying-glass', title: 'Search', desc: 'Enter your destination, dates, and preferences. We instantly scan 15+ trusted travel providers.' },
-  { num: '02', icon: 'fa-chart-bar', title: 'Compare', desc: 'See real prices side-by-side from Expedia, Trip.com, Aviasales and more. No hidden fees.' },
-  { num: '03', icon: 'fa-circle-check', title: 'Book', desc: 'Choose the best deal and book directly with the provider. We never charge booking fees.' },
-];
+  { num: '01', icon: 'fa-magnifying-glass', key: 'search' },
+  { num: '02', icon: 'fa-chart-bar', key: 'compare' },
+  { num: '03', icon: 'fa-circle-check', key: 'book' },
+] as const;
 
-function HowItWorks() {
+async function HowItWorks() {
+  const t = await getTranslations('home');
   return (
     <section className="py-10 px-6 bg-white">
       <div className="max-w-[1100px] mx-auto">
-        <p className="text-center text-[.65rem] font-black uppercase tracking-[3px] text-orange-800 mb-1.5 font-[var(--font-dm-sans)]">Simple Process</p>
-        <h2 className="text-center font-[var(--font-playfair)] text-[1.8rem] md:text-[2.2rem] font-black text-[#0a1628] mb-6">How It Works</h2>
+        <p className="text-center text-[.65rem] font-black uppercase tracking-[3px] text-orange-800 mb-1.5 font-[var(--font-dm-sans)]">{t('sections.simpleProcess')}</p>
+        <h2 className="text-center font-[var(--font-playfair)] text-[1.8rem] md:text-[2.2rem] font-black text-[#0a1628] mb-6">{t('sections.howItWorks')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {STEPS.map((s) => (
             <div key={s.num}
@@ -195,8 +198,8 @@ function HowItWorks() {
                 <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-orange-50 to-orange-100 flex items-center justify-center group-hover:scale-110 transition-transform">
                   <i className={`fa-solid ${s.icon} text-xl text-orange-500`} />
                 </div>
-                <h3 className="font-[var(--font-playfair)] font-black text-[1.1rem] text-[#0a1628] mb-1">{s.title}</h3>
-                <p className="font-[var(--font-dm-sans)] text-[.78rem] text-[#5C6378] leading-relaxed">{s.desc}</p>
+                <h3 className="font-[var(--font-playfair)] font-black text-[1.1rem] text-[#0a1628] mb-1">{t(`steps.${s.key}.title`)}</h3>
+                <p className="font-[var(--font-dm-sans)] text-[.78rem] text-[#5C6378] leading-relaxed">{t(`steps.${s.key}.desc`)}</p>
               </div>
             </div>
           ))}
@@ -211,33 +214,34 @@ function HowItWorks() {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const CATEGORIES = [
-  { emoji: '🏨', name: 'Hotels', desc: 'Compare 2M+ properties from top providers', href: '/hotels', live: true, color: 'from-orange-500 to-amber-500' },
-  { emoji: '✈️', name: 'Flights', desc: '250+ airports with real-time pricing', href: '/flights', live: false, color: 'from-blue-500 to-indigo-500' },
-  { emoji: '📦', name: 'Packages', desc: 'All-inclusive holiday bundles', href: '/packages', live: false, color: 'from-purple-500 to-pink-500' },
-  { emoji: '🚗', name: 'Car Hire', desc: '7 providers, best rates guaranteed', href: '/cars', live: false, color: 'from-emerald-500 to-teal-500' },
-  { emoji: '📱', name: 'eSIM', desc: 'Data plans for 150+ countries', href: '/esim', live: false, color: 'from-cyan-500 to-blue-500' },
-  { emoji: '🧭', name: 'Explore', desc: 'Tours, activities & experiences', href: '/explore', live: false, color: 'from-rose-500 to-orange-500' },
-];
+  { emoji: '🏨', key: 'hotels', href: '/hotels', live: true, color: 'from-orange-500 to-amber-500' },
+  { emoji: '✈️', key: 'flights', href: '/flights', live: false, color: 'from-blue-500 to-indigo-500' },
+  { emoji: '📦', key: 'packages', href: '/packages', live: false, color: 'from-purple-500 to-pink-500' },
+  { emoji: '🚗', key: 'carHire', href: '/cars', live: false, color: 'from-emerald-500 to-teal-500' },
+  { emoji: '📱', key: 'esim', href: '/esim', live: false, color: 'from-cyan-500 to-blue-500' },
+  { emoji: '🧭', key: 'explore', href: '/explore', live: false, color: 'from-rose-500 to-orange-500' },
+] as const;
 
-function WhatWeCompare() {
+async function WhatWeCompare() {
+  const t = await getTranslations('home');
   return (
     <section className="py-10 px-6 bg-[#C8D0E0]">
       <div className="max-w-[1100px] mx-auto">
-        <p className="text-center text-[.65rem] font-black uppercase tracking-[3px] text-orange-800 mb-1.5 font-[var(--font-dm-sans)]">All In One Place</p>
-        <h2 className="text-center font-[var(--font-playfair)] text-[1.8rem] md:text-[2.2rem] font-black text-[#0a1628] mb-6">What We Compare</h2>
+        <p className="text-center text-[.65rem] font-black uppercase tracking-[3px] text-orange-800 mb-1.5 font-[var(--font-dm-sans)]">{t('sections.allInOnePlace')}</p>
+        <h2 className="text-center font-[var(--font-playfair)] text-[1.8rem] md:text-[2.2rem] font-black text-[#0a1628] mb-6">{t('sections.whatWeCompare')}</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {CATEGORIES.map((c) => (
-            <a key={c.name} href={c.href}
+            <a key={c.key} href={c.href}
               className={`relative bg-white border rounded-2xl p-4 transition-all duration-300 group hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] ${c.live ? 'border-orange-200 bg-gradient-to-br from-white to-orange-50/50' : 'border-[#E8ECF4] hover:border-orange-200'}`}>
               {c.live && (
                 <span className="absolute top-2.5 right-2.5 flex items-center gap-1 bg-green-50 border border-green-200 text-green-700 text-[.58rem] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
                   <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                  Live
+                  {t('live')}
                 </span>
               )}
               <div className="text-2xl mb-2 group-hover:scale-110 transition-transform">{c.emoji}</div>
-              <h3 className="font-poppins font-black text-[.95rem] text-[#0a1628] mb-0.5">{c.name}</h3>
-              <p className="font-[var(--font-dm-sans)] text-[.74rem] text-[#5C6378]">{c.desc}</p>
+              <h3 className="font-poppins font-black text-[.95rem] text-[#0a1628] mb-0.5">{t(`categories.${c.key}.name`)}</h3>
+              <p className="font-[var(--font-dm-sans)] text-[.74rem] text-[#5C6378]">{t(`categories.${c.key}.desc`)}</p>
             </a>
           ))}
         </div>
@@ -257,26 +261,27 @@ function WhatWeCompare() {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 const TRENDING = [
-  { href: '/destinations/sharm-el-sheikh',   eyebrow: 'Egypt',     title: 'Sharm El Sheikh',  hint: 'Winter sun · Red Sea reefs' },
-  { href: '/destinations/marrakech',         eyebrow: 'Morocco',   title: 'Marrakech',        hint: 'Souks, riads & desert escapes' },
-  { href: '/destinations/berlin',            eyebrow: 'Germany',   title: 'Berlin',           hint: 'Year-round culture city break' },
-  { href: '/destinations/budapest',          eyebrow: 'Hungary',   title: 'Budapest',         hint: 'Thermal baths & Danube nights' },
-  { href: '/destinations/colombo',           eyebrow: 'Sri Lanka', title: 'Colombo',          hint: 'Gateway to beaches & tea hills' },
+  { href: '/destinations/sharm-el-sheikh',   key: 'sharmElSheikh' },
+  { href: '/destinations/marrakech',         key: 'marrakech' },
+  { href: '/destinations/berlin',            key: 'berlin' },
+  { href: '/destinations/budapest',          key: 'budapest' },
+  { href: '/destinations/colombo',           key: 'colombo' },
   // Swapped 2026-05-09: was the Amsterdam-hotels blog link, but that
   // post already gets link equity from the Scout section below. Audit
   // flagged /destinations/baden-baden as the only GSC-stuck destination
   // URL with zero homepage link equity — moving the slot directly fixes
   // the orphan path Googlebot was missing.
-  { href: '/destinations/baden-baden',       eyebrow: 'Germany',   title: 'Baden-Baden',     hint: 'Black Forest bathing & elite spas' },
+  { href: '/destinations/baden-baden',       key: 'badenBaden' },
 ] as const;
 
-function TrendingDestinations() {
+async function TrendingDestinations() {
+  const tr = await getTranslations('home');
   return (
     <section className="py-12 px-6 bg-white" aria-labelledby="trending-heading">
       <div className="max-w-[1100px] mx-auto">
-        <p className="text-center text-[.65rem] font-black uppercase tracking-[3px] text-orange-800 mb-1.5 font-[var(--font-dm-sans)]">Trending This Week</p>
+        <p className="text-center text-[.65rem] font-black uppercase tracking-[3px] text-orange-800 mb-1.5 font-[var(--font-dm-sans)]">{tr('sections.trendingThisWeek')}</p>
         <h2 id="trending-heading" className="text-center font-[var(--font-playfair)] text-[1.8rem] md:text-[2.2rem] font-black text-[#0a1628] mb-6">
-          Trending Destinations
+          {tr('sections.trendingDestinations')}
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {TRENDING.map((t) => (
@@ -286,13 +291,13 @@ function TrendingDestinations() {
               className="group relative bg-white border border-[#E8ECF4] rounded-2xl p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] hover:border-orange-200"
             >
               <div className="text-[.58rem] font-black uppercase tracking-[2px] text-orange-700 mb-1 font-[var(--font-dm-sans)]">
-                {t.eyebrow}
+                {tr(`trending.${t.key}.eyebrow`)}
               </div>
               <div className="font-poppins font-black text-[1.05rem] text-[#0a1628] mb-1 group-hover:text-orange-700 transition-colors">
-                {t.title} →
+                {tr(`trending.${t.key}.title`)} →
               </div>
               <div className="font-[var(--font-dm-sans)] text-[.74rem] text-[#5C6378] leading-snug">
-                {t.hint}
+                {tr(`trending.${t.key}.hint`)}
               </div>
             </a>
           ))}
@@ -306,29 +311,30 @@ function TrendingDestinations() {
    SCOUT DESTINATIONS — homepage card that passes link equity to /destinations
    ═══════════════════════════════════════════════════════════════════════════ */
 
-function ScoutDestinations() {
+async function ScoutDestinations() {
+  const t = await getTranslations('home');
   const highlights = [
-    { slug: 'dubai',      city: 'Dubai',      country: 'UAE' },
-    { slug: 'istanbul',   city: 'Istanbul',   country: 'Turkey' },
-    { slug: 'islamabad',  city: 'Islamabad',  country: 'Pakistan' },
-    { slug: 'lahore',     city: 'Lahore',     country: 'Pakistan' },
-    { slug: 'budapest',   city: 'Budapest',   country: 'Hungary' },
-    { slug: 'lisbon',     city: 'Lisbon',     country: 'Portugal' },
-    { slug: 'rome',       city: 'Rome',       country: 'Italy' },
-    { slug: 'marrakech',  city: 'Marrakech',  country: 'Morocco' },
-  ];
+    { slug: 'dubai', key: 'dubai' },
+    { slug: 'istanbul', key: 'istanbul' },
+    { slug: 'islamabad', key: 'islamabad' },
+    { slug: 'lahore', key: 'lahore' },
+    { slug: 'budapest', key: 'budapest' },
+    { slug: 'lisbon', key: 'lisbon' },
+    { slug: 'rome', key: 'rome' },
+    { slug: 'marrakech', key: 'marrakech' },
+  ] as const;
   return (
     <section className="py-14 px-6 bg-gradient-to-br from-[#0a1628] via-[#0F1119] to-[#0a1628] text-white">
       <div className="max-w-[1100px] mx-auto">
         <div className="text-center mb-8">
           <span className="inline-block bg-[#FFD700]/15 text-[#FFD700] text-[.6rem] font-black uppercase tracking-[2.5px] px-3 py-1.5 rounded-full border border-[#FFD700]/30 mb-3">
-            🔍 Scout Reports
+            🔍 {t('scout.badge')}
           </span>
           <h2 className="font-[var(--font-playfair)] text-[2rem] md:text-[2.6rem] font-black leading-tight mb-3">
-            Scout Your Next Destination
+            {t('scout.heading')}
           </h2>
           <p className="font-[var(--font-dm-sans)] text-white/85 text-[.95rem] max-w-[620px] mx-auto">
-            Deep neighbourhood intelligence for 19+ cities. Morning rituals, wellness ecosystems and private-stay picks, vetted by our scouts.
+            {t('scout.sub')}
           </p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
@@ -339,10 +345,10 @@ function ScoutDestinations() {
               className="group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#FFD700]/40 rounded-2xl p-4 transition-all"
             >
               <div className="text-[.58rem] font-black uppercase tracking-[2px] text-white/70 mb-1 group-hover:text-[#FFD700] transition-colors">
-                {h.country}
+                {t(`scout.cards.${h.key}.country`)}
               </div>
               <div className="font-poppins font-bold text-[1rem] text-white group-hover:text-[#FFD700] transition-colors">
-                {h.city} →
+                {t(`scout.cards.${h.key}.city`)} →
               </div>
             </a>
           ))}
@@ -352,7 +358,7 @@ function ScoutDestinations() {
             href="/destinations"
             className="inline-flex items-center gap-2 bg-[#FFD700] hover:bg-[#FFC700] text-[#0a1628] font-poppins font-black text-[.95rem] px-7 py-3.5 rounded-full transition-all shadow-[0_8px_30px_rgba(255,215,0,0.25)] hover:-translate-y-0.5"
           >
-            Explore All Destinations →
+            {t('scout.exploreAll')} →
           </a>
         </div>
       </div>
@@ -364,21 +370,22 @@ function ScoutDestinations() {
    CTA — warm gradient, prominent button
    ═══════════════════════════════════════════════════════════════════════════ */
 
-function CtaSection() {
+async function CtaSection() {
+  const t = await getTranslations('home');
   return (
     <section className="py-16 px-6 bg-gradient-to-br from-orange-50 via-amber-50 to-white">
       <div className="max-w-[700px] mx-auto text-center">
         <h2 className="font-[var(--font-playfair)] text-[2rem] md:text-[2.6rem] font-black text-[#0a1628] mb-3">
-          Ready to Find Your <span className="bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">Best Deal?</span>
+          {t('cta.titlePre')} <span className="bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">{t('cta.titleHighlight')}</span>
         </h2>
         {/* Copy must stay TRUE — no invented user counts ("join thousands")
             or made-up stats. Honest value props only (2026-07-02 audit). */}
-        <p className="font-[var(--font-dm-sans)] text-[.95rem] text-[#5C6378] mb-8">Live prices from 15+ trusted providers — no markups, no booking fees</p>
+        <p className="font-[var(--font-dm-sans)] text-[.95rem] text-[#5C6378] mb-8">{t('cta.sub')}</p>
         <a href="/hotels"
           // bg-orange-700 + white text = 5.0:1 contrast (passes WCAG AA);
           // previous orange-500 was 2.93:1 and Lighthouse flagged it.
           className="inline-block bg-orange-700 hover:bg-orange-800 text-white font-poppins font-black text-[1rem] px-10 py-4 rounded-xl shadow-[0_8px_30px_rgba(194,65,12,0.35)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(194,65,12,0.4)]">
-          Compare Hotel Prices Now
+          {t('cta.button')}
         </a>
       </div>
     </section>
@@ -391,7 +398,8 @@ function CtaSection() {
    are client components.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-export default function Home() {
+export default async function Home() {
+  const t = await getTranslations('home');
   return (
     <>
       <Header />
@@ -412,26 +420,26 @@ export default function Home() {
         <LondonHeroBackdrop />
 
         <div className="max-w-[800px] mx-auto text-center relative z-[1]">
-          <p className="font-[var(--font-dm-sans)] text-orange-300 text-[.72rem] font-bold uppercase tracking-[3px] mb-4">UK&apos;s Smartest Travel Comparison</p>
+          <p className="font-[var(--font-dm-sans)] text-orange-300 text-[.72rem] font-bold uppercase tracking-[3px] mb-4">{t('hero.eyebrow')}</p>
           <h1 className="[font-family:var(--next-poppins)] md:[font-family:var(--font-playfair)] text-[2.6rem] md:text-[4.2rem] font-black text-white leading-[1.08] tracking-tight mb-5">
-            Find Your Perfect Trip for{' '}
-            <span className="bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent">Less</span>
+            {t('hero.titlePre')}{' '}
+            <span className="bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent">{t('hero.titleHighlight')}</span>
           </h1>
           <p className="font-[var(--font-dm-sans)] text-white/80 text-[1.05rem] mb-8 max-w-[550px] mx-auto">
-            Compare flights, hotels, car hire and more from 15+ trusted providers. Real prices, in seconds.
+            {t('hero.sub')}
           </p>
 
           {/* Stats bar */}
-          <div className="flex flex-wrap justify-center gap-6 md:gap-10 mb-8" role="list" aria-label="Key statistics">
-            {[
-              { val: '15+', label: 'Providers' },
-              { val: '2M+', label: 'Hotels' },
-              { val: '£0', label: 'Booking Fees' },
-              { val: '24/7', label: 'AI Assistant' },
-            ].map(s => (
-              <div key={s.label} className="text-center" role="listitem">
+          <div className="flex flex-wrap justify-center gap-6 md:gap-10 mb-8" role="list" aria-label={t('aria.stats')}>
+            {([
+              { val: '15+', key: 'providers' },
+              { val: '2M+', key: 'hotels' },
+              { val: '£0', key: 'bookingFees' },
+              { val: '24/7', key: 'aiAssistant' },
+            ] as const).map(s => (
+              <div key={s.key} className="text-center" role="listitem">
                 <div className="font-poppins font-black text-[1.6rem] md:text-[2rem] text-white leading-none">{s.val}</div>
-                <div className="font-[var(--font-dm-sans)] text-white/80 text-[.7rem] font-medium mt-1">{s.label}</div>
+                <div className="font-[var(--font-dm-sans)] text-white/80 text-[.7rem] font-medium mt-1">{t(`stats.${s.key}`)}</div>
               </div>
             ))}
           </div>
@@ -454,8 +462,8 @@ export default function Home() {
         <div className="max-w-[1100px] mx-auto px-6 py-3 flex items-center justify-center gap-3 text-center">
           <span className="text-emerald-400 text-base" aria-hidden="true">🛡️</span>
           <p className="font-[var(--font-dm-sans)] text-[.78rem] md:text-[.85rem] font-semibold leading-snug">
-            <span className="text-white font-bold">Prices locked at booking.</span>{' '}
-            <span className="text-white/85">We never call or email you for extra payment. JETMEAWAY LTD · Company No. 17140522 · London, UK.</span>
+            <span className="text-white font-bold">{t('trust.locked')}</span>{' '}
+            <span className="text-white/85">{t('trust.never')} JETMEAWAY LTD · Company No. 17140522 · London, UK.</span>
           </p>
         </div>
       </section>

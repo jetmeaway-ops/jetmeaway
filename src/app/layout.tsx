@@ -10,6 +10,9 @@ import type { Viewport } from 'next';
 import './globals.css';
 import Script from 'next/script';
 import { Poppins, Playfair_Display, DM_Sans } from 'next/font/google';
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale, getMessages } from 'next-intl/server';
+import { RTL_LOCALES } from '@/i18n/config';
 // Vercel Analytics + GA Ads + GA4 + Microsoft Clarity all live inside
 // DeferredWidgets now so their scripts never compete with LCP/FCP. See
 // components/DeferredWidgets.tsx + components/DeferredAnalytics.tsx.
@@ -260,9 +263,14 @@ const websiteSchema = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Locale resolved by src/proxy.ts (cookie → Accept-Language → country → en)
+  // and loaded by src/i18n/request.ts. Bots get English — SEO unchanged.
+  const locale = await getLocale();
+  const messages = await getMessages();
+  const dir = RTL_LOCALES.has(locale) ? 'rtl' : 'ltr';
   return (
-    <html lang="en" className={`${poppins.variable} ${playfair.variable} ${dmSans.variable}`}>
+    <html lang={locale} dir={dir} className={`${poppins.variable} ${playfair.variable} ${dmSans.variable}`}>
       <head>
         {/* Theme colour: dark navy matches hero bg so the iOS status bar
             blends into the app rather than flashing blue on launch. */}
@@ -316,7 +324,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Poppins + Playfair + DM Sans self-hosted via next/font — no Google Fonts request */}
       </head>
       <body>
-        {children}
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          {children}
+        </NextIntlClientProvider>
         {/* ClientErrorReporter stays eager — it has to catch first-paint
             errors before any deferred mount could pick them up. The
             other chrome (BackToTopButton, AndroidAppBanner) now mounts
