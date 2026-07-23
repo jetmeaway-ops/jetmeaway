@@ -2,7 +2,8 @@
   "common": {
     "pricesInGbp": "Prices are shown in GBP (£)",
     "loading": "Loading…",
-    "language": "Language"
+    "language": "Language",
+    "translationNote": "Translations are provided automatically and may contain errors. The English version is the reference."
   },
   "header": {
     "language": "Language",

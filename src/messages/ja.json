@@ -2,7 +2,8 @@
   "common": {
     "pricesInGbp": "価格は英ポンド (£) で表示されます",
     "loading": "読み込み中…",
-    "language": "言語"
+    "language": "言語",
+    "translationNote": "翻訳は自動的に提供されており、誤りが含まれる場合があります。英語版が正となります。"
   },
   "header": {
     "language": "言語",

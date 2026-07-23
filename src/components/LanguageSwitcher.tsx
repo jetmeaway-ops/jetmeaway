@@ -68,6 +68,11 @@ export default function LanguageSwitcher() {
           ))}
           <div className="px-4 pt-1.5 pb-2 text-[.62rem] font-semibold text-[#8E95A9] border-t border-[#F1F3F7]">
             {t('pricesInGbp')}
+            {/* Machine-translation note — shown only when a non-English locale
+                is active (English is the untranslated reference). */}
+            {locale !== 'en' && (
+              <span className="block mt-1 text-[#A5ABBD]">{t('translationNote')}</span>
+            )}
           </div>
         </div>
       )}

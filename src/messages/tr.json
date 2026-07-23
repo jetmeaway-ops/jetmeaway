@@ -2,7 +2,8 @@
   "common": {
     "pricesInGbp": "Fiyatlar GBP (£) cinsinden gösterilir",
     "loading": "Yükleniyor…",
-    "language": "Dil"
+    "language": "Dil",
+    "translationNote": "Çeviriler otomatik olarak sağlanır ve hatalar içerebilir. İngilizce sürüm esas alınır."
   },
   "header": {
     "language": "Dil",

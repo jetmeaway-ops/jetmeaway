@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import DealAlertForm from './DealAlertForm';
 import AppStoreBadges from './AppStoreBadges';
 import PaymentTrustStrip from './PaymentTrustStrip';
@@ -14,6 +14,8 @@ import PaymentTrustStrip from './PaymentTrustStrip';
    partner names and the legal company identifiers stay untranslated by design. */
 export default function Footer() {
   const t = useTranslations('footer');
+  const tc = useTranslations('common');
+  const locale = useLocale();
   return (
     <footer className="bg-[#0F1119] pt-14 pb-7 px-5 mt-12">
       <div className="max-w-[1100px] mx-auto">
@@ -52,6 +54,17 @@ export default function Footer() {
         <div className="max-w-[800px] mb-7">
           <p className="text-[.72rem] text-white/75 leading-relaxed font-semibold">{t('affiliateNotice')} <Link href="/affiliate" className="text-white/85 hover:text-white underline">{t('affiliateLink')}</Link>.</p>
         </div>
+        {/* Machine-translation disclaimer — the 11 non-English catalogs are
+            auto-translated, so tell readers English is the reference. Never
+            rendered for the English default (owner: "not on english"). */}
+        {locale !== 'en' && (
+          <div className="max-w-[800px] mb-7">
+            <p className="text-[.72rem] text-white/60 leading-relaxed font-semibold">
+              <i className="fa-solid fa-language me-1.5" aria-hidden="true" />
+              {tc('translationNote')}
+            </p>
+          </div>
+        )}
         <div className="max-w-[800px] mb-7">
           <div className="text-[.55rem] uppercase tracking-[2.5px] font-extrabold text-white/75 mb-1.5">{t('bookingSupport')}</div>
           <a href="tel:+448006526699" className="inline-block font-poppins font-bold text-[.75rem] text-[#FFD700] hover:text-white transition-colors mb-1.5">

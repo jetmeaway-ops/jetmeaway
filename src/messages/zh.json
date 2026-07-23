@@ -2,7 +2,8 @@
   "common": {
     "pricesInGbp": "价格以英镑 (£) 显示",
     "loading": "加载中…",
-    "language": "语言"
+    "language": "语言",
+    "translationNote": "翻译由系统自动生成，可能存在错误。以英文版本为准。"
   },
   "header": {
     "language": "语言",
