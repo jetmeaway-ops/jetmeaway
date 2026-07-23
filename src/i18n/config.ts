@@ -15,7 +15,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /** Locales with a shipped message catalog. ORDER = switcher display order. */
-export const ACTIVE_LOCALES = ['en', 'ar', 'ur', 'hi', 'de', 'zh', 'ru', 'es', 'fr', 'tr', 'it'] as const;
+export const ACTIVE_LOCALES = ['en', 'ar', 'ur', 'hi', 'de', 'zh', 'ru', 'es', 'fr', 'tr', 'it', 'ja'] as const;
 
 export type Locale = (typeof ACTIVE_LOCALES)[number];
 
@@ -37,6 +37,7 @@ export const LOCALE_LABELS: Record<Locale, string> = {
   fr: 'Français',
   tr: 'Türkçe',
   it: 'Italiano',
+  ja: '日本語',
 };
 
 /** ISO country → locale fallback (only used when Accept-Language gives no
@@ -54,6 +55,7 @@ export const COUNTRY_TO_LOCALE: Record<string, Locale> = {
   FR: 'fr', BE: 'fr', LU: 'fr', MC: 'fr', SN: 'fr', CI: 'fr',
   TR: 'tr',
   IT: 'it',
+  JP: 'ja',
 };
 
 export function isActiveLocale(x: string | undefined | null): x is Locale {
