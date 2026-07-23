@@ -1021,10 +1021,10 @@
     "stopsN": "{n} اسٹاپس",
     "fromWord": "سے",
     "oneWayPp": "یک طرفہ فی کس",
-    "loadingFares": "لائیو کرایے چیک ہو رہے ہیں...",
-    "loadingDirect": "براہِ راست بک ہونے والی پروازیں تلاش ہو رہی ہیں...",
-    "loadingAirlines": "ایئر لائنز کا موازنہ ہو رہا ہے...",
-    "loadingDates": "آپ کی تاریخوں کی قیمت لگائی جا رہی ہے...",
+    "loadingFares": "Aviasales میں تلاش ہو رہی ہے...",
+    "loadingDirect": "Trip.com چیک ہو رہا ہے...",
+    "loadingAirlines": "Expedia اسکین ہو رہا ہے...",
+    "loadingDates": "Kiwi.com چیک ہو رہا ہے...",
     "loadingBest": "آپ کے لیے بہترین ڈیل تلاش ہو رہی ہے...",
     "buildingResultsFor": "نتائج تیار ہو رہے ہیں برائے",
     "bestDaysToFly": "پرواز کے بہترین دن",
@@ -1148,7 +1148,8 @@
         "title": "لچکدار تاریخیں استعمال کریں",
         "body": "±3 دن کی ونڈو ہر فراہم کنندہ پر قیمت میں بڑی کمی ظاہر کر سکتی ہے۔"
       }
-    }
+    },
+    "flightsWord": "پروازیں"
   },
   "hotelDetail": {
     "score": {

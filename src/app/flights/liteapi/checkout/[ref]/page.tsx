@@ -128,7 +128,6 @@ function fmtDate(d?: string | null) {
 }
 
 export default function FlightCheckoutPage() {
-  const t = useTranslations('checkout');
   const params = useParams<{ ref: string }>();
   const ref = params?.ref || '';
 
@@ -163,6 +162,7 @@ export default function FlightCheckoutPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const paymentInstanceRef = useRef<any>(null);
   const [payingNow, setPayingNow] = useState(false);
+  const t = useTranslations('checkout');
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
   const trip = pending?.trip;

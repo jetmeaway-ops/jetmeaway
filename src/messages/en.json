@@ -1021,10 +1021,10 @@
     "stopsN": "{n} stops",
     "fromWord": "from",
     "oneWayPp": "one-way pp",
-    "loadingFares": "Checking live fares...",
-    "loadingDirect": "Finding direct-bookable flights...",
-    "loadingAirlines": "Comparing airlines...",
-    "loadingDates": "Pricing your dates...",
+    "loadingFares": "Searching Aviasales...",
+    "loadingDirect": "Checking Trip.com...",
+    "loadingAirlines": "Scanning Expedia...",
+    "loadingDates": "Checking Kiwi.com...",
     "loadingBest": "Finding you the best deal...",
     "buildingResultsFor": "Building results for",
     "bestDaysToFly": "Best Days to Fly",
@@ -1148,7 +1148,8 @@
         "title": "Use flexible dates",
         "body": "A ±3 day window can reveal huge price drops on every provider."
       }
-    }
+    },
+    "flightsWord": "flights"
   },
   "hotelDetail": {
     "score": {

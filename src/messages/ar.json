@@ -1021,10 +1021,10 @@
     "stopsN": "{n} توقفات",
     "fromWord": "من",
     "oneWayPp": "ذهاب فقط للشخص",
-    "loadingFares": "جارٍ التحقق من الأسعار المباشرة...",
-    "loadingDirect": "جارٍ إيجاد رحلات قابلة للحجز المباشر...",
-    "loadingAirlines": "جارٍ مقارنة شركات الطيران...",
-    "loadingDates": "جارٍ تسعير تواريخك...",
+    "loadingFares": "جارٍ البحث في Aviasales...",
+    "loadingDirect": "جارٍ التحقق من Trip.com...",
+    "loadingAirlines": "جارٍ فحص Expedia...",
+    "loadingDates": "جارٍ التحقق من Kiwi.com...",
     "loadingBest": "جارٍ إيجاد أفضل صفقة لك...",
     "buildingResultsFor": "جارٍ إعداد النتائج لـ",
     "bestDaysToFly": "أفضل أيام السفر",
@@ -1148,7 +1148,8 @@
         "title": "استخدم تواريخ مرنة",
         "body": "نافذة ±3 أيام قد تكشف انخفاضات كبيرة في السعر لدى كل مزود."
       }
-    }
+    },
+    "flightsWord": "رحلات"
   },
   "hotelDetail": {
     "score": {
