@@ -12,6 +12,7 @@ import BestValueTable from '@/components/blog/BestValueTable';
 import RelatedPosts from '@/components/blog/RelatedPosts';
 import CityBlogBackdrop from '@/components/CityBlogBackdrop';
 import { getAllPosts, getAllPostSlugs, getPostBySlug, formatPostDate } from '@/lib/blog';
+import { pickRelatedPosts } from '@/lib/relatedPosts';
 import type { Metadata } from 'next';
 
 /**
@@ -183,15 +184,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const post = getPostBySlug(slug);
   if (!post) notFound();
 
-  // "Read next" picks — same-category posts first (most relevant), then the
-  // most recent others to fill 3 slots. getAllPosts() is already date-sorted.
-  // This gives every article inbound contextual internal links from siblings.
-  const relatedPosts = (() => {
-    const others = getAllPosts().filter((p) => p.slug !== post.slug);
-    const sameCategory = others.filter((p) => p.category === post.category);
-    const rest = others.filter((p) => p.category !== post.category);
-    return [...sameCategory, ...rest].slice(0, 3);
-  })();
+  const relatedPosts = pickRelatedPosts(post, getAllPosts());
 
   // Compile the MDX body in two halves so we can drop the in-body CTA
   // between them. If the post has <2 H2 headings, splitMdxAtMiddleH2
