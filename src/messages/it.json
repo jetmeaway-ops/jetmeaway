@@ -1022,9 +1022,9 @@
     "stopsN": "{n} scali",
     "fromWord": "da",
     "oneWayPp": "solo andata a persona",
-    "loadingFares": "Ricerca su Aviasales...",
-    "loadingDirect": "Verifica di Trip.com...",
-    "loadingAirlines": "Scansione di Expedia...",
+    "loadingFares": "Verifica delle tariffe in tempo reale...",
+    "loadingDirect": "Ricerca di voli prenotabili direttamente...",
+    "loadingAirlines": "Confronto delle compagnie aeree...",
     "loadingDates": "Verifica di Kiwi.com...",
     "loadingBest": "Ricerca della migliore offerta per te...",
     "buildingResultsFor": "Creazione dei risultati per",
@@ -1150,7 +1150,8 @@
         "body": "Una finestra di ±3 giorni può rivelare enormi cali di prezzo su ogni fornitore."
       }
     },
-    "flightsWord": "voli"
+    "flightsWord": "voli",
+    "noDirectFlights": "Nessun volo prenotabile direttamente per questa rotta e data. Prova date vicine o un altro aeroporto di Londra."
   },
   "hotelDetail": {
     "score": {

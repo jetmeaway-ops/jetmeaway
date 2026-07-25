@@ -1961,70 +1961,14 @@ function FlightsContent() {
     }
 
     async function loadDateStrip(baseHint: number | null) {
-      // Fire-and-forget: load the D−3…D+3 price strip. Travelpayouts-only
-      // + KV-cached so this never blocks the main results render. If it
-      // fails we silently render nothing — the page stays fully usable.
-      setDateStripLoading(true);
+      // DISABLED for direct-book-only (2026-07-24): the D−3…D+3 strip + Scout
+      // Tip surfaced indicative Travelpayouts (affiliate) prices, inconsistent
+      // with direct-book results. Clear state so nothing renders and skip the
+      // affiliate fetch. Wiring kept for easy re-enable.
+      void baseHint;
+      setDateStripLoading(false);
       setDateStrip([]);
       setDateScoutTip(null);
-      try {
-        const stripParams = new URLSearchParams({
-          origin: originCode,
-          destination: destCode,
-          departure: depDate,
-          mode: 'datestrip',
-        });
-        if (retDate && tripType === 'return') stripParams.set('return', retDate);
-        if (baseHint !== null) stripParams.set('basePrice', String(Math.round(baseHint)));
-        const sRes = await fetch(`/api/flights?${stripParams}`);
-        const sData = await sRes.json();
-        if (sData.success && Array.isArray(sData.dates)) {
-          const effectiveRet = tripType === 'return' ? retDate : null;
-          const userNights = typeof sData.intendedNights === 'number' ? sData.intendedNights : null;
-          setIntendedNights(userNights);
-          type StripCell = {
-            dep: string;
-            ret: string | null;
-            cheapest_price_gbp: number | null;
-            actual_nights?: number | null;
-            actual_return?: string | null;
-          };
-          const mapped: MatrixOption[] = sData.dates.map((c: StripCell) => {
-            const d = new Date(c.dep + 'T00:00:00Z');
-            const r = c.ret ? new Date(c.ret + 'T00:00:00Z') : null;
-            const label = r
-              ? `${d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })} – ${r.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })}`
-              : d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
-            let subLabel: string | undefined;
-            if (
-              userNights !== null &&
-              typeof c.actual_nights === 'number' &&
-              c.actual_nights > 0 &&
-              c.actual_nights !== userNights
-            ) {
-              subLabel = `${c.actual_nights}n trip`;
-            }
-            const clickRet =
-              subLabel && c.actual_return ? c.actual_return : c.ret;
-            return {
-              id: c.dep,
-              label,
-              price: c.cheapest_price_gbp,
-              isSelected: c.dep === depDate && (c.ret || null) === (effectiveRet || null),
-              metadata: { dep: c.dep, ret: clickRet },
-              subLabel,
-            };
-          });
-          setDateStrip(mapped);
-          if (sData.scoutTip && typeof sData.scoutTip.price === 'number') {
-            setDateScoutTip(sData.scoutTip as ScoutTip);
-          }
-        }
-      } catch {
-        // Silent fail — strip is a nice-to-have, not a hard requirement.
-      } finally {
-        setDateStripLoading(false);
-      }
     }
   }, [originCode, destCode, depDate, retDate, adults, children, infants, tripType, cabinClass]);
 
@@ -2156,7 +2100,9 @@ function FlightsContent() {
   // Apply filters + sort
   const visibleFlights = useMemo(() => {
     if (!flights) return [] as FlightResult[];
-    let list = flights.slice();
+    // Direct-book only (owner decision 2026-07-24): affiliate redirect rows
+    // (Aviasales/Trip.com/Expedia) are dropped — we sell our own checkout.
+    let list = flights.filter(isDirectBookable);
 
     // Stops
     if (stopsFilter === 'direct') list = list.filter(f => f.transfers === 0);
@@ -2208,14 +2154,10 @@ function FlightsContent() {
       }
     };
 
-    // Partition: direct-bookable (Duffel OR Kyte, has offer_id) first,
-    // redirect providers second. Keeps commission-earning bookings at
-    // the top of the page regardless of price. Uses the shared
-    // isDirectBookable() helper so the rule stays in one place.
-    const direct = list.filter(isDirectBookable).sort(cmp);
-    const redirect = list.filter(f => !isDirectBookable(f)).sort(cmp);
-    return [...direct, ...redirect];
+    return list.sort(cmp);
   }, [flights, sortBy, stopsFilter, selectedAirlines, flightNumFilter, takeoffMin, takeoffMax, landingMin, landingMax]);
+
+  const directCount = flights ? flights.filter(isDirectBookable).length : 0;
 
   const filtersActive =
     sortBy !== 'price-asc' ||
@@ -2483,7 +2425,7 @@ function FlightsContent() {
                   {filtersActive && <span className="w-1.5 h-1.5 rounded-full bg-[#0066FF]" />}
                 </button>
                 <div className="text-[.72rem] text-[#8E95A9] font-bold">
-                  {visibleFlights.length} {t('ofWord')} {flights.length}
+                  {visibleFlights.length} {t('ofWord')} {directCount}
                 </div>
               </div>
 
@@ -2637,7 +2579,7 @@ function FlightsContent() {
                 <div>
                   <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
                     <h3 className="font-poppins font-black text-[.9rem] text-[#1A1D2B]">
-                      {visibleFlights.length} {t('ofWord')} {flights.length} {t('flightsWord')}
+                      {visibleFlights.length} {t('ofWord')} {directCount} {t('flightsWord')}
                     </h3>
                     <SaveSearchButton
                       type="flight"
@@ -2668,10 +2610,16 @@ function FlightsContent() {
                   {visibleFlights.length === 0 ? (
                     <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
                       <span className="text-3xl mb-3 block">🔎</span>
-                      <p className="font-poppins font-bold text-[.95rem] text-[#1A1D2B] mb-2">{t('noFlightsFilters')}</p>
-                      <button onClick={clearAllFilters} className="text-[.78rem] text-[#0066FF] font-bold hover:underline">
-                        {t('clearAllFilters')}
-                      </button>
+                      {filtersActive ? (
+                        <>
+                          <p className="font-poppins font-bold text-[.95rem] text-[#1A1D2B] mb-2">{t('noFlightsFilters')}</p>
+                          <button onClick={clearAllFilters} className="text-[.78rem] text-[#0066FF] font-bold hover:underline">
+                            {t('clearAllFilters')}
+                          </button>
+                        </>
+                      ) : (
+                        <p className="font-poppins font-bold text-[.95rem] text-[#1A1D2B] mb-2">{t('noDirectFlights')}</p>
+                      )}
                     </div>
                   ) : (
                   <div className="space-y-3">
@@ -2784,7 +2732,7 @@ function FlightsContent() {
 
                       {/* Provider comparison buttons */}
                       <div className="border-t border-[#F1F3F7] px-5 py-3 bg-[#FAFBFD]">
-                        <div className="text-[.62rem] text-[#8E95A9] font-bold uppercase tracking-[1px] mb-2">Compare prices across providers</div>
+                        <div className="text-[.62rem] text-[#8E95A9] font-bold uppercase tracking-[1px] mb-2">{t('bookDirectHeader')}</div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
                           {isDuffel && f.offer_id ? (
                             <a href={`/checkout/${f.offer_id}`}

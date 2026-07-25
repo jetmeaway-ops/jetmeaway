@@ -1022,9 +1022,9 @@
     "stopsN": "{n} 次经停",
     "fromWord": "起价",
     "oneWayPp": "单程每人",
-    "loadingFares": "正在搜索 Aviasales...",
-    "loadingDirect": "正在检查 Trip.com...",
-    "loadingAirlines": "正在扫描 Expedia...",
+    "loadingFares": "正在查询实时票价...",
+    "loadingDirect": "正在查找可直接预订的航班...",
+    "loadingAirlines": "正在比较航空公司...",
     "loadingDates": "正在检查 Kiwi.com...",
     "loadingBest": "正在为您寻找最优惠的方案...",
     "buildingResultsFor": "正在生成结果",
@@ -1150,7 +1150,8 @@
         "body": "±3 天的时间窗口可能在每家供应商上显现出巨大的降价。"
       }
     },
-    "flightsWord": "航班"
+    "flightsWord": "航班",
+    "noDirectFlights": "该航线和日期暂无可直接预订的航班。请尝试临近日期或其他伦敦机场。"
   },
   "hotelDetail": {
     "score": {

@@ -1022,9 +1022,9 @@
     "stopsN": "{n} aktarma",
     "fromWord": "başlangıç",
     "oneWayPp": "tek yön kişi başı",
-    "loadingFares": "Aviasales aranıyor...",
-    "loadingDirect": "Trip.com kontrol ediliyor...",
-    "loadingAirlines": "Expedia taranıyor...",
+    "loadingFares": "Canlı fiyatlar kontrol ediliyor...",
+    "loadingDirect": "Doğrudan rezerve edilebilir uçuşlar aranıyor...",
+    "loadingAirlines": "Havayolları karşılaştırılıyor...",
     "loadingDates": "Kiwi.com kontrol ediliyor...",
     "loadingBest": "Sizin için en iyi fırsat bulunuyor...",
     "buildingResultsFor": "Şunun için sonuçlar oluşturuluyor:",
@@ -1150,7 +1150,8 @@
         "body": "±3 günlük bir aralık, her sağlayıcıda büyük fiyat düşüşlerini ortaya çıkarabilir."
       }
     },
-    "flightsWord": "uçuş"
+    "flightsWord": "uçuş",
+    "noDirectFlights": "Bu rota ve tarih için doğrudan rezerve edilebilir uçuş yok. Yakın tarihleri veya başka bir Londra havalimanını deneyin."
   },
   "hotelDetail": {
     "score": {
