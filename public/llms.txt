@@ -28,6 +28,7 @@ JetMeAway (jetmeaway.co.uk) is a UK-registered travel comparison site (Companies
 
 ## Optional
 
+- [Full article index](https://jetmeaway.co.uk/llms-full.txt): Complete list of all 500+ blog guides with one-line summaries, grouped by topic.
 - [Sitemap (XML)](https://jetmeaway.co.uk/sitemap.xml): All 100+ indexable URLs.
 - [Privacy policy](https://jetmeaway.co.uk/privacy)
 - [Terms](https://jetmeaway.co.uk/terms)
