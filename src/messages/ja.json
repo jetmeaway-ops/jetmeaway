@@ -1022,9 +1022,9 @@
     "stopsN": "{n}回乗り継ぎ",
     "fromWord": "〜から",
     "oneWayPp": "片道1名あたり",
-    "loadingFares": "Aviasalesを検索中...",
-    "loadingDirect": "Trip.comを確認中...",
-    "loadingAirlines": "Expediaをスキャン中...",
+    "loadingFares": "最新運賃を確認中...",
+    "loadingDirect": "直接予約可能なフライトを検索中...",
+    "loadingAirlines": "航空会社を比較中...",
     "loadingDates": "Kiwi.comを確認中...",
     "loadingBest": "最良のお得情報を検索中...",
     "buildingResultsFor": "結果を作成中：",
@@ -1150,7 +1150,8 @@
         "body": "±3日の期間で、各プロバイダーの大幅な値下がりが見つかることがあります。"
       }
     },
-    "flightsWord": "フライト"
+    "flightsWord": "フライト",
+    "noDirectFlights": "この路線・日付で直接予約可能なフライトはありません。近い日付や別のロンドンの空港をお試しください。"
   },
   "hotelDetail": {
     "score": {

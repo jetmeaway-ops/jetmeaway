@@ -1022,9 +1022,9 @@
     "stopsN": "{n} Zwischenstopps",
     "fromWord": "ab",
     "oneWayPp": "einfacher Flug p. P.",
-    "loadingFares": "Aviasales wird durchsucht...",
-    "loadingDirect": "Trip.com wird geprüft...",
-    "loadingAirlines": "Expedia wird durchsucht...",
+    "loadingFares": "Live-Preise werden geprüft...",
+    "loadingDirect": "Direkt buchbare Flüge werden gesucht...",
+    "loadingAirlines": "Airlines werden verglichen...",
     "loadingDates": "Kiwi.com wird geprüft...",
     "loadingBest": "Das beste Angebot wird für Sie gesucht...",
     "buildingResultsFor": "Ergebnisse werden erstellt für",
@@ -1150,7 +1150,8 @@
         "body": "Ein Zeitfenster von ±3 Tagen kann bei jedem Anbieter enorme Preissenkungen aufzeigen."
       }
     },
-    "flightsWord": "Flüge"
+    "flightsWord": "Flüge",
+    "noDirectFlights": "Keine direkt buchbaren Flüge für diese Strecke und dieses Datum. Versuchen Sie nahegelegene Daten oder einen anderen Londoner Flughafen."
   },
   "hotelDetail": {
     "score": {

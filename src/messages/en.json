@@ -1022,9 +1022,9 @@
     "stopsN": "{n} stops",
     "fromWord": "from",
     "oneWayPp": "one-way pp",
-    "loadingFares": "Searching Aviasales...",
-    "loadingDirect": "Checking Trip.com...",
-    "loadingAirlines": "Scanning Expedia...",
+    "loadingFares": "Checking live fares...",
+    "loadingDirect": "Finding direct-bookable flights...",
+    "loadingAirlines": "Comparing airlines...",
     "loadingDates": "Checking Kiwi.com...",
     "loadingBest": "Finding you the best deal...",
     "buildingResultsFor": "Building results for",
@@ -1150,7 +1150,8 @@
         "body": "A ±3 day window can reveal huge price drops on every provider."
       }
     },
-    "flightsWord": "flights"
+    "flightsWord": "flights",
+    "noDirectFlights": "No direct-bookable flights for this route and date. Try nearby dates or a different London airport."
   },
   "hotelDetail": {
     "score": {

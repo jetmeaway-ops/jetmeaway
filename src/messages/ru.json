@@ -1022,9 +1022,9 @@
     "stopsN": "{n, plural, one {# пересадка} few {# пересадки} many {# пересадок} other {# пересадок}}",
     "fromWord": "от",
     "oneWayPp": "в одну сторону с чел.",
-    "loadingFares": "Поиск в Aviasales...",
-    "loadingDirect": "Проверка Trip.com...",
-    "loadingAirlines": "Сканирование Expedia...",
+    "loadingFares": "Проверяем актуальные тарифы...",
+    "loadingDirect": "Ищем рейсы с прямым бронированием...",
+    "loadingAirlines": "Сравниваем авиакомпании...",
     "loadingDates": "Проверка Kiwi.com...",
     "loadingBest": "Ищем для вас лучшее предложение...",
     "buildingResultsFor": "Формируем результаты для",
@@ -1150,7 +1150,8 @@
         "body": "Окно ±3 дня может выявить огромное снижение цен у каждого поставщика."
       }
     },
-    "flightsWord": "рейсы"
+    "flightsWord": "рейсы",
+    "noDirectFlights": "Нет рейсов с прямым бронированием на эту дату и маршрут. Попробуйте соседние даты или другой аэропорт Лондона."
   },
   "hotelDetail": {
     "score": {
