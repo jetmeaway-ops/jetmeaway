@@ -168,6 +168,22 @@ export default function FlightCheckoutPage() {
   const trip = pending?.trip;
   const currency = trip?.currency || 'GBP';
 
+  // Back-link that RESTORES the search (route, dates, party, cabin) instead of
+  // dropping the customer on an empty /flights page.
+  const backUrl = (() => {
+    if (!trip) return '/flights';
+    const q = new URLSearchParams();
+    q.set('origin', trip.origin);
+    q.set('dest', trip.destination);
+    q.set('departure', trip.depDate);
+    if (trip.retDate) q.set('return', trip.retDate);
+    if (trip.adults) q.set('adults', String(trip.adults));
+    if (trip.children) q.set('children', String(trip.children));
+    if (trip.infants) q.set('infants', String(trip.infants));
+    if (trip.cabin && trip.cabin !== 'ECONOMY') q.set('cabin', trip.cabin.toLowerCase());
+    return `/flights?${q.toString()}`;
+  })();
+
   const fmtPrice = useCallback(
     (amount: number) => (currency === 'GBP' ? `£${amount.toFixed(2)}` : `${currency} ${amount.toFixed(2)}`),
     [currency],
@@ -416,7 +432,7 @@ export default function FlightCheckoutPage() {
       <main className="max-w-[720px] mx-auto px-5 py-16">
         <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
           <p className="font-poppins font-bold text-red-700">{loadError}</p>
-          <a href="/flights" className="inline-block mt-4 text-sm font-bold text-[#0066FF] underline">← {t('backToFlights')}</a>
+          <a href={backUrl} className="inline-block mt-4 text-sm font-bold text-[#0066FF] underline">← {t('backToFlights')}</a>
         </div>
       </main>
     );
@@ -439,7 +455,7 @@ export default function FlightCheckoutPage() {
 
   return (
     <main className="max-w-[860px] mx-auto px-4 sm:px-5 py-6 sm:py-10">
-      <a href="/flights" className="text-[.78rem] font-bold text-[#0066FF] hover:underline">← {t('backToSearch')}</a>
+      <a href={backUrl} className="text-[.78rem] font-bold text-[#0066FF] hover:underline">← {t('backToSearch')}</a>
       <h1 className="font-poppins font-black text-[1.4rem] sm:text-[1.8rem] text-[#1A1D2B] mt-3 mb-1">{t('confirmYourFlight')}</h1>
       <p className="text-[.82rem] text-[#5C6378] font-semibold mb-4">{t('refLabel')} <span className="font-mono">{pending.ref}</span></p>
 
@@ -647,7 +663,7 @@ export default function FlightCheckoutPage() {
                     </div>
                   </div>
                 )}
-                <a href="/flights" className="inline-block bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-black text-[.88rem] px-6 py-3.5 rounded-xl transition-all shadow-[0_4px_20px_rgba(0,102,255,0.3)]">
+                <a href={backUrl} className="inline-block bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-black text-[.88rem] px-6 py-3.5 rounded-xl transition-all shadow-[0_4px_20px_rgba(0,102,255,0.3)]">
                   {t('searchFreshFares')} →
                 </a>
               </div>
@@ -666,7 +682,7 @@ export default function FlightCheckoutPage() {
                 <p className="text-[.85rem] text-slate-600 font-medium leading-relaxed mb-4 max-w-sm mx-auto">
                   {t('soldOutBody')}
                 </p>
-                <a href="/flights" className="inline-block bg-[#0a1628] hover:bg-[#0066FF] text-white font-poppins font-bold text-[.85rem] rounded-full px-6 py-3 transition-colors shadow-[0_6px_18px_rgba(10,22,40,0.18)]">
+                <a href={backUrl} className="inline-block bg-[#0a1628] hover:bg-[#0066FF] text-white font-poppins font-bold text-[.85rem] rounded-full px-6 py-3 transition-colors shadow-[0_6px_18px_rgba(10,22,40,0.18)]">
                   {t('seeLiveFares')} →
                 </a>
               </div>
@@ -725,7 +741,7 @@ export default function FlightCheckoutPage() {
               </div>
               <p className="font-poppins font-bold text-red-700 mb-2">{stepError || t('somethingWentWrong')}</p>
               <p className="text-[.78rem] text-slate-500 mb-4 max-w-sm mx-auto">{t('cardNotCharged')}</p>
-              <a href="/flights" className="text-sm font-bold text-[#0066FF] underline">{t('backToSearch')}</a>
+              <a href={backUrl} className="text-sm font-bold text-[#0066FF] underline">{t('backToSearch')}</a>
             </div>
           )}
         </div>
