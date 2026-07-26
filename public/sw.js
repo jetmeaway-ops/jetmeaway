@@ -1,6 +1,6 @@
 // JetMeAway Service Worker — PWA + Push Notifications
 
-const CACHE_NAME = 'jetmeaway-v1';
+const CACHE_NAME = 'jetmeaway-v2';
 const OFFLINE_URL = '/';
 
 // Assets to pre-cache on install
@@ -19,6 +19,11 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
+// NOTE: we intentionally do NOT call self.clients.claim() on activate. Claiming
+// makes this SW seize control of the very first page load mid-session, which
+// disrupted first-visit navigations (dead taps for 15-20s). Without claim the
+// SW only controls from the next navigation onward, by which point it is warm.
+
 // Activate — clean old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
@@ -26,13 +31,21 @@ self.addEventListener('activate', (event) => {
       Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
     )
   );
-  self.clients.claim();
+  // Deliberately NOT calling self.clients.claim() — see install note above.
 });
 
-// Fetch — network-first, fall back to cache
+// Fetch — static assets only, network-first with cache fallback.
 self.addEventListener('fetch', (event) => {
   // Skip non-GET and API/analytics requests
   if (event.request.method !== 'GET') return;
+
+  // NEVER intercept page navigations. A SW-proxied navigation runs
+  // serially through SW cold-boot → fetch → network (navigation preload is
+  // off), which gated every tap on the SW and made first-visit navigations
+  // feel dead for 15-20s on mobile. Let the browser handle navigations
+  // directly — this is the fast path and cannot be slower than the network.
+  if (event.request.mode === 'navigate') return;
+
   const url = new URL(event.request.url);
   if (url.pathname.startsWith('/api/') || url.hostname !== self.location.hostname) return;
 
