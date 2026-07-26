@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import DemoClient from '../admin/kyte-ryanair-demo/DemoClient';
+import KyteCertConsole from './KyteCertConsole';
 
 // Node runtime — DemoClient drives the Kyte sandbox routes, which run on Node
 // (Fixie proxy). force-dynamic so the token is checked per request, never cached.
@@ -38,17 +38,16 @@ export default async function KyteCertPage({
   return (
     <main className="min-h-screen bg-[#F8FAFC] py-10 px-4">
       <div className="max-w-[1200px] mx-auto">
-        <h1 className="text-2xl font-bold text-[#1A1D2B]">
-          Kyte · Ryanair sandbox certification
-        </h1>
+        <h1 className="text-2xl font-bold text-[#1A1D2B]">Kyte · sandbox certification</h1>
         <p className="text-sm text-[#5C6378] mt-2">
-          Private certification harness for Kyte. Runs the full Ryanair sandbox OTA flow against the
-          Kyte sandbox via our API routes (search &rarr; book &rarr; ancillaries &rarr; commit), then
-          renders the official Ryanair flight-confirmation iframe. Uses the documented Ryanair sandbox
-          test card — no real payment is taken. This page is not linked anywhere and is not visible to
-          customers; the public flight search shows no Kyte results.
+          Private certification harness for Kyte. Pick a carrier and run its full sandbox lifecycle
+          against the Kyte sandbox via our API routes. Ryanair runs the OTA flow (search &rarr; book
+          &rarr; commit &rarr; official Ryanair confirmation iframe); every other carrier runs Shop
+          &rarr; OfferDetails &rarr; Book &rarr; Payment &rarr; Retrieve (PNR). Uses the documented
+          sandbox test card — no real payment is taken. This page is not linked anywhere and is not
+          visible to customers; the public flight search shows no Kyte results.
         </p>
-        <DemoClient certToken={token} />
+        <KyteCertConsole certToken={token} />
       </div>
     </main>
   );
