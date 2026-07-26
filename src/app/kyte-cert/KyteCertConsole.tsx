@@ -77,9 +77,16 @@ export default function KyteCertConsole({ certToken }: { certToken: string }) {
   );
 }
 
+function defaultDate() {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + 45);
+  return d.toISOString().slice(0, 10);
+}
+
 function StandardRunner({ carrier, certToken }: { carrier: Carrier; certToken: string }) {
   const [from, setFrom] = useState(carrier.from);
   const [to, setTo] = useState(carrier.to);
+  const [departure, setDeparture] = useState(defaultDate());
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<RunResult | null>(null);
 
@@ -90,7 +97,7 @@ function StandardRunner({ carrier, certToken }: { carrier: Carrier; certToken: s
       const res = await fetch('/api/flights/kyte/cert-run', {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-kyte-cert': certToken },
-        body: JSON.stringify({ carrier: carrier.code, from, to }),
+        body: JSON.stringify({ carrier: carrier.code, from, to, departure }),
       });
       const data = (await res.json()) as RunResult;
       setResult(res.ok ? data : { ...data, error: data.error || `HTTP ${res.status}` } as RunResult);
@@ -121,6 +128,13 @@ function StandardRunner({ carrier, certToken }: { carrier: Carrier; certToken: s
         <input value={from} onChange={(e) => setFrom(e.target.value)} className={inputCls} maxLength={3} aria-label="From" />
         <span className="text-[#8E95A9]">→</span>
         <input value={to} onChange={(e) => setTo(e.target.value)} className={inputCls} maxLength={3} aria-label="To" />
+        <input
+          type="date"
+          value={departure}
+          onChange={(e) => setDeparture(e.target.value)}
+          className="px-2 py-1.5 rounded-lg border border-[#E8ECF4] text-sm font-bold"
+          aria-label="Departure date"
+        />
         <button
           onClick={run}
           disabled={running}
