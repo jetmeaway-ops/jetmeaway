@@ -27,7 +27,11 @@ const FORM_DEFAULTS = {
   market: 'gb/en',
 };
 
-export default function DemoClient() {
+export default function DemoClient({ certToken }: { certToken?: string }) {
+  // Kyte API calls carry the cert token (when present) so the private
+  // /kyte-cert page unlocks real sandbox offers. The admin page passes it too.
+  const postKyte = (url: string, body: unknown) => postJson(url, body, certToken);
+
   const [from, setFrom] = useState(FORM_DEFAULTS.from);
   const [to, setTo] = useState(FORM_DEFAULTS.to);
   const [market, setMarket] = useState(FORM_DEFAULTS.market);
@@ -59,7 +63,7 @@ export default function DemoClient() {
       })();
       pushLog('info', `Step 1/3: /api/flights/kyte/search (FR ${from}-${to} ${departureDate})`);
 
-      const search = await postJson('/api/flights/kyte/search', {
+      const search = await postKyte('/api/flights/kyte/search', {
         origin: from,
         destination: to,
         departure: departureDate,
@@ -76,7 +80,7 @@ export default function DemoClient() {
       pushLog('ok', `Got ${offerIds.length} offer(s). Using tx=${transactionId.slice(0, 8)}…`);
 
       pushLog('info', 'Step 2/3: /api/flights/kyte/book (with traveller address)');
-      const book = await postJson('/api/flights/kyte/book', {
+      const book = await postKyte('/api/flights/kyte/book', {
         transactionId,
         offerId,
         passengers: [
@@ -125,7 +129,7 @@ export default function DemoClient() {
         'info',
         'Step 3/3: /api/flights/kyte/commit (will return x-session-token for the iframe)',
       );
-      const commit = await postJson('/api/flights/kyte/commit', {
+      const commit = await postKyte('/api/flights/kyte/commit', {
         transactionId: booked.transactionId,
         bookingId: booked.bookingId,
       });
@@ -273,10 +277,17 @@ export default function DemoClient() {
   );
 }
 
-async function postJson(url: string, body: unknown): Promise<Record<string, unknown>> {
+async function postJson(
+  url: string,
+  body: unknown,
+  certToken?: string,
+): Promise<Record<string, unknown>> {
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: {
+      'content-type': 'application/json',
+      ...(certToken ? { 'x-kyte-cert': certToken } : {}),
+    },
     body: JSON.stringify(body),
   });
   const text = await res.text();

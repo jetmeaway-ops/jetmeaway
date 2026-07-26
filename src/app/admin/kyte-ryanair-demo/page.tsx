@@ -11,6 +11,10 @@ export default async function KyteRyanairDemoPage() {
   const secret = process.env.ADMIN_SECRET || '';
   if (!secret || token !== secret) redirect('/admin/login');
 
+  // Pass the cert token so this admin demo unlocks Kyte sandbox offers via the
+  // same x-kyte-cert path as /kyte-cert (no need to flip the global KYTE_ENABLED).
+  const certToken = process.env.KYTE_DEMO_TOKEN || '';
+
   return (
     <main className="min-h-screen bg-[#F8FAFC] py-10 px-4">
       <div className="max-w-[1200px] mx-auto">
@@ -21,7 +25,7 @@ export default async function KyteRyanairDemoPage() {
           flight-confirmation iframe. Test card used by the smoke is the documented Ryanair
           sandbox PAN. Each run lands a sandbox booking in <code>/admin/bookings</code>.
         </p>
-        <DemoClient />
+        <DemoClient certToken={certToken} />
       </div>
     </main>
   );
