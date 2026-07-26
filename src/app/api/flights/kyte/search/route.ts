@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { kyteCertAllowed } from '@/lib/kyte-access';
 import {
   shopFlights,
   newKyteContext,
@@ -40,14 +41,12 @@ import {
 export const runtime = 'nodejs';
 export const maxDuration = 30;
 
-// ── Kyte kill-switch ───────────────────────────────────────────────────────
-// Kyte is OFF until the LIVE API key lands. The sandbox key only covers a
-// handful of fixed routes, so real users mostly get empty/broken Kyte rows —
-// better to show none and let Duffel + Travelpayouts carry the search. The
-// integration is left fully intact; this just stops it being surfaced.
-// Re-enable by setting env KYTE_ENABLED=true (alongside the live KYTE_API_KEY).
-// (Disabled 2026-05-20 — awaiting Kyte live key.)
-const KYTE_ENABLED = process.env.KYTE_ENABLED === 'true';
+// ── Kyte access gate ─────────────────────────────────────────────────────────
+// Kyte is OFF for customers until the LIVE key lands (the sandbox key covers
+// only a handful of fixed routes). The public /flights search carries no cert
+// token, so it gets an empty offer set and falls back to Duffel + Travelpayouts.
+// Only requests from the private /kyte-cert page (carrying the x-kyte-cert token)
+// — or a global KYTE_ENABLED=true — get real sandbox offers. See @/lib/kyte-access.
 
 type Body = {
   origin?: string;
@@ -63,10 +62,10 @@ type Body = {
 };
 
 export async function POST(req: NextRequest) {
-  // Disabled until the Kyte live key lands. Return an empty offer set so the
+  // No cert token (and not globally enabled) → empty offer set, so the public
   // client shows no Kyte rows and the search falls back to Duffel +
-  // Travelpayouts. Flip KYTE_ENABLED above to re-enable.
-  if (!KYTE_ENABLED) {
+  // Travelpayouts. The /kyte-cert page sends the token and gets real offers.
+  if (!kyteCertAllowed(req)) {
     return NextResponse.json({ transactionId: null, offerCount: 0, offers: {} });
   }
 
