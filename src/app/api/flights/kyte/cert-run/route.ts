@@ -209,13 +209,23 @@ export async function POST(req: NextRequest) {
       ctx,
     ),
   );
+  let retrieveKeys: string[] = [];
   if (ret && typeof ret === 'object') {
     const r = ret as Record<string, unknown>;
+    retrieveKeys = Object.keys(r).slice(0, 20);
+    const rec = (Array.isArray(r.records) ? r.records[0] : undefined) as
+      | Record<string, unknown>
+      | undefined;
     pnr = String(
       r.pnr ??
         r.PNR ??
+        r.bookingReference ??
+        r.recordLocator ??
         (r.booking as Record<string, unknown>)?.pnr ??
         (r.reservation as Record<string, unknown>)?.pnr ??
+        rec?.pnr ??
+        rec?.PNR ??
+        rec?.recordLocator ??
         '',
     );
   }
@@ -229,6 +239,9 @@ export async function POST(req: NextRequest) {
     bookingRef: bookingId ? `${bookingId.slice(0, 20)}…` : null,
     pnr: pnr || null,
     paymentStatus: payStatus || null,
+    // Diagnostic: when no PNR was found, the retrieve response's top-level keys
+    // help locate where the carrier put it (harmless; ids/keys only, no PII).
+    retrieveKeys: pnr ? undefined : retrieveKeys,
     steps,
   });
 }
