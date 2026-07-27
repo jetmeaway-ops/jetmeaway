@@ -3464,6 +3464,13 @@ function HotelsContent() {
                     <option value={0}>{t('allOption')}</option>
                   </select>
                 </div>
+
+                {loadingMore && (
+                  <div className="flex items-center gap-2 text-[.72rem] font-bold text-[#5C6378]" aria-live="polite">
+                    <span className="inline-block w-3.5 h-3.5 border-2 border-[#E8ECF4] border-t-[#0066FF] rounded-full animate-spin" />
+                    {t('loadingMoreHotels')}
+                  </div>
+                )}
               </div>
             </section>
           )}
