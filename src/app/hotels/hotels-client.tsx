@@ -2194,7 +2194,12 @@ function HotelsContent() {
   // `uk.trip.com/hotels/list?city=<id>` auto-loads results instead of
   // requiring the user to click Search.
   const [tripCityId, setTripCityId] = useState<number | null>(null);
-  const [sortBy, setSortBy] = useState<SortBy>('recommended');
+  // Default to cheapest-first (owner product decision 2026-07-26: "show them
+  // the cheapest option to highest"). 'Recommended' stays available in the
+  // dropdown. Landmark searches no longer auto-switch to Distance (that effect
+  // only fired from 'recommended'); they now also show cheapest-first by
+  // default, which the user can override via the Sort dropdown.
+  const [sortBy, setSortBy] = useState<SortBy>('price-asc');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [priceView, setPriceView] = useState<'total' | 'perPerson'>('total');
   // Pagination — `pageSize` 0 means "All". Default 20 strikes a balance
