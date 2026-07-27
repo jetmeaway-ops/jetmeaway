@@ -10,6 +10,7 @@
     "blog:countries": "node scripts/gen-blog-countries.mjs",
     "blog:verify-related": "node scripts/verify-related-posts.mjs",
     "blog:llms-full": "node scripts/gen-llms-full.mjs",
+    "blog:seo-titles": "node scripts/gen-seo-titles.mjs",
     "monkey:search": "node scripts/monkey-search.mjs",
     "monkey:landmarks": "node scripts/monkey-landmark.mjs",
     "monkey:audit": "node scripts/monkey-audit.mjs",
