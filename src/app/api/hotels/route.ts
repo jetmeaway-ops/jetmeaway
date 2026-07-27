@@ -1832,8 +1832,11 @@ export async function GET(req: NextRequest) {
   const totalGuests = adultsNum + childrenNum;
   const skipCache = totalGuests > 4;
 
-  // Check KV cache (bypassed for large groups)
-  if (!skipCache) {
+  // Check KV cache (bypassed for large groups). Skip for page>=1 requests —
+  // this cache holds the page-0 payload under kvKey, so a paginated request
+  // must NOT return it (the paginated branch below has its own per-page cache).
+  const isPagedRequest = Math.floor(Number(searchParams.get('page')) || 0) >= 1;
+  if (!skipCache && !isPagedRequest) {
     try {
       const cached = await kv.get<any>(kvKey);
       if (cached) return NextResponse.json({ ...cached, cached: true });
