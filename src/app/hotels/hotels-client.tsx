@@ -2183,6 +2183,11 @@ function HotelsContent() {
 
   const [loading, setLoading] = useState(false);
   const [hotels, setHotels] = useState<HotelResult[] | null>(null);
+  // Progressive-load: bumped each search so a stale page loop from a previous
+  // search can't append into the current results. `loadingMore` drives the
+  // "loading more hotels…" hint while pages 1..N stream in.
+  const loadMoreSeqRef = useRef(0);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [apiError, setApiError] = useState('');
   // Inline form-validation message rendered under the Search button —
   // replaces the old blocking alert() dialogs (2026-07-02).
@@ -2492,6 +2497,8 @@ function HotelsContent() {
     }
 
     setHotels(null);
+    loadMoreSeqRef.current++; // cancel any in-flight progressive page loop
+    setLoadingMore(false);
     setApiError('');
     setLoading(true);
     setSearched(true);
@@ -2616,6 +2623,7 @@ function HotelsContent() {
       const occEncoded = encodeOccupancy(roomsArr);
       if (occEncoded) params.set('occ', occEncoded);
 
+      const mySeq = ++loadMoreSeqRef.current;
       const res = await fetch(`/api/hotels?${params}`);
       const data = await res.json();
 
@@ -2627,6 +2635,35 @@ function HotelsContent() {
 
       setHotels(data.hotels || []);
       setLoading(false);
+
+      // Progressive coverage: page 0 (above) is only the first ~500 hotels in
+      // LiteAPI's default order; the genuinely cheapest family-room properties
+      // sit deeper in the list. Pull pages 1..N in the background and append —
+      // the sort memo re-orders live, so the true cheapest surfaces as they
+      // arrive. Guarded by mySeq so a new search cancels this loop.
+      if (data.hasMore !== false && data.cached !== true) {
+        (async () => {
+          setLoadingMore(true);
+          const seen = new Set<string | number>((data.hotels || []).map((h: HotelResult) => h.id));
+          for (let pg = 1; pg <= 6; pg++) {
+            if (loadMoreSeqRef.current !== mySeq) return; // superseded by a newer search
+            try {
+              const pParams = new URLSearchParams(params.toString());
+              pParams.set('page', String(pg));
+              const pr = await fetch(`/api/hotels?${pParams}`);
+              const pd = await pr.json();
+              if (loadMoreSeqRef.current !== mySeq) return;
+              const fresh = (Array.isArray(pd.hotels) ? pd.hotels : []).filter(
+                (h: HotelResult) => h.id != null && !seen.has(h.id),
+              );
+              fresh.forEach((h: HotelResult) => seen.add(h.id));
+              if (fresh.length) setHotels((prev) => [...(prev || []), ...fresh]);
+              if (!pd.hasMore) break;
+            } catch { break; }
+          }
+          if (loadMoreSeqRef.current === mySeq) setLoadingMore(false);
+        })();
+      }
 
       // Fire-and-forget: load the D−3…D+3 check-in strip. Hotellook-only
       // (free, cached) so this never multiplies LiteAPI cost per visit.
