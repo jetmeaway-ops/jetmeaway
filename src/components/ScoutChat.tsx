@@ -7,8 +7,34 @@ type Msg = { role: 'user' | 'assistant'; content: string };
 const GREETING: Msg = {
   role: 'assistant',
   content:
-    "Hi, I'm JetMeAway Scout 👋 Ask me anything about travel — destinations, packing, weather, visas, culture. For prices, head to our search pages.",
+    "Hi, I'm JetMeAway Scout 👋 Ask me anything about travel — destinations, packing, weather, visas, culture. I can also find you live hotel prices — try \"cheapest hotel in Rome\".",
 };
+
+/* Scout replies can contain internal links (e.g. /hotels?city=Rome&checkin=…)
+   now that the API answers price questions from our own inventory. Render
+   ONLY internal absolute paths as real links — anything else stays inert
+   text (the API already filters external sites; this keeps the UI side just
+   as strict). Long query-string links get a friendly label. */
+const INTERNAL_LINK_SPLIT =
+  /(\/(?:hotels|flights|packages|cars|esim|insurance|explore)(?:\?[^\s)]*)?)/g;
+const INTERNAL_LINK_TEST =
+  /^\/(?:hotels|flights|packages|cars|esim|insurance|explore)(?:\?|$)/;
+
+function renderScoutText(text: string) {
+  return text.split(INTERNAL_LINK_SPLIT).map((part, i) =>
+    INTERNAL_LINK_TEST.test(part) ? (
+      <a
+        key={i}
+        href={part}
+        className="text-[#0066FF] font-bold underline underline-offset-2 break-all"
+      >
+        {part.includes('?') ? 'See live results →' : part}
+      </a>
+    ) : (
+      <span key={i}>{part}</span>
+    ),
+  );
+}
 
 // Default position of the Scout button. Anchored from the bottom-left so
 // it stays clear of the mobile sticky category bar and bottom CTAs.
@@ -273,7 +299,7 @@ export default function ScoutChat() {
                       : 'bg-white text-[#1A1D2B] border border-[#E8ECF4] rounded-bl-sm'
                   }`}
                 >
-                  {m.content}
+                  {m.role === 'assistant' ? renderScoutText(m.content) : m.content}
                 </div>
               </div>
             ))}
