@@ -709,6 +709,11 @@ async function fetchLiteApiHotels(
   // this flag so the 2026-04-27 fix that skips placeId for those stays
   // intact.
   searchType?: 'landmark',
+  // Pagination: page 0 = existing behaviour (primary + budget + landmark
+  // tiers). page >= 1 = a LEAN single primary fetch at offset = page ×
+  // primaryLimit, used by the client to progressively pull the FULL city
+  // inventory (the cheapest family-room properties sit past position 500).
+  page: number = 0,
 ): Promise<HotelOffer[]> {
   if (!process.env.LITE_API_KEY) {
     console.warn('[liteapi] LITE_API_KEY not set — skipping hotel search');
@@ -845,6 +850,12 @@ async function fetchLiteApiHotels(
       safeRooms === 3 ? 80 :
       60;
     const budgetLimit = safeRooms >= 3 ? 0 : Math.min(50, Math.floor(primaryLimit / 4));
+    // Pagination: page N pulls the primary slice at this offset. pageSize ==
+    // primaryLimit so pages tile the list without gaps/overlap. On pages >= 1
+    // we run ONLY the primary tier (budget/landmark/fallback are page-0
+    // enrichments) to keep each request cheap and under the 30s ceiling.
+    const pageOffset = Math.max(0, page) * primaryLimit;
+    const isFirstPage = page <= 0;
 
     const fetchTimeout = new Promise<HotelOffer[]>((_, reject) =>
       setTimeout(() => reject(new Error('LiteAPI timeout')), timeoutMs),
@@ -874,11 +885,12 @@ async function fetchLiteApiHotels(
           currency: 'GBP',
           guestNationality: 'GB',
           limit: primaryLimit,
+          offset: pageOffset,
         }),
         fetchTimeout,
       ]).catch((err: unknown) => {
         const message = err instanceof Error ? err.message : String(err);
-        console.warn(`[liteapi:primary] ${cityName} failed:`, message);
+        console.warn(`[liteapi:primary] ${cityName} p${page} failed:`, message);
         return [] as HotelOffer[];
       }),
       // Budget tier — skipped when budgetLimit === 0 (multi-room queries)
@@ -887,7 +899,7 @@ async function fetchLiteApiHotels(
       // inventory (London 1 room timed out at 12s on Vercel). The placeId
       // tier typically returns varied star levels anyway so budget coverage
       // is preserved by the merge.
-      budgetLimit === 0 || useLandmarkPlaceId
+      budgetLimit === 0 || useLandmarkPlaceId || !isFirstPage
         ? Promise.resolve([] as HotelOffer[])
         : Promise.race([
             liteapiGetHotels({
@@ -918,7 +930,7 @@ async function fetchLiteApiHotels(
       // for the densest spots). 500 here compounded with primary=500 and
       // tipped big-inventory cities (NYC, Dubai, Tokyo) over the rates-
       // compute budget at 5 concurrent monkey hits → 500 timeouts.
-      useLandmarkPlaceId
+      useLandmarkPlaceId && isFirstPage
         ? Promise.race([
             liteapiGetHotels({
               destinationId: placeId,
@@ -965,7 +977,7 @@ async function fetchLiteApiHotels(
     // floored so it can never be near-zero and capped via FETCH_HARD_CAP_MS
     // so the two phases together stay well under Vercel's 30s function
     // ceiling.
-    if (merged.length === 0 && centroid && resolvedCity && resolvedCountry) {
+    if (merged.length === 0 && isFirstPage && centroid && resolvedCity && resolvedCountry) {
       const fallbackBudgetMs = Math.max(4000, FETCH_HARD_CAP_MS - (Date.now() - t0));
       const fallbackTimeout = new Promise<HotelOffer[]>((_, reject) =>
         setTimeout(() => reject(new Error('LiteAPI cityName-fallback timeout')), fallbackBudgetMs),
@@ -1820,8 +1832,11 @@ export async function GET(req: NextRequest) {
   const totalGuests = adultsNum + childrenNum;
   const skipCache = totalGuests > 4;
 
-  // Check KV cache (bypassed for large groups)
-  if (!skipCache) {
+  // Check KV cache (bypassed for large groups). Skip for page>=1 requests —
+  // this cache holds the page-0 payload under kvKey, so a paginated request
+  // must NOT return it (the paginated branch below has its own per-page cache).
+  const isPagedRequest = Math.floor(Number(searchParams.get('page')) || 0) >= 1;
+  if (!skipCache && !isPagedRequest) {
     try {
       const cached = await kv.get<any>(kvKey);
       if (cached) return NextResponse.json({ ...cached, cached: true });
@@ -1950,6 +1965,39 @@ export async function GET(req: NextRequest) {
   // Canyon ran out of budget before the gateway city answered. Give landmark
   // searches 18s; everything else keeps the proven 12s.
   const liteApiTimeoutMs = searchType === 'landmark' ? 18000 : 12000;
+
+  // ── Progressive pagination (page >= 1) ──────────────────────────────────────
+  // The cheapest family-room properties (e.g. Rome's White Vatican quintuple at
+  // £85) sit past position 500 in LiteAPI's default order, so page 0 alone can
+  // never surface them. The client loads page 0 (full behaviour below), then
+  // fetches page=1,2,3… here and appends — a LEAN single primary fetch at
+  // offset = page × pageSize, so the WHOLE city gets priced without any one
+  // request breaching Vercel's 30s ceiling. Each page is bounded and cached.
+  const pageParam = Math.max(0, Math.floor(Number(searchParams.get('page')) || 0));
+  if (pageParam >= 1) {
+    const MAX_PAGES = 6; // scan depth cap — pricing all ~19k Rome hotels is infeasible
+    const capped = Math.min(pageParam, MAX_PAGES);
+    const pageKvKey = `${kvKey}:p${capped}`;
+    try {
+      const cachedPage = await kv.get<object>(pageKvKey);
+      if (cachedPage) return NextResponse.json({ ...cachedPage, cached: true });
+    } catch { /* KV read best-effort */ }
+    const pageOffers = await fetchLiteApiHotels(
+      cityKey, checkin, checkout, adultsNum, childrenNum, roomsNum, childAges,
+      liteApiTimeoutMs, placeId || undefined, liteApiCentroid, roomsArr, searchType, capped,
+    );
+    // Match page-0's star filter so a "4★+" search stays consistent across pages.
+    const pageHotels = normaliseLiteApi(pageOffers).filter((h) => (h.stars ?? 0) >= minStars);
+    const out = {
+      hotels: pageHotels,
+      page: capped,
+      hasMore: pageHotels.length > 0 && capped < MAX_PAGES,
+      city, checkin, checkout, adults: adultsNum, children: childrenNum, rooms: roomsNum,
+    };
+    if (pageHotels.length > 0) await safeKvSet(pageKvKey, out);
+    return NextResponse.json(out);
+  }
+
   const liteApiPromise = fetchLiteApiHotels(cityKey, checkin, checkout, adultsNum, childrenNum, roomsNum, childAges, liteApiTimeoutMs, placeId || undefined, liteApiCentroid, roomsArr, searchType);
   const rateHawkPromise = fetchRateHawkHotels(cityKey, checkin, checkout, adultsNum, roomsNum);
   // Absolute-origin proxy to the nodejs DOTW sub-route — Vercel requires

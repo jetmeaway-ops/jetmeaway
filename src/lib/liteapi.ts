@@ -440,6 +440,15 @@ export interface GetHotelsParams {
   guestNationality?: string; // default GB (ISO-3166 alpha-2)
   limit?: number;           // max hotels to fetch rates for (default 25)
   /**
+   * Pagination offset into the /data/hotels list (default 0). Lets the
+   * caller page BEYOND the first `limit` hotels — the cheapest family-room
+   * properties for big cities (e.g. Rome's White Vatican quintuple at £85)
+   * sit well past position 500 in LiteAPI's default order, so a single
+   * capped fetch can never reach them. The route pages through with
+   * offset = page × limit and prices each page (2026-07-27).
+   */
+  offset?: number;
+  /**
    * Optional star-rating filter applied at the /data/hotels list call
    * (e.g. [1, 2, 3] for budget tier). LiteAPI's default response order
    * for big cities (Paris/London/NYC) skews heavily toward 4-star
@@ -584,6 +593,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     currency = 'GBP',
     guestNationality = 'GB',
     limit = 25,
+    offset = 0,
     starRatings,
   } = params;
 
@@ -641,6 +651,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     // priority order — lat/lng takes precedence when both are set because
     // it's strictly more accurate for small-town searches).
     const listQuery = new URLSearchParams({ limit: String(limit) });
+    if (offset > 0) listQuery.set('offset', String(offset));
     if (destinationId) {
       listQuery.set('placeId', destinationId);
     } else if (hasLatLng) {
