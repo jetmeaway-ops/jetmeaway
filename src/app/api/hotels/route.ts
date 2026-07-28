@@ -1877,6 +1877,10 @@ export async function GET(req: NextRequest) {
       bookable: true,
       offerId: o.offerId,
       rank: i,
+      // Phase-2 sidebar facets
+      hotelTypeId: o.hotelTypeId ?? null,
+      chain: o.chain ?? null,
+      facilityIds: o.facilityIds ?? undefined,
       // v3.0: negotiated vs market rates
       negotiatedPrice: o.negotiatedPrice ?? null,
       negotiatedPerNight: o.negotiatedPerNight ?? null,
