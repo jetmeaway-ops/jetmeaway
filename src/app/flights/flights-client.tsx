@@ -1457,13 +1457,13 @@ function FlightsContent() {
   // Phase 2: Duffel à-la-carte checked-bag price, lazily fetched per offer on
   // tap (available_services only exists on the Get-Offer endpoint, never on the
   // search list). offerId → { status, serviceId, priceDisplay, weight }.
-  const [duffelBag, setDuffelBag] = useState<Record<string, { status: 'loading' | 'none' | 'ready'; serviceId?: string; priceDisplay?: string; weight?: number | null }>>({});
+  const [duffelBag, setDuffelBag] = useState<Record<string, { status: 'loading' | 'none' | 'ready'; serviceId?: string; priceDisplay?: string; weight?: string | null }>>({});
   const loadDuffelBag = useCallback(async (offerId: string) => {
     setDuffelBag((p) => ({ ...p, [offerId]: { status: 'loading' } }));
     try {
       const r = await fetch(`/api/offers/${offerId}`);
       const j = await r.json();
-      const bags: Array<{ id: string; kind?: string; priceDisplay?: string; weight?: number | null }> =
+      const bags: Array<{ id: string; kind?: string; priceDisplay?: string; weight?: string | null }> =
         j?.offer?.availableServices?.baggage || [];
       const checked = bags
         .filter((b) => b.kind === 'checked')
@@ -2840,7 +2840,7 @@ function FlightsContent() {
                             }
                             return (
                               <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700">
-                                🧳 {t('bagAddPrice', { price: bag.priceDisplay || '' })}{bag.weight ? ` · ${bag.weight}kg` : ''}
+                                🧳 {t('bagAddPrice', { price: bag.priceDisplay || '' })}{bag.weight ? ` · ${bag.weight}` : ''}
                               </span>
                             );
                           })()}
