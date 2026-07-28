@@ -1505,12 +1505,19 @@ function FlightsContent() {
   // URL param initialisation
   const [initOrigin, setInitOrigin] = useState('');
   const [initDest, setInitDest] = useState('');
+  // Kyte certification view: when the URL carries ?kyte_cert=<token> the page
+  // forwards it to the Kyte search (unlocking sandbox offers) AND shows ONLY
+  // Kyte rows — a private, carrier-specific link we hand to Kyte for cert.
+  // No token → no Kyte rows for anyone, results are the normal provider mix.
+  const [kyteCert, setKyteCert] = useState('');
 
   const resultsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     const o = p.get('origin') || p.get('from') || '';
+    const kc = p.get('kyte_cert') || '';
+    if (kc) setKyteCert(kc);
     const d = p.get('dest') || p.get('to') || '';
     const destCityParam = p.get('destCity') || '';
     const dep = p.get('departure') || '';
@@ -1770,10 +1777,14 @@ function FlightsContent() {
       }
     }
 
+    // Cert view: forward the URL token so the Kyte search unlocks sandbox
+    // offers (server checks the x-kyte-cert header). Read from the URL at call
+    // time so it never depends on state-update timing.
+    const kyteCertToken = new URLSearchParams(window.location.search).get('kyte_cert') || '';
     const kytePromise = Promise.all(kyteOdPairs.map(({ origin, destination }) =>
       fetch('/api/flights/kyte/search', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(kyteCertToken ? { 'x-kyte-cert': kyteCertToken } : {}) },
         body: JSON.stringify({
           origin,
           destination,
@@ -2196,6 +2207,10 @@ function FlightsContent() {
     // (Aviasales/Trip.com/Expedia) are dropped — we sell our own checkout.
     let list = flights.filter(isDirectBookable);
 
+    // Kyte certification view — show ONLY Kyte-sourced rows so the cert link
+    // we send Kyte is a clean, carrier-specific view of their inventory.
+    if (kyteCert) list = list.filter(f => f.source === 'kyte');
+
     // Stops
     if (stopsFilter === 'direct') list = list.filter(f => f.transfers === 0);
     else if (stopsFilter === 'max1') list = list.filter(f => f.transfers <= 1);
@@ -2247,7 +2262,7 @@ function FlightsContent() {
     };
 
     return list.sort(cmp);
-  }, [flights, sortBy, stopsFilter, selectedAirlines, flightNumFilter, takeoffMin, takeoffMax, landingMin, landingMax]);
+  }, [flights, sortBy, stopsFilter, selectedAirlines, flightNumFilter, takeoffMin, takeoffMax, landingMin, landingMax, kyteCert]);
 
   // Auto-load Duffel checked-bag prices for the visible cards that have no
   // included checked bag, so the "add a bag" option appears WITHOUT a manual
@@ -2456,6 +2471,17 @@ function FlightsContent() {
       {/* ── Results ── */}
       {searched && !loading && flights !== null && (
         <div ref={resultsRef}>
+          {/* Kyte certification banner — only in the token-gated cert view */}
+          {kyteCert && (
+            <section className="max-w-[1000px] mx-auto px-5 pt-6">
+              <div className="flex items-center gap-3 bg-indigo-50 border border-indigo-200 rounded-2xl px-5 py-3">
+                <span className="text-lg" aria-hidden>🎟️</span>
+                <span className="font-poppins font-semibold text-[.85rem] text-[#1A1D2B]">
+                  Kyte sandbox — certification view. Showing Kyte carriers only. Change the route or date above to try each carrier; select a fare to see branded fares, ancillaries, and the full booking flow.
+                </span>
+              </div>
+            </section>
+          )}
           {/* Scout live-poll chip: rendered while the v1 GDS poll is
               active so the user sees progress instead of a silent wait. */}
           {scoutActive && (
