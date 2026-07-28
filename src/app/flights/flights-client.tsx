@@ -1477,6 +1477,14 @@ function FlightsContent() {
       setDuffelBag((p) => ({ ...p, [offerId]: { status: 'none' } }));
     }
   }, []);
+  // Whether the customer added the checked bag on a Duffel card (offerId → bool).
+  const [duffelBagAdded, setDuffelBagAdded] = useState<Record<string, boolean>>({});
+  // Numeric price of a ready Duffel checked-bag (per booking), for the maths.
+  const duffelBagAmount = (offerId?: string | null): number => {
+    if (!offerId) return 0;
+    const b = duffelBag[offerId];
+    return b?.status === 'ready' ? parseFloat((b.priceDisplay || '0').replace(/[^0-9.]/g, '')) || 0 : 0;
+  };
 
   // URL param initialisation
   const [initOrigin, setInitOrigin] = useState('');
@@ -2225,6 +2233,18 @@ function FlightsContent() {
     return list.sort(cmp);
   }, [flights, sortBy, stopsFilter, selectedAirlines, flightNumFilter, takeoffMin, takeoffMax, landingMin, landingMax]);
 
+  // Auto-load Duffel checked-bag prices for the visible cards that have no
+  // included checked bag, so the "add a bag" option appears WITHOUT a manual
+  // click (mirrors the LiteAPI fare selector). available_services only lives on
+  // Get-Offer, so this is one fetch per such card — capped to keep it bounded.
+  useEffect(() => {
+    const targets = visibleFlights
+      .filter((f) => f.source === 'duffel' && f.offer_id && f.baggage && f.baggage.checked === false && !duffelBag[f.offer_id])
+      .slice(0, 30);
+    for (const f of targets) loadDuffelBag(f.offer_id!);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleFlights]);
+
   const directCount = flights ? flights.filter(isDirectBookable).length : 0;
 
   const filtersActive =
@@ -2711,9 +2731,20 @@ function FlightsContent() {
                   const fareOpts = isLiteapi && f.fareOptions && f.fareOptions.length > 1 ? f.fareOptions : null;
                   const activeFareId = fareOpts ? (selectedFare[f.offer_id || ''] || f.offer_id || '') : (f.offer_id || '');
                   const activeFare = fareOpts ? fareOpts.find((o) => o.offerId === activeFareId) ?? null : null;
-                  const displayPrice = activeFare ? activeFare.pricePerPax : f.price;
                   const displayBaggage = activeFare ? activeFare.baggage : f.baggage;
                   const bookOfferId = activeFare ? activeFare.offerId : f.offer_id;
+
+                  // Phase 2: Duffel checked-bag add-on selection. When the bag is
+                  // added the displayed price rises by the (per-person) bag cost
+                  // and the checkout link carries the service — same feel as the
+                  // LiteAPI fare selector (options shown, price updates, adds to
+                  // basket). Only for Duffel rows with a ready bag price.
+                  const duffelBagState = isDuffel && f.offer_id ? duffelBag[f.offer_id] : undefined;
+                  const duffelBagReady = duffelBagState?.status === 'ready';
+                  const bagAdded = isDuffel && f.offer_id ? !!duffelBagAdded[f.offer_id] : false;
+                  const paxTotal = Math.max(1, adults + children + infants);
+                  const bagPerPax = bagAdded && duffelBagReady ? Math.round((duffelBagAmount(f.offer_id) / paxTotal) * 100) / 100 : 0;
+                  const displayPrice = (activeFare ? activeFare.pricePerPax : f.price) + bagPerPax;
 
                   return (
                     <div key={i} className={`bg-white border rounded-2xl overflow-hidden transition-shadow hover:shadow-md ${isCheapest ? 'border-green-200 ring-1 ring-green-100' : 'border-[#E8ECF4]'}`}>
@@ -2822,28 +2853,34 @@ function FlightsContent() {
                           {!fareOpts && f.fareFamily && (
                             <span className="text-[#8E95A9] font-semibold">· {f.fareFamily}</span>
                           )}
-                          {/* Phase 2: Duffel à-la-carte checked bag — lazy price on tap */}
-                          {isDuffel && !displayBaggage.checked && f.offer_id && (() => {
-                            const bag = duffelBag[f.offer_id];
-                            if (!bag || bag.status === 'none') {
-                              return (
-                                <button
-                                  onClick={() => loadDuffelBag(f.offer_id!)}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-[#0066FF] text-[#0066FF] hover:bg-[#F1F5FF]"
-                                >
-                                  ＋ {t('bagAddChecked')}
-                                </button>
-                              );
-                            }
-                            if (bag.status === 'loading') {
-                              return <span className="inline-flex items-center gap-1 px-2 py-1 text-[#8E95A9]">{t('bagChecking')}</span>;
-                            }
-                            return (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700">
-                                🧳 {t('bagAddPrice', { price: bag.priceDisplay || '' })}{bag.weight ? ` · ${bag.weight}` : ''}
-                              </span>
-                            );
-                          })()}
+                          {isDuffel && !displayBaggage.checked && duffelBagState?.status === 'loading' && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 text-[#8E95A9]">{t('bagChecking')}</span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Phase 2: Duffel checked-bag selector — options shown
+                          automatically (no click), selecting adds it to the price
+                          and to the booking. Same feel as the LiteAPI selector. */}
+                      {isDuffel && !f.baggage?.checked && duffelBagReady && f.offer_id && (
+                        <div className="border-t border-[#F1F3F7] px-5 py-2.5 bg-white">
+                          <div className="text-[.62rem] text-[#8E95A9] font-bold uppercase tracking-[1px] mb-2">{t('bagChecked')}</div>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              onClick={() => setDuffelBagAdded((p) => ({ ...p, [f.offer_id!]: false }))}
+                              className={`text-left px-3 py-2 rounded-xl border text-[.72rem] font-bold transition-colors ${!bagAdded ? 'border-[#0066FF] bg-[#F1F5FF] text-[#0066FF]' : 'border-[#E8ECF4] bg-white text-[#1A1D2B] hover:border-[#0066FF]'}`}
+                            >
+                              <div>{t('bagNoChecked')} · {f.currency}{f.price}</div>
+                              <div className="text-[.62rem] font-semibold text-[#8E95A9]">🎒 {t('bagCabin')}</div>
+                            </button>
+                            <button
+                              onClick={() => setDuffelBagAdded((p) => ({ ...p, [f.offer_id!]: true }))}
+                              className={`text-left px-3 py-2 rounded-xl border text-[.72rem] font-bold transition-colors ${bagAdded ? 'border-[#0066FF] bg-[#F1F5FF] text-[#0066FF]' : 'border-[#E8ECF4] bg-white text-[#1A1D2B] hover:border-[#0066FF]'}`}
+                            >
+                              <div>{f.currency}{Math.round((f.price + duffelBagAmount(f.offer_id) / paxTotal) * 100) / 100}</div>
+                              <div className="text-[.62rem] font-semibold text-emerald-700">🧳 {duffelBagState?.weight ? `${duffelBagState.weight} ` : ''}{t('bagChecked')} · +{duffelBagState?.priceDisplay}</div>
+                            </button>
+                          </div>
                         </div>
                       )}
 
@@ -2876,9 +2913,9 @@ function FlightsContent() {
                         <div className="text-[.62rem] text-[#8E95A9] font-bold uppercase tracking-[1px] mb-2">{t('bookDirectHeader')}</div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
                           {isDuffel && f.offer_id ? (
-                            <a href={`/checkout/${f.offer_id}${duffelBag[f.offer_id]?.status === 'ready' && duffelBag[f.offer_id]?.serviceId ? `?bag=${duffelBag[f.offer_id]!.serviceId}` : ''}`}
+                            <a href={`/checkout/${f.offer_id}${bagAdded && duffelBagReady && duffelBagState?.serviceId ? `?bag=${duffelBagState.serviceId}` : ''}`}
                               className="flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 text-white font-poppins font-bold text-[.7rem] py-2 px-3 rounded-lg transition-all shadow-sm whitespace-nowrap col-span-2 sm:col-span-3 lg:col-span-5">
-                              ✓ {t('bookDirectShort')} — {f.currency}{priceView === 'total' ? Math.round(f.price * (adults + children)) : f.price}{priceView === 'total' ? t('priceSuffixTotal') : t('priceSuffixPp')} →
+                              ✓ {t('bookDirectShort')} — {f.currency}{priceView === 'total' ? Math.round(displayPrice * (adults + children)) : displayPrice}{priceView === 'total' ? t('priceSuffixTotal') : t('priceSuffixPp')} →
                             </a>
                           ) : isKyte && f.offer_id && f.link ? (
                             <a href={f.link}
