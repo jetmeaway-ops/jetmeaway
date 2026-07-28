@@ -178,6 +178,24 @@ function transformDuffelOffers(offers: any[], paxCount: number): any[] {
     const lastOutSeg = outSlice?.segments?.[outSlice.segments.length - 1];
     const arrTime = lastOutSeg?.arriving_at || null;
 
+    // Phase 0 INCLUDED baggage — already present on offer_requests offers
+    // (no extra API call). baggages live per segment/passenger; take the
+    // worst case (MIN quantity across the outbound segments) so we never
+    // over-promise. type = 'carry_on' | 'checked'.
+    const outSegs: any[] = outSlice?.segments || [];
+    const bagQty = (kind: string): number => {
+      if (outSegs.length === 0) return 0;
+      const perSeg = outSegs.map((seg: any) => {
+        const bags: any[] = seg?.passengers?.[0]?.baggages || [];
+        return bags.filter((b) => b?.type === kind).reduce((s, b) => s + (Number(b?.quantity) || 0), 0);
+      });
+      return Math.min(...perSeg);
+    };
+    const cabinIncl = bagQty('carry_on') > 0;
+    const checkedIncl = bagQty('checked') > 0;
+    const anyBagData = outSegs.some((seg: any) => Array.isArray(seg?.passengers?.[0]?.baggages));
+    const baggage = anyBagData ? { cabin: cabinIncl, checked: checkedIncl, checkedKg: null } : undefined;
+
     return {
       airline: airlineFullName,
       airlineCode,
@@ -199,6 +217,7 @@ function transformDuffelOffers(offers: any[], paxCount: number): any[] {
       offer_id: offer.id,              // Duffel offer ID for booking
       source: 'duffel',
       link: null,
+      baggage,
     };
   });
 }

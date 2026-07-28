@@ -452,6 +452,12 @@ type FlightResult = {
   /** Set on Kyte rows — needed for the booking flow which threads
    *  transactionId through Shop → Book → Commit → Payment. */
   kyteTransactionId?: string;
+  /** Phase 0 baggage: what the fare INCLUDES, shown as read-only chips on the
+   *  card. `cabin`/`checked` = a bag of that type is included; `checkedKg` =
+   *  the checked allowance when known. Absent/undefined = unknown (no chip). */
+  baggage?: { cabin?: boolean; checked?: boolean; checkedKg?: number | null };
+  /** LiteAPI fare family name (e.g. "Light", "Inclusive") — display only in P0. */
+  fareFamily?: string | null;
 };
 
 /* ───────────────────────────────────────────────────────────────────────────
@@ -788,9 +794,28 @@ function liteapiOffersToFlightResults(data: LiteapiSearchResponse): FlightResult
       // Direct-bookable — the card's emerald "Book direct" button POSTs to
       // start-booking and routes to /flights/liteapi/checkout/[ref]; no link.
       link: null,
+      fareFamily: o.fareFamily ?? null,
+      baggage: liteapiBaggage(o.baggage),
     });
   }
   return out;
+}
+
+/** Map a LiteAPI offer's `baggage` object to the card's chip shape.
+ *  Shape: { hasCarryOnBag, hasCheckedBag, included:[{bagType:'cabin'|'checked', pieces, weightKg}] }. */
+function liteapiBaggage(b: unknown): FlightResult['baggage'] {
+  if (!b || typeof b !== 'object') return undefined;
+  const o = b as {
+    hasCarryOnBag?: boolean;
+    hasCheckedBag?: boolean;
+    included?: Array<{ bagType?: string; weightKg?: number | null }>;
+  };
+  const checked = Array.isArray(o.included) ? o.included.find((x) => x?.bagType === 'checked') : undefined;
+  return {
+    cabin: o.hasCarryOnBag === true,
+    checked: o.hasCheckedBag === true,
+    checkedKg: typeof checked?.weightKg === 'number' ? checked.weightKg : null,
+  };
 }
 
 type CalendarDay = {
@@ -2727,6 +2752,23 @@ function FlightsContent() {
                           <span className="text-[#5C6378] font-bold">{t('returnLabel')}</span>
                           <span>{fmtDate(f.return_at)}, {fmtTime(f.return_at)} → {arrivalTime(f.return_at, f.duration_back)}</span>
                           <span>({fmtDuration(f.duration_back)}, {f.transfers === 0 ? t('stopsDirect') : f.transfers === 1 ? t('stops1') : t('stopsN', { n: f.transfers })})</span>
+                        </div>
+                      )}
+
+                      {/* Baggage — what's included in this fare (Phase 0, read-only) */}
+                      {f.baggage && (
+                        <div className="border-t border-[#F1F3F7] px-5 py-2.5 bg-white flex items-center gap-2 flex-wrap text-[.72rem] font-bold">
+                          {f.baggage.cabin && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#F1F5FF] text-[#0066FF]">🎒 {t('bagCabin')}</span>
+                          )}
+                          {f.baggage.checked ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700">🧳 {f.baggage.checkedKg ? t('bagCheckedKg', { kg: f.baggage.checkedKg }) : t('bagChecked')}</span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-50 text-amber-700">🧳 {t('bagNoChecked')}</span>
+                          )}
+                          {f.fareFamily && (
+                            <span className="text-[#8E95A9] font-semibold">· {f.fareFamily}</span>
+                          )}
                         </div>
                       )}
 
