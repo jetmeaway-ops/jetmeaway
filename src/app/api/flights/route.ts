@@ -192,9 +192,13 @@ function transformDuffelOffers(offers: any[], paxCount: number): any[] {
       return Math.min(...perSeg);
     };
     const cabinIncl = bagQty('carry_on') > 0;
-    const checkedIncl = bagQty('checked') > 0;
+    const checkedQty = bagQty('checked');
+    const checkedIncl = checkedQty > 0;
     const anyBagData = outSegs.some((seg: any) => Array.isArray(seg?.passengers?.[0]?.baggages));
-    const baggage = anyBagData ? { cabin: cabinIncl, checked: checkedIncl, checkedKg: null } : undefined;
+    // Duffel search never carries the checked WEIGHT (kg lives on the Get-Offer
+    // detail); surface the piece count so the chip shows "1 checked bag" rather
+    // than a bare "Checked bag" when a bag is included but the kg is unknown.
+    const baggage = anyBagData ? { cabin: cabinIncl, checked: checkedIncl, checkedKg: null, checkedPieces: checkedIncl ? checkedQty : null } : undefined;
 
     return {
       airline: airlineFullName,

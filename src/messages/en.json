@@ -1156,6 +1156,8 @@
     "bagCabin": "Cabin bag",
     "bagChecked": "Checked bag",
     "bagCheckedKg": "{kg}kg checked",
+    "bagCheckedPieces": "{n, plural, one {# checked bag} other {# checked bags}}",
+    "bagNoAddDuffel": "no checked bag to add on this fare",
     "bagNoChecked": "No checked bag",
     "bookDirectHeader": "Book direct on JetMeAway · no booking fees",
     "bookDirectShort": "Book direct",
