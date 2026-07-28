@@ -3045,27 +3045,35 @@ function HotelsContent() {
         ))}
       </div>
 
-      {/* Guest rating */}
-      <div className={sectionCls}>
-        <span className={headCls}>{t('filterGuestRating')}</span>
-        <div className="flex flex-col gap-1.5">
-          <button
-            type="button" onClick={() => setGuestMin(0)}
-            className={`text-left px-3 py-2 rounded-xl text-[.8rem] font-bold transition-colors ${guestMin === 0 ? 'bg-orange-500 text-white' : 'bg-[#F4F6FA] text-[#5C6378] hover:bg-orange-50'}`}
-          >
-            {t('filterGuestAny')}
-          </button>
-          {guestThresholds.map(({ th, label }) => (
-            <button
-              key={th} type="button" onClick={() => setGuestMin(th)}
-              className={`flex items-center px-3 py-2 rounded-xl text-[.8rem] font-bold transition-colors ${guestMin === th ? 'bg-orange-500 text-white' : 'bg-[#F4F6FA] text-[#5C6378] hover:bg-orange-50'}`}
-            >
-              <span>{label}</span>
-              <span className={`ml-auto tabular-nums ${guestMin === th ? 'text-white/80' : 'text-[#A8AEBE]'}`}>{guestCount(th)}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Guest rating — only render thresholds that have hotels (keep the
+          active one visible even at 0); hide the whole section when a city
+          carries no guest-score data, so it never shows a wall of "0". */}
+      {(() => {
+        const visible = guestThresholds.filter(({ th }) => guestCount(th) > 0 || guestMin === th);
+        if (visible.length === 0) return null;
+        return (
+          <div className={sectionCls}>
+            <span className={headCls}>{t('filterGuestRating')}</span>
+            <div className="flex flex-col gap-1.5">
+              <button
+                type="button" onClick={() => setGuestMin(0)}
+                className={`text-left px-3 py-2 rounded-xl text-[.8rem] font-bold transition-colors ${guestMin === 0 ? 'bg-orange-500 text-white' : 'bg-[#F4F6FA] text-[#5C6378] hover:bg-orange-50'}`}
+              >
+                {t('filterGuestAny')}
+              </button>
+              {visible.map(({ th, label }) => (
+                <button
+                  key={th} type="button" onClick={() => setGuestMin(th)}
+                  className={`flex items-center px-3 py-2 rounded-xl text-[.8rem] font-bold transition-colors ${guestMin === th ? 'bg-orange-500 text-white' : 'bg-[#F4F6FA] text-[#5C6378] hover:bg-orange-50'}`}
+                >
+                  <span>{label}</span>
+                  <span className={`ml-auto tabular-nums ${guestMin === th ? 'text-white/80' : 'text-[#A8AEBE]'}`}>{guestCount(th)}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Meal plans */}
       <div className={sectionCls}>
