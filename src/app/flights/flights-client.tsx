@@ -1720,6 +1720,12 @@ function FlightsContent() {
     // the same flight key — v1 GDS entries never overwrite them.
     const mergedByKey = new Map<string, FlightResult>();
 
+    // Kyte certification view (?kyte_cert=<token>): fetch ONLY Kyte. Otherwise
+    // an identical LiteAPI/Duffel flight would merge into (and overwrite) the
+    // Kyte row by flight-key — stripping the `kyte` source so the cert filter
+    // hides it, leaving "0 flights". Running Kyte alone keeps every row `kyte`.
+    const certMode = !!new URLSearchParams(window.location.search).get('kyte_cert');
+
     // ── Fire Duffel + v3 cached in parallel via the original endpoint.
     // Duffel direct-bookable offers must still appear alongside the new
     // v1 GDS coverage. Non-awaited — merges into results as soon as it
@@ -1735,7 +1741,7 @@ function FlightsContent() {
     if (cabinClass !== 'economy') duffelParams.set('cabin', cabinClass);
     if (retDate && tripType === 'return') duffelParams.set('return', retDate);
 
-    const duffelPromise = fetch(`/api/flights?${duffelParams}`)
+    const duffelPromise = certMode ? Promise.resolve() : fetch(`/api/flights?${duffelParams}`)
       .then(r => r.json())
       .then((data: { flights?: FlightResult[]; error?: string }) => {
         if (!data || data.error || !data.flights) return;
@@ -1867,7 +1873,7 @@ function FlightsContent() {
       setScoutAirlineCount(new Set(merged.map(f => f.airlineCode)).size);
       return rows.length;
     };
-    const liteapiPromise = fetch(`/api/flights/liteapi/search?${liteapiParams}`)
+    const liteapiPromise = certMode ? Promise.resolve() : fetch(`/api/flights/liteapi/search?${liteapiParams}`)
           .then(r => r.json() as Promise<LiteapiSearchResponse>)
           .then(async (data) => {
             if (applyLiteapiData(data) > 0) return;
@@ -1889,6 +1895,17 @@ function FlightsContent() {
             applyLiteapiData(d2);
           })
           .catch(() => { /* LiteAPI is supplementary — failures don't break search */ });
+
+    // Cert view — Kyte only: skip the TP GDS + Duffel/LiteAPI arms entirely and
+    // finalise on the Kyte fetch alone (kytePromise already setFlights the rows).
+    if (certMode) {
+      await kytePromise;
+      if (mergedByKey.size === 0) setFlights([]); // empty state for no-offer routes
+      setScoutActive(false);
+      setLoading(false);
+      setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+      return;
+    }
 
     try {
       // ── Kick off a TP v1 async search. This actively queries GDS agents
