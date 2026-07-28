@@ -455,14 +455,14 @@ type FlightResult = {
   /** Phase 0 baggage: what the fare INCLUDES, shown as read-only chips on the
    *  card. `cabin`/`checked` = a bag of that type is included; `checkedKg` =
    *  the checked allowance when known. Absent/undefined = unknown (no chip). */
-  baggage?: { cabin?: boolean; checked?: boolean; checkedKg?: number | null };
+  baggage?: { cabin?: boolean; checked?: boolean; checkedKg?: number | null; checkedPieces?: number | null };
   /** LiteAPI fare family name (e.g. "Light", "Inclusive") — display only in P0. */
   fareFamily?: string | null;
   /** Phase 1 (LiteAPI): selectable fare families for this flight. Each option
    *  is a distinct bookable offerId with its own per-person price + baggage.
    *  The card renders a selector; the chosen option's offerId + price flow to
    *  start-booking. pricePerPax matches the row's per-person convention. */
-  fareOptions?: Array<{ offerId: string; fareFamily: string | null; pricePerPax: number; baggage?: { cabin?: boolean; checked?: boolean; checkedKg?: number | null } }>;
+  fareOptions?: Array<{ offerId: string; fareFamily: string | null; pricePerPax: number; baggage?: { cabin?: boolean; checked?: boolean; checkedKg?: number | null; checkedPieces?: number | null } }>;
 };
 
 /* ───────────────────────────────────────────────────────────────────────────
@@ -826,14 +826,30 @@ function liteapiBaggage(b: unknown): FlightResult['baggage'] {
   const o = b as {
     hasCarryOnBag?: boolean;
     hasCheckedBag?: boolean;
-    included?: Array<{ bagType?: string; weightKg?: number | null }>;
+    included?: Array<{ bagType?: string; weightKg?: number | null; pieces?: number | null }>;
   };
   const checked = Array.isArray(o.included) ? o.included.find((x) => x?.bagType === 'checked') : undefined;
   return {
     cabin: o.hasCarryOnBag === true,
     checked: o.hasCheckedBag === true,
     checkedKg: typeof checked?.weightKg === 'number' ? checked.weightKg : null,
+    // Some carriers (e.g. Etihad) express the checked allowance as pieces with
+    // no kg — carry the count so the chip can say "1 checked bag" instead of a
+    // bare "Checked bag" with no detail at all.
+    checkedPieces: typeof checked?.pieces === 'number' && checked.pieces > 0 ? checked.pieces : null,
   };
+}
+
+/** Label for an INCLUDED checked bag: prefer the kg allowance, fall back to the
+ *  piece count ("1 checked bag") when the carrier gives no kg, and finally a
+ *  bare "Checked bag" when neither is known — so the chip is never blank. */
+function checkedBagLabel(
+  bag: { checkedKg?: number | null; checkedPieces?: number | null } | undefined,
+  t: (key: string, values?: Record<string, string | number>) => string,
+): string {
+  if (bag?.checkedKg) return t('bagCheckedKg', { kg: bag.checkedKg });
+  if (bag?.checkedPieces && bag.checkedPieces > 0) return t('bagCheckedPieces', { n: bag.checkedPieces });
+  return t('bagChecked');
 }
 
 type CalendarDay = {
@@ -2846,7 +2862,7 @@ function FlightsContent() {
                             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#F1F5FF] text-[#0066FF]">🎒 {t('bagCabin')}</span>
                           )}
                           {displayBaggage.checked ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700">🧳 {displayBaggage.checkedKg ? t('bagCheckedKg', { kg: displayBaggage.checkedKg }) : t('bagChecked')}</span>
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700">🧳 {checkedBagLabel(displayBaggage, t)}</span>
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-50 text-amber-700">🧳 {t('bagNoChecked')}</span>
                           )}
@@ -2855,6 +2871,9 @@ function FlightsContent() {
                           )}
                           {isDuffel && !displayBaggage.checked && duffelBagState?.status === 'loading' && (
                             <span className="inline-flex items-center gap-1 px-2 py-1 text-[#8E95A9]">{t('bagChecking')}</span>
+                          )}
+                          {isDuffel && !displayBaggage.checked && duffelBagState?.status === 'none' && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 text-[#8E95A9] font-semibold">· {t('bagNoAddDuffel')}</span>
                           )}
                         </div>
                       )}
@@ -2892,7 +2911,7 @@ function FlightsContent() {
                           <div className="flex flex-wrap gap-2">
                             {fareOpts.map((opt) => {
                               const on = opt.offerId === activeFareId;
-                              const kg = opt.baggage?.checked ? (opt.baggage.checkedKg ? t('bagCheckedKg', { kg: opt.baggage.checkedKg }) : t('bagChecked')) : t('bagNoChecked');
+                              const kg = opt.baggage?.checked ? checkedBagLabel(opt.baggage, t) : t('bagNoChecked');
                               return (
                                 <button
                                   key={opt.offerId}
