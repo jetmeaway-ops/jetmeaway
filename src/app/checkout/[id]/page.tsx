@@ -1407,6 +1407,16 @@ export default function CheckoutPage() {
           setError(data.error);
         } else {
           setOffer(data.offer);
+          // Phase 2: pre-select a checked bag chosen on the SEARCH CARD
+          // (deep-linked as ?bag=<serviceId>). Only add it if it's a real,
+          // still-available service id on this fresh offer.
+          try {
+            const wantBag = new URLSearchParams(window.location.search).get('bag');
+            const avail: Array<{ id: string }> = data.offer?.availableServices?.baggage || [];
+            if (wantBag && avail.some((s) => s.id === wantBag)) {
+              setSelectedServiceIds((prev) => new Set(prev).add(wantBag));
+            }
+          } catch { /* no-op */ }
           const count = data.offer.passengerCount || 1;
           setPassengers(
             Array.from({ length: count }, () => ({
