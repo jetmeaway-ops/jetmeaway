@@ -54,6 +54,18 @@ export async function GET(req: NextRequest) {
       (r.journeys || []).map((j) => {
         const o = j.cheapestOffer;
         if (!o) return null;
+        // Phase 1: expose ALL fare families for this journey so the card can
+        // offer a "Light (no bag) / Inclusive (23kg)" selector. Each is a
+        // distinct bookable offerId. Cheapest first. total = WHOLE-PARTY price.
+        const fareOptions = (Array.isArray(j.offers) ? j.offers : [])
+          .map((fo) => ({
+            offerId: fo?.offerId,
+            fareFamily: fo?.fare?.family ?? null,
+            total: fo?.pricing?.display?.total ?? null,
+            baggage: fo?.baggage ?? null,
+          }))
+          .filter((x) => x.offerId && typeof x.total === 'number')
+          .sort((a, b) => (a.total as number) - (b.total as number));
         return {
           offerId: o.offerId,
           expiration: o.expiration,
@@ -64,6 +76,7 @@ export async function GET(req: NextRequest) {
           fareFamily: o.fare?.family ?? null,
           seatsRemaining: o.fare?.seatsRemaining ?? null,
           baggage: o.baggage ?? null,
+          fareOptions,
         };
       }).filter(Boolean),
     );
