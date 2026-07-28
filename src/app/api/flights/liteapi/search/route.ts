@@ -3,6 +3,15 @@ import { searchFlights, type FlightLeg, type CabinClass } from '@/lib/liteapi-fl
 
 export const runtime = 'edge';
 
+/** Minimal shape of a per-journey fare offer as we read it for fareOptions. */
+type RawBag = { bagType?: string; weightKg?: number; pieces?: number };
+type RawFareOffer = {
+  offerId?: string;
+  fare?: { family?: string | null };
+  pricing?: { display?: { total?: number } };
+  baggage?: { hasCheckedBag?: boolean; included?: RawBag[] } | null;
+};
+
 /**
  * LiteAPI Flights — search (SANDBOX-first).
  *
@@ -54,18 +63,56 @@ export async function GET(req: NextRequest) {
       (r.journeys || []).map((j) => {
         const o = j.cheapestOffer;
         if (!o) return null;
-        // Phase 1: expose ALL fare families for this journey so the card can
+        // Phase 1: expose the fare families for this journey so the card can
         // offer a "Light (no bag) / Inclusive (23kg)" selector. Each is a
         // distinct bookable offerId. Cheapest first. total = WHOLE-PARTY price.
-        const fareOptions = (Array.isArray(j.offers) ? j.offers : [])
-          .map((fo) => ({
-            offerId: fo?.offerId,
-            fareFamily: fo?.fare?.family ?? null,
-            total: fo?.pricing?.display?.total ?? null,
-            baggage: fo?.baggage ?? null,
-          }))
-          .filter((x) => x.offerId && typeof x.total === 'number')
-          .sort((a, b) => (a.total as number) - (b.total as number));
+        //
+        // DEDUPE by fare family: LiteAPI returns near-duplicate offers per
+        // family — one with the checked-bag weightKg populated (converted:true)
+        // and a cheaper twin that OMITS it (converted:false, only pieces). That
+        // showed two "Ecofly" chips, one "20kg checked" and one just "Checked
+        // bag". Collapse to one option per family (cheapest), and BORROW the
+        // checked weight from whichever twin has it so every chip shows the kg.
+        const famGroups = new Map<string, RawFareOffer[]>();
+        for (const fo of (Array.isArray(j.offers) ? j.offers : [])) {
+          if (!fo?.offerId || typeof fo?.pricing?.display?.total !== 'number') continue;
+          const famKey = fo?.fare?.family ?? fo.offerId;
+          if (!famGroups.has(famKey)) famGroups.set(famKey, []);
+          famGroups.get(famKey)!.push(fo as RawFareOffer);
+        }
+        const fareOptions = [...famGroups.values()]
+          .map((group) => {
+            const cheapest = group.slice().sort(
+              (a, b) => (a.pricing?.display?.total ?? Infinity) - (b.pricing?.display?.total ?? Infinity),
+            )[0];
+            // Best known checked weight across the whole family.
+            let bestKg: number | null = null;
+            for (const fo of group) {
+              const chk = (fo.baggage?.included || []).find((b) => b?.bagType === 'checked');
+              if (chk && typeof chk.weightKg === 'number') bestKg = Math.max(bestKg ?? 0, chk.weightKg);
+            }
+            // Clone the cheapest offer's baggage and inject the family weight
+            // where LiteAPI left it blank, so the chip always shows the kg.
+            let baggage: RawFareOffer['baggage'] = cheapest.baggage ?? null;
+            if (cheapest.baggage && bestKg != null) {
+              const cloned = JSON.parse(JSON.stringify(cheapest.baggage)) as NonNullable<RawFareOffer['baggage']>;
+              const included: RawBag[] = Array.isArray(cloned.included) ? cloned.included : (cloned.included = []);
+              const chk = included.find((b) => b?.bagType === 'checked');
+              if (chk) {
+                if (typeof chk.weightKg !== 'number') chk.weightKg = bestKg;
+              } else if (cloned.hasCheckedBag) {
+                included.push({ bagType: 'checked', pieces: 1, weightKg: bestKg });
+              }
+              baggage = cloned;
+            }
+            return {
+              offerId: cheapest.offerId as string,
+              fareFamily: cheapest.fare?.family ?? null,
+              total: cheapest.pricing?.display?.total as number,
+              baggage,
+            };
+          })
+          .sort((a, b) => a.total - b.total);
         return {
           offerId: o.offerId,
           expiration: o.expiration,
