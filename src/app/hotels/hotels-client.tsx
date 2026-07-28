@@ -2180,6 +2180,16 @@ function HotelsContent() {
   const [minStars, setMinStars] = useState(0);
   const [boardFilter, setBoardFilter] = useState('any');
   const [refundableOnly, setRefundableOnly] = useState(false);
+  // ── Results left-filter sidebar (2026-07-28) ──────────────────────────
+  // All run client-side over the accumulated `hotels` list, so they re-apply
+  // live as progressive pagination streams more inventory in.
+  const [nameQuery, setNameQuery] = useState('');          // property-name contains
+  const [priceMin, setPriceMin] = useState<number | null>(null);  // £/night floor
+  const [priceMax, setPriceMax] = useState<number | null>(null);  // £/night ceiling
+  const [starSel, setStarSel] = useState<number[]>([]);    // multi-select 1..5★
+  const [guestMin, setGuestMin] = useState(0);             // 0 any · 9 · 8 · 7 · 6
+  const [mealSel, setMealSel] = useState<string[]>([]);    // board substrings (OR)
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [hotels, setHotels] = useState<HotelResult[] | null>(null);
@@ -2832,14 +2842,30 @@ function HotelsContent() {
     // multi-CTA was confusing trust and diluting the "Book Now" message.
     if (!h.bookable || !h.offerId) return false;
     if (refundableOnly && h.refundable !== true) return false;
-    if (boardFilter === 'any') return true;
-    // Check top-level boardType AND all boardOptions
+    // Property-name search (sidebar)
+    if (nameQuery.trim() && !h.name.toLowerCase().includes(nameQuery.trim().toLowerCase())) return false;
+    // Price per night range (sidebar)
+    if (priceMin != null && h.pricePerNight < priceMin) return false;
+    if (priceMax != null && h.pricePerNight > priceMax) return false;
+    // Star rating — multi-select (sidebar). Empty = any.
+    if (starSel.length && !starSel.includes(Math.round(h.stars || 0))) return false;
+    // Guest rating floor (sidebar). 0 = any.
+    if (guestMin > 0 && !(typeof h.reviewScore === 'number' && h.reviewScore >= guestMin)) return false;
+    // Board / meal plan — the hero form's single `boardFilter` AND the
+    // sidebar's multi-select `mealSel` both match against the same board
+    // strings (top-level boardType + every boardOptions entry).
     const allBoards: string[] = [];
     if (h.boardType) allBoards.push(h.boardType.toLowerCase());
     if (h.boardOptions) h.boardOptions.forEach((o: any) => { if (o.boardType) allBoards.push(o.boardType.toLowerCase()); });
-    if (allBoards.length === 0) return false;
-    if (boardFilter === 'breakfast') return allBoards.some(b => b.includes('breakfast'));
-    return allBoards.some(b => b.includes(boardFilter));
+    if (boardFilter !== 'any') {
+      if (allBoards.length === 0) return false;
+      if (!allBoards.some(b => b.includes(boardFilter))) return false;
+    }
+    if (mealSel.length) {
+      if (allBoards.length === 0) return false;
+      if (!mealSel.some(m => allBoards.some(b => b.includes(m)))) return false;
+    }
+    return true;
   }) : null;
 
   // 'Recommended' score — quality-weighted value, not raw server order.
@@ -2896,6 +2922,190 @@ function HotelsContent() {
   })();
   const nights = getNights();
 
+  // ── Results left-filter sidebar: facet data + reusable panel ──────────────
+  // Facets are computed over every direct-bookable row (not the currently
+  // filtered set) so option counts + the price bounds stay stable as the
+  // user toggles filters. Everything is client-side over `hotels`, so it
+  // re-computes live as progressive pagination appends more inventory.
+  const facetBase = hotels ? hotels.filter(h => h.bookable && h.offerId) : [];
+  const priceFloor = facetBase.length ? Math.max(0, Math.floor(Math.min(...facetBase.map(h => h.pricePerNight)))) : 0;
+  const priceCeil = facetBase.length ? Math.ceil(Math.max(...facetBase.map(h => h.pricePerNight))) : 0;
+  const curMin = priceMin ?? priceFloor;
+  const curMax = priceMax ?? priceCeil;
+  const starCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  facetBase.forEach(h => { const s = Math.round(h.stars || 0); if (s >= 1 && s <= 5) starCounts[s]++; });
+  const guestThresholds: { th: number; label: string }[] = [
+    { th: 9, label: t('filterGuestWonderful') },
+    { th: 8, label: t('filterGuestVeryGood') },
+    { th: 7, label: t('filterGuestGood') },
+    { th: 6, label: t('filterGuestPleasant') },
+  ];
+  const guestCount = (th: number) => facetBase.filter(h => typeof h.reviewScore === 'number' && h.reviewScore >= th).length;
+  const boardsOf = (h: HotelResult): string[] => {
+    const boards: string[] = [];
+    if (h.boardType) boards.push(h.boardType.toLowerCase());
+    if (h.boardOptions) h.boardOptions.forEach((o: any) => { if (o.boardType) boards.push(o.boardType.toLowerCase()); });
+    return boards;
+  };
+  const mealDefs: { key: string; label: string }[] = [
+    { key: 'breakfast', label: t('boardBreakfast') },
+    { key: 'half board', label: t('boardHalfBoard') },
+    { key: 'full board', label: t('boardFullBoard') },
+    { key: 'all inclusive', label: t('boardAllInclusive') },
+    { key: 'room only', label: t('boardRoomOnly') },
+  ];
+  const mealCount = (k: string) => facetBase.filter(h => boardsOf(h).some(b => b.includes(k))).length;
+  const activeFilterCount =
+    (nameQuery.trim() ? 1 : 0) +
+    (priceMin != null || priceMax != null ? 1 : 0) +
+    (starSel.length ? 1 : 0) +
+    (guestMin > 0 ? 1 : 0) +
+    (mealSel.length ? 1 : 0) +
+    (refundableOnly ? 1 : 0);
+  const clearAllFilters = () => {
+    setNameQuery(''); setPriceMin(null); setPriceMax(null);
+    setStarSel([]); setGuestMin(0); setMealSel([]); setRefundableOnly(false);
+  };
+  const toggleStar = (s: number) => setStarSel(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
+  const toggleMeal = (k: string) => setMealSel(prev => prev.includes(k) ? prev.filter(x => x !== k) : [...prev, k]);
+  const resultCount = filteredHotels ? filteredHotels.length : 0;
+
+  const sectionCls = 'border-t border-[#EEF1F6] pt-4 mt-4 first:border-t-0 first:pt-0 first:mt-0';
+  const headCls = 'block text-[.7rem] font-black uppercase tracking-[1.5px] text-[#1A1D2B] mb-2.5';
+  const countCls = 'ml-auto text-[.68rem] font-bold text-[#A8AEBE] tabular-nums';
+  const rowCls = 'flex items-center gap-2.5 py-1 cursor-pointer select-none group';
+  const boxCls = (on: boolean) => `w-[18px] h-[18px] shrink-0 rounded-[5px] border-2 flex items-center justify-center transition-colors ${on ? 'bg-orange-500 border-orange-500' : 'border-[#CFD5E1] group-hover:border-orange-300'}`;
+
+  const filterPanel = (
+    <div className="text-[#1A1D2B]">
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-4">
+        <span className="font-poppins font-black text-[1rem]">{t('filtersTitle')}</span>
+        {activeFilterCount > 0 && (
+          <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-orange-500 text-white text-[.66rem] font-black">{activeFilterCount}</span>
+        )}
+        {activeFilterCount > 0 && (
+          <button type="button" onClick={clearAllFilters} className="ml-auto text-[.72rem] font-bold text-orange-600 hover:text-orange-700 hover:underline">
+            {t('filtersClearAll')}
+          </button>
+        )}
+      </div>
+
+      {/* Property name */}
+      <div className={sectionCls}>
+        <label htmlFor="filter-name" className={headCls}>{t('filterPropertyName')}</label>
+        <div className="relative">
+          <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-[.72rem] text-[#A8AEBE]" aria-hidden />
+          <input
+            id="filter-name"
+            type="text"
+            value={nameQuery}
+            onChange={e => setNameQuery(e.target.value)}
+            placeholder={t('filterPropertyNamePlaceholder')}
+            className="w-full pl-8 pr-3 py-2.5 rounded-xl border border-[#E8ECF4] bg-white text-[.82rem] font-semibold outline-none focus:border-orange-400"
+          />
+        </div>
+      </div>
+
+      {/* Price per night */}
+      <div className={sectionCls}>
+        <label className={headCls}>{t('filterPricePerNight')}</label>
+        <div className="flex items-center justify-between text-[.8rem] font-bold text-[#1A1D2B] mb-2">
+          <span>£{curMin}</span>
+          <span className="text-[#A8AEBE]">–</span>
+          <span>£{curMax}{priceMax == null && priceCeil > curMax ? '' : ''}</span>
+        </div>
+        <input
+          type="range" aria-label={t('filterMin')} min={priceFloor} max={priceCeil} value={curMin}
+          disabled={priceCeil <= priceFloor}
+          onChange={e => { const v = parseInt(e.target.value, 10); setPriceMin(Math.min(v, curMax)); }}
+          className="w-full accent-orange-500 cursor-pointer disabled:opacity-40"
+        />
+        <input
+          type="range" aria-label={t('filterMax')} min={priceFloor} max={priceCeil} value={curMax}
+          disabled={priceCeil <= priceFloor}
+          onChange={e => { const v = parseInt(e.target.value, 10); setPriceMax(Math.max(v, curMin)); }}
+          className="w-full accent-orange-500 cursor-pointer disabled:opacity-40 -mt-1"
+        />
+      </div>
+
+      {/* Star rating */}
+      <div className={sectionCls}>
+        <span className={headCls}>{t('filterStarRating')}</span>
+        {[5, 4, 3, 2, 1].map(s => (
+          <label key={s} className={rowCls} onClick={() => toggleStar(s)}>
+            <span className={boxCls(starSel.includes(s))}>
+              {starSel.includes(s) && <i className="fa-solid fa-check text-white text-[.6rem]" aria-hidden />}
+            </span>
+            <span className="text-[.82rem] font-bold text-amber-500 tracking-tight">
+              {'★'.repeat(s)}<span className="text-[#D8DDE7]">{'★'.repeat(5 - s)}</span>
+            </span>
+            <span className={countCls}>{starCounts[s]}</span>
+          </label>
+        ))}
+      </div>
+
+      {/* Guest rating — only render thresholds that have hotels (keep the
+          active one visible even at 0); hide the whole section when a city
+          carries no guest-score data, so it never shows a wall of "0". */}
+      {(() => {
+        const visible = guestThresholds.filter(({ th }) => guestCount(th) > 0 || guestMin === th);
+        if (visible.length === 0) return null;
+        return (
+          <div className={sectionCls}>
+            <span className={headCls}>{t('filterGuestRating')}</span>
+            <div className="flex flex-col gap-1.5">
+              <button
+                type="button" onClick={() => setGuestMin(0)}
+                className={`text-left px-3 py-2 rounded-xl text-[.8rem] font-bold transition-colors ${guestMin === 0 ? 'bg-orange-500 text-white' : 'bg-[#F4F6FA] text-[#5C6378] hover:bg-orange-50'}`}
+              >
+                {t('filterGuestAny')}
+              </button>
+              {visible.map(({ th, label }) => (
+                <button
+                  key={th} type="button" onClick={() => setGuestMin(th)}
+                  className={`flex items-center px-3 py-2 rounded-xl text-[.8rem] font-bold transition-colors ${guestMin === th ? 'bg-orange-500 text-white' : 'bg-[#F4F6FA] text-[#5C6378] hover:bg-orange-50'}`}
+                >
+                  <span>{label}</span>
+                  <span className={`ml-auto tabular-nums ${guestMin === th ? 'text-white/80' : 'text-[#A8AEBE]'}`}>{guestCount(th)}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Meal plans */}
+      <div className={sectionCls}>
+        <span className={headCls}>{t('filterMealPlans')}</span>
+        {mealDefs.map(({ key, label }) => {
+          const n = mealCount(key);
+          if (n === 0 && !mealSel.includes(key)) return null;
+          return (
+            <label key={key} className={rowCls} onClick={() => toggleMeal(key)}>
+              <span className={boxCls(mealSel.includes(key))}>
+                {mealSel.includes(key) && <i className="fa-solid fa-check text-white text-[.6rem]" aria-hidden />}
+              </span>
+              <span className="text-[.82rem] font-semibold text-[#1A1D2B]">{label}</span>
+              <span className={countCls}>{n}</span>
+            </label>
+          );
+        })}
+      </div>
+
+      {/* Reservation policy */}
+      <div className={sectionCls}>
+        <span className={headCls}>{t('filterReservationPolicy')}</span>
+        <label className={rowCls} onClick={() => setRefundableOnly(v => !v)}>
+          <span className={boxCls(refundableOnly)}>
+            {refundableOnly && <i className="fa-solid fa-check text-white text-[.6rem]" aria-hidden />}
+          </span>
+          <span className="text-[.82rem] font-semibold text-[#1A1D2B]">{t('freeCancellationOnly')}</span>
+        </label>
+      </div>
+    </div>
+  );
+
   // ── Pagination ────────────────────────────────────────────────────────────
   // pageSize === 0 → show all. Otherwise slice into pages of `pageSize`.
   const totalResults = sortedHotels?.length || 0;
@@ -2909,7 +3119,7 @@ function HotelsContent() {
   // Reset to page 1 whenever the sorted set changes meaningfully — sort,
   // filter, page-size, or the hotel list itself. Without this you can land
   // on page 4 of an old search when a new search returns 12 results.
-  useEffect(() => { setCurrentPage(1); }, [sortBy, boardFilter, refundableOnly, pageSize, totalResults]);
+  useEffect(() => { setCurrentPage(1); }, [sortBy, boardFilter, refundableOnly, pageSize, totalResults, nameQuery, priceMin, priceMax, starSel, guestMin, mealSel]);
 
   // Mirror filter changes into sticky-search so they survive a round-trip
   // through /hotels/[id]. handleSearch already writes the full sticky
@@ -3306,6 +3516,34 @@ function HotelsContent() {
       {/* ── Results ── */}
       {searched && !loading && hotels !== null && (
         <div ref={resultsRef}>
+          {/* ── Results + left filter sidebar (2026-07-28) ──────────────
+              List view on lg = two columns: a sticky filter rail on the left
+              and the results on the right. Map view and the empty state drop
+              to a single full-width column (grid off). Every filter runs
+              client-side over `hotels`, so the counts + results re-apply live
+              as progressive pagination streams more inventory in. */}
+          <div className="lg:max-w-[1240px] lg:mx-auto lg:px-4">
+            <div className={hotels!.length > 0 && viewMode === 'list' ? 'lg:grid lg:grid-cols-[248px_minmax(0,1fr)] lg:gap-6 lg:items-start' : ''}>
+              {hotels!.length > 0 && viewMode === 'list' && (
+                <aside className="hidden lg:block sticky top-24 self-start max-h-[calc(100vh-6.5rem)] overflow-y-auto overscroll-contain bg-white border border-[#E8ECF4] rounded-2xl p-5 shadow-[0_4px_20px_rgba(10,22,40,0.05)]">
+                  {filterPanel}
+                </aside>
+              )}
+              <div className="min-w-0">
+                {hotels!.length > 0 && (
+                  <div className="lg:hidden px-5 pt-1 pb-3">
+                    <button
+                      type="button"
+                      onClick={() => setMobileFiltersOpen(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#E8ECF4] bg-white text-[.82rem] font-bold text-[#1A1D2B] shadow-sm"
+                    >
+                      <i className="fa-solid fa-sliders text-orange-500" aria-hidden /> {t('filtersTitle')}
+                      {activeFilterCount > 0 && (
+                        <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-orange-500 text-white text-[.66rem] font-black">{activeFilterCount}</span>
+                      )}
+                    </button>
+                  </div>
+                )}
           {/* Section 1: Results Summary */}
           {cheapest && (
             <section className="max-w-[1000px] mx-auto px-5 pt-8 pb-4">
@@ -3682,6 +3920,50 @@ function HotelsContent() {
                 </div>
               </div>
             </section>
+          )}
+              </div>{/* /right column */}
+            </div>{/* /grid */}
+          </div>{/* /results + sidebar wrapper */}
+
+          {/* Mobile filter drawer — the same panel as the desktop rail, in a
+              right-side sheet. Toggled by the "Filters" button (lg:hidden). */}
+          {mobileFiltersOpen && (
+            <div className="lg:hidden fixed inset-0 z-[150] flex" role="dialog" aria-modal="true" aria-label={t('filtersTitle')}>
+              <button
+                type="button"
+                aria-label={t('filterApply', { count: resultCount })}
+                onClick={() => setMobileFiltersOpen(false)}
+                className="absolute inset-0 bg-black/40"
+              />
+              <div className="relative ml-auto w-[88%] max-w-[360px] h-full bg-white shadow-2xl flex flex-col">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-[#EEF1F6]">
+                  <span className="font-poppins font-black text-[1rem] text-[#1A1D2B]">{t('filtersTitle')}</span>
+                  <button
+                    type="button"
+                    onClick={() => setMobileFiltersOpen(false)}
+                    aria-label={t('filterDone')}
+                    className="w-9 h-9 rounded-full hover:bg-[#F4F6FA] flex items-center justify-center text-[#5C6378]"
+                  >
+                    <i className="fa-solid fa-xmark" aria-hidden />
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto px-5 py-4">
+                  {filterPanel}
+                </div>
+                <div className="px-5 py-4 border-t border-[#EEF1F6] flex items-center gap-3">
+                  {activeFilterCount > 0 && (
+                    <button type="button" onClick={clearAllFilters} className="text-[.8rem] font-bold text-[#5C6378] hover:text-orange-600">{t('filtersClearAll')}</button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setMobileFiltersOpen(false)}
+                    className="ml-auto bg-orange-500 hover:bg-orange-600 text-white font-poppins font-black text-[.85rem] px-6 py-3 rounded-xl transition-all"
+                  >
+                    {t('filterApply', { count: resultCount })}
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Section D: Cross-sell */}

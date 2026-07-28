@@ -1195,8 +1195,16 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       stars: h?.starRating ?? h?.stars ?? (h as { rating?: number })?.rating ?? meta?.starRating ?? meta?.stars ?? meta?.rating,
       reviewCount: h?.reviewCount ?? h?.numReviews ?? h?.reviewsCount
         ?? meta?.reviewCount ?? meta?.numReviews ?? meta?.reviewsCount,
-      reviewScore: h?.reviewScore ?? h?.averageRating ?? h?.guestRating
-        ?? meta?.reviewScore ?? meta?.averageRating ?? meta?.guestRating,
+      // 0-10 guest score. LiteAPI's /data/hotels carries it as `rating`
+      // (e.g. 9.6) — NOT reviewScore/averageRating/guestRating — so include
+      // `rating` as a source or the Guest-rating filter reads all zeros.
+      // Guard to the 0-10 range so a stray star-class value never leaks in.
+      reviewScore: (() => {
+        const rs = h?.reviewScore ?? h?.averageRating ?? h?.guestRating
+          ?? meta?.reviewScore ?? meta?.averageRating ?? meta?.guestRating
+          ?? (h as { rating?: number } | undefined)?.rating ?? meta?.rating;
+        return typeof rs === 'number' && rs > 0 && rs <= 10 ? rs : undefined;
+      })(),
       thumbnail: h?.main_photo || meta?.main_photo || firstImage || null,
       latitude: h?.latitude ?? meta?.latitude ?? null,
       longitude: h?.longitude ?? meta?.longitude ?? null,
