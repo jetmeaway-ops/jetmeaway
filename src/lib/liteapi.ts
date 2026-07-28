@@ -504,6 +504,14 @@ export interface HotelOffer {
   /** Taxes/fees NOT included in price — payable at property (e.g. city tax) */
   excludedTaxes?: number | null;
 
+  /* ── Phase-2 sidebar facets (from the /data/hotels directory) ── */
+  /** Property-type code (map via LITEAPI_HOTEL_TYPES). */
+  hotelTypeId?: number | null;
+  /** Brand / chain name ("Not Available" when unbranded). */
+  chain?: string | null;
+  /** Property facility ids (map via LITEAPI_FACILITIES). */
+  facilityIds?: number[];
+
   /** All available room/rate options for this hotel (including the selected one).
    *  Phase-2 shape — one entry per unique (roomName, boardType). `roomName` is
    *  optional because not every supplier includes it; when absent the UI falls
@@ -640,6 +648,11 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     hotelImages?: Array<{ url?: string } | string>;
     latitude?: number;
     longitude?: number;
+    // Phase-2 sidebar facets (carried straight from the /data/hotels list row):
+    // property-type code, brand/chain name, and the property facility ids.
+    hotelTypeId?: number;
+    chain?: string;
+    facilityIds?: number[];
   };
   let hotelIds: string[];
   const hotelDirectory = new Map<string, HotelMeta>();
@@ -1208,6 +1221,11 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       thumbnail: h?.main_photo || meta?.main_photo || firstImage || null,
       latitude: h?.latitude ?? meta?.latitude ?? null,
       longitude: h?.longitude ?? meta?.longitude ?? null,
+      // Phase-2 facets — prefer the /data/hotels directory (meta), which always
+      // carries these; the /hotels/rates `hotel` object often omits them.
+      hotelTypeId: meta?.hotelTypeId ?? (h as { hotelTypeId?: number } | undefined)?.hotelTypeId ?? null,
+      chain: (meta?.chain ?? (h as { chain?: string } | undefined)?.chain) || null,
+      facilityIds: meta?.facilityIds ?? (h as { facilityIds?: number[] } | undefined)?.facilityIds ?? undefined,
       boardType: bestRate.boardName || bestRate.boardType || bestRate.name || null,
       // Refundable: v3.0 flat format or old nested format
       refundable: bestRate.cancellationPolicy?.refundable === true

@@ -11,6 +11,9 @@ import { chooseDefaultTab } from '@/lib/silentScout';
 import { vibeTagsForSearchedCity } from '@/data/destinations';
 import { saveSticky, loadSticky, type StickyHotels } from '@/lib/sticky-search';
 import { decodeFromParams, encodeOccupancy } from '@/lib/occupancy';
+import { LITEAPI_HOTEL_TYPES } from '@/data/liteapi-hotel-types';
+import { LITEAPI_FACILITIES } from '@/data/liteapi-facilities';
+import { LITEAPI_FACILITY_GROUPS } from '@/data/liteapi-facility-groups';
 // 2026-05-16: pulled occupancy decoder/encoder up to a STATIC import.
 // They used to load via `import('@/lib/occupancy').then(...)` inside the
 // URL-restore effect and inside handleSearch — and the async resolution
@@ -689,6 +692,10 @@ type HotelResult = {
   perks?: string[];
   signalType?: string | null;
   excludedTaxes?: number | null;
+  // Phase-2 sidebar facets
+  hotelTypeId?: number | null;
+  chain?: string | null;
+  facilityIds?: number[];
 };
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -2189,6 +2196,13 @@ function HotelsContent() {
   const [starSel, setStarSel] = useState<number[]>([]);    // multi-select 1..5★
   const [guestMin, setGuestMin] = useState(0);             // 0 any · 9 · 8 · 7 · 6
   const [mealSel, setMealSel] = useState<string[]>([]);    // board substrings (OR)
+  // ── Phase-2 facets ──
+  const [propTypeSel, setPropTypeSel] = useState<number[]>([]);  // hotelTypeId (OR)
+  const [brandSel, setBrandSel] = useState<string[]>([]);        // chain name (OR)
+  const [facilitySel, setFacilitySel] = useState<number[]>([]);  // facilityId (AND)
+  const [popularSel, setPopularSel] = useState<string[]>([]);    // popular-shortcut keys (AND)
+  const [distanceBand, setDistanceBand] = useState<number | null>(null); // km radius, single
+  const [facetExpand, setFacetExpand] = useState<Record<string, boolean>>({}); // "Show all" per long section
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const [loading, setLoading] = useState(false);
@@ -2835,6 +2849,35 @@ function HotelsContent() {
     return 2 * R * Math.asin(Math.sqrt(a));
   };
 
+  // ── Phase-2 facet helpers ─────────────────────────────────────────────────
+  const boardsOfHotel = (h: HotelResult): string[] => {
+    const b: string[] = [];
+    if (h.boardType) b.push(h.boardType.toLowerCase());
+    if (h.boardOptions) h.boardOptions.forEach((o: any) => { if (o.boardType) b.push(o.boardType.toLowerCase()); });
+    return b;
+  };
+  const facilityGroupHit = (h: HotelResult, groupKey: string): boolean => {
+    const ids = LITEAPI_FACILITY_GROUPS[groupKey];
+    if (!ids || !ids.length || !Array.isArray(h.facilityIds) || !h.facilityIds.length) return false;
+    const set = new Set(h.facilityIds);
+    return ids.some(id => set.has(id));
+  };
+  const hotelTypeName = (h: HotelResult): string =>
+    (h.hotelTypeId != null ? (LITEAPI_HOTEL_TYPES[h.hotelTypeId] || '') : '').toLowerCase();
+  const hotelDistanceKm = (h: HotelResult): number | null =>
+    (cityCentre && h.lat != null && h.lng != null) ? distanceKm(h.lat, h.lng, cityCentre.lat, cityCentre.lng) : null;
+  // Popular-filter shortcuts — a curated row matching the dashboard.
+  const POPULAR_DEFS: { key: string; label: string; icon: string; test: (h: HotelResult) => boolean }[] = [
+    { key: 'free-cancel', label: t('freeCancellationOnly'), icon: 'fa-circle-check', test: h => h.refundable === true },
+    { key: 'parking', label: t('popParking'), icon: 'fa-square-parking', test: h => facilityGroupHit(h, 'parking') },
+    { key: 'breakfast', label: t('popBreakfast'), icon: 'fa-mug-saucer', test: h => boardsOfHotel(h).some(b => b.includes('breakfast')) },
+    { key: 'pool', label: t('popPool'), icon: 'fa-person-swimming', test: h => facilityGroupHit(h, 'pool') },
+    { key: 'fitness', label: t('popFitness'), icon: 'fa-dumbbell', test: h => facilityGroupHit(h, 'fitness') },
+    { key: 'hotels', label: t('propTypeHotels'), icon: 'fa-hotel', test: h => hotelTypeName(h).includes('hotel') },
+    { key: 'apartments', label: t('propTypeApartments'), icon: 'fa-building', test: h => hotelTypeName(h).includes('apartment') },
+  ];
+  const popularTest = (key: string, h: HotelResult): boolean => POPULAR_DEFS.find(p => p.key === key)?.test(h) ?? true;
+
   const filteredHotels = hotels ? hotels.filter(h => {
     // Direct-bookable only (2026-04-28). LiteAPI rows have an offerId we
     // can take through our own checkout — those earn us full commission.
@@ -2864,6 +2907,23 @@ function HotelsContent() {
     if (mealSel.length) {
       if (allBoards.length === 0) return false;
       if (!mealSel.some(m => allBoards.some(b => b.includes(m)))) return false;
+    }
+    // ── Phase-2 facets ──
+    // Popular shortcuts — AND (every selected must match).
+    if (popularSel.length && !popularSel.every(k => popularTest(k, h))) return false;
+    // Property type — OR.
+    if (propTypeSel.length && !(h.hotelTypeId != null && propTypeSel.includes(h.hotelTypeId))) return false;
+    // Brand — OR.
+    if (brandSel.length && !(h.chain && brandSel.includes(h.chain))) return false;
+    // Facilities — AND (must have ALL selected).
+    if (facilitySel.length) {
+      const set = new Set(Array.isArray(h.facilityIds) ? h.facilityIds : []);
+      if (!facilitySel.every(id => set.has(id))) return false;
+    }
+    // Distance from centre — within the selected radius.
+    if (distanceBand != null) {
+      const d = hotelDistanceKm(h);
+      if (d == null || d > distanceBand) return false;
     }
     return true;
   }) : null;
@@ -2955,19 +3015,50 @@ function HotelsContent() {
     { key: 'room only', label: t('boardRoomOnly') },
   ];
   const mealCount = (k: string) => facetBase.filter(h => boardsOf(h).some(b => b.includes(k))).length;
+  // ── Phase-2 facets ──
+  const popularCount = (key: string) => facetBase.filter(h => popularTest(key, h)).length;
+  const distanceBands = [1, 2, 5, 10];
+  const distanceCount = (km: number) => facetBase.filter(h => { const d = hotelDistanceKm(h); return d != null && d <= km; }).length;
+  const hasCoords = facetBase.some(h => h.lat != null && h.lng != null) && cityCentre != null;
+  const propTypeCounts = new Map<number, number>();
+  facetBase.forEach(h => { if (h.hotelTypeId != null) propTypeCounts.set(h.hotelTypeId, (propTypeCounts.get(h.hotelTypeId) || 0) + 1); });
+  const propTypeFacets = [...propTypeCounts.entries()]
+    .map(([id, count]) => ({ id, name: LITEAPI_HOTEL_TYPES[id] || '', count }))
+    .filter(pt => pt.name && pt.name.toLowerCase() !== 'not available')
+    .sort((a, b) => b.count - a.count);
+  const brandCounts = new Map<string, number>();
+  facetBase.forEach(h => { const c = (h.chain || '').trim(); if (c && c.toLowerCase() !== 'not available') brandCounts.set(c, (brandCounts.get(c) || 0) + 1); });
+  const brandFacets = [...brandCounts.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  const facilityCounts = new Map<number, number>();
+  facetBase.forEach(h => { if (Array.isArray(h.facilityIds)) new Set(h.facilityIds).forEach(id => facilityCounts.set(id, (facilityCounts.get(id) || 0) + 1)); });
+  const facilityFacets = [...facilityCounts.entries()]
+    .map(([id, count]) => ({ id, name: LITEAPI_FACILITIES[id] || '', count }))
+    .filter(f => f.name)
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+
   const activeFilterCount =
     (nameQuery.trim() ? 1 : 0) +
     (priceMin != null || priceMax != null ? 1 : 0) +
     (starSel.length ? 1 : 0) +
     (guestMin > 0 ? 1 : 0) +
     (mealSel.length ? 1 : 0) +
-    (refundableOnly ? 1 : 0);
+    (refundableOnly ? 1 : 0) +
+    (popularSel.length ? 1 : 0) +
+    (propTypeSel.length ? 1 : 0) +
+    (brandSel.length ? 1 : 0) +
+    (facilitySel.length ? 1 : 0) +
+    (distanceBand != null ? 1 : 0);
   const clearAllFilters = () => {
     setNameQuery(''); setPriceMin(null); setPriceMax(null);
     setStarSel([]); setGuestMin(0); setMealSel([]); setRefundableOnly(false);
+    setPopularSel([]); setPropTypeSel([]); setBrandSel([]); setFacilitySel([]); setDistanceBand(null);
   };
   const toggleStar = (s: number) => setStarSel(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
   const toggleMeal = (k: string) => setMealSel(prev => prev.includes(k) ? prev.filter(x => x !== k) : [...prev, k]);
+  const togglePopular = (k: string) => setPopularSel(prev => prev.includes(k) ? prev.filter(x => x !== k) : [...prev, k]);
+  const toggleProp = (id: number) => setPropTypeSel(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  const toggleBrand = (n: string) => setBrandSel(prev => prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n]);
+  const toggleFacility = (id: number) => setFacilitySel(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   const resultCount = filteredHotels ? filteredHotels.length : 0;
 
   const sectionCls = 'border-t border-[#EEF1F6] pt-4 mt-4 first:border-t-0 first:pt-0 first:mt-0';
@@ -3029,6 +3120,58 @@ function HotelsContent() {
         />
       </div>
 
+      {/* Popular filters — curated shortcut chips (hidden when none apply) */}
+      {(() => {
+        const defs = POPULAR_DEFS.filter(d => popularCount(d.key) > 0 || popularSel.includes(d.key));
+        if (!defs.length) return null;
+        return (
+          <div className={sectionCls}>
+            <span className={headCls}>{t('filterPopular')}</span>
+            <div className="flex flex-wrap gap-1.5">
+              {defs.map(d => {
+                const on = popularSel.includes(d.key);
+                return (
+                  <button
+                    key={d.key} type="button" onClick={() => togglePopular(d.key)}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[.74rem] font-bold transition-colors ${on ? 'bg-orange-500 text-white' : 'bg-[#F4F6FA] text-[#5C6378] hover:bg-orange-50'}`}
+                  >
+                    <i className={`fa-solid ${d.icon} text-[.7rem]`} aria-hidden /> {d.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Distance from centre — single-select radius (needs coordinates) */}
+      {hasCoords && distanceBands.some(km => distanceCount(km) > 0) && (
+        <div className={sectionCls}>
+          <span className={headCls}>{t('filterDistance')}</span>
+          <div className="flex flex-col gap-1.5">
+            <button
+              type="button" onClick={() => setDistanceBand(null)}
+              className={`text-left px-3 py-2 rounded-xl text-[.8rem] font-bold transition-colors ${distanceBand === null ? 'bg-orange-500 text-white' : 'bg-[#F4F6FA] text-[#5C6378] hover:bg-orange-50'}`}
+            >
+              {t('filterDistanceAny')}
+            </button>
+            {distanceBands.map(km => {
+              const n = distanceCount(km);
+              if (n === 0 && distanceBand !== km) return null;
+              return (
+                <button
+                  key={km} type="button" onClick={() => setDistanceBand(km)}
+                  className={`flex items-center px-3 py-2 rounded-xl text-[.8rem] font-bold transition-colors ${distanceBand === km ? 'bg-orange-500 text-white' : 'bg-[#F4F6FA] text-[#5C6378] hover:bg-orange-50'}`}
+                >
+                  <span>{t('filterDistanceLess', { km })}</span>
+                  <span className={`ml-auto tabular-nums ${distanceBand === km ? 'text-white/80' : 'text-[#A8AEBE]'}`}>{n}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Star rating */}
       <div className={sectionCls}>
         <span className={headCls}>{t('filterStarRating')}</span>
@@ -3075,6 +3218,48 @@ function HotelsContent() {
         );
       })()}
 
+      {/* Property type (hotelTypeId) */}
+      {propTypeFacets.length > 0 && (
+        <div className={sectionCls}>
+          <span className={headCls}>{t('filterPropertyType')}</span>
+          {(facetExpand.propType ? propTypeFacets : propTypeFacets.slice(0, 6)).map(pt => (
+            <label key={pt.id} className={rowCls} onClick={() => toggleProp(pt.id)}>
+              <span className={boxCls(propTypeSel.includes(pt.id))}>
+                {propTypeSel.includes(pt.id) && <i className="fa-solid fa-check text-white text-[.6rem]" aria-hidden />}
+              </span>
+              <span className="text-[.82rem] font-semibold text-[#1A1D2B]">{pt.name}</span>
+              <span className={countCls}>{pt.count}</span>
+            </label>
+          ))}
+          {propTypeFacets.length > 6 && (
+            <button type="button" onClick={() => setFacetExpand(p => ({ ...p, propType: !p.propType }))} className="mt-1.5 text-[.74rem] font-bold text-orange-600 hover:underline">
+              {facetExpand.propType ? t('filterShowLess') : t('filterShowAll', { n: propTypeFacets.length })}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Brand (chain) */}
+      {brandFacets.length > 0 && (
+        <div className={sectionCls}>
+          <span className={headCls}>{t('filterBrand')}</span>
+          {(facetExpand.brand ? brandFacets : brandFacets.slice(0, 6)).map(b => (
+            <label key={b.name} className={rowCls} onClick={() => toggleBrand(b.name)}>
+              <span className={boxCls(brandSel.includes(b.name))}>
+                {brandSel.includes(b.name) && <i className="fa-solid fa-check text-white text-[.6rem]" aria-hidden />}
+              </span>
+              <span className="text-[.82rem] font-semibold text-[#1A1D2B] truncate">{b.name}</span>
+              <span className={countCls}>{b.count}</span>
+            </label>
+          ))}
+          {brandFacets.length > 6 && (
+            <button type="button" onClick={() => setFacetExpand(p => ({ ...p, brand: !p.brand }))} className="mt-1.5 text-[.74rem] font-bold text-orange-600 hover:underline">
+              {facetExpand.brand ? t('filterShowLess') : t('filterShowAll', { n: brandFacets.length })}
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Meal plans */}
       <div className={sectionCls}>
         <span className={headCls}>{t('filterMealPlans')}</span>
@@ -3092,6 +3277,27 @@ function HotelsContent() {
           );
         })}
       </div>
+
+      {/* Facilities (property facilities from facilityIds) */}
+      {facilityFacets.length > 0 && (
+        <div className={sectionCls}>
+          <span className={headCls}>{t('filterFacilities')}</span>
+          {(facetExpand.facilities ? facilityFacets : facilityFacets.slice(0, 8)).map(f => (
+            <label key={f.id} className={rowCls} onClick={() => toggleFacility(f.id)}>
+              <span className={boxCls(facilitySel.includes(f.id))}>
+                {facilitySel.includes(f.id) && <i className="fa-solid fa-check text-white text-[.6rem]" aria-hidden />}
+              </span>
+              <span className="text-[.82rem] font-semibold text-[#1A1D2B]">{f.name}</span>
+              <span className={countCls}>{f.count}</span>
+            </label>
+          ))}
+          {facilityFacets.length > 8 && (
+            <button type="button" onClick={() => setFacetExpand(p => ({ ...p, facilities: !p.facilities }))} className="mt-1.5 text-[.74rem] font-bold text-orange-600 hover:underline">
+              {facetExpand.facilities ? t('filterShowLess') : t('filterShowAll', { n: facilityFacets.length })}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Reservation policy */}
       <div className={sectionCls}>
@@ -3119,7 +3325,7 @@ function HotelsContent() {
   // Reset to page 1 whenever the sorted set changes meaningfully — sort,
   // filter, page-size, or the hotel list itself. Without this you can land
   // on page 4 of an old search when a new search returns 12 results.
-  useEffect(() => { setCurrentPage(1); }, [sortBy, boardFilter, refundableOnly, pageSize, totalResults, nameQuery, priceMin, priceMax, starSel, guestMin, mealSel]);
+  useEffect(() => { setCurrentPage(1); }, [sortBy, boardFilter, refundableOnly, pageSize, totalResults, nameQuery, priceMin, priceMax, starSel, guestMin, mealSel, popularSel, propTypeSel, brandSel, facilitySel, distanceBand]);
 
   // Mirror filter changes into sticky-search so they survive a round-trip
   // through /hotels/[id]. handleSearch already writes the full sticky
