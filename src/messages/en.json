@@ -1115,6 +1115,8 @@
     "oneWayWord": "one-way",
     "livePriceInclTaxes": "Live price incl. taxes",
     "returnLabel": "Return:",
+    "bagChooseFare": "Choose your fare",
+    "bagFare": "Fare",
     "bagCabin": "Cabin bag",
     "bagChecked": "Checked bag",
     "bagCheckedKg": "{kg}kg checked",

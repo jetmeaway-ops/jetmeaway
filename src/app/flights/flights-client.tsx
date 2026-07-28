@@ -458,6 +458,11 @@ type FlightResult = {
   baggage?: { cabin?: boolean; checked?: boolean; checkedKg?: number | null };
   /** LiteAPI fare family name (e.g. "Light", "Inclusive") — display only in P0. */
   fareFamily?: string | null;
+  /** Phase 1 (LiteAPI): selectable fare families for this flight. Each option
+   *  is a distinct bookable offerId with its own per-person price + baggage.
+   *  The card renders a selector; the chosen option's offerId + price flow to
+   *  start-booking. pricePerPax matches the row's per-person convention. */
+  fareOptions?: Array<{ offerId: string; fareFamily: string | null; pricePerPax: number; baggage?: { cabin?: boolean; checked?: boolean; checkedKg?: number | null } }>;
 };
 
 /* ───────────────────────────────────────────────────────────────────────────
@@ -688,6 +693,9 @@ type LiteapiSearchOffer = {
   fareFamily?: string | null;
   seatsRemaining?: number | null;
   baggage?: unknown;
+  /** Phase 1: every fare family for this journey (Light/Inclusive/…), each a
+   *  distinct bookable offerId. total = whole-party price. */
+  fareOptions?: Array<{ offerId: string; fareFamily?: string | null; total?: number | null; baggage?: unknown }>;
 };
 /* Shape verified against the LIVE production payload 2026-07-15: segments sit
    on the JOURNEY (not the offer), with departureTime/arrivalTime ISO strings,
@@ -796,6 +804,16 @@ function liteapiOffersToFlightResults(data: LiteapiSearchResponse): FlightResult
       link: null,
       fareFamily: o.fareFamily ?? null,
       baggage: liteapiBaggage(o.baggage),
+      fareOptions: Array.isArray(o.fareOptions) && o.fareOptions.length > 1
+        ? o.fareOptions
+            .filter((fo) => fo.offerId && typeof fo.total === 'number')
+            .map((fo) => ({
+              offerId: fo.offerId,
+              fareFamily: fo.fareFamily ?? null,
+              pricePerPax: Math.round(((fo.total as number) / paxCount) * 100) / 100,
+              baggage: liteapiBaggage(fo.baggage),
+            }))
+        : undefined,
     });
   }
   return out;
@@ -1434,6 +1452,8 @@ function FlightsContent() {
   const [landingMax, setLandingMax] = useState(1439);
   const [filtersOpenMobile, setFiltersOpenMobile] = useState(false);
   const [priceView, setPriceView] = useState<'perPerson' | 'total'>('perPerson');
+  // Phase 1: per-card chosen LiteAPI fare family (rowOfferId → selected fare offerId).
+  const [selectedFare, setSelectedFare] = useState<Record<string, string>>({});
 
   // URL param initialisation
   const [initOrigin, setInitOrigin] = useState('');
@@ -2662,6 +2682,16 @@ function FlightsContent() {
                     ? '#' // Direct-bookable — see provider-comparison row for the on-site book button
                     : buildAviasalesUrl(originCode, destCode, depDate, effectiveRet, adults);
 
+                  // Phase 1: LiteAPI fare-family selection. The ACTIVE fare drives
+                  // the displayed price, baggage chips, and the offerId/price that
+                  // actually books. Falls back to the row's cheapest fare.
+                  const fareOpts = isLiteapi && f.fareOptions && f.fareOptions.length > 1 ? f.fareOptions : null;
+                  const activeFareId = fareOpts ? (selectedFare[f.offer_id || ''] || f.offer_id || '') : (f.offer_id || '');
+                  const activeFare = fareOpts ? fareOpts.find((o) => o.offerId === activeFareId) ?? null : null;
+                  const displayPrice = activeFare ? activeFare.pricePerPax : f.price;
+                  const displayBaggage = activeFare ? activeFare.baggage : f.baggage;
+                  const bookOfferId = activeFare ? activeFare.offerId : f.offer_id;
+
                   return (
                     <div key={i} className={`bg-white border rounded-2xl overflow-hidden transition-shadow hover:shadow-md ${isCheapest ? 'border-green-200 ring-1 ring-green-100' : 'border-[#E8ECF4]'}`}>
                       <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr_auto] gap-4 p-5 items-center">
@@ -2726,14 +2756,14 @@ function FlightsContent() {
                           <div className="text-right">
                             {priceView === 'total' ? (
                               <>
-                                <div className="font-poppins font-black text-[1.5rem] text-[#1A1D2B] leading-none">{f.currency}{Math.round(f.price * (adults + children))}</div>
+                                <div className="font-poppins font-black text-[1.5rem] text-[#1A1D2B] leading-none">{f.currency}{Math.round(displayPrice * (adults + children))}</div>
                                 <div className="text-[.6rem] text-[#8E95A9] font-semibold">
                                   {t('totalForPassengers', { count: adults + children })}{f.return_at ? t('commaReturn') : t('commaOneWay')}
                                 </div>
                               </>
                             ) : (
                               <>
-                                <div className="font-poppins font-black text-[1.5rem] text-[#1A1D2B] leading-none">{f.currency}{f.price}</div>
+                                <div className="font-poppins font-black text-[1.5rem] text-[#1A1D2B] leading-none">{f.currency}{displayPrice}</div>
                                 <div className="text-[.6rem] text-[#8E95A9] font-semibold">
                                   {isDirect ? t('totalPricePerPerson') : t('perPersonTrip', { trip: f.return_at ? t('returnWord') : t('oneWayWord') })}
                                 </div>
@@ -2755,20 +2785,44 @@ function FlightsContent() {
                         </div>
                       )}
 
-                      {/* Baggage — what's included in this fare (Phase 0, read-only) */}
-                      {f.baggage && (
+                      {/* Baggage — what the ACTIVE fare includes (chips) */}
+                      {displayBaggage && (
                         <div className="border-t border-[#F1F3F7] px-5 py-2.5 bg-white flex items-center gap-2 flex-wrap text-[.72rem] font-bold">
-                          {f.baggage.cabin && (
+                          {displayBaggage.cabin && (
                             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#F1F5FF] text-[#0066FF]">🎒 {t('bagCabin')}</span>
                           )}
-                          {f.baggage.checked ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700">🧳 {f.baggage.checkedKg ? t('bagCheckedKg', { kg: f.baggage.checkedKg }) : t('bagChecked')}</span>
+                          {displayBaggage.checked ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700">🧳 {displayBaggage.checkedKg ? t('bagCheckedKg', { kg: displayBaggage.checkedKg }) : t('bagChecked')}</span>
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-50 text-amber-700">🧳 {t('bagNoChecked')}</span>
                           )}
-                          {f.fareFamily && (
+                          {!fareOpts && f.fareFamily && (
                             <span className="text-[#8E95A9] font-semibold">· {f.fareFamily}</span>
                           )}
+                        </div>
+                      )}
+
+                      {/* Phase 1: LiteAPI fare-family selector — pick the fare with a
+                          checked bag (e.g. easyJet Light no-bag / Inclusive +23kg). */}
+                      {fareOpts && (
+                        <div className="border-t border-[#F1F3F7] px-5 py-2.5 bg-white">
+                          <div className="text-[.62rem] text-[#8E95A9] font-bold uppercase tracking-[1px] mb-2">{t('bagChooseFare')}</div>
+                          <div className="flex flex-wrap gap-2">
+                            {fareOpts.map((opt) => {
+                              const on = opt.offerId === activeFareId;
+                              const kg = opt.baggage?.checked ? (opt.baggage.checkedKg ? t('bagCheckedKg', { kg: opt.baggage.checkedKg }) : t('bagChecked')) : t('bagNoChecked');
+                              return (
+                                <button
+                                  key={opt.offerId}
+                                  onClick={() => setSelectedFare((prev) => ({ ...prev, [f.offer_id || '']: opt.offerId }))}
+                                  className={`text-left px-3 py-2 rounded-xl border text-[.72rem] font-bold transition-colors ${on ? 'border-[#0066FF] bg-[#F1F5FF] text-[#0066FF]' : 'border-[#E8ECF4] bg-white text-[#1A1D2B] hover:border-[#0066FF]'}`}
+                                >
+                                  <div>{opt.fareFamily || t('bagFare')} · {f.currency}{opt.pricePerPax}</div>
+                                  <div className="text-[.62rem] font-semibold text-[#8E95A9]">{opt.baggage?.checked ? '🧳 ' + kg : '🎒 ' + t('bagNoChecked')}</div>
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
                       )}
 
@@ -2822,7 +2876,10 @@ function FlightsContent() {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
-                                      offerId: f.offer_id,
+                                      // Phase 1: book the CHOSEN fare family (Light / Inclusive+bag),
+                                      // not always the cheapest — bookOfferId + displayPrice track the
+                                      // active selection.
+                                      offerId: bookOfferId,
                                       trip: {
                                         origin: f.origin_airport || originCode,
                                         destination: f.destination_airport || destCode,
@@ -2833,10 +2890,10 @@ function FlightsContent() {
                                         infants,
                                         cabin: cabinClass,
                                         currency: symbolToCurrencyCode(f.currency),
-                                        // f.price is per-person; the trip total (used by the
+                                        // displayPrice is per-person; the trip total (used by the
                                         // prebook drift guard vs LiteAPI's whole-party price)
                                         // must be the whole-party amount.
-                                        totalPrice: f.price * (adults + children + infants),
+                                        totalPrice: displayPrice * (adults + children + infants),
                                         airline: f.airlineCode,
                                         airlineName: f.airline,
                                       },
@@ -2853,7 +2910,7 @@ function FlightsContent() {
                               title={t('liteapiTooltip')}
                               className="flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-poppins font-bold text-[.7rem] py-2 px-3 rounded-lg transition-all shadow-sm whitespace-nowrap col-span-2 sm:col-span-3 lg:col-span-5 disabled:opacity-60">
                               <ShieldCheck size={14} strokeWidth={2.5} />
-                              {t('bookDirectShort')} — {f.currency}{priceView === 'total' ? Math.round(f.price * (adults + children)) : f.price}{priceView === 'total' ? t('priceSuffixTotal') : t('priceSuffixPp')} →
+                              {t('bookDirectShort')} — {f.currency}{priceView === 'total' ? Math.round(displayPrice * (adults + children)) : displayPrice}{priceView === 'total' ? t('priceSuffixTotal') : t('priceSuffixPp')} →
                             </button>
                           ) : (
                             PROVIDERS.map((p, pi) => {
