@@ -1454,6 +1454,29 @@ function FlightsContent() {
   const [priceView, setPriceView] = useState<'perPerson' | 'total'>('perPerson');
   // Phase 1: per-card chosen LiteAPI fare family (rowOfferId → selected fare offerId).
   const [selectedFare, setSelectedFare] = useState<Record<string, string>>({});
+  // Phase 2: Duffel à-la-carte checked-bag price, lazily fetched per offer on
+  // tap (available_services only exists on the Get-Offer endpoint, never on the
+  // search list). offerId → { status, serviceId, priceDisplay, weight }.
+  const [duffelBag, setDuffelBag] = useState<Record<string, { status: 'loading' | 'none' | 'ready'; serviceId?: string; priceDisplay?: string; weight?: string | null }>>({});
+  const loadDuffelBag = useCallback(async (offerId: string) => {
+    setDuffelBag((p) => ({ ...p, [offerId]: { status: 'loading' } }));
+    try {
+      const r = await fetch(`/api/offers/${offerId}`);
+      const j = await r.json();
+      const bags: Array<{ id: string; kind?: string; priceDisplay?: string; weight?: string | null }> =
+        j?.offer?.availableServices?.baggage || [];
+      const checked = bags
+        .filter((b) => b.kind === 'checked')
+        .sort((a, b) => parseFloat((a.priceDisplay || '0').replace(/[^0-9.]/g, '')) - parseFloat((b.priceDisplay || '0').replace(/[^0-9.]/g, '')))[0];
+      if (checked) {
+        setDuffelBag((p) => ({ ...p, [offerId]: { status: 'ready', serviceId: checked.id, priceDisplay: checked.priceDisplay, weight: checked.weight ?? null } }));
+      } else {
+        setDuffelBag((p) => ({ ...p, [offerId]: { status: 'none' } }));
+      }
+    } catch {
+      setDuffelBag((p) => ({ ...p, [offerId]: { status: 'none' } }));
+    }
+  }, []);
 
   // URL param initialisation
   const [initOrigin, setInitOrigin] = useState('');
@@ -2799,6 +2822,28 @@ function FlightsContent() {
                           {!fareOpts && f.fareFamily && (
                             <span className="text-[#8E95A9] font-semibold">· {f.fareFamily}</span>
                           )}
+                          {/* Phase 2: Duffel à-la-carte checked bag — lazy price on tap */}
+                          {isDuffel && !displayBaggage.checked && f.offer_id && (() => {
+                            const bag = duffelBag[f.offer_id];
+                            if (!bag || bag.status === 'none') {
+                              return (
+                                <button
+                                  onClick={() => loadDuffelBag(f.offer_id!)}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-[#0066FF] text-[#0066FF] hover:bg-[#F1F5FF]"
+                                >
+                                  ＋ {t('bagAddChecked')}
+                                </button>
+                              );
+                            }
+                            if (bag.status === 'loading') {
+                              return <span className="inline-flex items-center gap-1 px-2 py-1 text-[#8E95A9]">{t('bagChecking')}</span>;
+                            }
+                            return (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700">
+                                🧳 {t('bagAddPrice', { price: bag.priceDisplay || '' })}{bag.weight ? ` · ${bag.weight}` : ''}
+                              </span>
+                            );
+                          })()}
                         </div>
                       )}
 
@@ -2831,7 +2876,7 @@ function FlightsContent() {
                         <div className="text-[.62rem] text-[#8E95A9] font-bold uppercase tracking-[1px] mb-2">{t('bookDirectHeader')}</div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
                           {isDuffel && f.offer_id ? (
-                            <a href={`/checkout/${f.offer_id}`}
+                            <a href={`/checkout/${f.offer_id}${duffelBag[f.offer_id]?.status === 'ready' && duffelBag[f.offer_id]?.serviceId ? `?bag=${duffelBag[f.offer_id]!.serviceId}` : ''}`}
                               className="flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 text-white font-poppins font-bold text-[.7rem] py-2 px-3 rounded-lg transition-all shadow-sm whitespace-nowrap col-span-2 sm:col-span-3 lg:col-span-5">
                               ✓ {t('bookDirectShort')} — {f.currency}{priceView === 'total' ? Math.round(f.price * (adults + children)) : f.price}{priceView === 'total' ? t('priceSuffixTotal') : t('priceSuffixPp')} →
                             </a>
