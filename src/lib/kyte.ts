@@ -138,7 +138,13 @@ export type KyteShopRequest = {
   cabinType: Cabin;
   nonStopFlight?: boolean;
   exactMatch?: boolean;
-  flexibility?: 'lowest' | 'medium' | 'high';
+  /** Kyte fare tier. One Shop call returns ONE tier, so branded fares need a
+   * call per value merged together (see /api/flights/kyte/search):
+   *   lowest   → basic fare (all airlines)
+   *   low      → fares between basic and flexible
+   *   flexible → flexible fare, LCCs that expose one on the API
+   * Confirmed by Kyte (Raquel Garcia, 2026-07-29). */
+  flexibility?: 'lowest' | 'low' | 'flexible';
   passengers: Array<{ age: number }>;
 };
 
