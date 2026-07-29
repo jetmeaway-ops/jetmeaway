@@ -61,6 +61,31 @@ type Body = {
   nonStopFlight?: boolean;
 };
 
+/** Merge Kyte `legs` across the parallel fare-tier responses. Kyte returns
+ * `legs` as either a map keyed by id or an array; the same journey recurs in
+ * every tier, so we dedupe by id (array) or spread-merge (map). Not consumed
+ * by the client converter today, but passed through for debug/forward-compat. */
+function mergeLegs(a: unknown, b: unknown): unknown {
+  if (b == null) return a;
+  if (a == null) return b;
+  if (Array.isArray(a) && Array.isArray(b)) {
+    const seen = new Set(a.map((x) => (x as { id?: unknown })?.id));
+    const merged = [...a];
+    for (const item of b) {
+      const id = (item as { id?: unknown })?.id;
+      if (id === undefined || !seen.has(id)) {
+        merged.push(item);
+        seen.add(id);
+      }
+    }
+    return merged;
+  }
+  if (typeof a === 'object' && typeof b === 'object') {
+    return { ...(a as object), ...(b as object) };
+  }
+  return b;
+}
+
 export async function POST(req: NextRequest) {
   // No cert token (and not globally enabled) → empty offer set, so the public
   // client shows no Kyte rows and the search falls back to Duffel +
@@ -131,36 +156,65 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const shopReq: KyteShopRequest = {
+  const baseReq: Omit<KyteShopRequest, 'flexibility'> = {
     journeys,
     cabinType: cabin,
     nonStopFlight: body.nonStopFlight ?? false,
     exactMatch: true,
-    flexibility: 'lowest',
     passengers,
   };
 
   const ctx = newKyteContext();
 
+  // Branded fares: Kyte returns only ONE fare tier per Shop call, so a lone
+  // `flexibility: 'lowest'` call surfaced just the basic fare. Per Kyte
+  // (Raquel Garcia, 2026-07-29) fan out three parallel Shop calls on ONE
+  // transaction and merge the results:
+  //   lowest   → basic fare (all airlines)
+  //   low      → fares between basic and flexible
+  //   flexible → flexible fare (LCCs that expose one on the API)
+  // All three reuse ctx.transactionId (kyteFetch never mutates ctx), so every
+  // merged offer stays bookable through the existing single-transaction
+  // Book → Commit → Payment flow. allSettled: a tier with no product (common
+  // for `flexible`) may 4xx or return empty without failing the whole search.
+  const FLEX = ['lowest', 'low', 'flexible'] as const;
+
   try {
-    const res = await shopFlights(shopReq, ctx, { airlines: body.airlines });
-    const offers = res.offers || {};
-    const offerCount = Object.keys(offers).length;
-    // Expose `flightSolutions` and `legs` at top level — the frontend
-    // converter (kyteOffersToFlightResults in flights-client) needs to
-    // resolve solution IDs into segments/airline/duration. `raw` carries
-    // anything else Kyte returned, useful for debug only.
-    const flightSolutions = (res as { flightSolutions?: unknown }).flightSolutions;
-    const legs = (res as { legs?: unknown }).legs;
-    const {
-      offers: _o,
-      flightSolutions: _fs,
-      legs: _legs,
-      ...raw
-    } = res as Record<string, unknown> & { offers?: unknown; flightSolutions?: unknown; legs?: unknown };
+    const settled = await Promise.allSettled(
+      FLEX.map((flexibility) =>
+        shopFlights({ ...baseReq, flexibility }, ctx, { airlines: body.airlines }),
+      ),
+    );
+
+    if (!settled.some((s) => s.status === 'fulfilled')) {
+      // Every tier failed — rethrow the first error so the mapping below
+      // returns the right status (config/proxy/auth/validation/server).
+      throw (settled.find((s) => s.status === 'rejected') as PromiseRejectedResult).reason;
+    }
+
+    // Merge offers + flightSolutions (both maps keyed by id) and legs across
+    // the fulfilled tiers. The same journey recurs in every tier, so identical
+    // solution/leg ids spread-merge (dedupe); offers differ by fare → distinct
+    // offerIds. `raw` carries anything else Kyte returned, for debug only.
+    const offers: Record<string, unknown> = {};
+    const flightSolutions: Record<string, unknown> = {};
+    let legs: unknown;
+    const raw: Record<string, unknown> = {};
+
+    for (const s of settled) {
+      if (s.status !== 'fulfilled') continue;
+      const res = s.value as Record<string, unknown>;
+      Object.assign(offers, (res.offers as Record<string, unknown>) || {});
+      Object.assign(flightSolutions, (res.flightSolutions as Record<string, unknown>) || {});
+      legs = mergeLegs(legs, res.legs);
+      for (const [k, v] of Object.entries(res)) {
+        if (k !== 'offers' && k !== 'flightSolutions' && k !== 'legs') raw[k] = v;
+      }
+    }
+
     return NextResponse.json({
       transactionId: ctx.transactionId,
-      offerCount,
+      offerCount: Object.keys(offers).length,
       offers,
       flightSolutions,
       legs,
