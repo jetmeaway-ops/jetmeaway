@@ -54,6 +54,10 @@ type StashedOffer = {
   originCity?: string;
   destinationCode?: string;
   destinationCity?: string;
+  /** Search party sizes — carried so the seat picker can block restricted
+   * seats (exit-row / bulkhead / per-seat) for the youngest travellers. */
+  paxChildren?: number;
+  paxInfants?: number;
 };
 
 type Title = 'mr' | 'mrs' | 'ms' | 'miss' | 'dr';
@@ -109,7 +113,9 @@ type SeatInRow = {
   category?: string;
   available?: boolean;
   isEmergencyExit?: boolean;
+  isFacingBulkhead?: boolean;
   isRestrictedFor?: string;
+  restrictions?: string[];
   type?: string;
 } | null;
 
@@ -137,6 +143,49 @@ type SeatPick = {
   categoryName: string;
   priceMinor: number;
 };
+
+/* ─── Family seat-restriction logic (Kyte) ───────────────────────────────────
+   Kyte flags each seat with any of: `available`, `isEmergencyExit`,
+   `isFacingBulkhead`, `isRestrictedFor` (a single pax-type token) and
+   `restrictions` (a list of pax-type tokens). A seat is blocked when it is
+   restricted for ANY passenger type travelling on this booking; exit-row and
+   bulkhead-facing seats are barred for infants/children even when Kyte sends
+   no explicit token. Adult-only parties keep full access. Built against Kyte's
+   seat schema (Raquel Garcia, 2026-07-29). */
+type PaxKind = 'adult' | 'child' | 'infant';
+
+/** Map a Kyte restriction token → the passenger kinds it forbids. Kyte uses
+ * words ("infant", "child", "children", "teen", "fragile") and short codes
+ * ("INF", "CHD"). Unknown tokens conservatively bar the youngest pax. */
+function restrictionForbids(token: string): PaxKind[] {
+  const t = token.trim().toLowerCase();
+  if (t.startsWith('inf')) return ['infant'];
+  if (t.startsWith('child') || t === 'chd' || t === 'teen') return ['child'];
+  if (t === 'adult' || t === 'adt') return ['adult'];
+  return ['infant', 'child']; // "fragile" / unknown → protect minors, never adults
+}
+
+/** True when `seat` must be unselectable given the passenger types on the
+ * booking. Pure — shared by any seat UI and unit-testable in isolation. */
+function seatBlockedFor(
+  seat: {
+    available?: boolean;
+    isEmergencyExit?: boolean;
+    isFacingBulkhead?: boolean;
+    isRestrictedFor?: string;
+    restrictions?: string[];
+  },
+  party: Set<PaxKind>,
+): boolean {
+  if (seat.available === false) return true;
+  const hasMinor = party.has('child') || party.has('infant');
+  if ((seat.isEmergencyExit || seat.isFacingBulkhead) && hasMinor) return true;
+  const tokens = [
+    ...(Array.isArray(seat.restrictions) ? seat.restrictions : []),
+    ...(seat.isRestrictedFor ? [seat.isRestrictedFor] : []),
+  ];
+  return tokens.some((tok) => restrictionForbids(tok).some((k) => party.has(k)));
+}
 
 const EMPTY_PASSENGER: Passenger = {
   firstName: '',
@@ -589,6 +638,11 @@ export default function BookingClient({
     setStep('error');
   }
 
+  // Passenger types on this booking → drives seat-restriction blocking below.
+  const seatParty = new Set<PaxKind>(['adult']);
+  if ((offer?.paxChildren ?? 0) > 0) seatParty.add('child');
+  if ((offer?.paxInfants ?? 0) > 0) seatParty.add('infant');
+
   /* ───────────────── Render ──────────────────────────────────────────── */
 
   return (
@@ -643,6 +697,7 @@ export default function BookingClient({
             seatMap={seatMap}
             currency={seatCurrency}
             chosen={chosenSeat}
+            party={seatParty}
             onPick={setChosenSeat}
             onContinue={addChosenSeat}
             onSkip={skipSeat}
@@ -1130,6 +1185,7 @@ function SeatPickerStep({
   seatMap,
   currency,
   chosen,
+  party,
   onPick,
   onContinue,
   onSkip,
@@ -1137,6 +1193,7 @@ function SeatPickerStep({
   seatMap: SeatMap | null;
   currency: { code: string; decimals: number };
   chosen: SeatPick | null;
+  party: Set<PaxKind>;
   onPick: (seat: SeatPick | null) => void;
   onContinue: () => void;
   onSkip: () => void;
@@ -1214,10 +1271,12 @@ function SeatPickerStep({
                             if (!s) return <span key={si} className="w-4" />;
                             const cat = s.category ? cats[s.category] : undefined;
                             const price = cat?.price ?? 0;
-                            // isRestrictedFor is a passenger-type code (e.g. "INF" = no
-                            // infants). For adult-only bookings those seats are still
-                            // pickable — matches kyte-ryanair-smoke.mjs's selection logic.
-                            const disabled = !s.available || s.isEmergencyExit;
+                            // Block seats Kyte restricts for the passenger types on this
+                            // booking: exit-row / bulkhead-facing for infants+children,
+                            // plus any per-seat `restrictions` / `isRestrictedFor` token.
+                            // Adult-only parties keep exit/bulkhead access (correct for
+                            // able-bodied adults). See seatBlockedFor().
+                            const disabled = seatBlockedFor(s, party);
                             const isChosen =
                               chosen?.number === s.number && chosen.segmentId === segmentId;
                             return (

@@ -2996,6 +2996,10 @@ function FlightsContent() {
                                       originCity,
                                       destinationCode: destCode,
                                       destinationCity: destCity,
+                                      // Party sizes → the booking page blocks
+                                      // restricted seats for infants/children.
+                                      paxChildren: children,
+                                      paxInfants: infants,
                                     }),
                                   );
                                 } catch { /* sessionStorage unavailable — page will refetch */ }
