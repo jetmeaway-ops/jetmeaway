@@ -39,7 +39,13 @@ import {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 export const runtime = 'nodejs';
-export const maxDuration = 30;
+// Branded fares fire 3 Shop calls (lowest/low/flexible). They run in parallel,
+// but the single Fixie static-IP proxy serialises them, so wall-time ≈ 3× a
+// single call and can breach the old 30s cap (observed live: HTTP 504 @ ~30s).
+// 60s gives headroom for all three tiers to return. Kyte is cert-only for now;
+// revisit for customer launch (Fixie concurrency / caching) — a 30-45s search
+// is fine for certification but too slow for real customers.
+export const maxDuration = 60;
 
 // ── Kyte access gate ─────────────────────────────────────────────────────────
 // Kyte is OFF for customers until the LIVE key lands (the sandbox key covers
