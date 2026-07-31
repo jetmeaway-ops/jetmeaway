@@ -10,6 +10,7 @@ import {
   KyteServerError,
 } from '@/lib/kyte';
 import { reportBug } from '@/lib/report-bug';
+import { kyteCustomerTotalPence, KYTE_FEE_PENCE } from '@/lib/kyte-pricing';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    POST /api/flights/kyte/create-payment-intent
@@ -38,16 +39,8 @@ export const maxDuration = 60;
 
 const STRIPE_KEY = process.env.STRIPE_SECRET_KEY || '';
 
-/** Kyte's per-segment booking fee (sandbox value; verify against signed
- *  pricing letter when LIVE keys arrive). One-way = 1 segment = £0.50. */
-const KYTE_SEGMENT_FEE_PENCE = 50;
-
-/** Stripe UK card-present pricing components, used in the gross-up math.
- *  EU/UK cards: 1.5% + 20p. International cards are higher (2.5% + 20p)
- *  but we hard-code UK rate here — international customers slightly
- *  over-fund the airline charge, JetMeAway absorbs the ~1p delta. */
-const STRIPE_FIXED_PENCE = 20;
-const STRIPE_PCT = 0.015;
+// Fee + gross-up constants and math live in @/lib/kyte-pricing so the price we
+// CHARGE here is always identical to the price the search page DISPLAYS.
 
 type Body = {
   offerId?: string;
@@ -98,13 +91,10 @@ export async function POST(req: NextRequest) {
     return mapKyteError(err);
   }
 
-  /* ---------- 2. Gross-up calculation ---------- */
-  // total = (airline + kyte_fee + stripe_fixed) / (1 - stripe_pct)
-  // All integer-pence to dodge floating-point drift.
-  const subtotalPence = airlinePence + KYTE_SEGMENT_FEE_PENCE + STRIPE_FIXED_PENCE;
-  const totalPence = Math.ceil(subtotalPence / (1 - STRIPE_PCT));
-  // What Stripe takes from us. Always >= STRIPE_FIXED_PENCE + 1.5% of total.
-  const stripeFeePence = totalPence - airlinePence - KYTE_SEGMENT_FEE_PENCE;
+  /* ---------- 2. Gross-up calculation (shared with the search display) ---------- */
+  const totalPence = kyteCustomerTotalPence(airlinePence);
+  // What Stripe takes from us = total minus what we keep (airline + Kyte fee).
+  const stripeFeePence = totalPence - airlinePence - KYTE_FEE_PENCE;
 
   /* ---------- 3. Create the PaymentIntent (Auth + Hold) ---------- */
   let pi;
@@ -121,7 +111,7 @@ export async function POST(req: NextRequest) {
         kyte_offer_id: offerId,
         kyte_transaction_id: transactionId,
         airline_pence: String(airlinePence),
-        kyte_fee_pence: String(KYTE_SEGMENT_FEE_PENCE),
+        kyte_fee_pence: String(KYTE_FEE_PENCE),
         stripe_fee_pence: String(stripeFeePence),
         total_pence: String(totalPence),
         currency_code: currencyCode,
@@ -144,7 +134,7 @@ export async function POST(req: NextRequest) {
     total: totalPence,
     breakdown: {
       airline: airlinePence,
-      kyteFee: KYTE_SEGMENT_FEE_PENCE,
+      kyteFee: KYTE_FEE_PENCE,
       processing: stripeFeePence,
       currency: currencyCode,
     },
