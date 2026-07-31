@@ -7,6 +7,7 @@ import { track } from '@vercel/analytics';
 import DateRangePicker from '@/components/DateRangePicker';
 import DateMatrixStrip, { type MatrixOption, type ScoutTip } from '@/components/DateMatrixStrip';
 import { redirectUrl } from '@/lib/redirect';
+import { kyteCustomerTotalPence } from '@/lib/kyte-pricing';
 import SaveSearchButton from '@/components/SaveSearchButton';
 import { saveSticky, loadSticky, type StickyFlights } from '@/lib/sticky-search';
 import AppStoreBadges from '@/components/AppStoreBadges';
@@ -623,8 +624,12 @@ function kyteOffersToFlightResults(
     if (!firstSeg.departure || !lastSeg.arrival) continue;
 
     const decimals = offer.currency?.decimals ?? 2;
-    const major = (offer.totalPrice ?? 0) / Math.pow(10, decimals);
-    if (major <= 0) continue;
+    const airlineMinor = offer.totalPrice ?? 0;
+    if (airlineMinor <= 0) continue;
+    // Display the true price the customer pays at checkout — the bare airline
+    // fare grossed up by Kyte's booking fee + Stripe's cut, via the same helper
+    // create-payment-intent charges from, so search and checkout never disagree.
+    const major = kyteCustomerTotalPence(airlineMinor) / Math.pow(10, decimals);
 
     const returnSol = solIds.length > 1 ? solutions[solIds[1]] : null;
     const returnFirstSeg = returnSol?.segments?.[0];
