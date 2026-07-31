@@ -13,7 +13,8 @@
  *
  * Env vars (all in Vercel, marked Sensitive — `vercel env pull` returns
  * empty for these, must be pasted into .env.local manually for local dev):
- *   - KYTE_SANDBOX_BASE_URL (e.g. https://api.sandbox.gokyte.com)
+ *   - KYTE_BASE_URL (live, e.g. https://api.live.gokyte.com) — falls back
+ *     to KYTE_SANDBOX_BASE_URL (sandbox) when unset
  *   - KYTE_API_KEY
  *   - KYTE_PROXY_URL (Fixie auth URL with embedded password — never log)
  *
@@ -27,7 +28,10 @@
 import { fetch, ProxyAgent } from 'undici';
 import { randomUUID } from 'node:crypto';
 
-const KYTE_BASE = (process.env.KYTE_SANDBOX_BASE_URL || '').replace(/\/+$/, '');
+const KYTE_BASE = (process.env.KYTE_BASE_URL || process.env.KYTE_SANDBOX_BASE_URL || '').replace(
+  /\/+$/,
+  '',
+);
 const KYTE_KEY = process.env.KYTE_API_KEY || '';
 const KYTE_PROXY = process.env.KYTE_PROXY_URL || '';
 
@@ -297,7 +301,7 @@ type FetchOpts = {
 };
 
 async function kyteFetch<T>({ method, path, body, ctx }: FetchOpts): Promise<T> {
-  if (!KYTE_BASE) throw new KyteConfigError('KYTE_SANDBOX_BASE_URL not set');
+  if (!KYTE_BASE) throw new KyteConfigError('KYTE_BASE_URL / KYTE_SANDBOX_BASE_URL not set');
   if (!KYTE_KEY) throw new KyteConfigError('KYTE_API_KEY not set');
 
   const requestId = randomUUID();
@@ -489,7 +493,7 @@ export async function commitBooking(
   bookingId: string,
   ctx: KyteContext,
 ): Promise<CommitBookingResult> {
-  if (!KYTE_BASE) throw new KyteConfigError('KYTE_SANDBOX_BASE_URL not set');
+  if (!KYTE_BASE) throw new KyteConfigError('KYTE_BASE_URL / KYTE_SANDBOX_BASE_URL not set');
   if (!KYTE_KEY) throw new KyteConfigError('KYTE_API_KEY not set');
 
   const requestId = randomUUID();

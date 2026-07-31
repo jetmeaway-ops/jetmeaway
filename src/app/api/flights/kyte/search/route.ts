@@ -39,12 +39,11 @@ import {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 export const runtime = 'nodejs';
-// Branded fares fire 3 Shop calls (lowest/low/flexible). They run in parallel,
-// but the single Fixie static-IP proxy serialises them, so wall-time ≈ 3× a
-// single call and can breach the old 30s cap (observed live: HTTP 504 @ ~30s).
-// 60s gives headroom for all three tiers to return. Kyte is cert-only for now;
-// revisit for customer launch (Fixie concurrency / caching) — a 30-45s search
-// is fine for certification but too slow for real customers.
+// CERT requests fire 3 Shop calls (lowest/low/flexible) for branded fares; the
+// single Fixie static-IP proxy serialises them, so wall-time ≈ 3× one call and
+// can breach a 30s cap (observed live: HTTP 504 @ ~30s). 60s gives headroom.
+// CUSTOMER requests fire ONLY 'lowest' (~15s) so Kyte lands inside the /flights
+// search window. Follow-up: Fixie concurrency / caching to speed cert up too.
 export const maxDuration = 60;
 
 // ── Kyte access gate ─────────────────────────────────────────────────────────
@@ -172,18 +171,26 @@ export async function POST(req: NextRequest) {
 
   const ctx = newKyteContext();
 
-  // Branded fares: Kyte returns only ONE fare tier per Shop call, so a lone
-  // `flexibility: 'lowest'` call surfaced just the basic fare. Per Kyte
-  // (Raquel Garcia, 2026-07-29) fan out three parallel Shop calls on ONE
-  // transaction and merge the results:
+  // Fare tiers. Kyte returns ONE tier per Shop call, and the single Fixie
+  // static-IP proxy serialises calls, so N tiers ≈ N× wall-time.
   //   lowest   → basic fare (all airlines)
   //   low      → fares between basic and flexible
   //   flexible → flexible fare (LCCs that expose one on the API)
-  // All three reuse ctx.transactionId (kyteFetch never mutates ctx), so every
-  // merged offer stays bookable through the existing single-transaction
-  // Book → Commit → Payment flow. allSettled: a tier with no product (common
-  // for `flexible`) may 4xx or return empty without failing the whole search.
-  const FLEX = ['lowest', 'low', 'flexible'] as const;
+  // CERT requests (private /kyte-cert or /flights?kyte_cert=, carrying the
+  // x-kyte-cert token) fan out all three so Kyte can verify branded fares
+  // (~46s, fine for certification). CUSTOMER requests (KYTE_ENABLED, no token)
+  // fire ONLY 'lowest' — one call ≈ 15s, fast enough to land inside the
+  // /flights search window; branded-fare upgrades are a follow-up.
+  // All tiers reuse ctx.transactionId (kyteFetch never mutates ctx), so every
+  // merged offer stays bookable through the single-transaction Book → Commit →
+  // Payment flow. allSettled: a tier with no product (common for `flexible`)
+  // may 4xx or return empty without failing the whole search.
+  const isCertRequest =
+    !!process.env.KYTE_DEMO_TOKEN &&
+    req.headers.get('x-kyte-cert') === process.env.KYTE_DEMO_TOKEN;
+  const FLEX: ReadonlyArray<'lowest' | 'low' | 'flexible'> = isCertRequest
+    ? ['lowest', 'low', 'flexible']
+    : ['lowest'];
 
   try {
     const settled = await Promise.allSettled(
