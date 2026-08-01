@@ -22,6 +22,14 @@ export default function PopularDestinations() {
   const [paused, setPaused] = useState(false);
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef({ x: 0, scrollLeft: 0 });
+  // True only when the pointer actually MOVED past a threshold during a press —
+  // so a plain click/tap is never mistaken for a drag. A ref (not state) so each
+  // card's onClick reads it SYNCHRONOUSLY, with no stale-closure race across the
+  // mousedown → mouseup → click sequence. That race is why the cards were a "dead
+  // spot": onMouseDown flipped `dragging` true, the click read it true, and
+  // e.preventDefault() killed every plain click — always dead on mobile, where a
+  // tap synthesises the very same mousedown → click sequence.
+  const dragMoved = useRef(false);
   // Sub-pixel accumulator. WebKit (iOS WebView, Safari) rounds Element.scrollLeft
   // to whole pixels on every set, so `scrollLeft += 0.5` floors to 0 each tick
   // and the carousel never drifts. We accumulate fractional pixels here at full
@@ -73,11 +81,13 @@ export default function PopularDestinations() {
   // fire on touch devices, so this is mouse-only by design.
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     setDragging(true);
+    dragMoved.current = false;
     dragStart.current = { x: e.clientX, scrollLeft: scrollRef.current?.scrollLeft || 0 };
   }, []);
   const onMouseMove = useCallback((e: React.MouseEvent) => {
     if (!dragging || !scrollRef.current) return;
     const dx = e.clientX - dragStart.current.x;
+    if (Math.abs(dx) > 4) dragMoved.current = true; // real drag, not a jittery click
     scrollRef.current.scrollLeft = dragStart.current.scrollLeft - dx;
   }, [dragging]);
   const onMouseUp = useCallback(() => setDragging(false), []);
@@ -138,7 +148,7 @@ export default function PopularDestinations() {
           <a key={`${d.name}-${i}`} href={`/hotels?city=${encodeURIComponent(d.name)}`}
             className="relative flex-shrink-0 w-[280px] md:w-[320px] rounded-2xl overflow-hidden group"
             style={{ height: '380px' }}
-            onClick={(e) => { if (dragging) e.preventDefault(); }}
+            onClick={(e) => { if (dragMoved.current) { e.preventDefault(); dragMoved.current = false; } }}
           >
             <Image
               src={d.img}
