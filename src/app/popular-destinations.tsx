@@ -21,7 +21,11 @@ export default function PopularDestinations() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [paused, setPaused] = useState(false);
   const [dragging, setDragging] = useState(false);
-  const dragStart = useRef({ x: 0, scrollLeft: 0 });
+  const dragStart = useRef({ x: 0, y: 0, scrollLeft: 0, pageY: 0 });
+  // Locked axis of the current drag: 'x' pans the carousel, 'y' scrolls the PAGE
+  // — so you can flick the page up/down even when your finger/cursor started on a
+  // card. null until the first real movement picks the direction.
+  const dragAxis = useRef<'x' | 'y' | null>(null);
   // True only when the pointer actually MOVED past a threshold during a press —
   // so a plain click/tap is never mistaken for a drag. A ref (not state) so each
   // card's onClick reads it SYNCHRONOUSLY, with no stale-closure race across the
@@ -82,13 +86,29 @@ export default function PopularDestinations() {
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     setDragging(true);
     dragMoved.current = false;
-    dragStart.current = { x: e.clientX, scrollLeft: scrollRef.current?.scrollLeft || 0 };
+    dragAxis.current = null;
+    dragStart.current = {
+      x: e.clientX,
+      y: e.clientY,
+      scrollLeft: scrollRef.current?.scrollLeft || 0,
+      pageY: window.scrollY,
+    };
   }, []);
   const onMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!dragging || !scrollRef.current) return;
+    if (!dragging) return;
     const dx = e.clientX - dragStart.current.x;
-    if (Math.abs(dx) > 4) dragMoved.current = true; // real drag, not a jittery click
-    scrollRef.current.scrollLeft = dragStart.current.scrollLeft - dx;
+    const dy = e.clientY - dragStart.current.y;
+    // Lock the axis on the first real movement: a mostly-vertical drag scrolls
+    // the page, a mostly-horizontal drag pans the carousel.
+    if (!dragAxis.current && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
+      dragAxis.current = Math.abs(dy) > Math.abs(dx) ? 'y' : 'x';
+      dragMoved.current = true; // a real drag → suppress the card's click
+    }
+    if (dragAxis.current === 'y') {
+      window.scrollTo({ top: dragStart.current.pageY - dy }); // drag up/down → scroll the page
+    } else if (dragAxis.current === 'x' && scrollRef.current) {
+      scrollRef.current.scrollLeft = dragStart.current.scrollLeft - dx;
+    }
   }, [dragging]);
   const onMouseUp = useCallback(() => setDragging(false), []);
 
@@ -135,7 +155,11 @@ export default function PopularDestinations() {
           cursor: dragging ? 'grabbing' : 'grab',
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
-          touchAction: 'pan-x',
+          // pan-x pans the carousel horizontally; pan-y lets a vertical swipe/drag
+          // scroll the PAGE (the strip has no vertical overflow, so it chains up).
+          // Was 'pan-x' alone, which FORBADE vertical touch — so on mobile/app you
+          // couldn't scroll the page when your finger started on a card.
+          touchAction: 'pan-x pan-y',
           // Note: -webkit-overflow-scrolling: touch is intentionally NOT set.
           // It creates an iOS scroll layer that rounds scrollLeft to whole
           // pixels, which kills the auto-scroll loop's 0.5px-per-frame
