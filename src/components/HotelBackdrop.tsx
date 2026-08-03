@@ -15,7 +15,7 @@ import { useEffect, useState } from 'react';
  *   the hotel photo reads clearly in the side margins. Every existing text
  *   colour and card stays readable — no page restyling required.
  * - Sits at z-index -1: above the white <body> background, behind all in-flow
- *   content. The fixed header (z-100) and footer stay on top.
+ *   content. The fixed header (z-110) and footer stay on top.
  * - Loads after the page's own data (the detail gallery is already fetched for
  *   the on-page carousel, so the backdrop reuses cached images — no extra
  *   bandwidth). On checkout it's just the single booking thumbnail.

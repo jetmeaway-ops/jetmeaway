@@ -3696,12 +3696,20 @@ function HotelsContent() {
         </section>
       )}
 
-      {/* ── Loading ──
-          Wrapped with the resultsRef so the handleSearch scrollIntoView
-          lands on the loader the moment the search fires. Mirror of the
-          fix on /flights. */}
+      {/* Stable scroll anchor — ALWAYS mounted at the top of the results
+          zone. handleSearch + onChangePage scroll to THIS, never the
+          conditional loader/results divs below (which are mutually
+          exclusive, so resultsRef could be null in the frame between them
+          or on a fast/cached search). A null ref made the scroll silently
+          no-op; on a re-search the tall results list had just collapsed,
+          clamping the scroll to the bottom → the user landed on the FOOTER.
+          A permanent anchor can't be null. scroll-mt clears the fixed
+          header + mobile category bar. Mirror of the fix on /flights. */}
+      <div ref={resultsRef} aria-hidden className="scroll-mt-[140px]" />
+
+      {/* ── Loading ── */}
       {loading && (
-        <div ref={resultsRef}>
+        <div>
           <LoadingState dest={destination} />
         </div>
       )}
@@ -3721,7 +3729,7 @@ function HotelsContent() {
 
       {/* ── Results ── */}
       {searched && !loading && hotels !== null && (
-        <div ref={resultsRef}>
+        <div>
           {/* ── Results + left filter sidebar (2026-07-28) ──────────────
               List view on lg = two columns: a sticky filter rail on the left
               and the results on the right. Map view and the empty state drop

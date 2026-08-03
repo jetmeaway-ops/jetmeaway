@@ -76,7 +76,7 @@ JetMeAway (jetmeaway.co.uk) is a travel comparison engine built with Next.js 16,
 - Background: `#F8FAFC` (light), `#0F1119` (dark footer)
 - Shadows: blue-tinted `rgba(0,102,255,0.08)`
 - Radii: `rounded-xl` / `rounded-2xl` / `rounded-3xl`
-- Z-index: header `z-[100]`, category bar `z-[101]`, mobile menu `z-[200]`
+- Z-index: header `z-[110]` (must stay above category bar so header dropdowns escape), category bar `z-[101]`, mobile overlay `z-[150]`, mobile menu `z-[200]`, language dropdown `z-[210]`
 
 ## Core Architecture Rules
 
