@@ -26,24 +26,24 @@ export default function Footer() {
           </div>
           <div>
             <h2 className="font-poppins text-[.62rem] font-extrabold uppercase tracking-[2.5px] text-white mb-4">{t('compare')}</h2>
-            <Link href="/flights" className="block text-[.75rem] text-white/75 font-semibold mb-2.5 transition-colors hover:text-white">✈ {t('links.flights')}</Link>
-            <Link href="/hotels" className="block text-[.75rem] text-white/75 font-semibold mb-2.5 transition-colors hover:text-white">🏨 {t('links.hotels')}</Link>
-            <Link href="/packages" className="block text-[.75rem] text-white/75 font-semibold mb-2.5 transition-colors hover:text-white">📦 {t('links.packages')}</Link>
-            <Link href="/cars" className="block text-[.75rem] text-white/75 font-semibold mb-2.5 transition-colors hover:text-white">🚗 {t('links.carHire')}</Link>
-            <Link href="/insurance" className="block text-[.75rem] text-white/75 font-semibold mb-2.5 transition-colors hover:text-white">🛡 {t('links.insurance')}</Link>
-            <Link href="/esim" className="block text-[.75rem] text-white/75 font-semibold mb-2.5 transition-colors hover:text-white">📱 {t('links.esimPlans')}</Link>
+            <Link href="/flights" className="flex items-center gap-1.5 min-h-[44px] md:min-h-0 md:mb-2.5 text-[.75rem] text-white/75 font-semibold transition-colors hover:text-white">✈ {t('links.flights')}</Link>
+            <Link href="/hotels" className="flex items-center gap-1.5 min-h-[44px] md:min-h-0 md:mb-2.5 text-[.75rem] text-white/75 font-semibold transition-colors hover:text-white">🏨 {t('links.hotels')}</Link>
+            <Link href="/packages" className="flex items-center gap-1.5 min-h-[44px] md:min-h-0 md:mb-2.5 text-[.75rem] text-white/75 font-semibold transition-colors hover:text-white">📦 {t('links.packages')}</Link>
+            <Link href="/cars" className="flex items-center gap-1.5 min-h-[44px] md:min-h-0 md:mb-2.5 text-[.75rem] text-white/75 font-semibold transition-colors hover:text-white">🚗 {t('links.carHire')}</Link>
+            <Link href="/insurance" className="flex items-center gap-1.5 min-h-[44px] md:min-h-0 md:mb-2.5 text-[.75rem] text-white/75 font-semibold transition-colors hover:text-white">🛡 {t('links.insurance')}</Link>
+            <Link href="/esim" className="flex items-center gap-1.5 min-h-[44px] md:min-h-0 md:mb-2.5 text-[.75rem] text-white/75 font-semibold transition-colors hover:text-white">📱 {t('links.esimPlans')}</Link>
           </div>
           <div>
             <h2 className="font-poppins text-[.62rem] font-extrabold uppercase tracking-[2.5px] text-white mb-4">{t('company')}</h2>
-            <Link href="/about" className="block text-[.75rem] text-white/75 font-semibold mb-2.5 transition-colors hover:text-white">{t('links.about')}</Link>
-            <Link href="/blog" className="block text-[.75rem] text-white/75 font-semibold mb-2.5 transition-colors hover:text-white">{t('links.blog')}</Link>
-            <Link href="/travel-data" className="block text-[.75rem] text-white/75 font-semibold mb-2.5 transition-colors hover:text-white">{t('links.travelData')}</Link>
-            <Link href="/privacy" className="block text-[.75rem] text-white/75 font-semibold mb-2.5 transition-colors hover:text-white">{t('links.privacyPolicy')}</Link>
-            <Link href="/terms" className="block text-[.75rem] text-white/75 font-semibold mb-2.5 transition-colors hover:text-white">{t('links.termsOfService')}</Link>
-            <Link href="/refund" className="block text-[.75rem] text-white/75 font-semibold mb-2.5 transition-colors hover:text-white">{t('links.refundPolicy')}</Link>
-            <Link href="/affiliate" className="block text-[.75rem] text-white/75 font-semibold mb-2.5 transition-colors hover:text-white">{t('links.affiliateDisclosure')}</Link>
-            <Link href="/financial-protection" className="block text-[.75rem] text-white/75 font-semibold mb-2.5 transition-colors hover:text-white">{t('links.financialProtection')}</Link>
-            <Link href="/contact" className="block text-[.75rem] text-white/75 font-semibold mb-2.5 transition-colors hover:text-white">{t('links.contactUs')}</Link>
+            <Link href="/about" className="flex items-center gap-1.5 min-h-[44px] md:min-h-0 md:mb-2.5 text-[.75rem] text-white/75 font-semibold transition-colors hover:text-white">{t('links.about')}</Link>
+            <Link href="/blog" className="flex items-center gap-1.5 min-h-[44px] md:min-h-0 md:mb-2.5 text-[.75rem] text-white/75 font-semibold transition-colors hover:text-white">{t('links.blog')}</Link>
+            <Link href="/travel-data" className="flex items-center gap-1.5 min-h-[44px] md:min-h-0 md:mb-2.5 text-[.75rem] text-white/75 font-semibold transition-colors hover:text-white">{t('links.travelData')}</Link>
+            <Link href="/privacy" className="flex items-center gap-1.5 min-h-[44px] md:min-h-0 md:mb-2.5 text-[.75rem] text-white/75 font-semibold transition-colors hover:text-white">{t('links.privacyPolicy')}</Link>
+            <Link href="/terms" className="flex items-center gap-1.5 min-h-[44px] md:min-h-0 md:mb-2.5 text-[.75rem] text-white/75 font-semibold transition-colors hover:text-white">{t('links.termsOfService')}</Link>
+            <Link href="/refund" className="flex items-center gap-1.5 min-h-[44px] md:min-h-0 md:mb-2.5 text-[.75rem] text-white/75 font-semibold transition-colors hover:text-white">{t('links.refundPolicy')}</Link>
+            <Link href="/affiliate" className="flex items-center gap-1.5 min-h-[44px] md:min-h-0 md:mb-2.5 text-[.75rem] text-white/75 font-semibold transition-colors hover:text-white">{t('links.affiliateDisclosure')}</Link>
+            <Link href="/financial-protection" className="flex items-center gap-1.5 min-h-[44px] md:min-h-0 md:mb-2.5 text-[.75rem] text-white/75 font-semibold transition-colors hover:text-white">{t('links.financialProtection')}</Link>
+            <Link href="/contact" className="flex items-center gap-1.5 min-h-[44px] md:min-h-0 md:mb-2.5 text-[.75rem] text-white/75 font-semibold transition-colors hover:text-white">{t('links.contactUs')}</Link>
           </div>
           <div>
             <h2 className="font-poppins text-[.62rem] font-extrabold uppercase tracking-[2.5px] text-white mb-4">{t('dealAlerts')}</h2>
@@ -106,7 +106,7 @@ export default function Footer() {
             <Link
               key={d.slug}
               href={`/destinations/${d.slug}`}
-              className="text-[.7rem] font-semibold text-white/75 hover:text-white transition-colors px-2.5 py-1 rounded-full bg-white/[.06] hover:bg-white/[.12] border border-white/10 hover:border-white/20"
+              className="inline-flex items-center min-h-[42px] text-[.7rem] font-semibold text-white/75 hover:text-white transition-colors px-3.5 rounded-full bg-white/[.06] hover:bg-white/[.12] border border-white/10 hover:border-white/20"
             >
               {t(`cities.${d.key}`)}
             </Link>
@@ -132,7 +132,7 @@ export default function Footer() {
               target="_blank"
               rel="me noopener noreferrer"
               aria-label={`JetMeAway on ${s.name}`}
-              className={`w-9 h-9 inline-flex items-center justify-center rounded-full bg-white/[.08] border border-white/15 text-white text-[.95rem] transition-all ${s.hover} hover:border-transparent hover:-translate-y-0.5`}
+              className={`w-11 h-11 inline-flex items-center justify-center rounded-full bg-white/[.08] border border-white/15 text-white text-[1.05rem] transition-all ${s.hover} hover:border-transparent hover:-translate-y-0.5`}
             >
               <i className={s.icon} aria-hidden="true" />
             </a>

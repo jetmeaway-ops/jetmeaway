@@ -2465,14 +2465,25 @@ function FlightsContent() {
         }} />
       )}
 
+      {/* Stable scroll anchor — ALWAYS mounted, at the very top of the
+          results zone. handleSearch + the date-strip handlers scroll to
+          THIS, never the conditional loader/results divs below. Those two
+          are mutually exclusive, so in the frame between the loader
+          unmounting and results mounting (or on a fast/cached search)
+          resultsRef could be null when the scroll fired → the scroll
+          silently no-op'd and the user stayed put; on a RE-search the tall
+          results list had just collapsed, clamping their scroll to the
+          bottom, so they were left staring at the FOOTER. A permanent
+          anchor can't be null. scroll-mt clears the fixed header + mobile
+          category bar so results land just below them. */}
+      <div ref={resultsRef} aria-hidden className="scroll-mt-[140px]" />
+
       {/* ── Loading State ──
-          Ref attached so handleSearch can scroll the user down to the
-          loader the instant they tap Search. Without this, mobile users
-          stare at the form, don't notice the button text changed to
-          "Searching…", and tap Search again 2-3 times. Real Clarity
-          recording 2026-04-27 caught this exact pattern. */}
+          Without the scroll above, mobile users stare at the form, don't
+          notice the button text changed to "Searching…", and tap Search
+          again 2-3 times. Real Clarity recording 2026-04-27 caught this. */}
       {loading && (
-        <div ref={resultsRef}>
+        <div>
           <LoadingState origin={originCode} dest={destCode} />
         </div>
       )}
@@ -2492,7 +2503,7 @@ function FlightsContent() {
 
       {/* ── Results ── */}
       {searched && !loading && flights !== null && (
-        <div ref={resultsRef}>
+        <div>
           {/* Kyte certification banner — only in the token-gated cert view */}
           {kyteCert && (
             <section className="max-w-[1000px] mx-auto px-5 pt-6">
