@@ -74,7 +74,13 @@ export default function Header() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-[100] p-3.5 px-5">
+      {/* z-[110] (was z-[100]) so the header sits ABOVE the mobile category
+          bar (z-[101]). The header is a stacking context; without this its
+          descendant dropdowns (e.g. the language menu at z-[210]) were capped
+          at z-100 and painted UNDER the z-101 category bar. They don't overlap
+          in normal layout, only when a header dropdown opens downward. Stays
+          below the mobile overlay (z-[150]) and slide-out menu (z-[200]). */}
+      <header className="fixed top-0 left-0 right-0 z-[110] p-3.5 px-5">
         {/* Glassmorphism (backdrop-blur + saturate) is GPU-expensive on
             mobile — repaints every scroll frame and was the dominant
             LCP/Speed Index drag on PageSpeed. We now keep the glass look
