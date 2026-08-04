@@ -40,7 +40,7 @@ export default function DealAlertForm() {
 
   return (
     <>
-      <div className="flex rounded-md overflow-hidden">
+      <div className="flex rounded-xl overflow-hidden">
         <input
           type="email"
           value={email}

@@ -435,7 +435,7 @@ function ExploreContent() {
               </optgroup>
             </select>
           </div>
-          <button onClick={handleSearch} className="w-full bg-teal-500 hover:bg-teal-600 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(20,184,166,0.3)]">
+          <button onClick={handleSearch} className="w-full bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_16px_rgba(0,102,255,0.25)]">
             {t('exploreBtn')}
           </button>
         </div>
@@ -532,7 +532,7 @@ function ExploreContent() {
                       </div>
                       <a href={redirectUrl(url, p.name, searchedDest, 'explore')}
                         target="_blank" rel="noopener noreferrer sponsored"
-                        className="bg-teal-500 hover:bg-teal-600 text-white font-poppins font-bold text-[.82rem] px-6 py-3 rounded-xl transition-all whitespace-nowrap shadow-sm">
+                        className="bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.82rem] px-6 py-3 rounded-xl transition-all whitespace-nowrap shadow-sm">
                         {t('searchProvider', { name: p.name })}
                       </a>
                     </div>
@@ -567,7 +567,7 @@ function ExploreContent() {
                       </div>
                       <a href={redirectUrl(url, exp.provider, searchedDest, 'explore')}
                         target="_blank" rel="noopener noreferrer sponsored"
-                        className="mt-3 block w-full text-center bg-teal-50 hover:bg-teal-100 text-teal-700 font-poppins font-bold text-[.75rem] py-2.5 rounded-xl transition-all border border-teal-200">
+                        className="mt-3 block w-full text-center bg-white hover:bg-blue-50 text-[#0066FF] font-poppins font-bold text-[.75rem] py-2.5 rounded-xl transition-all border-2 border-[#0066FF]">
                         {t('viewOnProvider', { provider: exp.provider })}
                       </a>
                     </div>
@@ -593,7 +593,7 @@ function ExploreContent() {
               <h3 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">{t('hotelsIn', { dest: searchedDest })}</h3>
               <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">{t('hotelsSub')}</p>
               <a href={`/hotels?destination=${encodeURIComponent(searchedDest)}`}
-                className="inline-block px-4 py-2 rounded-xl border-2 border-orange-500 text-orange-500 font-poppins font-bold text-[.75rem] hover:bg-orange-50 transition-colors">
+                className="inline-block px-4 py-2 rounded-xl border-2 border-[#0066FF] text-[#0066FF] font-poppins font-bold text-[.75rem] hover:bg-blue-50 transition-colors">
                 {t('compareHotels')}
               </a>
             </div>
@@ -602,7 +602,7 @@ function ExploreContent() {
               <h3 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">{t('packageTo', { dest: searchedDest })}</h3>
               <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">{t('packageSub')}</p>
               <a href={`/packages?dest=${encodeURIComponent(searchedDest)}`}
-                className="inline-block px-4 py-2 rounded-xl border-2 border-purple-500 text-purple-500 font-poppins font-bold text-[.75rem] hover:bg-purple-50 transition-colors">
+                className="inline-block px-4 py-2 rounded-xl border-2 border-[#0066FF] text-[#0066FF] font-poppins font-bold text-[.75rem] hover:bg-blue-50 transition-colors">
                 {t('viewPackages')}
               </a>
             </div>

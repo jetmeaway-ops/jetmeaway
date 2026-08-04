@@ -3131,7 +3131,7 @@ function FlightsContent() {
                       <div className="text-[.72rem] font-semibold text-[#8E95A9] mb-2">{t('checkPrice')}</div>
                     )}
                     <a href={redirectUrl(url, p.name, destCity || destCode, 'flights')}
-                      className="w-full bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.72rem] py-2 rounded-lg transition-all">
+                      className="w-full bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.72rem] py-2 rounded-xl transition-all">
                       {t('searchProvider', { name: p.name })}
                     </a>
                   </div>
@@ -3149,7 +3149,7 @@ function FlightsContent() {
                 <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">{t('hotelsIn', { dest: destCity || destCode })}</h4>
                 <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">{t('foundYourFlight')}</p>
                 <a href={`/hotels?destination=${encodeURIComponent(destCity || destCode)}${depDate ? `&checkin=${depDate}` : ''}${retDate ? `&checkout=${retDate}` : ''}`}
-                  className="inline-block bg-white hover:bg-blue-50 text-[#0066FF] font-poppins font-bold text-[.75rem] px-4 py-2 rounded-lg border border-blue-200 transition-all">
+                  className="inline-block bg-white hover:bg-blue-50 text-[#0066FF] border-2 border-[#0066FF] font-poppins font-bold text-[.75rem] px-4 py-2 rounded-xl transition-all">
                   {t('compareHotels')}
                 </a>
               </div>
@@ -3160,7 +3160,7 @@ function FlightsContent() {
                 <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">{t('carHireAt', { dest: destCity || destCode })}</h4>
                 <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">{t('needWheels')}</p>
                 <a href={`/cars?location=${encodeURIComponent(destCity || destCode)}`}
-                  className="inline-block bg-white hover:bg-amber-50 text-amber-600 font-poppins font-bold text-[.75rem] px-4 py-2 rounded-lg border border-amber-200 transition-all">
+                  className="inline-block bg-white hover:bg-blue-50 text-[#0066FF] border-2 border-[#0066FF] font-poppins font-bold text-[.75rem] px-4 py-2 rounded-xl transition-all">
                   {t('compareCarHire')}
                 </a>
               </div>
@@ -3171,7 +3171,7 @@ function FlightsContent() {
                 <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">{t('completePackage')}</h4>
                 <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">{t('savePackage')}</p>
                 <a href={`/packages?from=${originCode}&to=${destCode}&depart=${depDate}&return=${retDate}`}
-                  className="inline-block bg-white hover:bg-purple-50 text-purple-600 font-poppins font-bold text-[.75rem] px-4 py-2 rounded-lg border border-purple-200 transition-all">
+                  className="inline-block bg-white hover:bg-blue-50 text-[#0066FF] border-2 border-[#0066FF] font-poppins font-bold text-[.75rem] px-4 py-2 rounded-xl transition-all">
                   {t('viewPackages')}
                 </a>
               </div>

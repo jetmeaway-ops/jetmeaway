@@ -244,7 +244,7 @@ export default function Header() {
             </Link>
             <Link
               href="/contact"
-              className="hidden md:inline-flex bg-[#0F1119] text-white px-4 py-2.5 rounded-xl font-bold text-[.78rem] transition-all hover:bg-[#0066FF] shadow-[0_4px_16px_rgba(0,0,0,0.12)]"
+              className="hidden md:inline-flex bg-[#0066FF] text-white px-4 py-2.5 rounded-xl font-poppins font-bold text-[.78rem] transition-all hover:bg-[#0052CC] shadow-[0_4px_16px_rgba(0,102,255,0.25)]"
             >
               {t('nav.contact')}
             </Link>

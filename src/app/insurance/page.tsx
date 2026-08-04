@@ -168,7 +168,7 @@ export default function InsurancePage() {
             </div>
           </div>
           <button onClick={openAll}
-            className="w-full bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(16,185,129,0.3)]">
+            className="w-full bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_16px_rgba(0,102,255,0.25)]">
             {t('getQuote')} →
           </button>
           <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">{t('quoteNote')}</p>

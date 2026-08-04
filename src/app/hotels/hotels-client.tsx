@@ -1444,7 +1444,7 @@ function OccupancyPicker({
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="w-full mt-3 bg-orange-500 hover:bg-orange-600 text-white font-poppins font-bold text-[.8rem] py-2 rounded-xl transition-colors"
+            className="w-full mt-3 bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.8rem] py-2 rounded-xl transition-all"
           >
             {t('done')}
           </button>
@@ -1859,7 +1859,7 @@ function BookDirectButton({
   return (
     <a
       href={detailHref}
-      className="inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-full bg-[#0a0f2e] hover:bg-[#111827] text-[#f5a623] font-poppins font-semibold text-[.72rem] whitespace-nowrap transition-all duration-200 hover:scale-[1.02] shadow-sm"
+      className="inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.72rem] whitespace-nowrap transition-all duration-200 hover:scale-[1.02] shadow-sm"
     >
       <i className="fa-solid fa-lock mr-1.5" /> {t('bookDirect')}
     </a>
@@ -1994,7 +1994,7 @@ function CompareTray({ hotels, nights, priceView, adults, childCount, onRemove, 
               type="button"
               onClick={onOpen}
               disabled={hotels.length < 2}
-              className={`text-[.78rem] font-black px-4 py-2 rounded-full transition-all ${hotels.length < 2 ? 'bg-[#F1F3F7] text-[#8E95A9] cursor-not-allowed' : 'bg-orange-500 text-white hover:bg-orange-600 shadow-sm'}`}
+              className={`text-[.78rem] font-poppins font-bold px-4 py-2 rounded-xl transition-all ${hotels.length < 2 ? 'bg-[#F1F3F7] text-[#8E95A9] cursor-not-allowed' : 'bg-[#0066FF] text-white hover:bg-[#0052CC] shadow-sm'}`}
             >
               {hotels.length >= 2 ? t('compareNHotels', { count: hotels.length }) : t('comparePickPrompt')}
             </button>
@@ -2111,7 +2111,7 @@ function CompareModal({ hotels, nights, priceView, adults, childCount, buildDeta
                     </dl>
                     <a
                       href={buildDetailHref(h)}
-                      className="mt-auto inline-flex items-center justify-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white font-poppins font-bold text-[.75rem] px-3 py-2 rounded-full transition-all"
+                      className="mt-auto inline-flex items-center justify-center gap-1.5 bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.75rem] px-3 py-2 rounded-xl transition-all"
                     >
                       {t('viewRooms')}
                     </a>
@@ -3509,7 +3509,7 @@ function HotelsContent() {
           </label>
 
           <button onClick={handleSearch} disabled={loading}
-            className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(245,158,11,0.3)]">
+            className="w-full bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-60 text-white font-poppins font-bold text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_16px_rgba(0,102,255,0.25)]">
             {loading ? t('searchingBtn') : t('searchHotels')}
           </button>
           {formError ? (
@@ -3685,7 +3685,7 @@ function HotelsContent() {
                     h,
                     `/hotels/${encodeURIComponent(h.id)}?checkin=${bestDeal.checkin}&checkout=${bestDeal.checkout}&adults=2&children=0&rooms=1&city=${encodeURIComponent(bestDeal.city)}&price=${h.totalPrice}&currency=GBP${h.offerId ? `&offerId=${encodeURIComponent(h.offerId)}` : ''}${h.boardType ? `&board=${encodeURIComponent(h.boardType)}` : ''}${h.refundable ? '&refundable=1' : '&refundable=0'}`,
                   )}
-                  className="flex-shrink-0 bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-poppins font-black text-[.85rem] px-6 py-3 rounded-xl transition-all shadow-[0_4px_20px_rgba(245,158,11,0.3)]"
+                  className="flex-shrink-0 bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-60 text-white font-poppins font-bold text-[.85rem] px-6 py-3 rounded-xl transition-all shadow-[0_4px_16px_rgba(0,102,255,0.25)]"
                 >
                   {dealBookingId === h.id ? t('startingShort') : t('viewDeal')}
                 </a>
@@ -3720,7 +3720,7 @@ function HotelsContent() {
           <div className="bg-red-50 border border-red-100 rounded-2xl p-5 text-center">
             <p className="text-[.85rem] font-bold text-red-600 mb-3">{apiError}</p>
             <button onClick={handleSearch}
-              className="bg-orange-500 hover:bg-orange-600 text-white font-poppins font-bold text-[.82rem] px-6 py-2.5 rounded-xl transition-all">
+              className="bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.82rem] px-6 py-2.5 rounded-xl transition-all">
               {t('tryAgain')}
             </button>
           </div>
@@ -4121,13 +4121,13 @@ function HotelsContent() {
                   <button
                     type="button"
                     onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                    className="w-full py-3 rounded-2xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.85rem] transition-all shadow-[0_4px_14px_rgba(0,102,255,0.25)]"
+                    className="w-full py-3 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.85rem] transition-all shadow-[0_4px_14px_rgba(0,102,255,0.25)]"
                   >
                     🔍 {t('adjustSearch')}
                   </button>
                   <a
                     href="/packages"
-                    className="w-full py-3 rounded-2xl border border-[#E8ECF4] hover:bg-[#F8FAFC] text-[#1A1D2B] font-poppins font-semibold text-[.85rem] text-center transition-all"
+                    className="w-full py-3 rounded-xl border-2 border-[#0066FF] bg-white hover:bg-blue-50 text-[#0066FF] font-poppins font-bold text-[.85rem] text-center transition-all"
                   >
                     📦 {t('tryPackages')}
                   </a>
@@ -4171,7 +4171,7 @@ function HotelsContent() {
                   <button
                     type="button"
                     onClick={() => setMobileFiltersOpen(false)}
-                    className="ml-auto bg-orange-500 hover:bg-orange-600 text-white font-poppins font-black text-[.85rem] px-6 py-3 rounded-xl transition-all"
+                    className="ml-auto bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.85rem] px-6 py-3 rounded-xl transition-all"
                   >
                     {t('filterApply', { count: resultCount })}
                   </button>
@@ -4189,7 +4189,7 @@ function HotelsContent() {
                 <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">{t('flightsTo', { dest: searchedDest })}</h4>
                 <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">{t('needFlightToo')}</p>
                 <a href={`/flights?to=${encodeURIComponent(searchedDest)}`}
-                  className="inline-block bg-white hover:bg-blue-50 text-[#0066FF] font-poppins font-bold text-[.75rem] px-4 py-2 rounded-lg border border-blue-200 transition-all">
+                  className="inline-block bg-white hover:bg-blue-50 text-[#0066FF] font-poppins font-bold text-[.75rem] px-4 py-2 rounded-xl border-2 border-[#0066FF] transition-all">
                   {t('compareFlights')}
                 </a>
               </div>
@@ -4200,7 +4200,7 @@ function HotelsContent() {
                 <h4 className="font-poppins font-black text-[.9rem] text-[#1A1D2B] mb-1">{t('carHireIn', { dest: searchedDest })}</h4>
                 <p className="text-[.75rem] text-[#5C6378] font-semibold mb-3">{t('exploreOnTerms', { dest: searchedDest })}</p>
                 <a href={`/cars?location=${encodeURIComponent(searchedDest)}`}
-                  className="inline-block bg-white hover:bg-amber-50 text-amber-600 font-poppins font-bold text-[.75rem] px-4 py-2 rounded-lg border border-amber-200 transition-all">
+                  className="inline-block bg-white hover:bg-blue-50 text-[#0066FF] font-poppins font-bold text-[.75rem] px-4 py-2 rounded-xl border-2 border-[#0066FF] transition-all">
                   {t('compareCarHire')}
                 </a>
               </div>

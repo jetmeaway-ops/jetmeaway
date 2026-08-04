@@ -158,7 +158,7 @@ async function LogoScroll() {
         {[...PROVIDERS, ...PROVIDERS].map((name, i) => (
           // text-[#3a4154] passes WCAG AA (4.5:1) on the #C8D0E0 backdrop;
           // the previous #5C6378 was 3.5:1 and Lighthouse flagged it.
-          <span key={i} className="flex-shrink-0 mx-8 font-[var(--font-dm-sans)] font-bold text-[.85rem] tracking-wide text-[#3a4154] uppercase whitespace-nowrap">
+          <span key={i} className="flex-shrink-0 mx-8 font-[var(--next-poppins)] font-bold text-[.85rem] tracking-wide text-[#3a4154] uppercase whitespace-nowrap">
             {name}
           </span>
         ))}
@@ -186,7 +186,7 @@ async function HowItWorks() {
   return (
     <section className="py-10 px-6 bg-white">
       <div className="max-w-[1100px] mx-auto">
-        <p className="text-center text-[.65rem] font-black uppercase tracking-[3px] text-orange-800 mb-1.5 font-[var(--font-dm-sans)]">{t('sections.simpleProcess')}</p>
+        <p className="text-center text-[.65rem] font-black uppercase tracking-[3px] text-orange-800 mb-1.5 font-[var(--next-poppins)]">{t('sections.simpleProcess')}</p>
         <h2 className="text-center font-[var(--font-playfair)] text-[1.8rem] md:text-[2.2rem] font-black text-[#0a1628] mb-6">{t('sections.howItWorks')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {STEPS.map((s) => (
@@ -199,7 +199,7 @@ async function HowItWorks() {
                   <i className={`fa-solid ${s.icon} text-xl text-orange-500`} />
                 </div>
                 <h3 className="font-[var(--font-playfair)] font-black text-[1.1rem] text-[#0a1628] mb-1">{t(`steps.${s.key}.title`)}</h3>
-                <p className="font-[var(--font-dm-sans)] text-[.78rem] text-[#5C6378] leading-relaxed">{t(`steps.${s.key}.desc`)}</p>
+                <p className="font-[var(--next-poppins)] text-[.78rem] text-[#5C6378] leading-relaxed">{t(`steps.${s.key}.desc`)}</p>
               </div>
             </div>
           ))}
@@ -227,7 +227,7 @@ async function WhatWeCompare() {
   return (
     <section className="py-10 px-6 bg-[#C8D0E0]">
       <div className="max-w-[1100px] mx-auto">
-        <p className="text-center text-[.65rem] font-black uppercase tracking-[3px] text-orange-800 mb-1.5 font-[var(--font-dm-sans)]">{t('sections.allInOnePlace')}</p>
+        <p className="text-center text-[.65rem] font-black uppercase tracking-[3px] text-orange-800 mb-1.5 font-[var(--next-poppins)]">{t('sections.allInOnePlace')}</p>
         <h2 className="text-center font-[var(--font-playfair)] text-[1.8rem] md:text-[2.2rem] font-black text-[#0a1628] mb-6">{t('sections.whatWeCompare')}</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {CATEGORIES.map((c) => (
@@ -241,7 +241,7 @@ async function WhatWeCompare() {
               )}
               <div className="text-2xl mb-2 group-hover:scale-110 transition-transform">{c.emoji}</div>
               <h3 className="font-poppins font-black text-[.95rem] text-[#0a1628] mb-0.5">{t(`categories.${c.key}.name`)}</h3>
-              <p className="font-[var(--font-dm-sans)] text-[.74rem] text-[#5C6378]">{t(`categories.${c.key}.desc`)}</p>
+              <p className="font-[var(--next-poppins)] text-[.74rem] text-[#5C6378]">{t(`categories.${c.key}.desc`)}</p>
             </a>
           ))}
         </div>
@@ -279,7 +279,7 @@ async function TrendingDestinations() {
   return (
     <section className="py-12 px-6 bg-white" aria-labelledby="trending-heading">
       <div className="max-w-[1100px] mx-auto">
-        <p className="text-center text-[.65rem] font-black uppercase tracking-[3px] text-orange-800 mb-1.5 font-[var(--font-dm-sans)]">{tr('sections.trendingThisWeek')}</p>
+        <p className="text-center text-[.65rem] font-black uppercase tracking-[3px] text-orange-800 mb-1.5 font-[var(--next-poppins)]">{tr('sections.trendingThisWeek')}</p>
         <h2 id="trending-heading" className="text-center font-[var(--font-playfair)] text-[1.8rem] md:text-[2.2rem] font-black text-[#0a1628] mb-6">
           {tr('sections.trendingDestinations')}
         </h2>
@@ -290,13 +290,13 @@ async function TrendingDestinations() {
               href={t.href}
               className="group relative bg-white border border-[#E8ECF4] rounded-2xl p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] hover:border-orange-200"
             >
-              <div className="text-[.58rem] font-black uppercase tracking-[2px] text-orange-700 mb-1 font-[var(--font-dm-sans)]">
+              <div className="text-[.58rem] font-black uppercase tracking-[2px] text-orange-700 mb-1 font-[var(--next-poppins)]">
                 {tr(`trending.${t.key}.eyebrow`)}
               </div>
               <div className="font-poppins font-black text-[1.05rem] text-[#0a1628] mb-1 group-hover:text-orange-700 transition-colors">
                 {tr(`trending.${t.key}.title`)} →
               </div>
-              <div className="font-[var(--font-dm-sans)] text-[.74rem] text-[#5C6378] leading-snug">
+              <div className="font-[var(--next-poppins)] text-[.74rem] text-[#5C6378] leading-snug">
                 {tr(`trending.${t.key}.hint`)}
               </div>
             </a>
@@ -333,7 +333,7 @@ async function ScoutDestinations() {
           <h2 className="font-[var(--font-playfair)] text-[2rem] md:text-[2.6rem] font-black leading-tight mb-3">
             {t('scout.heading')}
           </h2>
-          <p className="font-[var(--font-dm-sans)] text-white/85 text-[.95rem] max-w-[620px] mx-auto">
+          <p className="font-[var(--next-poppins)] text-white/85 text-[.95rem] max-w-[620px] mx-auto">
             {t('scout.sub')}
           </p>
         </div>
@@ -356,7 +356,7 @@ async function ScoutDestinations() {
         <div className="text-center">
           <a
             href="/destinations"
-            className="inline-flex items-center gap-2 bg-[#FFD700] hover:bg-[#FFC700] text-[#0a1628] font-poppins font-black text-[.95rem] px-7 py-3.5 rounded-full transition-all shadow-[0_8px_30px_rgba(255,215,0,0.25)] hover:-translate-y-0.5"
+            className="inline-flex items-center gap-2 bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.95rem] px-7 py-3.5 rounded-xl transition-all shadow-[0_4px_16px_rgba(0,102,255,0.25)] hover:-translate-y-0.5"
           >
             {t('scout.exploreAll')} →
           </a>
@@ -380,11 +380,11 @@ async function CtaSection() {
         </h2>
         {/* Copy must stay TRUE — no invented user counts ("join thousands")
             or made-up stats. Honest value props only (2026-07-02 audit). */}
-        <p className="font-[var(--font-dm-sans)] text-[.95rem] text-[#5C6378] mb-8">{t('cta.sub')}</p>
+        <p className="font-[var(--next-poppins)] text-[.95rem] text-[#5C6378] mb-8">{t('cta.sub')}</p>
         <a href="/hotels"
           // bg-orange-700 + white text = 5.0:1 contrast (passes WCAG AA);
           // previous orange-500 was 2.93:1 and Lighthouse flagged it.
-          className="inline-block bg-orange-700 hover:bg-orange-800 text-white font-poppins font-black text-[1rem] px-10 py-4 rounded-xl shadow-[0_8px_30px_rgba(194,65,12,0.35)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(194,65,12,0.4)]">
+          className="inline-block bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[1rem] px-10 py-4 rounded-xl shadow-[0_4px_16px_rgba(0,102,255,0.25)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,102,255,0.4)]">
           {t('cta.button')}
         </a>
       </div>
@@ -420,12 +420,12 @@ export default async function Home() {
         <LondonHeroBackdrop />
 
         <div className="max-w-[800px] mx-auto text-center relative z-[1]">
-          <p className="font-[var(--font-dm-sans)] text-orange-300 text-[.72rem] font-bold uppercase tracking-[3px] mb-4">{t('hero.eyebrow')}</p>
+          <p className="font-[var(--next-poppins)] text-orange-300 text-[.72rem] font-bold uppercase tracking-[3px] mb-4">{t('hero.eyebrow')}</p>
           <h1 className="[font-family:var(--next-poppins)] md:[font-family:var(--font-playfair)] text-[2.6rem] md:text-[4.2rem] font-black text-white leading-[1.08] tracking-tight mb-5">
             {t('hero.titlePre')}{' '}
             <span className="bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent">{t('hero.titleHighlight')}</span>
           </h1>
-          <p className="font-[var(--font-dm-sans)] text-white/80 text-[1.05rem] mb-8 max-w-[550px] mx-auto">
+          <p className="font-[var(--next-poppins)] text-white/80 text-[1.05rem] mb-8 max-w-[550px] mx-auto">
             {t('hero.sub')}
           </p>
 
@@ -439,7 +439,7 @@ export default async function Home() {
             ] as const).map(s => (
               <div key={s.key} className="text-center" role="listitem">
                 <div className="font-poppins font-black text-[1.6rem] md:text-[2rem] text-white leading-none">{s.val}</div>
-                <div className="font-[var(--font-dm-sans)] text-white/80 text-[.7rem] font-medium mt-1">{t(`stats.${s.key}`)}</div>
+                <div className="font-[var(--next-poppins)] text-white/80 text-[.7rem] font-medium mt-1">{t(`stats.${s.key}`)}</div>
               </div>
             ))}
           </div>
@@ -461,7 +461,7 @@ export default async function Home() {
       <section className="bg-[#0a1628] text-white/95 border-y border-white/10">
         <div className="max-w-[1100px] mx-auto px-6 py-3 flex items-center justify-center gap-3 text-center">
           <span className="text-emerald-400 text-base" aria-hidden="true">🛡️</span>
-          <p className="font-[var(--font-dm-sans)] text-[.78rem] md:text-[.85rem] font-semibold leading-snug">
+          <p className="font-[var(--next-poppins)] text-[.78rem] md:text-[.85rem] font-semibold leading-snug">
             <span className="text-white font-bold">{t('trust.locked')}</span>{' '}
             <span className="text-white/85">{t('trust.never')} JETMEAWAY LTD · Company No. 17140522 · London, UK.</span>
           </p>

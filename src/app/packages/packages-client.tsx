@@ -303,7 +303,7 @@ function PkgGuestPicker({ adults, children: ch, childrenAges, onChange }: {
             </div>
           )}
           <button type="button" onClick={() => setOpen(false)}
-            className="w-full mt-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-poppins font-bold text-[.8rem] py-2.5 rounded-xl transition-colors">{t('done')}</button>
+            className="w-full mt-3 bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.8rem] py-2.5 rounded-xl transition-all">{t('done')}</button>
         </div>
       )}
     </div>
@@ -1089,7 +1089,7 @@ function PackagesContent() {
             </div>
           </div>
           <button onClick={handleSearch}
-            className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(124,58,237,0.3)]">
+            className="w-full bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_16px_rgba(0,102,255,0.25)]">
             {t('searchBtn')}
           </button>
           <p className="text-center text-[.68rem] text-[#8E95A9] font-semibold mt-2.5">{t('atolNote')}</p>
@@ -1255,7 +1255,7 @@ function PackagesContent() {
                     {searchedFrom ? searchedFrom.replace(/\s*\(.*\)$/, '') : 'UK'} → {searchedDest}{cheapestFlight ? ` ${t('fromLower')} £${cheapestFlight}` : ''}
                   </p>
                   <a href={`/flights?${searchedFrom ? `from=${encodeURIComponent(searchedFrom)}` : ''}${destIata ? `&to=${destIata}` : `&destCity=${encodeURIComponent(searchedDest)}`}&departure=${depDate}${effectiveReturn ? `&return=${effectiveReturn}` : ''}`}
-                    className="inline-block px-4 py-2 rounded-xl border-2 border-[#0066FF] text-[#0066FF] font-poppins font-bold text-[.75rem] hover:bg-blue-50 transition-colors">
+                    className="inline-block px-4 py-2 rounded-xl bg-white border-2 border-[#0066FF] text-[#0066FF] hover:bg-blue-50 font-poppins font-bold text-[.75rem] transition-all">
                     {t('compareFlights')}
                   </a>
                 </div>
@@ -1266,7 +1266,7 @@ function PackagesContent() {
                     {t('hotelsInShort', { dest: searchedDest })}{cheapestHotel ? ` ${t('fromLower')} £${cheapestHotel}${t('perNight')}` : ''}
                   </p>
                   <a href={`/hotels?destination=${encodeURIComponent(searchedDest)}&checkin=${depDate}&checkout=${effectiveReturn}`}
-                    className="inline-block px-4 py-2 rounded-xl border-2 border-orange-500 text-orange-500 font-poppins font-bold text-[.75rem] hover:bg-orange-50 transition-colors">
+                    className="inline-block px-4 py-2 rounded-xl bg-white border-2 border-[#0066FF] text-[#0066FF] hover:bg-blue-50 font-poppins font-bold text-[.75rem] transition-all">
                     {t('compareHotels')}
                   </a>
                 </div>
@@ -1277,7 +1277,7 @@ function PackagesContent() {
                     {t('carHireIn', { dest: searchedDest })}
                   </p>
                   <a href={`/cars?location=${encodeURIComponent(searchedDest)}&pickup=${depDate}&dropoff=${effectiveReturn}`}
-                    className="inline-block px-4 py-2 rounded-xl border-2 border-emerald-500 text-emerald-500 font-poppins font-bold text-[.75rem] hover:bg-emerald-50 transition-colors">
+                    className="inline-block px-4 py-2 rounded-xl bg-white border-2 border-[#0066FF] text-[#0066FF] hover:bg-blue-50 font-poppins font-bold text-[.75rem] transition-all">
                     {t('compareCarHire')}
                   </a>
                 </div>

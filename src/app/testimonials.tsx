@@ -66,7 +66,7 @@ export default function Testimonials() {
   return (
     <section className="py-16 px-6 bg-[#0a1628]">
       <div className="max-w-[1120px] mx-auto text-center">
-        <p className="text-[.65rem] font-black uppercase tracking-[3px] text-[#00B67A] mb-2 font-[var(--font-dm-sans)]">
+        <p className="text-[.65rem] font-black uppercase tracking-[3px] text-[#00B67A] mb-2 font-[var(--next-poppins)]">
           Verified on Trustpilot
         </p>
         <h2 className="font-[var(--font-playfair)] text-[2rem] md:text-[2.4rem] font-black text-white mb-3">
@@ -94,7 +94,7 @@ export default function Testimonials() {
             >
               <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
                 <Stars value={r.stars} />
-                <span className="font-[var(--font-dm-sans)] text-white/50 text-[.72rem]">{r.date}</span>
+                <span className="font-[var(--next-poppins)] text-white/50 text-[.72rem]">{r.date}</span>
               </div>
               <p className="font-poppins font-bold text-white text-[.95rem] mb-3">{r.title}</p>
               <blockquote className="font-[var(--font-playfair)] italic text-white/90 text-[1rem] leading-relaxed mb-5 flex-1">

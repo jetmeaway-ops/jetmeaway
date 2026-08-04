@@ -58,7 +58,7 @@ export default function PopularDestinations() {
     <section className="py-14 bg-[#C8D0E0]">
       <div className="max-w-[1100px] mx-auto px-6 mb-10">
         <div className="flex items-center justify-center gap-2 mb-2">
-          <p className="text-[.65rem] font-black uppercase tracking-[3px] text-orange-800 font-[var(--font-dm-sans)]">Trending Now</p>
+          <p className="text-[.65rem] font-black uppercase tracking-[3px] text-orange-800 font-[var(--next-poppins)]">Trending Now</p>
           <span className="flex items-center gap-1.5 bg-green-50 border border-green-200 text-green-700 text-[.58rem] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
             <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
             Live prices
@@ -104,12 +104,12 @@ export default function PopularDestinations() {
               <div className="absolute top-3 right-3 z-[2] animate-bob">
                 <div className="backdrop-blur-md bg-black/45 border border-white/25 rounded-xl px-3 py-1.5 shadow-lg">
                   <p className="font-poppins font-black text-white text-[.72rem] leading-none">From &pound;{d.price}</p>
-                  <p className="font-[var(--font-dm-sans)] text-white/80 text-[.55rem] font-medium">/night</p>
+                  <p className="font-[var(--next-poppins)] text-white/80 text-[.55rem] font-medium">/night</p>
                 </div>
               </div>
               <div className="absolute bottom-0 left-0 right-0 p-5 z-[2]">
                 <h3 className="font-[var(--font-playfair)] font-black text-white text-[1.5rem] leading-tight mb-0.5">{d.name}</h3>
-                <p className="font-[var(--font-dm-sans)] text-white/60 text-[.75rem] font-medium mb-2">{d.country}</p>
+                <p className="font-[var(--next-poppins)] text-white/60 text-[.75rem] font-medium mb-2">{d.country}</p>
                 <p className="font-poppins font-bold text-orange-400 text-[.82rem] mb-3">Hotels from &pound;{d.price}/night</p>
                 <span className="inline-block bg-orange-500 hover:bg-orange-600 text-white font-poppins font-bold text-[.78rem] px-5 py-2.5 rounded-xl opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-[0_4px_20px_rgba(249,115,22,0.4)]">
                   Search Hotels &rarr;
