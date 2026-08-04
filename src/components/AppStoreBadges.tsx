@@ -72,7 +72,7 @@ export default function AppStoreBadges({ variant = 'dark', className = '' }: Pro
       className={`flex flex-col sm:flex-row items-center justify-center gap-x-3 gap-y-2.5 ${className}`}
     >
       <span
-        className={`font-[var(--font-dm-sans)] text-[.8rem] font-semibold ${labelColor}`}
+        className={`font-[var(--next-poppins)] text-[.8rem] font-semibold ${labelColor}`}
       >
         Get the app
       </span>

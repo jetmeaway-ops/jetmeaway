@@ -225,13 +225,13 @@ export default async function DestinationPage(
           <div className="flex flex-wrap items-center justify-center gap-3 mt-7">
             <Link
               href={`/hotels?destination=${encodeURIComponent(d.city)}`}
-              className="bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.9rem] px-6 py-3 rounded-full transition-colors"
+              className="bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.9rem] px-6 py-3 rounded-xl transition-colors"
             >
               Compare {d.city} Hotels →
             </Link>
             <Link
               href={`/flights?to=${d.iata}`}
-              className="bg-white/10 hover:bg-white/20 backdrop-blur text-white font-poppins font-bold text-[.9rem] px-6 py-3 rounded-full border border-white/30 transition-colors"
+              className="border border-white/60 text-white hover:bg-white/10 backdrop-blur font-poppins font-bold text-[.9rem] px-6 py-3 rounded-xl transition-all"
             >
               Find Flights to {d.iata}
             </Link>
@@ -362,13 +362,13 @@ export default async function DestinationPage(
           <div className="flex flex-wrap justify-center gap-3">
             <Link
               href={`/hotels?destination=${encodeURIComponent(d.city)}`}
-              className="bg-white text-[#0066FF] hover:bg-[#FFD700] hover:text-[#1A1D2B] font-poppins font-bold text-[.9rem] px-6 py-3 rounded-full transition-colors"
+              className="bg-white text-[#0066FF] hover:bg-blue-50 font-poppins font-bold text-[.9rem] px-6 py-3 rounded-xl transition-all"
             >
               Compare Hotels
             </Link>
             <Link
               href={`/flights?to=${d.iata}`}
-              className="bg-white/10 hover:bg-white/20 backdrop-blur text-white font-poppins font-bold text-[.9rem] px-6 py-3 rounded-full border border-white/40 transition-colors"
+              className="border border-white/60 text-white hover:bg-white/10 backdrop-blur font-poppins font-bold text-[.9rem] px-6 py-3 rounded-xl transition-all"
             >
               Compare Flights
             </Link>

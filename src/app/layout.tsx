@@ -9,7 +9,7 @@
 import type { Viewport } from 'next';
 import './globals.css';
 import Script from 'next/script';
-import { Poppins, Playfair_Display, DM_Sans } from 'next/font/google';
+import { Poppins, Playfair_Display } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import { RTL_LOCALES } from '@/i18n/config';
@@ -34,14 +34,12 @@ import ClientErrorReporter from '@/components/ClientErrorReporter';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 
 const poppins = Poppins({
-  // Weight diet 2026-06-03: was [400, 700, 900]. Codebase grep showed
-  // `font-poppins font-normal` (400) had ZERO usages, while
-  // `font-poppins font-semibold` (600) appears in 17 places — the
-  // browser was synthesizing 600 from the 700 face on every paint,
-  // which both looked slightly off and added paint-time CPU. Swapping
-  // 400 → 600 keeps the WOFF2 download count the same (3 weights)
-  // while removing the synthesis tax.
-  weight: ['600', '700', '900'],
+  // 2026-08-03: Poppins is now the SINGLE UI/body font (DM Sans dropped —
+  // owner's 2-font system: Playfair for headings, Poppins for everything
+  // else). 400 re-added because body copy that used to be DM Sans 400/500
+  // now renders in Poppins; without a 400 face the browser would synthesize
+  // it from 600 and body text would read too heavy. 600/700/900 unchanged.
+  weight: ['400', '500', '600', '700', '900'],
   subsets: ['latin'],
   display: 'swap',
   variable: '--next-poppins',
@@ -58,23 +56,6 @@ const playfair = Playfair_Display({
   // in page.tsx). Preloading the serif on every page wasted ~30-50KB
   // of mobile bandwidth in the FCP window. font-display: swap means
   // text still paints in fallback before Playfair arrives.
-  preload: false,
-});
-
-const dmSans = DM_Sans({
-  // Weight diet 2026-06-03: was [400, 500, 700]. Grep showed no
-  // `font-[var(--font-dm-sans)] font-normal` usages (400) but several
-  // `font-semibold` (600) calls were synthesizing from 700. Swapping
-  // 400 → 600 keeps the 3-weight WOFF2 budget intact.
-  weight: ['500', '600', '700'],
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-dm-sans',
-  // preload: false — DM Sans is used for body copy + eyebrow text.
-  // Eyebrow ("UK's Smartest Travel Comparison") is above the fold but
-  // small (.72rem) and not the LCP element. font-display: swap renders
-  // fallback first, swaps to DM Sans when ready (FOUT). next/font's
-  // adjusted fallback metrics keep CLS unchanged.
   preload: false,
 });
 
@@ -270,7 +251,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const messages = await getMessages();
   const dir = RTL_LOCALES.has(locale) ? 'rtl' : 'ltr';
   return (
-    <html lang={locale} dir={dir} className={`${poppins.variable} ${playfair.variable} ${dmSans.variable}`}>
+    <html lang={locale} dir={dir} className={`${poppins.variable} ${playfair.variable}`}>
       <head>
         {/* Theme colour: dark navy matches hero bg so the iOS status bar
             blends into the app rather than flashing blue on launch. */}
@@ -321,7 +302,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             crossOrigin="anonymous"
           />
         </noscript>
-        {/* Poppins + Playfair + DM Sans self-hosted via next/font — no Google Fonts request */}
+        {/* Poppins + Playfair self-hosted via next/font — no Google Fonts request */}
       </head>
       <body>
         <NextIntlClientProvider locale={locale} messages={messages}>

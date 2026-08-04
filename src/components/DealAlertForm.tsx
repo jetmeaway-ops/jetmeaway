@@ -40,14 +40,14 @@ export default function DealAlertForm() {
 
   return (
     <>
-      <div className="flex rounded-md overflow-hidden">
+      <div className="flex rounded-xl overflow-hidden">
         <input
           type="email"
           value={email}
           onChange={e => setEmail(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleJoin()}
           placeholder="Your email"
-          className="flex-1 bg-white/[.06] border-none py-3 px-3.5 font-[Nunito] text-[.78rem] text-white outline-none placeholder:text-white/50"
+          className="flex-1 bg-white/[.06] border-none py-3 px-3.5 font-poppins text-[.78rem] text-white outline-none placeholder:text-white/50"
         />
         <button
           onClick={handleJoin}

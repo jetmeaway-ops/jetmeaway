@@ -36,10 +36,10 @@ export default function RotatingReviews() {
             <span className="text-emerald-400/40 text-[.95rem]">★</span>
           </span>
           <span className="font-poppins font-black text-white text-[.85rem]">{TRUSTPILOT_SCORE}</span>
-          <span className="font-[var(--font-dm-sans)] text-white/60 text-[.72rem]">
+          <span className="font-[var(--next-poppins)] text-white/60 text-[.72rem]">
             on Trustpilot
           </span>
-          <span className="font-[var(--font-dm-sans)] text-white/40 group-hover:text-white/70 text-[.72rem] transition-colors">
+          <span className="font-[var(--next-poppins)] text-white/40 group-hover:text-white/70 text-[.72rem] transition-colors">
             · Read reviews <i className="fa-solid fa-arrow-up-right-from-square text-[.55rem]" aria-hidden="true" />
           </span>
         </a>
