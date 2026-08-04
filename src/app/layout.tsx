@@ -39,7 +39,7 @@ const poppins = Poppins({
   // else). 400 re-added because body copy that used to be DM Sans 400/500
   // now renders in Poppins; without a 400 face the browser would synthesize
   // it from 600 and body text would read too heavy. 600/700/900 unchanged.
-  weight: ['400', '600', '700', '900'],
+  weight: ['400', '500', '600', '700', '900'],
   subsets: ['latin'],
   display: 'swap',
   variable: '--next-poppins',
