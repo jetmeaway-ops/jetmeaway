@@ -25,6 +25,25 @@ const nextConfig: NextConfig = {
         destination: '/blog/is-it-cheaper-to-book-hotel-direct-vs-otas',
         permanent: true,
       },
+      // The short-lived /car-hire/[slug] landing pages (live ~1 day, Aug 2026,
+      // never submitted to search engines) were re-homed as blog posts so they
+      // join the Read-next graph, blog index and llms-full instead of sitting
+      // orphaned outside the content system. 301 keeps any early crawls.
+      {
+        source: '/car-hire/alicante-airport',
+        destination: '/blog/car-hire-alicante-airport-2026',
+        permanent: true,
+      },
+      {
+        source: '/car-hire/malaga-airport',
+        destination: '/blog/car-hire-malaga-airport-2026',
+        permanent: true,
+      },
+      {
+        source: '/car-hire/faro-airport',
+        destination: '/blog/car-hire-faro-airport-2026',
+        permanent: true,
+      },
     ];
   },
   async headers() {

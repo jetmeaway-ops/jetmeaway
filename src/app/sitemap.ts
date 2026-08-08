@@ -11,7 +11,6 @@
 import type { MetadataRoute } from 'next';
 import { getAllPosts } from '@/lib/blog';
 import { DESTINATIONS } from '@/data/destinations';
-import { CAR_HIRE_LOCATIONS } from '@/data/car-hire-locations';
 
 const BASE = 'https://jetmeaway.co.uk';
 
@@ -91,16 +90,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     posts = [];
   }
 
-  // Car hire landing pages — high-intent money pages added Aug 2026 after a
-  // competitor gap analysis found "car hire [airport]" was a large search
-  // cluster we ranked for nothing on, despite already holding the affiliate
-  // contracts. Priority sits above blog posts because these convert.
-  const carHire: MetadataRoute.Sitemap = CAR_HIRE_LOCATIONS.map(l => ({
-    url: `${BASE}/car-hire/${l.slug}`,
-    lastModified: now,
-    changeFrequency: 'weekly' as const,
-    priority: 0.85,
-  }));
-
-  return [...primary, ...info, ...destinations, ...carHire, ...neighbourhoods, ...posts];
+  return [...primary, ...info, ...destinations, ...neighbourhoods, ...posts];
 }
