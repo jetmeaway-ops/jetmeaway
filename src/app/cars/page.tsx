@@ -672,7 +672,7 @@ function CarsContent() {
           </div>
 
           <button onClick={handleSearch}
-            className="w-full bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_16px_rgba(0,102,255,0.25)]">
+            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-poppins font-black text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_20px_rgba(16,185,129,0.3)]">
             {t('searchBtn')}
           </button>
           {formError ? (
@@ -717,14 +717,14 @@ function CarsContent() {
           <section className="max-w-[1000px] mx-auto px-5 pb-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <a href={ebHref} target="_blank" rel="noopener sponsored"
-                className="block bg-[#0066FF] hover:bg-[#0052CC] text-white rounded-xl p-5 shadow-[0_4px_16px_rgba(0,102,255,0.25)] transition-all">
+                className="block bg-gradient-to-br from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-2xl p-5 shadow-[0_8px_30px_rgba(16,185,129,0.25)] transition-all">
                 <div className="text-[.6rem] font-black uppercase tracking-[2px] opacity-80 mb-1">{t('liveResultsP1')}</div>
                 <div className="font-poppins font-black text-[1.05rem]">EconomyBookings →</div>
                 <div className="text-[.72rem] font-semibold opacity-90 mt-0.5">Hertz · Europcar · Avis · Sixt · Enterprise</div>
                 <div className="inline-block text-[.62rem] font-bold bg-white/20 px-2.5 py-1 rounded-md mt-2">{t('freeCancellation')}</div>
               </a>
               <a href={tripHref} target="_blank" rel="noopener sponsored"
-                className="block bg-[#0066FF] hover:bg-[#0052CC] text-white rounded-xl p-5 shadow-[0_4px_16px_rgba(0,102,255,0.25)] transition-all">
+                className="block bg-gradient-to-br from-[#1A1D2B] to-[#0F1119] hover:from-[#0F1119] hover:to-black text-white rounded-2xl p-5 shadow-[0_8px_30px_rgba(15,17,25,0.25)] transition-all">
                 <div className="text-[.6rem] font-black uppercase tracking-[2px] opacity-80 mb-1">{t('liveResultsP2')}</div>
                 <div className="font-poppins font-black text-[1.05rem]">Trip.com →</div>
                 <div className="text-[.72rem] font-semibold opacity-90 mt-0.5">{t('compareGlobalSuppliers')}</div>
@@ -803,11 +803,11 @@ function CarsContent() {
                         </div>
                         <div className="flex flex-col gap-1.5 w-full md:w-auto">
                           <a href={ebHref} target="_blank" rel="noopener sponsored"
-                            className="text-center text-[.72rem] font-poppins font-bold text-white bg-[#0066FF] hover:bg-[#0052CC] px-4 py-2 rounded-xl transition-all whitespace-nowrap">
+                            className="text-center text-[.72rem] font-black text-white bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded-lg transition-colors whitespace-nowrap">
                             EconomyBookings →
                           </a>
                           <a href={tripHref} target="_blank" rel="noopener sponsored"
-                            className="text-center text-[.72rem] font-poppins font-bold text-white bg-[#0066FF] hover:bg-[#0052CC] px-4 py-2 rounded-xl transition-all whitespace-nowrap">
+                            className="text-center text-[.72rem] font-black text-white bg-[#1A1D2B] hover:bg-[#0F1119] px-4 py-2 rounded-lg transition-colors whitespace-nowrap">
                             Trip.com →
                           </a>
                         </div>
@@ -828,11 +828,11 @@ function CarsContent() {
           <section className="max-w-[1000px] mx-auto px-5 pb-10">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <a href={ebHref} target="_blank" rel="noopener sponsored"
-                className="block text-center bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.9rem] py-4 rounded-xl transition-all">
+                className="block text-center bg-emerald-500 hover:bg-emerald-600 text-white font-poppins font-black text-[.9rem] py-4 rounded-xl transition-colors">
                 {t('bookOnEco')}
               </a>
               <a href={tripHref} target="_blank" rel="noopener sponsored"
-                className="block text-center bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.9rem] py-4 rounded-xl transition-all">
+                className="block text-center bg-[#1A1D2B] hover:bg-[#0F1119] text-white font-poppins font-black text-[.9rem] py-4 rounded-xl transition-colors">
                 {t('bookOnTrip')}
               </a>
             </div>
@@ -861,6 +861,18 @@ function CarsContent() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Airport car hire guides — internal links to the blog money-content.
+          These give visitors (and crawlers) a path into the per-airport guides;
+          without them the guides are only reachable from the sitemap. */}
+      <section className="max-w-[1000px] mx-auto px-5 pb-10">
+        <h2 className="font-poppins font-black text-[1.15rem] text-[#1A1D2B] mb-3">Airport car hire guides</h2>
+        <div className="flex flex-wrap gap-2">
+          <a href="/blog/car-hire-alicante-airport-2026" className="bg-white border border-[#E8ECF4] hover:border-emerald-400 rounded-xl px-4 py-2.5 text-[.82rem] font-bold text-[#1A1D2B] transition-colors">Car hire Alicante Airport →</a>
+          <a href="/blog/car-hire-malaga-airport-2026" className="bg-white border border-[#E8ECF4] hover:border-emerald-400 rounded-xl px-4 py-2.5 text-[.82rem] font-bold text-[#1A1D2B] transition-colors">Car hire Malaga Airport →</a>
+          <a href="/blog/car-hire-faro-airport-2026" className="bg-white border border-[#E8ECF4] hover:border-emerald-400 rounded-xl px-4 py-2.5 text-[.82rem] font-bold text-[#1A1D2B] transition-colors">Car hire Faro Airport →</a>
         </div>
       </section>
 

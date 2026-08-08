@@ -11,7 +11,7 @@
  * Continental buckets ("Africa", "South America") are deliberately excluded:
  * too broad to imply relatedness.
  *
- * 455 posts mapped across 94 countries (40 with >=4 posts).
+ * 456 posts mapped across 94 countries (40 with >=4 posts).
  */
 export const BLOG_COUNTRIES: Readonly<Record<string, string>> = {
   "best-all-inclusive-hotels-alanya-2026": "Turkey",
@@ -468,6 +468,7 @@ export const BLOG_COUNTRIES: Readonly<Record<string, string>> = {
   "best-hotels-zermatt-2026": "Switzerland",
   "best-hotels-zhangjiajie-2026": "China",
   "best-hotels-zurich-2026": "Switzerland",
+  "bristol-balloon-fiesta-2026-hotels": "United Kingdom",
   "family-holidays-spain": "Spain",
 };
 
