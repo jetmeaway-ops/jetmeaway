@@ -1,66 +1,48 @@
-// JetMeAway Service Worker — PWA + Push Notifications
+// JetMeAway Service Worker — PUSH NOTIFICATIONS ONLY.
+//
+// ⚠ LAW — learned the hard way, twice: NEVER add a `fetch` event handler to
+// this file. Not network-first, not cache-first, not "just for assets".
+//
+// Why (2026-08-08 cold-start investigation): when ANY fetch handler exists,
+// the browser must dispatch every request through the service worker — even
+// requests the handler ignores pay the SW wake-up. After the site/app sits
+// idle the SW process is killed; delivering the first fetch event into a
+// dead/waking SW can stall for many seconds (a documented failure class on
+// low-memory Android and in WebKit, observed here as 15-20s), and the
+// un-timed respondWith(fetch()) then gated the tap on that stall. Second
+// tap: SW warm → instant. Server was measured healthy the whole time
+// (TTFB 0.2-0.5s cold, curl 2026-08-08).
+//
+// PR#47 (2026-07-26) exempted `mode === 'navigate'` requests for the same
+// symptom — but Next.js App Router tab clicks are NOT navigations, they are
+// RSC payload fetches (/route?_rsc=…), so the main interaction path was
+// still gated on the SW. Confirmed live on production: the /hotels?_rsc
+// fetch and every _next/static chunk showed workerStart > 0 (via-SW).
+//
+// The fetch handler bought us nothing: this is a live-price travel site, so
+// an offline cache of stale pages has no value, PWA installability no longer
+// requires a fetch handler (Chrome dropped that requirement in 2023), and the
+// iOS/Android apps are native wrappers anyway. Push notifications — the one
+// thing the SW is genuinely for — do not need fetch interception.
+//
+// With NO fetch handler the browser skips the SW entirely for every request:
+// zero SW-induced latency, on every path, forever.
 
-const CACHE_NAME = 'jetmeaway-v2';
-const OFFLINE_URL = '/';
-
-// Assets to pre-cache on install
-const PRECACHE_ASSETS = [
-  '/',
-  '/icon-192x192.png',
-  '/icon-512x512.png',
-  '/jetmeaway-logo.png',
-];
-
-// Install — pre-cache core assets
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_ASSETS))
-  );
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
-// NOTE: we intentionally do NOT call self.clients.claim() on activate. Claiming
-// makes this SW seize control of the very first page load mid-session, which
-// disrupted first-visit navigations (dead taps for 15-20s). Without claim the
-// SW only controls from the next navigation onward, by which point it is warm.
-
-// Activate — clean old caches
+// Activate — delete ALL caches this SW ever created. Earlier versions cached
+// every page, RSC payload and JS chunk into 'jetmeaway-v2' with no size cap
+// or cleanup, so long-lived devices are carrying megabytes of stale entries.
+// Nothing reads these caches any more; reclaim the space.
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+    caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
   );
-  // Deliberately NOT calling self.clients.claim() — see install note above.
-});
-
-// Fetch — static assets only, network-first with cache fallback.
-self.addEventListener('fetch', (event) => {
-  // Skip non-GET and API/analytics requests
-  if (event.request.method !== 'GET') return;
-
-  // NEVER intercept page navigations. A SW-proxied navigation runs
-  // serially through SW cold-boot → fetch → network (navigation preload is
-  // off), which gated every tap on the SW and made first-visit navigations
-  // feel dead for 15-20s on mobile. Let the browser handle navigations
-  // directly — this is the fast path and cannot be slower than the network.
-  if (event.request.mode === 'navigate') return;
-
-  const url = new URL(event.request.url);
-  if (url.pathname.startsWith('/api/') || url.hostname !== self.location.hostname) return;
-
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Cache successful HTML/asset responses
-        if (response.ok && response.type === 'basic') {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        }
-        return response;
-      })
-      .catch(() => caches.match(event.request).then((cached) => cached || caches.match(OFFLINE_URL)))
-  );
+  // Still NOT calling self.clients.claim() — with no fetch handler there is
+  // nothing to claim control FOR, and claiming mid-session has bitten us
+  // before (see PR#47).
 });
 
 // Push notification received
