@@ -9,6 +9,7 @@ import DownloadPdfCard from '@/components/blog/DownloadPdfCard';
 import HotelPhoto from '@/components/blog/HotelPhoto';
 import CheapestMonthsTable from '@/components/blog/CheapestMonthsTable';
 import BestValueTable from '@/components/blog/BestValueTable';
+import CarHireCta from '@/components/blog/CarHireCta';
 import RelatedPosts from '@/components/blog/RelatedPosts';
 import CityBlogBackdrop from '@/components/CityBlogBackdrop';
 import { getAllPosts, getAllPostSlugs, getPostBySlug, formatPostDate } from '@/lib/blog';
@@ -176,6 +177,10 @@ const mdxComponents = {
   CheapestMonthsTable,
   // Ranked fare table for the "Cheapest UK destinations right now" post.
   BestValueTable,
+  // Prefilled car-hire search CTA for the /blog/car-hire-* money posts —
+  // `<CarHireCta location="Alicante Airport (ALC)" place="Alicante" />`.
+  // `location` must match a LOCATIONS name in src/app/cars/page.tsx exactly.
+  CarHireCta,
 };
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
