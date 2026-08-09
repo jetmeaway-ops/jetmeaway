@@ -11,6 +11,7 @@ import CheapestMonthsTable from '@/components/blog/CheapestMonthsTable';
 import BestValueTable from '@/components/blog/BestValueTable';
 import CarHireCta from '@/components/blog/CarHireCta';
 import RelatedPosts from '@/components/blog/RelatedPosts';
+import FaqSection, { bodyHasFaqHeading } from '@/components/blog/FaqSection';
 import CityBlogBackdrop from '@/components/CityBlogBackdrop';
 import { getAllPosts, getAllPostSlugs, getPostBySlug, formatPostDate } from '@/lib/blog';
 import { pickRelatedPosts } from '@/lib/relatedPosts';
@@ -382,6 +383,15 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           <MidArticleCta city={post.ctaCity ?? null} flightCode={post.ctaFlightsTo ?? null} />
           {secondContent}
         </div>
+
+        {/* The post's own Q&A, rendered for humans. Until 2026-08-09 `post.faqs`
+            fed the FAQPage JSON-LD and nothing else, so every answer lived only
+            inside a <script> tag. Sits directly after the body because 450 of
+            546 posts already close on their own FAQ heading — hence the
+            showHeading guard, which suppresses a duplicate H2 on those. */}
+        {post.faqs && post.faqs.length > 0 && (
+          <FaqSection faqs={post.faqs} showHeading={!bodyHasFaqHeading(post.content)} />
+        )}
 
         {/* "Read next" — contextual internal links to sibling articles. */}
         <RelatedPosts posts={relatedPosts} />
