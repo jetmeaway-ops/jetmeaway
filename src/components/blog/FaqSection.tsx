@@ -52,6 +52,47 @@ export function bodyHasFaqHeading(content: string): boolean {
   return /^##\s.*(questions answered|FAQs?\b|Frequently asked)/im.test(content);
 }
 
+/** Lowercase, strip punctuation, collapse whitespace — for text comparison. */
+function normalise(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * The FAQs whose question text is NOT already written out in the post body.
+ *
+ * 🔴 WHY (2026-08-09, same day as the original fix). The first version of this
+ * component rendered EVERY faq and only guarded against a duplicate *heading*.
+ * That was wrong: on most posts the Q&A had already been written into the body
+ * as prose, so shipping the block printed the same question twice. Measured
+ * across the corpus after that deploy: **10,183 of 14,095 questions (72%) were
+ * duplicated on 400 of 546 posts** — Tokyo 25/26, Vienna 11/11, Baku 25/26.
+ * Only 145 posts genuinely had no on-page copy.
+ *
+ * A question is treated as already-present if its normalised text appears
+ * anywhere in the normalised body. Substring matching on the question is
+ * deliberate: the body renders these as headings or bold lead-ins, so the
+ * question survives verbatim even when the surrounding prose differs.
+ */
+export function faqsMissingFromBody(
+  faqs: NonNullable<BlogPost['faqs']>,
+  content: string,
+): NonNullable<BlogPost['faqs']> {
+  const body = normalise(content);
+  return faqs.filter((f) => !body.includes(normalise(f.q)));
+}
+
+/**
+ * Below this, a rendered block reads as a stub rather than an FAQ section —
+ * one lonely question under a "Frequently asked questions" heading looks
+ * broken. Posts under the floor render nothing; their Q&A is already in the
+ * body and still ships in the FAQPage JSON-LD either way.
+ */
+export const MIN_FAQS_TO_RENDER = 3;
+
 export default function FaqSection({ faqs, showHeading = true }: FaqSectionProps) {
   if (!faqs || faqs.length === 0) return null;
 
@@ -72,7 +113,14 @@ export default function FaqSection({ faqs, showHeading = true }: FaqSectionProps
 
       <div className="divide-y divide-[#E8ECF4] border-y border-[#E8ECF4]">
         {faqs.map((faq, i) => (
-          <details key={i} className="group py-1">
+          // 🔴 `open` by default, deliberately. Google's snippet documentation
+          // (updated 2026-04-20) says content hidden behind an expandable
+          // section is not eligible for the "Read more" deep links that jump a
+          // searcher straight to an answer. With FAQ rich results switched off
+          // on 7 May 2026, ordinary body text is the ONLY route left, so
+          // nothing here may start collapsed. The disclosure stays so a reader
+          // can still fold a long list away — it just starts open.
+          <details key={i} open className="group py-1">
             <summary
               // list-none + the custom chevron below: Safari and Chrome render
               // the native marker differently and neither matches the design.

@@ -11,7 +11,11 @@ import CheapestMonthsTable from '@/components/blog/CheapestMonthsTable';
 import BestValueTable from '@/components/blog/BestValueTable';
 import CarHireCta from '@/components/blog/CarHireCta';
 import RelatedPosts from '@/components/blog/RelatedPosts';
-import FaqSection, { bodyHasFaqHeading } from '@/components/blog/FaqSection';
+import FaqSection, {
+  bodyHasFaqHeading,
+  faqsMissingFromBody,
+  MIN_FAQS_TO_RENDER,
+} from '@/components/blog/FaqSection';
 import CityBlogBackdrop from '@/components/CityBlogBackdrop';
 import { getAllPosts, getAllPostSlugs, getPostBySlug, formatPostDate } from '@/lib/blog';
 import { pickRelatedPosts } from '@/lib/relatedPosts';
@@ -384,14 +388,18 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           {secondContent}
         </div>
 
-        {/* The post's own Q&A, rendered for humans. Until 2026-08-09 `post.faqs`
-            fed the FAQPage JSON-LD and nothing else, so every answer lived only
-            inside a <script> tag. Sits directly after the body because 450 of
-            546 posts already close on their own FAQ heading — hence the
-            showHeading guard, which suppresses a duplicate H2 on those. */}
-        {post.faqs && post.faqs.length > 0 && (
-          <FaqSection faqs={post.faqs} showHeading={!bodyHasFaqHeading(post.content)} />
-        )}
+        {/* The post's own Q&A, rendered for humans — but ONLY the answers that
+            are not already written into the body. `post.faqs` used to feed the
+            FAQPage JSON-LD and nothing else, so every answer lived inside a
+            <script> tag; rendering them fixed that, but rendering ALL of them
+            printed 72% of the corpus twice (400 of 546 posts). faqsMissingFromBody
+            keeps just the genuinely-unseen ones — about 145 posts' worth. */}
+        {(() => {
+          if (!post.faqs || post.faqs.length === 0) return null;
+          const unseen = faqsMissingFromBody(post.faqs, post.content);
+          if (unseen.length < MIN_FAQS_TO_RENDER) return null;
+          return <FaqSection faqs={unseen} showHeading={!bodyHasFaqHeading(post.content)} />;
+        })()}
 
         {/* "Read next" — contextual internal links to sibling articles. */}
         <RelatedPosts posts={relatedPosts} />
