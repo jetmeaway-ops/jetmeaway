@@ -24,6 +24,7 @@ import { saveBooking, parseBookingMessage } from './src/services/offline-booking
 import { INJECTED_BRIDGE, parseMessage } from './src/services/webview-bridge';
 import { MyTripsModal } from './src/screens/MyTripsModal';
 import { signInWithApple, signInWithGoogle, signOut } from './src/services/auth';
+import { recordSession, maybeReviewAfterEngagement, reviewAfterBooking } from './src/services/review';
 
 const HOME_URL = 'https://jetmeaway.co.uk/';
 const INTERNAL_HOST = 'jetmeaway.co.uk';
@@ -76,6 +77,20 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [tripsVisible, setTripsVisible] = useState(false);
   const [initialUrl, setInitialUrl] = useState<string>(HOME_URL);
+
+  // Review-prompt scheduling (see src/services/review.ts). We ask a RETURNING
+  // user for a rating a short while after first content load — never at cold
+  // launch — and only once per app process.
+  const reviewScheduledRef = useRef(false);
+  const reviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Count this session for the review cadence; clear the pending timer on exit.
+  useEffect(() => {
+    recordSession();
+    return () => {
+      if (reviewTimerRef.current) clearTimeout(reviewTimerRef.current);
+    };
+  }, []);
 
   // Push opt-in on first launch — fire-and-forget. We don't block the UI on it.
   useEffect(() => {
@@ -216,6 +231,10 @@ export default function App() {
         }
         await saveBooking(booking);
         resolveBridge(id, { ok: true, savedAt: Date.now() });
+        // A confirmed booking is the strongest positive moment — ask for a
+        // review (rate-limited in review.ts; the OS no-ops if already rated
+        // or the yearly budget is spent).
+        void reviewAfterBooking();
         return;
       }
 
@@ -313,6 +332,15 @@ export default function App() {
           onLoadEnd={() => {
             setIsLoading(false);
             setHasFirstLoaded(true);
+            // First successful content load → after ~25s of engagement, ask a
+            // returning user for a rating. Scheduled once per process; the
+            // guard + cool-downs live in review.ts.
+            if (!reviewScheduledRef.current) {
+              reviewScheduledRef.current = true;
+              reviewTimerRef.current = setTimeout(() => {
+                void maybeReviewAfterEngagement();
+              }, 25_000);
+            }
           }}
           startInLoadingState
           allowsBackForwardNavigationGestures
