@@ -303,11 +303,21 @@ async function checkReachability(url, finalUrlMustContain) {
     // Soft-pass codes: providers block GitHub Action runner IPs in
     // various ways — 429 (rate limit), 403 (forbidden, common with
     // GetYourGuide/Viator), 503 (service unavailable, sometimes used
-    // by Cloudflare-fronted sites). All three mean "provider blocked
-    // our probe", NOT "the affiliate link is broken for real users".
+    // by Cloudflare-fronted sites), and 432 (non-standard; Trip.com's
+    // bot-detection response). All mean "provider blocked our probe",
+    // NOT "the affiliate link is broken for real users".
     // The structural assertion above already verified the URL shape;
     // soft-passing here avoids 4am pages for bot detection.
-    if (res.status === 429 || res.status === 403 || res.status === 503) {
+    //
+    // 432 added 2026-08-10 after the nightly monkey failed 14 nights
+    // straight on "[trip.com] Trip.com Packages — non-2xx 432". Verified
+    // by hand in a real browser: the exact probe URL loads a correct
+    // LON → TFS bundle page (real flights + hotels, dates and pax
+    // pre-filled) with Allianceid/SID/trip_sub3 attribution intact.
+    // Server-side curl gets 432 with ANY user-agent; a real browser gets
+    // 200. It is bot detection, not a broken money link. The 14 red
+    // nights were also masking every other signal this workflow emits.
+    if (res.status === 429 || res.status === 403 || res.status === 503 || res.status === 432) {
       return { ok: true, soft: true, reason: `soft-pass: provider blocked probe (${res.status})`, finalUrl: res.url };
     }
     if (!res.ok) {
