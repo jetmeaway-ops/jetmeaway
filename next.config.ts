@@ -25,29 +25,27 @@ const nextConfig: NextConfig = {
         destination: '/blog/is-it-cheaper-to-book-hotel-direct-vs-otas',
         permanent: true,
       },
-      // The short-lived /car-hire/[slug] landing pages (live ~1 day, Aug 2026,
-      // never submitted to search engines) were re-homed as blog posts so they
-      // join the Read-next graph, blog index and llms-full instead of sitting
-      // orphaned outside the content system. 301 keeps any early crawls.
-      {
-        source: '/car-hire/alicante-airport',
-        destination: '/blog/car-hire-alicante-airport-2026',
-        permanent: true,
-      },
-      {
-        source: '/car-hire/malaga-airport',
-        destination: '/blog/car-hire-malaga-airport-2026',
-        permanent: true,
-      },
-      {
-        source: '/car-hire/faro-airport',
-        destination: '/blog/car-hire-faro-airport-2026',
-        permanent: true,
-      },
     ];
   },
   async headers() {
     return [
+      {
+        // Security headers, ALL routes. Added after a clickjacking disclosure
+        // on /account (2026-08). We never frame our own pages — the only
+        // iframe we render points OUT to Kyte's Ryanair confirmation host,
+        // which these response headers do not affect — so full DENY is safe.
+        // frame-ancestors is the modern directive; X-Frame-Options is the
+        // legacy fallback. nosniff + Referrer-Policy pre-empt the usual
+        // follow-up scanner findings. (No script/style CSP here — that needs
+        // its own careful pass against the CDN/Stripe/Unsplash allowlist.)
+        source: '/:path*',
+        headers: [
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+        ],
+      },
       {
         source: '/api/:path*',
         headers: [
