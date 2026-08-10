@@ -93,10 +93,15 @@ export default function RyanairConfirmIframe({
     redirectUri || (typeof window !== 'undefined' ? window.location.href : '');
 
   // Build the iframe URL. Params per the PDF spec (page 6-7):
-  // partnerId, redirectUri, session.
+  // partnerId, redirectUri, session, iframe=true.
+  //
+  // iframe=true is REQUIRED: without it the confirmation host returns HTTP 403
+  // in-browser (it refuses to render outside an iframe context). Kyte support
+  // flagged this on ticket ESD-1110 (2026-08) as the cause of the 403 that was
+  // blocking the Ryanair certification recording.
   const iframeSrc = `${hostBase.replace(/\/+$/, '')}/${market}/flights-confirmation?partnerId=${encodeURIComponent(
     partnerId,
-  )}&redirectUri=${encodeURIComponent(resolvedRedirectUri)}&session=${encodeURIComponent(sessionToken)}`;
+  )}&redirectUri=${encodeURIComponent(resolvedRedirectUri)}&session=${encodeURIComponent(sessionToken)}&iframe=true`;
 
   // Acceptable origin = the iframe's own host (no wildcards).
   const expectedOrigin = (() => {
