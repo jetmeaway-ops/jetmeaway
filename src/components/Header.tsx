@@ -5,7 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { blogHref } from '@/i18n/config';
 
 /**
  * Main category nav — shown on desktop and in the mobile sticky bar.
@@ -68,6 +69,11 @@ export default function Header() {
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + '/');
 
+  // Blog link follows the reader's language: German goes to /de/blog, every
+  // other locale keeps the English blog (only German has translated posts).
+  const activeLocale = useLocale();
+  const blogPath = blogHref(activeLocale);
+
   const discoverActive = DISCOVER_ITEMS.some(
     item => pathname === item.href || pathname.startsWith(item.href + '/'),
   );
@@ -91,9 +97,9 @@ export default function Header() {
           {/* LEFT: Blog link + Logo (Blog sits LEFT of the logo for content-first prominence) */}
           <div className="flex items-center gap-3 md:gap-4 flex-shrink-0">
             <Link
-              href="/blog"
+              href={blogPath}
               className={`flex items-center gap-1 px-2 md:px-2.5 py-2 rounded-xl text-[.68rem] md:text-[.72rem] font-extrabold uppercase tracking-[1.2px] transition-all ${
-                isActive('/blog')
+                isActive(blogPath)
                   ? 'bg-[#0066FF] text-white shadow-[0_4px_12px_rgba(0,102,255,0.3)]'
                   : 'text-slate-700 hover:text-[#0066FF] hover:bg-blue-50'
               }`}
@@ -328,10 +334,10 @@ export default function Header() {
         <p className="text-[.6rem] font-extrabold uppercase tracking-[2.5px] text-[#5C6378] mb-3 px-2">{t('sections.discover')}</p>
         <div className="flex flex-col gap-0.5 mb-5">
           <Link
-            href="/blog"
+            href={blogPath}
             onClick={() => setMobileOpen(false)}
             className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold text-[.9rem] transition-all ${
-              isActive('/blog') ? 'bg-[#0066FF] text-white' : 'text-[#1A1D2B] hover:bg-blue-50 hover:text-[#0066FF]'
+              isActive(blogPath) ? 'bg-[#0066FF] text-white' : 'text-[#1A1D2B] hover:bg-blue-50 hover:text-[#0066FF]'
             }`}
           >
             <span className="text-lg w-6 text-center">📝</span>

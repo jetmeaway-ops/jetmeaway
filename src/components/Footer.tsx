@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
+import { blogHref } from '@/i18n/config';
 import DealAlertForm from './DealAlertForm';
 import AppStoreBadges from './AppStoreBadges';
 import PaymentTrustStrip from './PaymentTrustStrip';
@@ -36,7 +37,7 @@ export default function Footer() {
           <div>
             <h2 className="font-poppins text-[.62rem] font-extrabold uppercase tracking-[2.5px] text-white mb-4">{t('company')}</h2>
             <Link href="/about" className="flex items-center gap-1.5 min-h-[44px] md:min-h-0 md:mb-2.5 text-[.75rem] text-white/75 font-semibold transition-colors hover:text-white">{t('links.about')}</Link>
-            <Link href="/blog" className="flex items-center gap-1.5 min-h-[44px] md:min-h-0 md:mb-2.5 text-[.75rem] text-white/75 font-semibold transition-colors hover:text-white">{t('links.blog')}</Link>
+            <Link href={blogHref(locale)} className="flex items-center gap-1.5 min-h-[44px] md:min-h-0 md:mb-2.5 text-[.75rem] text-white/75 font-semibold transition-colors hover:text-white">{t('links.blog')}</Link>
             <Link href="/travel-data" className="flex items-center gap-1.5 min-h-[44px] md:min-h-0 md:mb-2.5 text-[.75rem] text-white/75 font-semibold transition-colors hover:text-white">{t('links.travelData')}</Link>
             <Link href="/privacy" className="flex items-center gap-1.5 min-h-[44px] md:min-h-0 md:mb-2.5 text-[.75rem] text-white/75 font-semibold transition-colors hover:text-white">{t('links.privacyPolicy')}</Link>
             <Link href="/terms" className="flex items-center gap-1.5 min-h-[44px] md:min-h-0 md:mb-2.5 text-[.75rem] text-white/75 font-semibold transition-colors hover:text-white">{t('links.termsOfService')}</Link>

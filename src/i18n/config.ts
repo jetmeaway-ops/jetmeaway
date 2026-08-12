@@ -62,6 +62,27 @@ export function isActiveLocale(x: string | undefined | null): x is Locale {
   return !!x && (ACTIVE_LOCALES as readonly string[]).includes(x);
 }
 
+/**
+ * Locales whose blog posts are translated and served on their own path
+ * (content/posts/<locale>/ → /<locale>/blog). Distinct from ACTIVE_LOCALES:
+ * every locale above translates the UI chrome, but only these have a
+ * translated article corpus.
+ *
+ * Kept here rather than in src/lib/blog.ts because Header and Footer are
+ * client components — importing the blog helper would pull `node:fs` into
+ * the browser bundle. Add a locale here when its corpus ships.
+ */
+export const BLOG_LOCALES: ReadonlySet<string> = new Set(['de']);
+
+/**
+ * Where the "Blog" nav link should point for a locale. German readers get
+ * the German blog; everyone else keeps the English one, including locales
+ * whose UI is translated but whose posts are not.
+ */
+export function blogHref(locale: string | undefined | null): string {
+  return locale && BLOG_LOCALES.has(locale) ? `/${locale}/blog` : '/blog';
+}
+
 /** Pick the best supported locale from an Accept-Language header value. */
 export function matchAcceptLanguage(header: string | null): Locale | null {
   if (!header) return null;
