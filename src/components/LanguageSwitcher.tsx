@@ -33,6 +33,29 @@ export default function LanguageSwitcher() {
   const choose = (next: Locale) => {
     if (next === locale) { setOpen(false); return; }
     document.cookie = `jma_locale=${next}; path=/; max-age=31536000; samesite=lax`;
+
+    // Blog articles live at a per-locale URL (/blog/x vs /de/blog/x), so a
+    // plain reload left the reader on the English article with only the
+    // chrome translated. If this page declares an alternate for the chosen
+    // language, go there instead.
+    //
+    // Reading it from the page's own hreflang tags means we never have to
+    // guess: they are emitted only when the translation actually exists, so
+    // a post with no German version (or any non-blog page) simply falls
+    // through to the reload below rather than landing on a 404.
+    const alt = document.querySelector<HTMLLinkElement>(
+      `link[rel="alternate"][hreflang="${next}"]`,
+    );
+    if (alt?.href) {
+      // Keep the current origin — the tags carry absolute production URLs,
+      // which would otherwise bounce localhost/preview traffic to the live site.
+      const target = new URL(alt.href).pathname;
+      if (target !== window.location.pathname) {
+        window.location.href = target + window.location.search;
+        return;
+      }
+    }
+
     window.location.reload();
   };
 

@@ -10,7 +10,17 @@ export const metadata = {
   // Canonical URL — collapses parameterised variants of /blog index page back
   // to the bare URL. Per-post canonicals already shipped yesterday at
   // src/app/blog/[slug]/page.tsx. 2026-05-10 audit.
-  alternates: { canonical: 'https://jetmeaway.co.uk/blog' },
+  // `languages` pairs the index with its translated counterparts. It also
+  // drives the header language switcher, which reads these tags to send a
+  // reader to the same page in their language instead of reloading this one.
+  alternates: {
+    canonical: 'https://jetmeaway.co.uk/blog',
+    languages: {
+      en: 'https://jetmeaway.co.uk/blog',
+      de: 'https://jetmeaway.co.uk/de/blog',
+      'x-default': 'https://jetmeaway.co.uk/blog',
+    },
+  },
   openGraph: {
     title: 'Travel Blog | JetMeAway',
     description:
