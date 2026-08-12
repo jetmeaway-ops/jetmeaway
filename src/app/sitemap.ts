@@ -9,7 +9,7 @@
  */
 
 import type { MetadataRoute } from 'next';
-import { getAllPosts } from '@/lib/blog';
+import { getAllPosts, TRANSLATED_LOCALES } from '@/lib/blog';
 import { DESTINATIONS } from '@/data/destinations';
 
 const BASE = 'https://jetmeaway.co.uk';
@@ -28,6 +28,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/esim`,        lastModified: now, changeFrequency: 'weekly',  priority: 0.7 },
     { url: `${BASE}/explore`,     lastModified: now, changeFrequency: 'weekly',  priority: 0.7 },
     { url: `${BASE}/blog`,        lastModified: now, changeFrequency: 'weekly',  priority: 0.8 },
+    { url: `${BASE}/de/blog`,     lastModified: now, changeFrequency: 'weekly',  priority: 0.7 },
     { url: `${BASE}/destinations`, lastModified: now, changeFrequency: 'weekly',  priority: 0.85 },
     { url: `${BASE}/travel-data`, lastModified: now, changeFrequency: 'weekly',  priority: 0.7 },
     // Seasonal campaign — the 2026 World Cup host-city hub. Listed while the
@@ -90,5 +91,26 @@ export default function sitemap(): MetadataRoute.Sitemap {
     posts = [];
   }
 
-  return [...primary, ...info, ...destinations, ...neighbourhoods, ...posts];
+  // Translated posts — one entry per locale that has a corpus on disk.
+  // These carry their own canonical + hreflang (set in the route's
+  // generateMetadata), so listing them here is what actually gets the
+  // German articles crawled rather than left as orphans.
+  let translated: MetadataRoute.Sitemap = [];
+  try {
+    translated = TRANSLATED_LOCALES.flatMap(locale =>
+      getAllPosts(locale).map(post => {
+        const lastModSource = post.dateModified || post.date;
+        return {
+          url: `${BASE}/${locale}/blog/${post.slug}`,
+          lastModified: lastModSource ? new Date(lastModSource) : now,
+          changeFrequency: 'monthly' as const,
+          priority: 0.6,
+        };
+      }),
+    );
+  } catch {
+    translated = [];
+  }
+
+  return [...primary, ...info, ...destinations, ...neighbourhoods, ...posts, ...translated];
 }
