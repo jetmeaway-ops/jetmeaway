@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import { formatPostDate, type BlogPost } from '@/lib/blog';
+import { formatPostDate, type BlogPost, type PostLocale } from '@/lib/blog';
 
 /**
  * RelatedPosts — "Read next" grid shown at the foot of every article.
@@ -12,20 +12,34 @@ import { formatPostDate, type BlogPost } from '@/lib/blog';
  * crawled, indexed and ranked.
  *
  * Purely presentational — the parent picks which posts to pass.
+ *
+ * `locale` only changes the heading, the date format and the link prefix,
+ * so translated articles link on to their translated siblings instead of
+ * dropping the reader back into English. It defaults to 'en', leaving the
+ * English blog byte-identical.
  */
-export default function RelatedPosts({ posts }: { posts: BlogPost[] }) {
+export default function RelatedPosts({
+  posts,
+  locale = 'en',
+}: {
+  posts: BlogPost[];
+  locale?: PostLocale;
+}) {
   if (posts.length === 0) return null;
+
+  const basePath = locale === 'en' ? '/blog' : `/${locale}/blog`;
+  const heading = locale === 'de' ? 'Das könnte Sie auch interessieren' : 'Read next';
 
   return (
     <section className="max-w-[960px] mx-auto px-5 mt-16">
       <h2 className="font-poppins text-[1.4rem] md:text-[1.6rem] font-black text-[#1A1D2B] mb-6">
-        Read next
+        {heading}
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {posts.map((post) => (
           <Link
             key={post.slug}
-            href={`/blog/${post.slug}`}
+            href={`${basePath}/${post.slug}`}
             className="group bg-white border border-[#E8ECF4] rounded-2xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all"
           >
             <div className="relative h-40 overflow-hidden bg-[#F1F3F7]">
@@ -44,7 +58,7 @@ export default function RelatedPosts({ posts }: { posts: BlogPost[] }) {
                 {post.title}
               </h3>
               <div className="flex items-center justify-between text-[.68rem] text-[#8E95A9] font-semibold pt-3 border-t border-[#F1F3F7]">
-                <span>{formatPostDate(post.date)}</span>
+                <span>{formatPostDate(post.date, locale)}</span>
                 <span>{post.readTime}</span>
               </div>
             </div>
