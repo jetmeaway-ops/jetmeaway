@@ -24,12 +24,17 @@ export async function GET(
 
   // Strip the `la_` prefix added by /api/hotels search results
   const hotelId = rawId.startsWith('la_') ? rawId.slice(3) : rawId;
+  // v6 — bumped 2026-08-13 so cached entries re-fetch with the corrected
+  // room-photo mapping: LiteAPI returns the high-res room image as snake_case
+  // `hd_url` (we only read camelCase `urlHd`, which exists on hotelImages[]
+  // but never on room photos), and its grey `room-placeholder.jpg` is now
+  // filtered out so the hotel-photo fallback can take over.
   // v5 — bumped 2026-04-24 so cached entries re-fetch with the aligned
   // room-name cleaning rule (strips parenthesised/bare trailing board
   // labels like "(Room Only)"). v4 entries used the weaker cleaner that
-  // broke the rates → details roomMetaByName key match, which is why
-  // per-room thumbnails stopped showing on some hotels.
-  const kvKey = `hotel-details:v5:${hotelId}`;
+  // broke the rates → details room-name key match, which is why per-room
+  // thumbnails stopped showing on some hotels.
+  const kvKey = `hotel-details:v6:${hotelId}`;
 
   try {
     const cached = await kv.get(kvKey);

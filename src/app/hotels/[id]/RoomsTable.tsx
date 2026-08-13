@@ -428,7 +428,7 @@ export default function RoomsTable({
   rooms = 1,
   roomName,
   selectedOfferId,
-  roomMetaByName,
+  resolveRoomMeta,
   fallbackPhoto,
   onSelect,
   onReserve,
@@ -442,10 +442,11 @@ export default function RoomsTable({
    *  Option-B phase when we emit per-room-type rates. */
   roomName?: string | null;
   selectedOfferId: string | null;
-  /** Phase-4: map from lowercased room name → parsed room metadata
-   *  (photos/size/beds/amenities). Rows fall back to the Phase-1 layout
-   *  when the map doesn't contain a match. */
-  roomMetaByName?: Map<string, RoomMetaInput>;
+  /** Phase-4: resolve a rate row's room name → parsed room metadata
+   *  (photos/size/beds/amenities). Exact-name match first, then token-overlap
+   *  matching, because the two LiteAPI endpoints name rooms differently.
+   *  Rows fall back to the Phase-1 layout when nothing matches. */
+  resolveRoomMeta?: (rateName: string) => RoomMetaInput | null;
   /** Hotel-level fallback thumbnail (main photo or first gallery shot).
    *  Shown on rate rows when per-room metadata lookup misses — suppliers
    *  often send /hotels/rates roomNames in a totally different format from
@@ -477,8 +478,8 @@ export default function RoomsTable({
       {/* Rate rows separated by the gold rule — a watermark, not a frame */}
       <div className="divide-y divide-[#E8D8A8]/50">
         {sorted.map((rate) => {
-          const nameKey = (rate.roomName || roomName || '').toLowerCase().trim();
-          const meta = nameKey && roomMetaByName ? (roomMetaByName.get(nameKey) || null) : null;
+          const rateRoomName = (rate.roomName || roomName || '').trim();
+          const meta = rateRoomName && resolveRoomMeta ? resolveRoomMeta(rateRoomName) : null;
           return (
             <RateRow
               key={rate.offerId}

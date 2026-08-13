@@ -1412,8 +1412,12 @@ export async function getHotelDetails(hotelId: string): Promise<HotelDetails | n
       name?: string;
       description?: string;
       roomDescription?: string;
-      photos?: Array<{ url?: string; urlHd?: string; caption?: string } | string>;
-      images?: Array<{ url?: string; urlHd?: string } | string>;
+      // LiteAPI is inconsistent about the high-res field: `/data/hotel` room
+      // photos expose it as snake_case `hd_url`, while `hotelImages[]` uses
+      // camelCase `urlHd`. Accept both, or every room photo silently falls
+      // back to the low-res `url`.
+      photos?: Array<{ url?: string; hd_url?: string; urlHd?: string; caption?: string } | string>;
+      images?: Array<{ url?: string; hd_url?: string; urlHd?: string } | string>;
       roomAmenities?: Array<string | { name?: string; amenitiesName?: string }>;
       amenities?: Array<string | { name?: string }>;
       maxAdults?: number;
@@ -1490,12 +1494,17 @@ export async function getHotelDetails(hotelId: string): Promise<HotelDetails | n
       if (seenNames.has(dedupeKey)) continue;
       seenNames.add(dedupeKey);
 
-      // Photos: accept string URLs or {url, urlHd} objects.
+      // Photos: accept string URLs or {url, hd_url, urlHd} objects.
+      // `hd_url` first — that is the field LiteAPI actually returns on room
+      // photos; `urlHd` only appears on hotelImages[].
+      // Placeholders are dropped: LiteAPI ships a grey `room-placeholder.jpg`
+      // for ~5% of rooms, and keeping it would satisfy the `photos.length > 0`
+      // check downstream and suppress the real hotel-photo fallback.
       const roomPhotos: string[] = [];
       for (const p of r.photos || r.images || []) {
         if (!p) continue;
-        const url = typeof p === 'string' ? p : (p.urlHd || p.url);
-        if (url) roomPhotos.push(url);
+        const url = typeof p === 'string' ? p : (p.hd_url || p.urlHd || p.url);
+        if (url && !/room-placeholder/i.test(url)) roomPhotos.push(url);
       }
 
       // Amenities: accept string or { name } / { amenitiesName }.
