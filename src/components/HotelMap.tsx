@@ -1,9 +1,15 @@
 'use client';
 
 import { useEffect, useMemo, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+// Clustering is driven imperatively (see ClusteredPins). The published
+// react-leaflet-cluster wrapper targets react-leaflet ^4 and this app is on
+// ^5 / React 19, so we talk to the plugin directly instead.
+import 'leaflet.markercluster';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 
 /**
  * Leaflet + OpenStreetMap hotel map. Rendered as a dynamic import on /hotels
@@ -39,6 +45,148 @@ function priceIcon(price: number, currency: string, highlight: boolean) {
     iconSize: [50, 26],
     iconAnchor: [25, 13],
   });
+}
+
+/** Escape user/supplier text before it goes into a Leaflet popup's innerHTML. */
+function esc(s: string): string {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string),
+  );
+}
+
+/**
+ * Cluster bubble showing how many hotels are hidden inside and the cheapest
+ * price among them — "7 from £199" tells you far more than a bare "7".
+ */
+function clusterIcon(cluster: L.MarkerCluster): L.DivIcon {
+  const markers = cluster.getAllChildMarkers() as Array<L.Marker & { _jmaPrice?: number; _jmaSymbol?: string }>;
+  const count = markers.length;
+  let min = Infinity;
+  let symbol = '£';
+  for (const m of markers) {
+    const p = m._jmaPrice;
+    if (typeof p === 'number' && p < min) { min = p; symbol = m._jmaSymbol || '£'; }
+  }
+  const price = Number.isFinite(min) ? `${symbol}${Math.round(min)}` : '';
+  const label = price ? `${count} from ${price}` : `${count}`;
+  return L.divIcon({
+    className: 'jma-cluster-pin',
+    html: `<div style="background:#1A1D2B;color:#fff;border:2px solid #fff;padding:5px 11px;border-radius:999px;font-family:Poppins,sans-serif;font-weight:900;font-size:12px;box-shadow:0 3px 12px rgba(0,0,0,.28);white-space:nowrap;">${esc(label)}</div>`,
+    iconSize: [72, 28],
+    iconAnchor: [36, 14],
+  });
+}
+
+/** Popup markup for a hotel pin (imperative Leaflet — no JSX available here). */
+function popupHtml(h: HotelMapItem): string {
+  const stars = h.stars > 0
+    ? `<div style="color:#F59E0B;font-size:12px;margin-bottom:4px;">${'★'.repeat(Math.min(5, Math.round(h.stars)))}</div>`
+    : '';
+  const price = `${h.currency === 'GBP' ? '£' : `${esc(h.currency)} `}${Math.round(h.pricePerNight)}`;
+  return `<div style="min-width:180px">
+    <div style="font-family:Poppins,sans-serif;font-weight:900;font-size:14px;color:#1A1D2B;margin-bottom:4px;">${esc(h.name)}</div>
+    ${stars}
+    <div style="font-family:Poppins,sans-serif;font-weight:800;font-size:13px;color:#F97316;margin-bottom:8px;">${price}/night</div>
+    <a href="${esc(h.href)}" style="display:inline-block;background:#F97316;color:#fff;padding:6px 12px;border-radius:8px;font-family:Poppins,sans-serif;font-weight:800;font-size:12px;text-decoration:none;">View hotel →</a>
+  </div>`;
+}
+
+/**
+ * Price pins inside a clustering group.
+ *
+ * Previously every hotel was a plain <Marker>, so in dense city centres the
+ * pills stacked on top of each other and rendered as an unreadable white
+ * smear. markercluster merges nearby pins into a single "N from £X" bubble
+ * that splits apart as you zoom.
+ *
+ * Markers are rebuilt only when the hotel list changes; hover highlighting
+ * swaps the icon on the one affected marker instead of rebuilding the layer.
+ */
+function ClusteredPins({
+  hotels,
+  activeHotelId,
+  onPinHover,
+  onPinClick,
+}: {
+  hotels: HotelMapItem[];
+  activeHotelId: string | number | null;
+  onPinHover?: (id: string | number | null) => void;
+  onPinClick?: (id: string | number) => void;
+}) {
+  const map = useMap();
+  const groupRef = useRef<L.MarkerClusterGroup | null>(null);
+  const markersRef = useRef(new Map<string, L.Marker>());
+  // Keep callbacks in refs so the marker layer isn't rebuilt when the parent
+  // re-renders with new function identities.
+  const hoverRef = useRef(onPinHover);
+  const clickRef = useRef(onPinClick);
+  hoverRef.current = onPinHover;
+  clickRef.current = onPinClick;
+
+  useEffect(() => {
+    const group = L.markerClusterGroup({
+      iconCreateFunction: clusterIcon,
+      // Price pills are wide, so cluster a little tighter than the 80px
+      // default or neighbouring pills still visually collide.
+      maxClusterRadius: 55,
+      showCoverageOnHover: false,
+      spiderfyOnMaxZoom: true,
+      chunkedLoading: true,
+    });
+    const byId = new Map<string, L.Marker>();
+
+    hotels.forEach((h, i) => {
+      const marker = L.marker([h.lat, h.lng], {
+        icon: priceIcon(h.pricePerNight, h.currency || 'GBP', i === 0),
+        zIndexOffset: 0,
+      }) as L.Marker & { _jmaPrice?: number; _jmaSymbol?: string };
+      // Stashed for clusterIcon, which only sees child markers.
+      marker._jmaPrice = h.pricePerNight;
+      marker._jmaSymbol = h.currency === 'GBP' ? '£' : h.currency === 'USD' ? '$' : h.currency === 'EUR' ? '€' : '';
+      marker.bindPopup(popupHtml(h));
+      marker.on('mouseover', () => hoverRef.current?.(h.id));
+      marker.on('mouseout', () => hoverRef.current?.(null));
+      marker.on('click', () => clickRef.current?.(h.id));
+      group.addLayer(marker);
+      byId.set(String(h.id), marker);
+    });
+
+    map.addLayer(group);
+    groupRef.current = group;
+    markersRef.current = byId;
+
+    return () => {
+      map.removeLayer(group);
+      group.clearLayers();
+      groupRef.current = null;
+      markersRef.current = new Map();
+    };
+  }, [hotels, map]);
+
+  // Highlight only the marker that changed, so hovering the list doesn't
+  // rebuild every pin on the map.
+  const prevActiveRef = useRef<string | null>(null);
+  useEffect(() => {
+    const nextId = activeHotelId == null ? null : String(activeHotelId);
+    const prevId = prevActiveRef.current;
+    if (prevId === nextId) return;
+
+    const restore = (id: string | null, highlight: boolean) => {
+      if (!id) return;
+      const marker = markersRef.current.get(id);
+      const hotel = hotels.find((h) => String(h.id) === id);
+      if (!marker || !hotel) return;
+      const isFirst = hotels[0] && String(hotels[0].id) === id;
+      marker.setIcon(priceIcon(hotel.pricePerNight, hotel.currency || 'GBP', highlight || Boolean(isFirst)));
+      marker.setZIndexOffset(highlight ? 1000 : 0);
+    };
+
+    restore(prevId, false);
+    restore(nextId, true);
+    prevActiveRef.current = nextId;
+  }, [activeHotelId, hotels]);
+
+  return null;
 }
 
 /** Keeps the map viewport fit to whatever hotels are currently in the list. */
@@ -112,55 +260,12 @@ export default function HotelMap({
         />
         <FitBounds hotels={hotels} />
         <PanToActive hotels={hotels} activeId={activeHotelId} />
-        {hotels.map((h, i) => {
-          const isActive = activeHotelId != null && String(activeHotelId) === String(h.id);
-          const isFirst = i === 0;
-          return (
-            <Marker
-              key={h.id}
-              position={[h.lat, h.lng]}
-              icon={priceIcon(h.pricePerNight, h.currency || 'GBP', isActive || isFirst)}
-              eventHandlers={{
-                mouseover: () => onPinHover?.(h.id),
-                mouseout: () => onPinHover?.(null),
-                click: () => onPinClick?.(h.id),
-              }}
-              zIndexOffset={isActive ? 1000 : 0}
-            >
-              <Popup>
-                <div style={{ minWidth: 180 }}>
-                  <div style={{ fontFamily: 'Poppins, sans-serif', fontWeight: 900, fontSize: 14, color: '#1A1D2B', marginBottom: 4 }}>
-                    {h.name}
-                  </div>
-                  {h.stars > 0 && (
-                    <div style={{ color: '#F59E0B', fontSize: 12, marginBottom: 4 }}>
-                      {'★'.repeat(Math.min(5, Math.round(h.stars)))}
-                    </div>
-                  )}
-                  <div style={{ fontFamily: 'Poppins, sans-serif', fontWeight: 800, fontSize: 13, color: '#F97316', marginBottom: 8 }}>
-                    {h.currency === 'GBP' ? '£' : `${h.currency} `}{h.pricePerNight}/night
-                  </div>
-                  <a
-                    href={h.href}
-                    style={{
-                      display: 'inline-block',
-                      background: '#F97316',
-                      color: '#fff',
-                      padding: '6px 12px',
-                      borderRadius: 8,
-                      fontFamily: 'Poppins, sans-serif',
-                      fontWeight: 800,
-                      fontSize: 12,
-                      textDecoration: 'none',
-                    }}
-                  >
-                    View hotel →
-                  </a>
-                </div>
-              </Popup>
-            </Marker>
-          );
-        })}
+        <ClusteredPins
+          hotels={hotels}
+          activeHotelId={activeHotelId}
+          onPinHover={onPinHover}
+          onPinClick={onPinClick}
+        />
       </MapContainer>
     </div>
   );
