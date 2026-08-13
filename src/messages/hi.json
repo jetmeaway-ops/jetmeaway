@@ -907,6 +907,7 @@
     "filterDistance": "केंद्र से दूरी",
     "filterDistanceAny": "कोई भी दूरी",
     "filterDistanceLess": "{km} किमी से कम",
+    "filterDistanceLessMi": "{mi} मील से कम",
     "filterPropertyType": "प्रॉपर्टी का प्रकार",
     "filterBrand": "ब्रांड",
     "filterFacilities": "सुविधाएँ",

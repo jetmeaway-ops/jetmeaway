@@ -907,6 +907,7 @@
     "filterDistance": "Distancia al centro",
     "filterDistanceAny": "Cualquier distancia",
     "filterDistanceLess": "Menos de {km} km",
+    "filterDistanceLessMi": "Menos de {mi} millas",
     "filterPropertyType": "Tipo de alojamiento",
     "filterBrand": "Marca",
     "filterFacilities": "Instalaciones",

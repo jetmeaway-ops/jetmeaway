@@ -907,6 +907,7 @@
     "filterDistance": "Distance from centre",
     "filterDistanceAny": "Any distance",
     "filterDistanceLess": "Less than {km} km",
+    "filterDistanceLessMi": "Less than {mi} mi",
     "filterPropertyType": "Property type",
     "filterBrand": "Brand",
     "filterFacilities": "Facilities",

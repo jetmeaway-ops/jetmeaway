@@ -907,6 +907,7 @@
     "filterDistance": "Umbali kutoka katikati",
     "filterDistanceAny": "Umbali wowote",
     "filterDistanceLess": "Chini ya {km} km",
+    "filterDistanceLessMi": "Chini ya maili {mi}",
     "filterPropertyType": "Aina ya malazi",
     "filterBrand": "Chapa",
     "filterFacilities": "Huduma",

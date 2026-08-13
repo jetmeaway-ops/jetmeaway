@@ -907,6 +907,7 @@
     "filterDistance": "مرکز سے فاصلہ",
     "filterDistanceAny": "کوئی بھی فاصلہ",
     "filterDistanceLess": "{km} کلومیٹر سے کم",
+    "filterDistanceLessMi": "{mi} میل سے کم",
     "filterPropertyType": "پراپرٹی کی قسم",
     "filterBrand": "برانڈ",
     "filterFacilities": "سہولیات",

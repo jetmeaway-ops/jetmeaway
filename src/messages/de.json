@@ -907,6 +907,7 @@
     "filterDistance": "Entfernung vom Zentrum",
     "filterDistanceAny": "Jede Entfernung",
     "filterDistanceLess": "Weniger als {km} km",
+    "filterDistanceLessMi": "Weniger als {mi} Meilen",
     "filterPropertyType": "Unterkunftsart",
     "filterBrand": "Marke",
     "filterFacilities": "Ausstattung",

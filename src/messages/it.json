@@ -907,6 +907,7 @@
     "filterDistance": "Distanza dal centro",
     "filterDistanceAny": "Qualsiasi distanza",
     "filterDistanceLess": "Meno di {km} km",
+    "filterDistanceLessMi": "Meno di {mi} miglia",
     "filterPropertyType": "Tipo di struttura",
     "filterBrand": "Marchio",
     "filterFacilities": "Servizi",

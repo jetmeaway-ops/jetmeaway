@@ -907,6 +907,7 @@
     "filterDistance": "中心からの距離",
     "filterDistanceAny": "指定なし",
     "filterDistanceLess": "{km}km未満",
+    "filterDistanceLessMi": "{mi}マイル未満",
     "filterPropertyType": "施設タイプ",
     "filterBrand": "ブランド",
     "filterFacilities": "設備",

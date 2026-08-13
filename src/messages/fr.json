@@ -907,6 +907,7 @@
     "filterDistance": "Distance du centre",
     "filterDistanceAny": "Toute distance",
     "filterDistanceLess": "Moins de {km} km",
+    "filterDistanceLessMi": "Moins de {mi} miles",
     "filterPropertyType": "Type d'hébergement",
     "filterBrand": "Marque",
     "filterFacilities": "Équipements",

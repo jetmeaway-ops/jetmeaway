@@ -907,6 +907,7 @@
     "filterDistance": "Merkeze uzaklık",
     "filterDistanceAny": "Herhangi",
     "filterDistanceLess": "{km} km'den az",
+    "filterDistanceLessMi": "{mi} mil'den az",
     "filterPropertyType": "Tesis türü",
     "filterBrand": "Marka",
     "filterFacilities": "Olanaklar",

@@ -907,6 +907,7 @@
     "filterDistance": "المسافة من المركز",
     "filterDistanceAny": "أي مسافة",
     "filterDistanceLess": "أقل من {km} كم",
+    "filterDistanceLessMi": "أقل من {mi} ميل",
     "filterPropertyType": "نوع العقار",
     "filterBrand": "العلامة التجارية",
     "filterFacilities": "المرافق",

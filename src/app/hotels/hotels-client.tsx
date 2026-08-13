@@ -2922,8 +2922,12 @@ function HotelsContent() {
   };
   const hotelTypeName = (h: HotelResult): string =>
     (h.hotelTypeId != null ? (LITEAPI_HOTEL_TYPES[h.hotelTypeId] || '') : '').toLowerCase();
-  const hotelDistanceKm = (h: HotelResult): number | null =>
-    (cityCentre && h.lat != null && h.lng != null) ? distanceKm(h.lat, h.lng, cityCentre.lat, cityCentre.lng) : null;
+  /* Distance in MILES, to match what the cards already print ("2.4 mi from
+     centre"). The sidebar used to band these in km while every card showed
+     miles, so "Less than 5 km" sat directly above a card reading "2.8 mi" —
+     two different units for the same measurement on one screen. */
+  const hotelDistanceMi = (h: HotelResult): number | null =>
+    (cityCentre && h.lat != null && h.lng != null) ? haversineMi(h.lat, h.lng, cityCentre.lat, cityCentre.lng) : null;
   // Popular-filter shortcuts — a curated row matching the dashboard.
   const POPULAR_DEFS: { key: string; label: string; icon: string; test: (h: HotelResult) => boolean }[] = [
     { key: 'free-cancel', label: t('freeCancellationOnly'), icon: 'fa-circle-check', test: h => h.refundable === true },
@@ -2980,7 +2984,7 @@ function HotelsContent() {
     }
     // Distance from centre — within the selected radius.
     if (distanceBand != null) {
-      const d = hotelDistanceKm(h);
+      const d = hotelDistanceMi(h);
       if (d == null || d > distanceBand) return false;
     }
     return true;
@@ -3075,8 +3079,8 @@ function HotelsContent() {
   const mealCount = (k: string) => facetBase.filter(h => boardsOf(h).some(b => b.includes(k))).length;
   // ── Phase-2 facets ──
   const popularCount = (key: string) => facetBase.filter(h => popularTest(key, h)).length;
-  const distanceBands = [1, 2, 5, 10];
-  const distanceCount = (km: number) => facetBase.filter(h => { const d = hotelDistanceKm(h); return d != null && d <= km; }).length;
+  const distanceBands = [1, 3, 5, 10]; // MILES — matches the cards
+  const distanceCount = (mi: number) => facetBase.filter(h => { const d = hotelDistanceMi(h); return d != null && d <= mi; }).length;
   const hasCoords = facetBase.some(h => h.lat != null && h.lng != null) && cityCentre != null;
   const propTypeCounts = new Map<number, number>();
   facetBase.forEach(h => { if (h.hotelTypeId != null) propTypeCounts.set(h.hotelTypeId, (propTypeCounts.get(h.hotelTypeId) || 0) + 1); });
@@ -3213,16 +3217,16 @@ function HotelsContent() {
             >
               {t('filterDistanceAny')}
             </button>
-            {distanceBands.map(km => {
-              const n = distanceCount(km);
-              if (n === 0 && distanceBand !== km) return null;
+            {distanceBands.map(mi => {
+              const n = distanceCount(mi);
+              if (n === 0 && distanceBand !== mi) return null;
               return (
                 <button
-                  key={km} type="button" onClick={() => setDistanceBand(km)}
-                  className={`flex items-center px-3 py-2 rounded-xl text-[.8rem] font-bold transition-colors ${distanceBand === km ? 'bg-orange-500 text-white' : 'bg-[#F4F6FA] text-[#5C6378] hover:bg-orange-50'}`}
+                  key={mi} type="button" onClick={() => setDistanceBand(mi)}
+                  className={`flex items-center px-3 py-2 rounded-xl text-[.8rem] font-bold transition-colors ${distanceBand === mi ? 'bg-orange-500 text-white' : 'bg-[#F4F6FA] text-[#5C6378] hover:bg-orange-50'}`}
                 >
-                  <span>{t('filterDistanceLess', { km })}</span>
-                  <span className={`ml-auto tabular-nums ${distanceBand === km ? 'text-white/80' : 'text-[#A8AEBE]'}`}>{n}</span>
+                  <span>{t('filterDistanceLessMi', { mi })}</span>
+                  <span className={`ml-auto tabular-nums ${distanceBand === mi ? 'text-white/80' : 'text-[#A8AEBE]'}`}>{n}</span>
                 </button>
               );
             })}

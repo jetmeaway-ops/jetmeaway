@@ -907,6 +907,7 @@
     "filterDistance": "距离市中心",
     "filterDistanceAny": "任意",
     "filterDistanceLess": "少于 {km} 公里",
+    "filterDistanceLessMi": "少于 {mi} 英里",
     "filterPropertyType": "住宿类型",
     "filterBrand": "品牌",
     "filterFacilities": "设施",
