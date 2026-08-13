@@ -1824,8 +1824,18 @@ export async function GET(req: NextRequest) {
   // v29 — actually apply the v28 fix to the MAIN curated merge path,
   // not just the partial-match fallback. v28 only patched one of two
   // sites; The Savoy was still leaking through the main path.
+  // v30 — the key did not include the geo dimensions, so two searches for the
+  // same city with DIFFERENT radii (or anchored on different landmarks) shared
+  // one cache entry and served each other's results. `radius` and lat/lng are
+  // real inputs to the upstream LiteAPI query, so they belong in the key.
+  // Adds segments only — no stored value shape changes, and this key is read
+  // and written nowhere else in the codebase.
   const occCacheSuffix = parsed.data.occ ? `:occ=${parsed.data.occ}` : '';
-  const kvKey = `hotels:v29:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}${occCacheSuffix}`;
+  const ctrCacheSuffix = autocompleteCentre
+    ? `:@${autocompleteCentre.lat.toFixed(3)},${autocompleteCentre.lng.toFixed(3)}`
+    : '';
+  const geoCacheSuffix = explicitRadiusKm ? `:r${explicitRadiusKm}` : '';
+  const kvKey = `hotels:v30:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}${occCacheSuffix}${ctrCacheSuffix}${geoCacheSuffix}`;
 
   // Group occupancy bypass: large groups (>4 guests) always get fresh prices
   // because cached availability/room blocks may not hold for that many people.
