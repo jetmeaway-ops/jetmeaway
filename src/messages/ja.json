@@ -1260,6 +1260,7 @@
     "viewGoogleMaps": "Googleマップで見る",
     "receptionHours": "フロントの営業時間",
     "locationTitle": "ロケーション",
+    "showMap": "地図を表示",
     "mostPopularFacilities": "最も人気の設備",
     "facilitiesBody": "この施設がすべてのゲストに提供するもの — ホテル独自の設備リストからライブで。",
     "moreFacilities": "施設ではさらに+{count}件の設備が利用可能",

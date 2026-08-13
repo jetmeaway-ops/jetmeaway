@@ -1260,6 +1260,7 @@
     "viewGoogleMaps": "在 Google 地图上查看",
     "receptionHours": "前台时间",
     "locationTitle": "位置",
+    "showMap": "查看地图",
     "mostPopularFacilities": "最受欢迎的设施",
     "facilitiesBody": "此住宿为每位客人提供的服务——实时取自酒店自己的设施清单。",
     "moreFacilities": "此住宿还提供 +{count} 项设施",

@@ -1260,6 +1260,7 @@
     "viewGoogleMaps": "Google Haritalar'da gör",
     "receptionHours": "Resepsiyon saatleri",
     "locationTitle": "Konum",
+    "showMap": "Haritada göster",
     "mostPopularFacilities": "En popüler olanaklar",
     "facilitiesBody": "Bu tesisin her misafire sunduğu — otelin kendi olanak listesinden canlı olarak.",
     "moreFacilities": "Tesiste +{count} olanak daha mevcut",

@@ -895,6 +895,22 @@ export default function HotelDetailPage() {
               <p className="text-[.85rem] text-[#5C6378] font-semibold mt-1">
                 <i className="fa-solid fa-location-dot text-[.78rem] text-[#287DFA] mr-1" />
                 {hotel.address}{hotel.city ? `, ${hotel.city}` : ''}
+                {/* The map already exists further down the page, but nothing up
+                    here pointed at it — so "where actually is this hotel?" meant
+                    hunting for it. This jumps straight to it. Only rendered when
+                    the section it targets will actually exist (lat/lng present). */}
+                {typeof hotel.latitude === 'number' && typeof hotel.longitude === 'number' && (
+                  <>
+                    <span className="mx-2 text-[#C8CEDA]" aria-hidden>·</span>
+                    <a
+                      href="#location"
+                      className="inline-flex items-center gap-1 text-[#287DFA] font-bold underline underline-offset-2 hover:text-[#0a58d0]"
+                    >
+                      <i className="fa-solid fa-map-location-dot text-[.75rem]" aria-hidden />
+                      {t('showMap')}
+                    </a>
+                  </>
+                )}
               </p>
             )}
             {/* Trust chip row — "Includes all taxes & fees" is the premium

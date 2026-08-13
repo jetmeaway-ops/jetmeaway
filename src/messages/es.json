@@ -1260,6 +1260,7 @@
     "viewGoogleMaps": "Ver en Google Maps",
     "receptionHours": "Horario de recepción",
     "locationTitle": "Ubicación",
+    "showMap": "Ver mapa",
     "mostPopularFacilities": "Servicios más populares",
     "facilitiesBody": "Lo que este alojamiento ofrece a cada huésped: en tiempo real, desde la propia lista de servicios del hotel.",
     "moreFacilities": "+{count} servicios más disponibles en el alojamiento",
