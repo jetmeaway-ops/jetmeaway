@@ -15,7 +15,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /** Locales with a shipped message catalog. ORDER = switcher display order. */
-export const ACTIVE_LOCALES = ['en', 'ar', 'ur', 'hi', 'de', 'zh', 'ru', 'es', 'fr', 'tr', 'it', 'ja'] as const;
+export const ACTIVE_LOCALES = ['en', 'ar', 'ur', 'hi', 'de', 'zh', 'ru', 'es', 'fr', 'tr', 'it', 'ja', 'sw'] as const;
 
 export type Locale = (typeof ACTIVE_LOCALES)[number];
 
@@ -38,6 +38,7 @@ export const LOCALE_LABELS: Record<Locale, string> = {
   tr: 'Türkçe',
   it: 'Italiano',
   ja: '日本語',
+  sw: 'Kiswahili',
 };
 
 /** ISO country → locale fallback (only used when Accept-Language gives no
@@ -56,6 +57,12 @@ export const COUNTRY_TO_LOCALE: Record<string, Locale> = {
   TR: 'tr',
   IT: 'it',
   JP: 'ja',
+  // Swahili-speaking East Africa. Only countries where Swahili is an official
+  // or national language — DR Congo is deliberately absent (French is official
+  // there and Swahili is regional, so a blanket mapping would mislabel most
+  // visitors). This map is the LAST resort anyway: Accept-Language is checked
+  // first, so anyone whose phone is set to English still gets English.
+  KE: 'sw', TZ: 'sw', UG: 'sw', RW: 'sw',
 };
 
 export function isActiveLocale(x: string | undefined | null): x is Locale {
