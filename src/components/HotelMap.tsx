@@ -69,11 +69,16 @@ function clusterIcon(cluster: L.MarkerCluster): L.DivIcon {
   }
   const price = Number.isFinite(min) ? `${symbol}${Math.round(min)}` : '';
   const label = price ? `${count} from ${price}` : `${count}`;
+  /* Size the icon to the label. A fixed box clipped longer labels like
+     "57 from £132" and, because Leaflet anchors on the icon box rather than
+     the rendered pill, also left the bubble sitting off-centre from its pin.
+     ~7px per character at 12px Poppins Black, plus padding and border. */
+  const w = Math.max(48, Math.round(label.length * 7 + 26));
   return L.divIcon({
     className: 'jma-cluster-pin',
-    html: `<div style="background:#1A1D2B;color:#fff;border:2px solid #fff;padding:5px 11px;border-radius:999px;font-family:Poppins,sans-serif;font-weight:900;font-size:12px;box-shadow:0 3px 12px rgba(0,0,0,.28);white-space:nowrap;">${esc(label)}</div>`,
-    iconSize: [72, 28],
-    iconAnchor: [36, 14],
+    html: `<div style="background:#1A1D2B;color:#fff;border:2px solid #fff;padding:5px 11px;border-radius:999px;font-family:Poppins,sans-serif;font-weight:900;font-size:12px;box-shadow:0 3px 12px rgba(0,0,0,.28);white-space:nowrap;text-align:center;">${esc(label)}</div>`,
+    iconSize: [w, 28],
+    iconAnchor: [w / 2, 14],
   });
 }
 
@@ -126,9 +131,12 @@ function ClusteredPins({
   useEffect(() => {
     const group = L.markerClusterGroup({
       iconCreateFunction: clusterIcon,
-      // Price pills are wide, so cluster a little tighter than the 80px
-      // default or neighbouring pills still visually collide.
-      maxClusterRadius: 55,
+      /* Must exceed the width of the pill we draw, not be "tighter". Measured
+         live: cluster bubbles render 72px wide, and two separate clusters
+         settled 59px apart — far enough not to merge, close enough to overlap
+         on screen, which is the exact smear this was meant to fix. 100px keeps
+         a gap between neighbouring bubbles at every zoom level. */
+      maxClusterRadius: 100,
       showCoverageOnHover: false,
       spiderfyOnMaxZoom: true,
       chunkedLoading: true,
