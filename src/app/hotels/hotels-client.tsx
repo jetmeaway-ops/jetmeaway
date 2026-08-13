@@ -1759,13 +1759,6 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
                 {nights > 0 && (
                   <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">£{displayTotal} {t('totalFor')} {t('nightsCount', { count: nights })}</div>
                 )}
-                {/* Trust chip — the "why us" proof. Many comparison sites
-                    show pre-tax headline prices; our displayed price is
-                    all-in. Loud, green, never missed. */}
-                <span className="inline-flex items-center gap-1 mt-1.5 text-[.68rem] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  <i className="fa-solid fa-circle-check text-[.62rem]" aria-hidden />
-                  {t('totalPriceInclTaxes')}
-                </span>
               </>
             )}
             {/* Wholesale-rate signal — always visible (both per-night
@@ -1789,13 +1782,14 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
               </span>
             )}
           </div>
-          <div className="flex flex-col items-end gap-1.5 w-full mt-1">
+          {/* The generic "no hidden fees / free cancellation / secure payment"
+              row used to live here. It repeated the fee promise a third time
+              per card, and its blanket "Free cancellation" contradicted cards
+              that are actually Non-refundable. It now appears once, above the
+              list, where it reads as a site-wide guarantee instead of a
+              per-hotel claim. */}
+          <div className="w-full mt-1 flex justify-end">
             <BookDirectButton hotel={bookHotel} checkIn={checkin} checkOut={checkout} adults={adults} nights={nights} city={searchedDest} detailHref={detailHref} />
-            <div className="flex flex-wrap gap-x-3 gap-y-0.5 justify-end text-[10px] text-[#9CA3AF] font-medium">
-              <span>✅ {t('noHiddenFees')}</span>
-              <span>✅ {t('freeCancellation')}</span>
-              <span>✅ {t('securePayment')}</span>
-            </div>
           </div>
         </div>
       </div>
@@ -3769,6 +3763,24 @@ function HotelsContent() {
                   </span>
                 </div>
                 <p className="text-[.7rem] text-[#8E95A9] font-semibold">{t('pricesRecentSearches')}</p>
+              </div>
+              {/* Site-wide guarantees, stated ONCE. These used to be repeated
+                  on every single card (three separate blocks per card), which
+                  roughly doubled card height and pushed real content below the
+                  fold. Same i18n keys, so no locale file changes. */}
+              <div className="mt-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-[.68rem] font-semibold text-[#5C6378]">
+                <span className="inline-flex items-center gap-1.5">
+                  <i className="fa-solid fa-circle-check text-[.62rem] text-emerald-600" aria-hidden />
+                  {t('totalPriceInclTaxes')}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <i className="fa-solid fa-circle-check text-[.62rem] text-emerald-600" aria-hidden />
+                  {t('noHiddenFees')}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <i className="fa-solid fa-circle-check text-[.62rem] text-emerald-600" aria-hidden />
+                  {t('securePayment')}
+                </span>
               </div>
             </section>
           )}
