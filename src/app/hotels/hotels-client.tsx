@@ -11,6 +11,7 @@ import { chooseDefaultTab } from '@/lib/silentScout';
 import { vibeTagsForSearchedCity } from '@/data/destinations';
 import { saveSticky, loadSticky, type StickyHotels } from '@/lib/sticky-search';
 import { decodeFromParams, encodeOccupancy } from '@/lib/occupancy';
+import { saveSnapshot, readSnapshot, isBackForwardNavigation } from '@/lib/hotels-result-cache';
 import { LITEAPI_HOTEL_TYPES } from '@/data/liteapi-hotel-types';
 import { LITEAPI_FACILITIES } from '@/data/liteapi-facilities';
 import { LITEAPI_FACILITY_GROUPS } from '@/data/liteapi-facility-groups';
@@ -2792,6 +2793,10 @@ function HotelsContent() {
   // results appear unbidden, user feels things are happening to them"
   // problem the 2026-04-27 Clarity recording exposed.
   const autoSearched = useRef(false);
+  /** Scroll offset to reapply once restored rows have painted (see below). */
+  const restoringScrollTo = useRef<number | null>(null);
+  /** Set while restoring a snapshot so the "reset to page 1" effect stands down. */
+  const skipPageResetRef = useRef(false);
   useEffect(() => {
     if (autoSearched.current) return;
     if (!destination || !checkin || !checkout) return;
@@ -2801,8 +2806,67 @@ function HotelsContent() {
       (p.get('destination') || p.get('city')) && p.get('checkin') && p.get('checkout');
     if (!urlHasFullSearch) return;
     autoSearched.current = true;
+
+    // Coming BACK from a hotel detail page? Restore the exact result set,
+    // page and scroll offset instead of re-running the search, which would
+    // dump the visitor at hotel #1 having lost the extra pages they loaded.
+    // Only on a genuine back/forward navigation — re-submitting the form
+    // should always fetch fresh prices. readSnapshot() enforces the search
+    // signature and a 15-minute TTL, so a stale set can never come back.
+    if (isBackForwardNavigation()) {
+      const snap = readSnapshot<HotelResult>(window.location.search);
+      if (snap) {
+        skipPageResetRef.current = true;
+        setHotels(snap.hotels);
+        setSearchedDest(snap.searchedDest);
+        setCurrentPage(snap.currentPage);
+        setPageSize(snap.pageSize);
+        setSortBy(snap.sortBy as SortBy);
+        setViewMode(snap.viewMode as ViewMode);
+        setSearched(true);
+        setLoading(false);
+        restoringScrollTo.current = snap.scrollY;
+        return; // deliberately skip handleSearch
+      }
+    }
+
     handleSearch();
   }, [destination, checkin, checkout, handleSearch]);
+
+  /* Restore the saved scroll offset once the restored rows have painted.
+     Two rAFs: the first lets React commit the list, the second lets the
+     browser lay it out — restoring any earlier just scrolls a short page.
+     Deliberately NOT smooth: the visitor should feel like they never left. */
+  useEffect(() => {
+    const y = restoringScrollTo.current;
+    if (y == null || !hotels?.length) return;
+    restoringScrollTo.current = null;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => window.scrollTo({ top: y, behavior: 'auto' }));
+    });
+  }, [hotels]);
+
+  /* Snapshot the current view on the way out. `pagehide` (not
+     `beforeunload`) is the event that actually fires for bfcache and on
+     iOS Safari. Cheap enough to run on every exit — it is one JSON write. */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onExit = () => {
+      if (!hotels?.length) return;
+      saveSnapshot<HotelResult>({
+        sig: window.location.search,
+        searchedDest,
+        hotels,
+        currentPage,
+        pageSize,
+        sortBy,
+        viewMode,
+        scrollY: window.scrollY,
+      });
+    };
+    window.addEventListener('pagehide', onExit);
+    return () => window.removeEventListener('pagehide', onExit);
+  }, [hotels, searchedDest, currentPage, pageSize, sortBy, viewMode]);
 
   // Compute centre for distance sort and map default view. Landmark search
   // wins (anchored on the actual landmark — Big Ben, Disneyland Paris,
@@ -3319,7 +3383,14 @@ function HotelsContent() {
   // Reset to page 1 whenever the sorted set changes meaningfully — sort,
   // filter, page-size, or the hotel list itself. Without this you can land
   // on page 4 of an old search when a new search returns 12 results.
-  useEffect(() => { setCurrentPage(1); }, [sortBy, boardFilter, refundableOnly, pageSize, totalResults, nameQuery, priceMin, priceMax, starSel, guestMin, mealSel, popularSel, propTypeSel, brandSel, facilitySel, distanceBand]);
+  /* Changing a sort or filter must send you back to page 1 — but NOT when we
+     are restoring a snapshot on Back. Restoring sets hotels + sortBy +
+     pageSize together, which would otherwise trip this effect and throw away
+     the very page number we just restored. The flag is consumed once. */
+  useEffect(() => {
+    if (skipPageResetRef.current) { skipPageResetRef.current = false; return; }
+    setCurrentPage(1);
+  }, [sortBy, boardFilter, refundableOnly, pageSize, totalResults, nameQuery, priceMin, priceMax, starSel, guestMin, mealSel, popularSel, propTypeSel, brandSel, facilitySel, distanceBand]);
 
   // Mirror filter changes into sticky-search so they survive a round-trip
   // through /hotels/[id]. handleSearch already writes the full sticky
