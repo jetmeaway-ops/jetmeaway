@@ -55,8 +55,16 @@ function esc(s: string): string {
 }
 
 /**
- * Cluster bubble showing how many hotels are hidden inside and the cheapest
- * price among them — "7 from £199" tells you far more than a bare "7".
+ * Cluster bubble: a compact fixed-size disc with the hotel count.
+ *
+ * The previous pill rendered "7 from £199" and grew with its text —
+ * ~90–110 px wide — while markercluster only guarantees ~maxClusterRadius
+ * (55 px) between cluster centres. In dense city centres neighbouring pills
+ * therefore drew on top of each other as an unreadable smear (measured on
+ * production: two 72 px+ bubbles 59 px apart). A 36 px disc stays inside the
+ * cluster spacing at every zoom, so bubbles can no longer collide. The
+ * cheapest price still surfaces on the hover tooltip, and clicking a bubble
+ * zooms into its hotels where the individual pins carry full price pills.
  */
 function clusterIcon(cluster: L.MarkerCluster): L.DivIcon {
   const markers = cluster.getAllChildMarkers() as Array<L.Marker & { _jmaPrice?: number; _jmaSymbol?: string }>;
@@ -68,12 +76,12 @@ function clusterIcon(cluster: L.MarkerCluster): L.DivIcon {
     if (typeof p === 'number' && p < min) { min = p; symbol = m._jmaSymbol || '£'; }
   }
   const price = Number.isFinite(min) ? `${symbol}${Math.round(min)}` : '';
-  const label = price ? `${count} from ${price}` : `${count}`;
+  const tooltip = price ? `${count} hotels from ${price}` : `${count} hotels`;
   return L.divIcon({
     className: 'jma-cluster-pin',
-    html: `<div style="background:#1A1D2B;color:#fff;border:2px solid #fff;padding:5px 11px;border-radius:999px;font-family:Poppins,sans-serif;font-weight:900;font-size:12px;box-shadow:0 3px 12px rgba(0,0,0,.28);white-space:nowrap;">${esc(label)}</div>`,
-    iconSize: [72, 28],
-    iconAnchor: [36, 14],
+    html: `<div title="${esc(tooltip)}" style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:#1A1D2B;color:#fff;border:2px solid #fff;border-radius:50%;font-family:Poppins,sans-serif;font-weight:900;font-size:12.5px;box-shadow:0 3px 12px rgba(0,0,0,.28);">${count}</div>`,
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
   });
 }
 
