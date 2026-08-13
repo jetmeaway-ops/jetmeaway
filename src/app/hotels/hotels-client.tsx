@@ -11,7 +11,7 @@ import { chooseDefaultTab } from '@/lib/silentScout';
 import { vibeTagsForSearchedCity } from '@/data/destinations';
 import { saveSticky, loadSticky, type StickyHotels } from '@/lib/sticky-search';
 import { decodeFromParams, encodeOccupancy } from '@/lib/occupancy';
-import { saveSnapshot, readSnapshot, isBackForwardNavigation } from '@/lib/hotels-result-cache';
+import { persistResults, savePosition, hasFreshPosition, readSnapshot, isReturnFromDetail } from '@/lib/hotels-result-cache';
 import { LITEAPI_HOTEL_TYPES } from '@/data/liteapi-hotel-types';
 import { LITEAPI_FACILITIES } from '@/data/liteapi-facilities';
 import { LITEAPI_FACILITY_GROUPS } from '@/data/liteapi-facility-groups';
@@ -2810,24 +2810,32 @@ function HotelsContent() {
     // Coming BACK from a hotel detail page? Restore the exact result set,
     // page and scroll offset instead of re-running the search, which would
     // dump the visitor at hotel #1 having lost the extra pages they loaded.
-    // Only on a genuine back/forward navigation — re-submitting the form
-    // should always fetch fresh prices. readSnapshot() enforces the search
-    // signature and a 15-minute TTL, so a stale set can never come back.
-    if (isBackForwardNavigation()) {
-      const snap = readSnapshot<HotelResult>(window.location.search);
-      if (snap) {
-        skipPageResetRef.current = true;
-        setHotels(snap.hotels);
-        setSearchedDest(snap.searchedDest);
-        setCurrentPage(snap.currentPage);
-        setPageSize(snap.pageSize);
-        setSortBy(snap.sortBy as SortBy);
-        setViewMode(snap.viewMode as ViewMode);
-        setSearched(true);
-        setLoading(false);
-        restoringScrollTo.current = snap.scrollY;
-        return; // deliberately skip handleSearch
-      }
+    // Covers the browser Back button AND the detail page's "Back to search"
+    // pill (that one is a normal navigation, caught via referrer).
+    // readSnapshot() enforces the canonical search signature and a 15-minute
+    // TTL, so a stale set can never come back. The bulk list arrives async
+    // from IndexedDB: loading stays true while it reads so the visitor sees
+    // the normal skeleton, and any miss falls through to a fresh search —
+    // never a dead results page.
+    if (isReturnFromDetail() && hasFreshPosition(window.location.search)) {
+      setSearched(true);
+      setLoading(true);
+      readSnapshot<HotelResult>(window.location.search).then((snap) => {
+        if (snap) {
+          skipPageResetRef.current = true;
+          setHotels(snap.hotels);
+          setSearchedDest(snap.searchedDest);
+          setCurrentPage(snap.currentPage);
+          setPageSize(snap.pageSize);
+          setSortBy(snap.sortBy as SortBy);
+          setViewMode(snap.viewMode as ViewMode);
+          setLoading(false);
+          restoringScrollTo.current = snap.scrollY;
+        } else {
+          handleSearch();
+        }
+      });
+      return; // restore in flight — deliberately skip handleSearch
     }
 
     handleSearch();
@@ -2846,17 +2854,29 @@ function HotelsContent() {
     });
   }, [hotels]);
 
-  /* Snapshot the current view on the way out. `pagehide` (not
-     `beforeunload`) is the event that actually fires for bfcache and on
-     iOS Safari. Cheap enough to run on every exit — it is one JSON write. */
+  /* Persist the bulk result list in the background as it changes (debounced —
+     the progressive load-more loop appends a page every couple of seconds).
+     Doing the heavy write while the visitor browses means the exit path only
+     has to store a tiny position record. */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!searched || !hotels?.length) return;
+    const id = window.setTimeout(() => {
+      persistResults<HotelResult>(window.location.search, hotels);
+    }, 1200);
+    return () => window.clearTimeout(id);
+  }, [hotels, searched]);
+
+  /* Record the position on the way out. `pagehide` (not `beforeunload`) is
+     the event that actually fires for bfcache and on iOS Safari. The record
+     is well under 1 KB, so unlike the old full-list snapshot it cannot die
+     on the sessionStorage quota. */
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const onExit = () => {
       if (!hotels?.length) return;
-      saveSnapshot<HotelResult>({
-        sig: window.location.search,
+      savePosition(window.location.search, {
         searchedDest,
-        hotels,
         currentPage,
         pageSize,
         sortBy,
