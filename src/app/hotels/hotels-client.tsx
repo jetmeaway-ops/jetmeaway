@@ -2489,7 +2489,25 @@ function HotelsContent() {
     return diff > 0 ? diff : 0;
   }
 
+  /* Restoring a snapshot on Back is not enough on its own: several effects
+     still fire afterwards and call handleSearch() — the sticky-search state
+     flush, and the popstate listener via dateShiftTrigger. handleSearch opens
+     with setHotels(null), so the restored rows were wiped immediately and the
+     page ended up empty. That is what "Back still goes to hotel #1" actually
+     was: not a scroll bug, a results-wipe.
+
+     A timestamp rather than a one-shot flag, because more than one of those
+     effects can fire. Deliberate user searches clear it, so this can never
+     swallow a real Search click. */
+  const restoredAtRef = useRef(0);
+
   const handleSearch = useCallback(async () => {
+    // Just restored a snapshot on Back? Ignore the automatic re-fires that
+    // follow (sticky-search state flush, popstate → dateShiftTrigger). Without
+    // this, setHotels(null) below wipes the rows we restored a tick earlier.
+    // Deliberate user searches clear restoredAtRef first, so they always win.
+    if (restoredAtRef.current && Date.now() - restoredAtRef.current < 4000) return;
+
     // Inline validation — never alert(). A blocking alert() dialog reads
     // as a frozen page to some users (and to automation), and the message
     // vanishes on dismiss so it teaches nothing (2026-07-02 audit — the
@@ -2826,6 +2844,7 @@ function HotelsContent() {
         setSearched(true);
         setLoading(false);
         restoringScrollTo.current = snap.scrollY;
+        restoredAtRef.current = Date.now();
         return; // deliberately skip handleSearch
       }
     }
@@ -2834,16 +2853,30 @@ function HotelsContent() {
   }, [destination, checkin, checkout, handleSearch]);
 
   /* Restore the saved scroll offset once the restored rows have painted.
-     Two rAFs: the first lets React commit the list, the second lets the
-     browser lay it out — restoring any earlier just scrolls a short page.
-     Deliberately NOT smooth: the visitor should feel like they never left. */
+     Deliberately NOT smooth: the visitor should feel like they never left.
+
+     A single scrollTo is not enough. Cards carry images that have not loaded
+     on first paint, so the document is still short and the browser clamps the
+     target — measured live: asked for 4000, landed at 1086. Retry on a short
+     interval until the page is tall enough to honour it. Bounded at 20 tries
+     (~2.4s) so it can never spin. */
   useEffect(() => {
     const y = restoringScrollTo.current;
     if (y == null || !hotels?.length) return;
     restoringScrollTo.current = null;
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => window.scrollTo({ top: y, behavior: 'auto' }));
-    });
+
+    let tries = 0;
+    let timer: ReturnType<typeof setInterval>;
+    const settle = () => {
+      const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+      window.scrollTo({ top: Math.min(y, max), behavior: 'auto' });
+      // Stop once we are within a card's height of the target, or the page
+      // simply cannot grow any further.
+      if (Math.abs(window.scrollY - y) < 120 || ++tries >= 20) clearInterval(timer);
+    };
+    timer = setInterval(settle, 120);
+    requestAnimationFrame(() => requestAnimationFrame(settle));
+    return () => clearInterval(timer);
   }, [hotels]);
 
   /* Snapshot the current view on the way out. `pagehide` (not
@@ -3577,7 +3610,7 @@ function HotelsContent() {
             <span className="text-[.78rem] font-bold text-[#1A1D2B] group-hover:text-green-600 transition-colors">{t('freeCancellationOnly')}</span>
           </label>
 
-          <button onClick={handleSearch} disabled={loading}
+          <button onClick={() => { restoredAtRef.current = 0; handleSearch(); }} disabled={loading}
             className="w-full bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-60 text-white font-poppins font-bold text-[.95rem] py-4 rounded-xl transition-all shadow-[0_4px_16px_rgba(0,102,255,0.25)]">
             {loading ? t('searchingBtn') : t('searchHotels')}
           </button>
@@ -3788,7 +3821,7 @@ function HotelsContent() {
         <section className="max-w-[860px] mx-auto px-5 py-6">
           <div className="bg-red-50 border border-red-100 rounded-2xl p-5 text-center">
             <p className="text-[.85rem] font-bold text-red-600 mb-3">{apiError}</p>
-            <button onClick={handleSearch}
+            <button onClick={() => { restoredAtRef.current = 0; handleSearch(); }}
               className="bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.82rem] px-6 py-2.5 rounded-xl transition-all">
               {t('tryAgain')}
             </button>
