@@ -11,6 +11,7 @@ import { chooseDefaultTab } from '@/lib/silentScout';
 import { vibeTagsForSearchedCity } from '@/data/destinations';
 import { saveSticky, loadSticky, type StickyHotels } from '@/lib/sticky-search';
 import { decodeFromParams, encodeOccupancy } from '@/lib/occupancy';
+import { saveSnapshot, readSnapshot, isBackForwardNavigation } from '@/lib/hotels-result-cache';
 import { LITEAPI_HOTEL_TYPES } from '@/data/liteapi-hotel-types';
 import { LITEAPI_FACILITIES } from '@/data/liteapi-facilities';
 import { LITEAPI_FACILITY_GROUPS } from '@/data/liteapi-facility-groups';
@@ -1759,13 +1760,6 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
                 {nights > 0 && (
                   <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">£{displayTotal} {t('totalFor')} {t('nightsCount', { count: nights })}</div>
                 )}
-                {/* Trust chip — the "why us" proof. Many comparison sites
-                    show pre-tax headline prices; our displayed price is
-                    all-in. Loud, green, never missed. */}
-                <span className="inline-flex items-center gap-1 mt-1.5 text-[.68rem] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  <i className="fa-solid fa-circle-check text-[.62rem]" aria-hidden />
-                  {t('totalPriceInclTaxes')}
-                </span>
               </>
             )}
             {/* Wholesale-rate signal — always visible (both per-night
@@ -1789,13 +1783,14 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
               </span>
             )}
           </div>
-          <div className="flex flex-col items-end gap-1.5 w-full mt-1">
+          {/* The generic "no hidden fees / free cancellation / secure payment"
+              row used to live here. It repeated the fee promise a third time
+              per card, and its blanket "Free cancellation" contradicted cards
+              that are actually Non-refundable. It now appears once, above the
+              list, where it reads as a site-wide guarantee instead of a
+              per-hotel claim. */}
+          <div className="w-full mt-1 flex justify-end">
             <BookDirectButton hotel={bookHotel} checkIn={checkin} checkOut={checkout} adults={adults} nights={nights} city={searchedDest} detailHref={detailHref} />
-            <div className="flex flex-wrap gap-x-3 gap-y-0.5 justify-end text-[10px] text-[#9CA3AF] font-medium">
-              <span>✅ {t('noHiddenFees')}</span>
-              <span>✅ {t('freeCancellation')}</span>
-              <span>✅ {t('securePayment')}</span>
-            </div>
           </div>
         </div>
       </div>
@@ -2798,6 +2793,10 @@ function HotelsContent() {
   // results appear unbidden, user feels things are happening to them"
   // problem the 2026-04-27 Clarity recording exposed.
   const autoSearched = useRef(false);
+  /** Scroll offset to reapply once restored rows have painted (see below). */
+  const restoringScrollTo = useRef<number | null>(null);
+  /** Set while restoring a snapshot so the "reset to page 1" effect stands down. */
+  const skipPageResetRef = useRef(false);
   useEffect(() => {
     if (autoSearched.current) return;
     if (!destination || !checkin || !checkout) return;
@@ -2807,8 +2806,67 @@ function HotelsContent() {
       (p.get('destination') || p.get('city')) && p.get('checkin') && p.get('checkout');
     if (!urlHasFullSearch) return;
     autoSearched.current = true;
+
+    // Coming BACK from a hotel detail page? Restore the exact result set,
+    // page and scroll offset instead of re-running the search, which would
+    // dump the visitor at hotel #1 having lost the extra pages they loaded.
+    // Only on a genuine back/forward navigation — re-submitting the form
+    // should always fetch fresh prices. readSnapshot() enforces the search
+    // signature and a 15-minute TTL, so a stale set can never come back.
+    if (isBackForwardNavigation()) {
+      const snap = readSnapshot<HotelResult>(window.location.search);
+      if (snap) {
+        skipPageResetRef.current = true;
+        setHotels(snap.hotels);
+        setSearchedDest(snap.searchedDest);
+        setCurrentPage(snap.currentPage);
+        setPageSize(snap.pageSize);
+        setSortBy(snap.sortBy as SortBy);
+        setViewMode(snap.viewMode as ViewMode);
+        setSearched(true);
+        setLoading(false);
+        restoringScrollTo.current = snap.scrollY;
+        return; // deliberately skip handleSearch
+      }
+    }
+
     handleSearch();
   }, [destination, checkin, checkout, handleSearch]);
+
+  /* Restore the saved scroll offset once the restored rows have painted.
+     Two rAFs: the first lets React commit the list, the second lets the
+     browser lay it out — restoring any earlier just scrolls a short page.
+     Deliberately NOT smooth: the visitor should feel like they never left. */
+  useEffect(() => {
+    const y = restoringScrollTo.current;
+    if (y == null || !hotels?.length) return;
+    restoringScrollTo.current = null;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => window.scrollTo({ top: y, behavior: 'auto' }));
+    });
+  }, [hotels]);
+
+  /* Snapshot the current view on the way out. `pagehide` (not
+     `beforeunload`) is the event that actually fires for bfcache and on
+     iOS Safari. Cheap enough to run on every exit — it is one JSON write. */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onExit = () => {
+      if (!hotels?.length) return;
+      saveSnapshot<HotelResult>({
+        sig: window.location.search,
+        searchedDest,
+        hotels,
+        currentPage,
+        pageSize,
+        sortBy,
+        viewMode,
+        scrollY: window.scrollY,
+      });
+    };
+    window.addEventListener('pagehide', onExit);
+    return () => window.removeEventListener('pagehide', onExit);
+  }, [hotels, searchedDest, currentPage, pageSize, sortBy, viewMode]);
 
   // Compute centre for distance sort and map default view. Landmark search
   // wins (anchored on the actual landmark — Big Ben, Disneyland Paris,
@@ -2864,8 +2922,12 @@ function HotelsContent() {
   };
   const hotelTypeName = (h: HotelResult): string =>
     (h.hotelTypeId != null ? (LITEAPI_HOTEL_TYPES[h.hotelTypeId] || '') : '').toLowerCase();
-  const hotelDistanceKm = (h: HotelResult): number | null =>
-    (cityCentre && h.lat != null && h.lng != null) ? distanceKm(h.lat, h.lng, cityCentre.lat, cityCentre.lng) : null;
+  /* Distance in MILES, to match what the cards already print ("2.4 mi from
+     centre"). The sidebar used to band these in km while every card showed
+     miles, so "Less than 5 km" sat directly above a card reading "2.8 mi" —
+     two different units for the same measurement on one screen. */
+  const hotelDistanceMi = (h: HotelResult): number | null =>
+    (cityCentre && h.lat != null && h.lng != null) ? haversineMi(h.lat, h.lng, cityCentre.lat, cityCentre.lng) : null;
   // Popular-filter shortcuts — a curated row matching the dashboard.
   const POPULAR_DEFS: { key: string; label: string; icon: string; test: (h: HotelResult) => boolean }[] = [
     { key: 'free-cancel', label: t('freeCancellationOnly'), icon: 'fa-circle-check', test: h => h.refundable === true },
@@ -2922,7 +2984,7 @@ function HotelsContent() {
     }
     // Distance from centre — within the selected radius.
     if (distanceBand != null) {
-      const d = hotelDistanceKm(h);
+      const d = hotelDistanceMi(h);
       if (d == null || d > distanceBand) return false;
     }
     return true;
@@ -3017,8 +3079,8 @@ function HotelsContent() {
   const mealCount = (k: string) => facetBase.filter(h => boardsOf(h).some(b => b.includes(k))).length;
   // ── Phase-2 facets ──
   const popularCount = (key: string) => facetBase.filter(h => popularTest(key, h)).length;
-  const distanceBands = [1, 2, 5, 10];
-  const distanceCount = (km: number) => facetBase.filter(h => { const d = hotelDistanceKm(h); return d != null && d <= km; }).length;
+  const distanceBands = [1, 3, 5, 10]; // MILES — matches the cards
+  const distanceCount = (mi: number) => facetBase.filter(h => { const d = hotelDistanceMi(h); return d != null && d <= mi; }).length;
   const hasCoords = facetBase.some(h => h.lat != null && h.lng != null) && cityCentre != null;
   const propTypeCounts = new Map<number, number>();
   facetBase.forEach(h => { if (h.hotelTypeId != null) propTypeCounts.set(h.hotelTypeId, (propTypeCounts.get(h.hotelTypeId) || 0) + 1); });
@@ -3155,16 +3217,16 @@ function HotelsContent() {
             >
               {t('filterDistanceAny')}
             </button>
-            {distanceBands.map(km => {
-              const n = distanceCount(km);
-              if (n === 0 && distanceBand !== km) return null;
+            {distanceBands.map(mi => {
+              const n = distanceCount(mi);
+              if (n === 0 && distanceBand !== mi) return null;
               return (
                 <button
-                  key={km} type="button" onClick={() => setDistanceBand(km)}
-                  className={`flex items-center px-3 py-2 rounded-xl text-[.8rem] font-bold transition-colors ${distanceBand === km ? 'bg-orange-500 text-white' : 'bg-[#F4F6FA] text-[#5C6378] hover:bg-orange-50'}`}
+                  key={mi} type="button" onClick={() => setDistanceBand(mi)}
+                  className={`flex items-center px-3 py-2 rounded-xl text-[.8rem] font-bold transition-colors ${distanceBand === mi ? 'bg-orange-500 text-white' : 'bg-[#F4F6FA] text-[#5C6378] hover:bg-orange-50'}`}
                 >
-                  <span>{t('filterDistanceLess', { km })}</span>
-                  <span className={`ml-auto tabular-nums ${distanceBand === km ? 'text-white/80' : 'text-[#A8AEBE]'}`}>{n}</span>
+                  <span>{t('filterDistanceLessMi', { mi })}</span>
+                  <span className={`ml-auto tabular-nums ${distanceBand === mi ? 'text-white/80' : 'text-[#A8AEBE]'}`}>{n}</span>
                 </button>
               );
             })}
@@ -3325,7 +3387,14 @@ function HotelsContent() {
   // Reset to page 1 whenever the sorted set changes meaningfully — sort,
   // filter, page-size, or the hotel list itself. Without this you can land
   // on page 4 of an old search when a new search returns 12 results.
-  useEffect(() => { setCurrentPage(1); }, [sortBy, boardFilter, refundableOnly, pageSize, totalResults, nameQuery, priceMin, priceMax, starSel, guestMin, mealSel, popularSel, propTypeSel, brandSel, facilitySel, distanceBand]);
+  /* Changing a sort or filter must send you back to page 1 — but NOT when we
+     are restoring a snapshot on Back. Restoring sets hotels + sortBy +
+     pageSize together, which would otherwise trip this effect and throw away
+     the very page number we just restored. The flag is consumed once. */
+  useEffect(() => {
+    if (skipPageResetRef.current) { skipPageResetRef.current = false; return; }
+    setCurrentPage(1);
+  }, [sortBy, boardFilter, refundableOnly, pageSize, totalResults, nameQuery, priceMin, priceMax, starSel, guestMin, mealSel, popularSel, propTypeSel, brandSel, facilitySel, distanceBand]);
 
   // Mirror filter changes into sticky-search so they survive a round-trip
   // through /hotels/[id]. handleSearch already writes the full sticky
@@ -3769,6 +3838,24 @@ function HotelsContent() {
                   </span>
                 </div>
                 <p className="text-[.7rem] text-[#8E95A9] font-semibold">{t('pricesRecentSearches')}</p>
+              </div>
+              {/* Site-wide guarantees, stated ONCE. These used to be repeated
+                  on every single card (three separate blocks per card), which
+                  roughly doubled card height and pushed real content below the
+                  fold. Same i18n keys, so no locale file changes. */}
+              <div className="mt-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-[.68rem] font-semibold text-[#5C6378]">
+                <span className="inline-flex items-center gap-1.5">
+                  <i className="fa-solid fa-circle-check text-[.62rem] text-emerald-600" aria-hidden />
+                  {t('totalPriceInclTaxes')}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <i className="fa-solid fa-circle-check text-[.62rem] text-emerald-600" aria-hidden />
+                  {t('noHiddenFees')}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <i className="fa-solid fa-circle-check text-[.62rem] text-emerald-600" aria-hidden />
+                  {t('securePayment')}
+                </span>
               </div>
             </section>
           )}

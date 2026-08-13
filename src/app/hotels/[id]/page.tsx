@@ -12,6 +12,7 @@ import RoomsSkeleton from './RoomsSkeleton';
 import RoomDetailModal from './RoomDetailModal';
 import HotelBackdrop from '@/components/HotelBackdrop';
 import { chooseDefaultTab } from '@/lib/silentScout';
+import { createRoomResolver } from '@/lib/room-match';
 import { vibeTagsForSearchedCity } from '@/data/destinations';
 import { useTranslations } from 'next-intl';
 
@@ -567,19 +568,25 @@ export default function HotelDetailPage() {
     window.setTimeout(() => setSidebarBreathe(false), 260);
   };
 
-  /* Phase-4: memoised lookup from lowercased room name → room metadata.
+  /* Phase-4: resolve a rate row's room name → room metadata (photos, size,
+     amenities).
+
+     Was an exact lowercased-name Map, which matched only ~13% of rate rows
+     against live LiteAPI data: /hotels/rates returns verbose names like
+     "Classic Double room (full double bed) (bed type is subject to
+     availability)" while /data/hotel returns "Classic Room". Every miss hid
+     the "See room details & photos" button and made the modal fall back to
+     the hotel gallery. createRoomResolver keeps the exact match as its fast
+     path and adds token-overlap matching behind it (~69% measured).
+
      MUST live here (before any early return) because React's Rules of
      Hooks require every hook to be called on every render — moving it
      below the `if (loading)` / `if (error)` returns breaks hook order
      the first time the page mounts without `hotel` yet loaded. */
-  const roomMetaByName = useMemo(() => {
-    const m = new Map<string, RoomMeta>();
-    for (const r of hotel?.rooms || []) {
-      const key = r.name.toLowerCase().trim();
-      if (key) m.set(key, r);
-    }
-    return m;
-  }, [hotel?.rooms]);
+  const resolveRoomMeta = useMemo(
+    () => createRoomResolver<RoomMeta>(hotel?.rooms || []),
+    [hotel?.rooms],
+  );
 
   /* Row Reserve click — delegate to the existing handleBook using the
      selected rate's offerId/price/board so the checkout sees the exact
@@ -727,9 +734,7 @@ export default function HotelDetailPage() {
     : 0;
 
   const modalRate = modalOfferId ? rates.find((r) => r.offerId === modalOfferId) || null : null;
-  const modalRoomMeta = modalRate
-    ? roomMetaByName.get((modalRate.roomName || '').toLowerCase().trim()) || null
-    : null;
+  const modalRoomMeta = modalRate ? resolveRoomMeta(modalRate.roomName || '') : null;
   const modalBoardLabel = modalRate
     ? (modalRate.boardType || null)
     : null;
@@ -890,6 +895,22 @@ export default function HotelDetailPage() {
               <p className="text-[.85rem] text-[#5C6378] font-semibold mt-1">
                 <i className="fa-solid fa-location-dot text-[.78rem] text-[#287DFA] mr-1" />
                 {hotel.address}{hotel.city ? `, ${hotel.city}` : ''}
+                {/* The map already exists further down the page, but nothing up
+                    here pointed at it — so "where actually is this hotel?" meant
+                    hunting for it. This jumps straight to it. Only rendered when
+                    the section it targets will actually exist (lat/lng present). */}
+                {typeof hotel.latitude === 'number' && typeof hotel.longitude === 'number' && (
+                  <>
+                    <span className="mx-2 text-[#C8CEDA]" aria-hidden>·</span>
+                    <a
+                      href="#location"
+                      className="inline-flex items-center gap-1 text-[#287DFA] font-bold underline underline-offset-2 hover:text-[#0a58d0]"
+                    >
+                      <i className="fa-solid fa-map-location-dot text-[.75rem]" aria-hidden />
+                      {t('showMap')}
+                    </a>
+                  </>
+                )}
               </p>
             )}
             {/* Trust chip row — "Includes all taxes & fees" is the premium
@@ -1105,7 +1126,7 @@ export default function HotelDetailPage() {
                   nights={numNights || 1}
                   rooms={Math.max(1, parseInt(rooms) || 1)}
                   selectedOfferId={selectedRate?.offerId || null}
-                  roomMetaByName={roomMetaByName}
+                  resolveRoomMeta={resolveRoomMeta}
                   fallbackPhoto={hotel.mainPhoto || hotel.photos[0] || null}
                   onSelect={handleRowSelect}
                   onReserve={handleRowReserve}
