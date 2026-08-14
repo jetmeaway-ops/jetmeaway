@@ -13,13 +13,17 @@
      children  — default 0
      childrenAges — comma-separated ages (optional)
      rooms     — default 1
-     currency  — default GBP
+     currency  — clamped to what we can actually price in (GBP today);
+                 anything else falls back rather than being echoed back, since
+                 getHotels() converts every supplier response to GBP anyway.
 
    Output:
-     { success: true, offers: BoardOption[] }
+     { success: true, offers: BoardOption[], currency: string }
        where BoardOption = {
          offerId, boardType, totalPrice, pricePerNight, refundable
        }
+     `currency` is the currency the amounts are ACTUALLY in — read it rather
+     than assuming the request's currency came back honoured.
 
    Cached in Vercel KV for 15 minutes — LiteAPI rates are already stale by a
    couple of minutes in their own pipeline, and we don't want the user
@@ -29,6 +33,7 @@
 import { NextRequest, NextResponse, after } from 'next/server';
 import { kv } from '@vercel/kv';
 import { getHotels as liteapiGetHotels } from '@/lib/liteapi';
+import { normaliseDisplayCurrency } from '@/lib/pricing-currency';
 
 export const runtime = 'edge';
 
@@ -85,7 +90,12 @@ export async function GET(req: NextRequest) {
   const children = Math.max(0, parseInt(sp.get('children') || '0', 10) || 0);
   const childrenAgesRaw = sp.get('childrenAges') || '';
   const rooms = Math.max(1, parseInt(sp.get('rooms') || '1', 10) || 1);
-  const currency = sp.get('currency') || 'GBP';
+  // Clamped, not echoed. `getHotels()` force-converts every supplier response
+  // into GBP (see FX_TO_GBP in src/lib/liteapi.ts), so the offers below are
+  // always sterling no matter what was asked for. Echoing the raw param would
+  // cache identical GBP prices under a second key per currency AND hand the
+  // caller a currency the numbers aren't in. See src/lib/pricing-currency.ts.
+  const currency = normaliseDisplayCurrency(sp.get('currency'));
 
   if (!hotelId || !checkin || !checkout) {
     return NextResponse.json(
@@ -140,7 +150,7 @@ export async function GET(req: NextRequest) {
       }
 
       return NextResponse.json(
-        { success: true, offers: cached.offers, cached: true, stale: ageSec >= REFRESH_THRESHOLD },
+        { success: true, offers: cached.offers, currency, cached: true, stale: ageSec >= REFRESH_THRESHOLD },
         { headers: SWR_HEADERS },
       );
     }
@@ -148,7 +158,9 @@ export async function GET(req: NextRequest) {
 
   try {
     const offers = await fetchAndCacheRates({ hotelId, checkin, checkout, occupancy, currency, cacheKey });
-    return NextResponse.json({ success: true, offers }, { headers: SWR_HEADERS });
+    // `currency` is reported so callers never have to infer it from a URL param
+    // — that guesswork is what produced "INR 412.50" over a sterling amount.
+    return NextResponse.json({ success: true, offers, currency }, { headers: SWR_HEADERS });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'LiteAPI rates lookup failed';
     return NextResponse.json({ success: false, error: msg }, { status: 502 });
