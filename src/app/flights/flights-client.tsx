@@ -8,6 +8,8 @@ import DateRangePicker from '@/components/DateRangePicker';
 import DateMatrixStrip, { type MatrixOption, type ScoutTip } from '@/components/DateMatrixStrip';
 import { redirectUrl } from '@/lib/redirect';
 import { kyteCustomerTotalPence } from '@/lib/kyte-pricing';
+import { stashKyteOffer } from '@/lib/kyte-offer-stash';
+import { newTabProps } from '@/lib/new-tab';
 import SaveSearchButton from '@/components/SaveSearchButton';
 import { saveSticky, loadSticky, type StickyFlights } from '@/lib/sticky-search';
 import AppStoreBadges from '@/components/AppStoreBadges';
@@ -2992,33 +2994,34 @@ function FlightsContent() {
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
                           {isDuffel && f.offer_id ? (
                             <a href={`/checkout/${f.offer_id}${bagAdded && duffelBagReady && duffelBagState?.serviceId ? `?bag=${duffelBagState.serviceId}` : ''}`}
+                              {...newTabProps()}
                               className="flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 text-white font-poppins font-bold text-[.7rem] py-2 px-3 rounded-lg transition-all shadow-sm whitespace-nowrap col-span-2 sm:col-span-3 lg:col-span-5">
                               ✓ {t('bookDirectShort')} — {f.currency}{priceView === 'total' ? Math.round(displayPrice * (adults + children)) : displayPrice}{priceView === 'total' ? t('priceSuffixTotal') : t('priceSuffixPp')} →
                             </a>
                           ) : isKyte && f.offer_id && f.link ? (
                             <a href={f.link}
+                              {...newTabProps()}
                               onClick={() => {
                                 // Stash the full offer so the booking page has price + times + carrier
                                 // without re-fetching from Kyte (which would burn Fixie quota and
                                 // risk expired-offer errors). `destinationCode` / `destinationCity`
                                 // power the Scout neighbourhood-intel section on the success page.
-                                try {
-                                  sessionStorage.setItem(
-                                    `kyte-offer-${f.offer_id}`,
-                                    JSON.stringify({
-                                      ...f,
-                                      _searchedAt: Date.now(),
-                                      originCode,
-                                      originCity,
-                                      destinationCode: destCode,
-                                      destinationCity: destCity,
-                                      // Party sizes → the booking page blocks
-                                      // restricted seats for infants/children.
-                                      paxChildren: children,
-                                      paxInfants: infants,
-                                    }),
-                                  );
-                                } catch { /* sessionStorage unavailable — page will refetch */ }
+                                //
+                                // Stashed to session + local storage — the booking page now opens in
+                                // a new tab, which starts with an EMPTY sessionStorage. See
+                                // lib/kyte-offer-stash.ts.
+                                stashKyteOffer(f.offer_id!, {
+                                  ...f,
+                                  _searchedAt: Date.now(),
+                                  originCode,
+                                  originCity,
+                                  destinationCode: destCode,
+                                  destinationCity: destCity,
+                                  // Party sizes → the booking page blocks
+                                  // restricted seats for infants/children.
+                                  paxChildren: children,
+                                  paxInfants: infants,
+                                });
                               }}
                               title="Bypassing third-party agents. Booked directly with the airline via JetMeAway's secure scout engine — no markups, no booking fees."
                               className="flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-poppins font-bold text-[.7rem] py-2 px-3 rounded-lg transition-all shadow-sm whitespace-nowrap col-span-2 sm:col-span-3 lg:col-span-5">
@@ -3131,6 +3134,7 @@ function FlightsContent() {
                       <div className="text-[.72rem] font-semibold text-[#8E95A9] mb-2">{t('checkPrice')}</div>
                     )}
                     <a href={redirectUrl(url, p.name, destCity || destCode, 'flights')}
+                      target="_blank" rel="noopener noreferrer"
                       className="w-full bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.72rem] py-2 rounded-xl transition-all">
                       {t('searchProvider', { name: p.name })}
                     </a>

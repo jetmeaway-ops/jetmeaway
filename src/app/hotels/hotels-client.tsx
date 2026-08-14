@@ -12,6 +12,7 @@ import { vibeTagsForSearchedCity } from '@/data/destinations';
 import { saveSticky, loadSticky, type StickyHotels } from '@/lib/sticky-search';
 import { decodeFromParams, encodeOccupancy } from '@/lib/occupancy';
 import { persistResults, savePosition, hasFreshPosition, readSnapshot, isReturnFromDetail } from '@/lib/hotels-result-cache';
+import { newTabProps, opensInNewTab, NEW_TAB_PARAM } from '@/lib/new-tab';
 import { LITEAPI_HOTEL_TYPES } from '@/data/liteapi-hotel-types';
 import { LITEAPI_FACILITIES } from '@/data/liteapi-facilities';
 import { LITEAPI_FACILITY_GROUPS } from '@/data/liteapi-facility-groups';
@@ -1604,7 +1605,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
       </button>
       <div className="grid grid-cols-1 md:grid-cols-[240px_1fr_auto] gap-0">
         {/* Image */}
-        <a href={detailHref} className="relative h-48 md:h-full min-h-[180px] block group bg-gradient-to-br from-[#EFE4D6] to-[#F8F2E9]">
+        <a href={detailHref} {...newTabProps()} className="relative h-48 md:h-full min-h-[180px] block group bg-gradient-to-br from-[#EFE4D6] to-[#F8F2E9]">
           {photoUrl ? (
             <img src={photoUrl} alt={h.name} loading="lazy"
               className="w-full h-full object-cover group-hover:brightness-95 transition-all"
@@ -1629,7 +1630,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
 
         {/* Info */}
         <div className="p-5 flex flex-col justify-center">
-          <a href={detailHref} className="hover:bg-[#F8FAFC] transition-colors">
+          <a href={detailHref} {...newTabProps()} className="hover:bg-[#F8FAFC] transition-colors">
             <div className="mb-1 flex items-center gap-2 flex-wrap">
               <Stars count={h.stars} />
               {typeof h.reviewCount === 'number' && h.reviewCount > 0 && (
@@ -1740,6 +1741,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
             return (
               <a
                 href={detailHref}
+                {...newTabProps()}
                 className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FAF3E6] ring-1 ring-[#E8D8A8] text-[#6b5500] text-[.7rem] font-bold hover:bg-[#F5E9C8] transition-colors w-fit"
               >
                 <i className="fa-solid fa-sparkles text-[.6rem]" />
@@ -1748,7 +1750,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
               </a>
             );
           })()}
-          <a href={detailHref} className="text-[.7rem] text-orange-600 font-bold mt-2 inline-block">{t('viewDetails')}</a>
+          <a href={detailHref} {...newTabProps()} className="text-[.7rem] text-orange-600 font-bold mt-2 inline-block">{t('viewDetails')}</a>
         </div>
 
         {/* Price + Actions — extra top padding on desktop so price sits below
@@ -1883,6 +1885,7 @@ function BookDirectButton({
   return (
     <a
       href={detailHref}
+      {...newTabProps()}
       className="inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.72rem] whitespace-nowrap transition-all duration-200 hover:scale-[1.02] shadow-sm"
     >
       <i className="fa-solid fa-lock mr-1.5" /> {t('bookDirect')}
@@ -2135,6 +2138,7 @@ function CompareModal({ hotels, nights, priceView, adults, childCount, buildDeta
                     </dl>
                     <a
                       href={buildDetailHref(h)}
+                      {...newTabProps()}
                       className="mt-auto inline-flex items-center justify-center gap-1.5 bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.75rem] px-3 py-2 rounded-xl transition-all"
                     >
                       {t('viewRooms')}
@@ -3526,6 +3530,10 @@ function HotelsContent() {
       qp.set('refLng', String(selectedPlaceCoords.lng));
       if (searchedDest) qp.set('refLabel', searchedDest);
     }
+    // Tell the detail page it was opened in a new tab, so its "Back to search
+    // results" pill closes this tab (returning to the still-live results tab)
+    // instead of re-running the whole search in a second tab.
+    if (opensInNewTab()) qp.set(NEW_TAB_PARAM, '1');
     return `/hotels/${encodeURIComponent(idStr)}?${qp.toString()}`;
   };
 
