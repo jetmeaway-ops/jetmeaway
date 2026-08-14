@@ -12,7 +12,16 @@
  * a stacked screen would behave like a plain browser.
  */
 
-/** Keep in sync with `expo.version` in app.json. */
-export const APP_VERSION = '1.0.6';
+/**
+ * Keep in sync with `expo.version` in app.json.
+ *
+ * 2026-08-14: this said 1.0.6 while the App Store was already on 1.3.2
+ * approved (1.3.3 closed). Apple rejected build 52 for exactly that —
+ * ITMS-90062: CFBundleShortVersionString must be HIGHER than the last approved
+ * version. `eas.json` sets `appVersionSource: "remote"`, so EAS owns the build
+ * NUMBER (buildNumber/versionCode auto-increment) but the version STRING still
+ * comes from app.json — which is why the local drift reached Apple.
+ */
+export const APP_VERSION = '1.3.4';
 
 export const APP_USER_AGENT = `JetMeAway/${APP_VERSION} Mobile`;
