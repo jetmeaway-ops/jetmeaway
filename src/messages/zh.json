@@ -1448,5 +1448,21 @@
     "cashback": "返现",
     "sendCashback": "我们将在 7 个工作日内向您的卡返还 5 英镑。",
     "tcsApply": "适用条款与条件"
+  },
+  "favourites": {
+    "add": "加入收藏",
+    "remove": "取消收藏",
+    "save": "收藏",
+    "saved": "已收藏",
+    "pageTitle": "我的收藏",
+    "pageSub": "您收藏的酒店。价格每天变动——打开任一酒店查看今日价格。",
+    "empty": "还没有收藏的酒店",
+    "emptyHint": "点击任一酒店上的爱心即可收藏到这里。",
+    "browse": "搜索酒店",
+    "deviceOnly": "已保存在此设备。登录后可在所有设备查看。",
+    "savedOn": "收藏于 {date}",
+    "priceWhenSaved": "收藏时 {price}",
+    "removeAction": "移除",
+    "countLabel": "已收藏 {count}"
   }
 }

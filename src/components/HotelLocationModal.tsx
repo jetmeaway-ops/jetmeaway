@@ -43,12 +43,37 @@ function haversineMi(lat1: number, lng1: number, lat2: number, lng2: number): nu
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-function teardropPin(color: string): L.DivIcon {
+/** Escape supplier/user text before it goes into a divIcon's innerHTML. */
+function esc(s: string): string {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string),
+  );
+}
+
+/**
+ * Pin + a name label, so the map is readable without cross-referencing the
+ * legend. Two bare coloured teardrops told the visitor nothing about which was
+ * which — the hotel name only appeared in the modal's title bar.
+ *
+ * The label is placed BELOW the hotel pin and ABOVE the reference pin so the
+ * two don't collide when the hotel sits close to the landmark. It's clipped to
+ * a sane width (long supplier names run to 60+ characters) and is
+ * `pointer-events:none` so it never swallows a drag on the map.
+ */
+function teardropPin(color: string, label?: string, placement: 'below' | 'above' = 'below'): L.DivIcon {
+  const chip = label
+    ? `<div style="position:absolute;left:13px;${placement === 'below' ? 'top:37px' : 'bottom:37px'};transform:translateX(-50%);pointer-events:none;
+         max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+         background:rgba(255,255,255,.96);color:#1A1D2B;border:1px solid ${color};
+         border-radius:999px;padding:2px 8px;font-family:Poppins,sans-serif;font-weight:700;
+         font-size:11px;line-height:15px;box-shadow:0 1px 5px rgba(0,0,0,.22)">${esc(label)}</div>`
+    : '';
   return L.divIcon({
     className: 'jma-loc-pin',
     html: `<div style="position:relative;width:26px;height:34px">
       <div style="position:absolute;left:1px;top:0;width:24px;height:24px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${color};border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)"></div>
       <div style="position:absolute;left:8px;top:7px;width:10px;height:10px;border-radius:50%;background:#fff"></div>
+      ${chip}
     </div>`,
     iconSize: [26, 34],
     iconAnchor: [13, 32],
@@ -270,8 +295,13 @@ export default function HotelLocationModal({
                 pathOptions={{ color: '#1A1D2B', weight: 2, dashArray: '5 6', opacity: 0.7 }}
               />
             )}
-            <Marker position={[lat, lng]} icon={teardropPin('#E24B4A')} />
-            {hasRef && <Marker position={[reference!.lat, reference!.lng]} icon={teardropPin('#C9A227')} />}
+            <Marker position={[lat, lng]} icon={teardropPin('#E24B4A', hotelName, 'below')} />
+            {hasRef && (
+              <Marker
+                position={[reference!.lat, reference!.lng]}
+                icon={teardropPin('#C9A227', reference!.label, 'above')}
+              />
+            )}
             <Fit points={points} />
             <Resizer trigger={expanded} />
           </MapContainer>

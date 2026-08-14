@@ -1448,5 +1448,21 @@
     "cashback": "Cashback",
     "sendCashback": "Wir senden 5 £ innerhalb von 7 Werktagen an Ihre Karte.",
     "tcsApply": "Es gelten AGB"
+  },
+  "favourites": {
+    "add": "Zu Favoriten hinzufügen",
+    "remove": "Aus Favoriten entfernen",
+    "save": "Merken",
+    "saved": "Gemerkt",
+    "pageTitle": "Deine Favoriten",
+    "pageSub": "Gespeicherte Hotels. Preise ändern sich täglich – öffne eins für den heutigen Preis.",
+    "empty": "Noch keine Hotels gespeichert",
+    "emptyHint": "Tippe bei einem Hotel auf das Herz, um es hier zu speichern.",
+    "browse": "Hotels suchen",
+    "deviceOnly": "Auf diesem Gerät gespeichert. Melde dich an, um sie überall zu haben.",
+    "savedOn": "Gespeichert am {date}",
+    "priceWhenSaved": "{price} beim Speichern",
+    "removeAction": "Entfernen",
+    "countLabel": "{count} gespeichert"
   }
 }

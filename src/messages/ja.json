@@ -1448,5 +1448,21 @@
     "cashback": "キャッシュバック",
     "sendCashback": "7営業日以内にカードへ5ポンドを送金します。",
     "tcsApply": "利用規約が適用されます"
+  },
+  "favourites": {
+    "add": "お気に入りに追加",
+    "remove": "お気に入りから削除",
+    "save": "保存",
+    "saved": "保存済み",
+    "pageTitle": "お気に入り",
+    "pageSub": "保存したホテル。料金は毎日変わります — 最新の料金はホテルを開いてご確認ください。",
+    "empty": "保存したホテルはまだありません",
+    "emptyHint": "ホテルのハートをタップすると、ここに保存されます。",
+    "browse": "ホテルを探す",
+    "deviceOnly": "この端末に保存されています。ログインすると、どの端末でも見られます。",
+    "savedOn": "{date} に保存",
+    "priceWhenSaved": "保存時 {price}",
+    "removeAction": "削除",
+    "countLabel": "{count} 件保存"
   }
 }

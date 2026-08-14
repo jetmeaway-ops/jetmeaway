@@ -1448,5 +1448,21 @@
     "cashback": "geri ödeme",
     "sendCashback": "7 iş günü içinde kartınıza 5 £ göndereceğiz.",
     "tcsApply": "Koşullar geçerlidir"
+  },
+  "favourites": {
+    "add": "Favorilere ekle",
+    "remove": "Favorilerden çıkar",
+    "save": "Kaydet",
+    "saved": "Kaydedildi",
+    "pageTitle": "Favorileriniz",
+    "pageSub": "Kaydettiğiniz oteller. Fiyatlar her gün değişir — güncel fiyat için birini açın.",
+    "empty": "Henüz kaydedilmiş otel yok",
+    "emptyHint": "Bir oteldeki kalbe dokunarak buraya kaydedin.",
+    "browse": "Otel ara",
+    "deviceOnly": "Bu cihaza kaydedildi. Her yerde görmek için giriş yapın.",
+    "savedOn": "{date} tarihinde kaydedildi",
+    "priceWhenSaved": "Kaydettiğinizde {price}",
+    "removeAction": "Kaldır",
+    "countLabel": "{count} kayıtlı"
   }
 }

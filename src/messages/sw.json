@@ -1447,5 +1447,21 @@
     "cashback": "marejesho ya pesa",
     "sendCashback": "Tutatuma £5 kwenye kadi yako ndani ya siku 7 za kazi.",
     "tcsApply": "Masharti yanatumika"
+  },
+  "favourites": {
+    "add": "Ongeza kwenye vipendwa",
+    "remove": "Ondoa kwenye vipendwa",
+    "save": "Hifadhi",
+    "saved": "Imehifadhiwa",
+    "pageTitle": "Vipendwa vyako",
+    "pageSub": "Hoteli ulizohifadhi. Bei hubadilika kila siku — fungua hoteli kuona bei ya leo.",
+    "empty": "Bado hujahifadhi hoteli",
+    "emptyHint": "Gusa alama ya moyo kwenye hoteli yoyote ili kuihifadhi hapa.",
+    "browse": "Tafuta hoteli",
+    "deviceOnly": "Imehifadhiwa kwenye kifaa hiki. Ingia ili uzipate kwenye vifaa vyote.",
+    "savedOn": "Ilihifadhiwa {date}",
+    "priceWhenSaved": "{price} ulipohifadhi",
+    "removeAction": "Ondoa",
+    "countLabel": "{count} zimehifadhiwa"
   }
 }
