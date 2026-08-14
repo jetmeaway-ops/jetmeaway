@@ -231,6 +231,11 @@ export default function HotelDetailPage() {
   const refLat = parseFloat(sp?.get('refLat') || '');
   const refLng = parseFloat(sp?.get('refLng') || '');
   const refLabel = sp?.get('refLabel') || '';
+  // The hotel's own coords, carried from the results list via buildDetailHref.
+  // Used as a fallback when the /details response omits lat/lng (it does for
+  // some hotels), so the map + "Show on map" show on every hotel from search.
+  const urlHotelLat = parseFloat(sp?.get('hlat') || '');
+  const urlHotelLng = parseFloat(sp?.get('hlng') || '');
 
   const [hotel, setHotel] = useState<HotelDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -268,6 +273,13 @@ export default function HotelDetailPage() {
   const [ratesLoading, setRatesLoading] = useState(true);
   const [selectedRate, setSelectedRate] = useState<RoomRate | null>(null);
   const [sidebarBreathe, setSidebarBreathe] = useState(false);
+
+  // Effective map coordinates: prefer the detail response, fall back to the
+  // list coords passed in the URL. Drives the "Show on map" popup AND the
+  // Location section, so both appear on every hotel that had coords in search.
+  const mapLat = hotel && typeof hotel.latitude === 'number' ? hotel.latitude : (Number.isFinite(urlHotelLat) ? urlHotelLat : NaN);
+  const mapLng = hotel && typeof hotel.longitude === 'number' ? hotel.longitude : (Number.isFinite(urlHotelLng) ? urlHotelLng : NaN);
+  const hasMapCoords = Number.isFinite(mapLat) && Number.isFinite(mapLng);
 
   // ── Back-to-top button ──
   // The detail page is long (rooms → description → facilities → policies →
@@ -830,11 +842,11 @@ export default function HotelDetailPage() {
           visually through the detail page and on into checkout. Reuses the
           already-fetched gallery images. */}
       <HotelBackdrop photos={gallery} />
-      {locOpen && typeof hotel.latitude === 'number' && typeof hotel.longitude === 'number' && (
+      {locOpen && hasMapCoords && (
         <HotelLocationModal
           hotelName={hotel.name}
-          lat={hotel.latitude}
-          lng={hotel.longitude}
+          lat={mapLat}
+          lng={mapLng}
           reference={
             Number.isFinite(refLat) && Number.isFinite(refLng)
               ? { label: refLabel || th('mapRefCentre'), lat: refLat, lng: refLng }
@@ -938,8 +950,9 @@ export default function HotelDetailPage() {
               </span>
               {/* "Show on map" sits in the trust-chip row so it reads as part of
                   the header, right after Scout Price Match. Opens the location
-                  popup (hotel + searched reference + distance). */}
-              {typeof hotel.latitude === 'number' && typeof hotel.longitude === 'number' && (
+                  popup (hotel + searched reference + distance). Shows on every
+                  hotel that had coords in search (see mapLat/mapLng fallback). */}
+              {hasMapCoords && (
                 <button
                   type="button"
                   onClick={() => setLocOpen(true)}
@@ -1257,7 +1270,7 @@ export default function HotelDetailPage() {
               </section>
             )}
 
-            {typeof hotel.latitude === 'number' && typeof hotel.longitude === 'number' && (
+            {hasMapCoords && (
               <section id="location" className="bg-white border border-[#E8ECF4] rounded-2xl p-6 mb-5 scroll-mt-[140px]">
                 <h2 className="font-poppins font-black text-[1.1rem] text-[#1A1D2B] mb-3">{t('locationTitle')}</h2>
                 {hotel.address && (
@@ -1274,8 +1287,8 @@ export default function HotelDetailPage() {
                 <ScoutSidebar
                   embedded
                   hotelName={hotel.name}
-                  latitude={hotel.latitude}
-                  longitude={hotel.longitude}
+                  latitude={mapLat}
+                  longitude={mapLng}
                   defaultTab={chooseDefaultTab({
                     adults: parseInt(adults, 10) || 2,
                     children: parseInt(children, 10) || 0,
