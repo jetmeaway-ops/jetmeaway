@@ -15,6 +15,7 @@ import { chooseDefaultTab } from '@/lib/silentScout';
 import { createRoomResolver } from '@/lib/room-match';
 import { vibeTagsForSearchedCity } from '@/data/destinations';
 import { NEW_TAB_PARAM } from '@/lib/new-tab';
+import { currencyPrefix, normaliseDisplayCurrency } from '@/lib/pricing-currency';
 import FavouriteButton from '@/components/FavouriteButton';
 import { useTranslations } from 'next-intl';
 
@@ -338,7 +339,19 @@ export default function HotelDetailPage() {
   const childrenAges = sp?.get('childrenAges') || '';
   const rooms = sp?.get('rooms') || '1';
   const price = sp?.get('price') || '';
-  const currency = sp?.get('currency') || 'GBP';
+  // Every price on this page comes from getHotels() (via /api/hotels/rates),
+  // and that layer force-converts EVERY supplier response into GBP before it
+  // returns — see FX_TO_GBP / `finalCurrency = 'GBP'` in src/lib/liteapi.ts.
+  // So the numbers here are always pounds, whatever the URL says.
+  //
+  // Taking the label straight from `?currency=` therefore printed e.g.
+  // "INR 412.50" over a sterling amount. That was not only a wrong price on
+  // screen: the same value was POSTed to /api/hotels/start-booking (so the
+  // stored booking claimed a currency it wasn't in) and published as
+  // schema.org `priceCurrency`. Honest label = the currency the money is
+  // actually in, so anything we cannot genuinely price in falls back to GBP.
+  // When the pricing layer can really return another currency, add it here.
+  const currency = normaliseDisplayCurrency(sp?.get('currency'));
   const city = sp?.get('city') || '';
   const refundableParam = sp?.get('refundable');
   const refundable = refundableParam === '1' ? true : refundableParam === '0' ? false : null;
@@ -1714,35 +1727,35 @@ export default function HotelDetailPage() {
                   <div className="mt-1">
                     <span className="inline-block text-[.55rem] font-black uppercase tracking-[1.2px] bg-gradient-to-r from-orange-500 to-amber-500 text-white px-2 py-0.5 rounded-full mb-1">{t('scoutDeal')}</span>
                     <div className="text-[.85rem] text-[#8E95A9] font-bold line-through">
-                      {currency === 'GBP' ? '£' : `${currency} `}{selectedRate.marketPrice.toFixed(2)}
+                      {currencyPrefix(currency)}{selectedRate.marketPrice.toFixed(2)}
                     </div>
                     <div className="font-[var(--font-playfair)] font-black text-[2.1rem] text-[#0a1628] tracking-tight leading-none">
-                      {currency === 'GBP' ? '£' : `${currency} `}{selectedRate.negotiatedPrice.toFixed(2)}
+                      {currencyPrefix(currency)}{selectedRate.negotiatedPrice.toFixed(2)}
                     </div>
                     <div className="text-[.68rem] text-green-600 font-bold mt-0.5">
-                      {t('youSave')} {currency === 'GBP' ? '£' : `${currency} `}{(selectedRate.marketPrice - selectedRate.negotiatedPrice).toFixed(2)}
+                      {t('youSave')} {currencyPrefix(currency)}{(selectedRate.marketPrice - selectedRate.negotiatedPrice).toFixed(2)}
                     </div>
                   </div>
                 ) : selectedRate ? (
                   <div className="font-[var(--font-playfair)] font-black text-[2.1rem] text-[#0a1628] tracking-tight leading-none mt-1">
-                    {currency === 'GBP' ? '£' : `${currency} `}{selectedRate.totalPrice.toFixed(2)}
+                    {currencyPrefix(currency)}{selectedRate.totalPrice.toFixed(2)}
                   </div>
                 ) : mktPrice != null && negPrice != null && negPrice < mktPrice ? (
                   <div className="mt-1">
                     <span className="inline-block text-[.55rem] font-black uppercase tracking-[1.2px] bg-gradient-to-r from-orange-500 to-amber-500 text-white px-2 py-0.5 rounded-full mb-1">{t('scoutDeal')}</span>
                     <div className="text-[.85rem] text-[#8E95A9] font-bold line-through">
-                      {currency === 'GBP' ? '£' : `${currency} `}{mktPrice.toFixed(2)}
+                      {currencyPrefix(currency)}{mktPrice.toFixed(2)}
                     </div>
                     <div className="font-[var(--font-playfair)] font-black text-[2.1rem] text-[#0a1628] tracking-tight leading-none">
-                      {currency === 'GBP' ? '£' : `${currency} `}{negPrice.toFixed(2)}
+                      {currencyPrefix(currency)}{negPrice.toFixed(2)}
                     </div>
                     <div className="text-[.68rem] text-green-600 font-bold mt-0.5">
-                      {t('youSave')} {currency === 'GBP' ? '£' : `${currency} `}{(mktPrice - negPrice).toFixed(2)}
+                      {t('youSave')} {currencyPrefix(currency)}{(mktPrice - negPrice).toFixed(2)}
                     </div>
                   </div>
                 ) : (
                   <div className="font-[var(--font-playfair)] font-black text-[2.1rem] text-[#0a1628] tracking-tight leading-none mt-1">
-                    {currency === 'GBP' ? '£' : `${currency} `}{parseFloat(price).toFixed(2)}
+                    {currencyPrefix(currency)}{parseFloat(price).toFixed(2)}
                   </div>
                 )}
                 {/* Wholesale-rate signal — appears under the price in
@@ -2013,7 +2026,7 @@ export default function HotelDetailPage() {
               {t('totalFor')} {parseInt(rooms) > 1 ? t('roomsSep', { rooms }) : ''}{numNights || '—'} {t('nightWord', { count: numNights })}
             </div>
             <div className="font-[var(--font-playfair)] font-black text-[1.4rem] text-[#0a1628] leading-none">
-              {currency === 'GBP' ? '£' : `${currency} `}
+              {currencyPrefix(currency)}
               {selectedRate ? selectedRate.totalPrice.toFixed(2) : (price ? parseFloat(price).toFixed(2) : '—')}
             </div>
             {selectedRate?.excludedTaxes != null && selectedRate.excludedTaxes > 0 && (
