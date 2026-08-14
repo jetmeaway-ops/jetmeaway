@@ -18,6 +18,8 @@
  * webviewRef.injectJavaScript(`window.__JMA_RESOLVE__('${id}', ${json})`).
  */
 
+import { APP_VERSION } from '../constants/app';
+
 export const INJECTED_BRIDGE = `
 (function () {
   if (window.JetMeAwayNative) return;
@@ -69,7 +71,7 @@ export const INJECTED_BRIDGE = `
     signInWithApple: function () { return callNative('signInWithApple'); },
     signInWithGoogle: function () { return callNative('signInWithGoogle'); },
     signOut: function () { return callNative('signOut'); },
-    appVersion: '1.0.5',
+    appVersion: '${APP_VERSION}',
   };
 
   // Dispatch a 'jetmeaway-native-ready' event so the web can react if it

@@ -9,6 +9,40 @@ Single source of truth for the mobile app submission state. Every icon regen, ve
 
 ---
 
+## STACKED DETAIL SCREEN (2026-08-14) — 🔴 NOT YET BUILT OR DEVICE-TESTED
+
+Tapping a hotel used to navigate the single WebView away from the results. That is a full page
+load: the list was destroyed, and coming back re-ran the whole search and lost the scroll position.
+The web fix was to open a new tab — but **`target="_blank"` does nothing inside
+react-native-webview**: with no `onOpenWindow` handler, `createWebViewWithConfiguration` in
+`RNCWebViewImpl.m` falls back to `[webView loadRequest:…]` (the SAME WebView), and
+`setSupportMultipleWindows` is `false`. So the app needed its own fix.
+
+Now `/hotels/<id>`, `/flights/kyte/<offerId>` and `/redirect` are intercepted in
+`onShouldStartLoadWithRequest` and opened as a screen stacked ON TOP (`StackedWebViewScreen`), with
+a native back arrow. The shell's WebView is never unmounted, so back is instant and the scroll
+position is simply still there — nothing to save or restore.
+
+- `src/lib/webview-routing.ts` — all the rules in one pure function, shared by the shell and the
+  stacked screen so they can't drift. 27 rule cases verified.
+- `src/screens/StackedWebViewScreen.tsx` — slide-in screen, own WebView + bridge + history.
+- `src/constants/app.ts` — APP_VERSION / APP_USER_AGENT in one place. The UA had already drifted
+  (app.json said 1.0.6, the WebView still sent 1.0.5); every WebView must send it or the web treats
+  a stacked screen as a plain browser.
+- Android hardware back → stacked screen first, then shell history, then exit.
+- Cold start straight into a detail page (universal link / push) deliberately does NOT stack —
+  there'd be a blank shell behind it, and no results list to protect.
+- `package-lock.json` re-synced — `expo-store-review` was missing from the lock since PR#93, which
+  breaks `npm ci`.
+
+**Before submitting:** run an EAS **preview** build and test on a real phone — search hotels, tap
+one, check the back arrow returns to the list with the scroll position intact, then check Android
+hardware back, checkout still opening in Safari, and share/sign-in from a stacked detail page.
+`expo-doctor` is 17/18: `expo` 54.0.34 vs ~54.0.36 and `expo-font` 14.0.11 vs ~14.0.12 (patch-level
+only, pre-existing) — consider `npx expo install --check` first.
+
+---
+
 ## CANONICAL BRAND (2026-04-21)
 
 User decision, 2026-04-21: **this is the one and only JetMeAway mark going forward. Do not regenerate from any other source. Do not mix with the old yellow/green text-logo that caused the Play Store rejection.**
