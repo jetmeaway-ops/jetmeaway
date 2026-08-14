@@ -41,6 +41,7 @@ import { useTranslations } from 'next-intl';
 
 const ScoutSidebar = dynamic(() => import('@/components/ScoutSidebar'), { ssr: false });
 const HotelMap = dynamic(() => import('@/components/HotelMap'), { ssr: false });
+const HotelLocationModal = dynamic(() => import('@/components/HotelLocationModal'), { ssr: false });
 
 type SortBy = 'recommended' | 'price-asc' | 'price-desc' | 'distance';
 type ViewMode = 'list' | 'map';
@@ -1483,7 +1484,7 @@ function StarFilter({ value, onChange }: { value: number; onChange: (v: number) 
    BOOK DIRECT (LiteAPI) — creates a pending booking then redirects to checkout
    ═══════════════════════════════════════════════════════════════════════════ */
 
-function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, childrenAges, rooms, roomsArr, checkin, checkout, searchedDest, tripCityId, buildDetailHref, setScoutHotel, priceView, cityCentre, airports, isCompared, compareFull, onToggleCompare, isActive, onHover }: {
+function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, childrenAges, rooms, roomsArr, checkin, checkout, searchedDest, tripCityId, buildDetailHref, setScoutHotel, priceView, cityCentre, mapRefLabel, airports, isCompared, compareFull, onToggleCompare, isActive, onHover }: {
   hotel: HotelResult;
   index: number;
   isCheapest: boolean;
@@ -1504,6 +1505,10 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
   setScoutHotel: (s: { name: string; lat: number; lng: number } | null) => void;
   priceView: 'total' | 'perPerson';
   cityCentre: { lat: number; lng: number } | null;
+  /** Label for the "Show on map" reference pin: the searched landmark/place
+   *  name when the visitor searched one, else null (falls back to "the centre"
+   *  since cityCentre is then the hotel-average centroid). */
+  mapRefLabel: string | null;
   airports: Airport[];
   isCompared: boolean;
   compareFull: boolean;
@@ -1519,6 +1524,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
   // can decide for themselves — single-airport labels were misleading
   // when two airports sit roughly equidistant in different directions.
   const t = useTranslations('hotels');
+  const [mapOpen, setMapOpen] = useState(false);
   const hasCoords = typeof hotel.lat === 'number' && typeof hotel.lng === 'number';
   const milesFromCentre = hasCoords && cityCentre
     ? haversineMi(hotel.lat!, hotel.lng!, cityCentre.lat, cityCentre.lng)
@@ -1684,6 +1690,29 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
               <span className="text-[.66rem] text-[#8E95A9] font-semibold mt-0.5 block">{displayBoard}</span>
             )}
           </a>
+          {/* "Show on map" — opens a popup with this hotel pinned + the searched
+              reference (landmark or centre) + the miles between, so the visitor
+              can judge location without leaving the list. Outside the detail
+              <a> above so it never triggers navigation. */}
+          {hasCoords && cityCentre && (
+            <button
+              type="button"
+              onClick={() => setMapOpen(true)}
+              className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#eef4ff] ring-1 ring-[#cfe0ff] text-[#0a58d0] text-[.7rem] font-bold hover:bg-[#e2edff] transition-colors w-fit"
+            >
+              <i className="fa-solid fa-map-location-dot text-[.62rem]" aria-hidden />
+              {t('showOnMap')}
+            </button>
+          )}
+          {mapOpen && hasCoords && cityCentre && (
+            <HotelLocationModal
+              hotelName={h.name}
+              lat={hotel.lat!}
+              lng={hotel.lng!}
+              reference={{ label: mapRefLabel ?? t('mapRefCentre'), lat: cityCentre.lat, lng: cityCentre.lng }}
+              onClose={() => setMapOpen(false)}
+            />
+          )}
           {/* Scout Summary — single-line teaser instead of the rate dump.
               Click flows to the detail page where the Scout Rooms Table
               does the real work. */}
@@ -3482,6 +3511,15 @@ function HotelsContent() {
     if (h.perks && h.perks.length > 0) qp.set('perks', h.perks.join(','));
     if (h.signalType) qp.set('signal', h.signalType);
     if (h.excludedTaxes != null && h.excludedTaxes > 0) qp.set('localFees', String(h.excludedTaxes));
+    // Carry the searched reference (landmark / place the visitor chose) so the
+    // detail page's "Show on map" popup can pin it and show the distance too.
+    // Only when a real place was selected — a hotel-average centroid isn't
+    // meaningful out of the results context.
+    if (selectedPlaceCoords) {
+      qp.set('refLat', String(selectedPlaceCoords.lat));
+      qp.set('refLng', String(selectedPlaceCoords.lng));
+      if (searchedDest) qp.set('refLabel', searchedDest);
+    }
     return `/hotels/${encodeURIComponent(idStr)}?${qp.toString()}`;
   };
 
@@ -4074,6 +4112,7 @@ function HotelsContent() {
                     setScoutHotel={setScoutHotel}
                     priceView={priceView}
                     cityCentre={cityCentre}
+                    mapRefLabel={selectedPlaceCoords ? searchedDest : null}
                     airports={airports}
                     isCompared={compareIds.includes(h.id)}
                     compareFull={compareIds.length >= 3}
