@@ -11,7 +11,7 @@ import { chooseDefaultTab } from '@/lib/silentScout';
 import { vibeTagsForSearchedCity } from '@/data/destinations';
 import { saveSticky, loadSticky, type StickyHotels } from '@/lib/sticky-search';
 import { decodeFromParams, encodeOccupancy } from '@/lib/occupancy';
-import { persistResults, savePosition, hasFreshPosition, readSnapshot, isReturnFromDetail } from '@/lib/hotels-result-cache';
+import { persistResults, savePosition, hasFreshPosition, readSnapshot } from '@/lib/hotels-result-cache';
 import { LITEAPI_HOTEL_TYPES } from '@/data/liteapi-hotel-types';
 import { LITEAPI_FACILITIES } from '@/data/liteapi-facilities';
 import { LITEAPI_FACILITY_GROUPS } from '@/data/liteapi-facility-groups';
@@ -2839,14 +2839,25 @@ function HotelsContent() {
     // Coming BACK from a hotel detail page? Restore the exact result set,
     // page and scroll offset instead of re-running the search, which would
     // dump the visitor at hotel #1 having lost the extra pages they loaded.
-    // Covers the browser Back button AND the detail page's "Back to search"
-    // pill (that one is a normal navigation, caught via referrer).
-    // readSnapshot() enforces the canonical search signature and a 15-minute
-    // TTL, so a stale set can never come back. The bulk list arrives async
-    // from IndexedDB: loading stays true while it reads so the visitor sees
-    // the normal skeleton, and any miss falls through to a fresh search —
-    // never a dead results page.
-    if (isReturnFromDetail() && hasFreshPosition(window.location.search)) {
+    //
+    // We used to gate this on isReturnFromDetail() (navigation type ===
+    // back_forward, or referrer === /hotels/<id>). MEASURED ON PRODUCTION:
+    // a real Back button lands here with navigation type "navigate" AND an
+    // empty/non-detail referrer, so BOTH signals miss and the restore never
+    // fired — Back re-searched from the top. The reliable signal is simply
+    // "a fresh position snapshot exists for THIS exact search". That can only
+    // have been written by leaving this results page to a detail page
+    // (savePosition on pagehide), it is keyed to the canonical search
+    // signature, and it self-expires after 15 minutes — so restoring whenever
+    // it matches is correct for Back, the "Back to search" pill, and a reload,
+    // and can never replay a stale or different search. Tapping Search in the
+    // form runs handleSearch directly (this URL-gated effect only fires once
+    // per mount), so a deliberate new search is never swallowed.
+    //
+    // The bulk list arrives async from IndexedDB: loading stays true while it
+    // reads so the visitor sees the normal skeleton, and any miss falls
+    // through to a fresh search — never a dead results page.
+    if (hasFreshPosition(window.location.search)) {
       setSearched(true);
       setLoading(true);
       readSnapshot<HotelResult>(window.location.search).then((snap) => {
@@ -2883,16 +2894,29 @@ function HotelsContent() {
     });
   }, [hotels]);
 
-  /* Persist the bulk result list in the background as it changes (debounced —
-     the progressive load-more loop appends a page every couple of seconds).
-     Doing the heavy write while the visitor browses means the exit path only
-     has to store a tiny position record. */
+  /* Persist the bulk result list to IndexedDB so Back can restore it.
+     THROTTLED, not trailing-debounced. The progressive load-more loop changes
+     `hotels` every couple of seconds; the old pure trailing debounce only
+     wrote 1.2s AFTER the LAST append, so a visitor who scrolled and tapped a
+     hotel before load-more finished left with NOTHING persisted — and Back
+     then found no snapshot and re-searched from the top. The throttle writes
+     the CURRENT list immediately when it's been >1s since the last write, and
+     otherwise schedules a single trailing write, so the snapshot is always at
+     most ~1s behind and is reliably present the moment the visitor taps in. */
+  const lastPersistRef = useRef(0);
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (!searched || !hotels?.length) return;
-    const id = window.setTimeout(() => {
+    const write = () => {
+      lastPersistRef.current = Date.now();
       persistResults<HotelResult>(window.location.search, hotels);
-    }, 1200);
+    };
+    const since = Date.now() - lastPersistRef.current;
+    if (since >= 1000) {
+      write();
+      return;
+    }
+    const id = window.setTimeout(write, 1000 - since);
     return () => window.clearTimeout(id);
   }, [hotels, searched]);
 
