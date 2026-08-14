@@ -15,6 +15,7 @@ import { chooseDefaultTab } from '@/lib/silentScout';
 import { createRoomResolver } from '@/lib/room-match';
 import { vibeTagsForSearchedCity } from '@/data/destinations';
 import { NEW_TAB_PARAM } from '@/lib/new-tab';
+import FavouriteButton from '@/components/FavouriteButton';
 import { useTranslations } from 'next-intl';
 
 // Leaflet touches `window` on import, so SSR must be disabled. ScoutSidebar
@@ -980,6 +981,23 @@ export default function HotelDetailPage() {
                   {th('showOnMap')}
                 </button>
               )}
+              {/* Save sits with the other header chips so it's found at the
+                  moment of deciding, not buried at the bottom of the page. */}
+              <FavouriteButton
+                variant="detail"
+                className="!px-2.5 !py-1 !rounded-full !text-[.68rem]"
+                favourite={{
+                  hotelId: id,
+                  name: hotel?.name || '',
+                  city,
+                  thumbnail: hotel?.photos?.[0],
+                  stars: hotel?.stars ?? undefined,
+                  savedPricePence: price ? Math.round(parseFloat(price) * 100) : undefined,
+                  currency,
+                  url: `/hotels/${encodeURIComponent(id)}${typeof window !== 'undefined' ? window.location.search : ''}`,
+                  createdAt: Date.now(),
+                }}
+              />
             </div>
           </div>
         </div>

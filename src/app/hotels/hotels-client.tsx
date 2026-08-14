@@ -13,6 +13,7 @@ import { saveSticky, loadSticky, type StickyHotels } from '@/lib/sticky-search';
 import { decodeFromParams, encodeOccupancy } from '@/lib/occupancy';
 import { persistResults, savePosition, hasFreshPosition, readSnapshot, isReturnFromDetail } from '@/lib/hotels-result-cache';
 import { newTabProps, opensInNewTab, NEW_TAB_PARAM } from '@/lib/new-tab';
+import FavouriteButton from '@/components/FavouriteButton';
 import { LITEAPI_HOTEL_TYPES } from '@/data/liteapi-hotel-types';
 import { LITEAPI_FACILITIES } from '@/data/liteapi-facilities';
 import { LITEAPI_FACILITY_GROUPS } from '@/data/liteapi-facility-groups';
@@ -1571,6 +1572,9 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
     ? buildExpediaUrlPerRoom(searchedDest, checkin, checkout, roomsArr)
     : buildExpediaUrl(searchedDest, checkin, checkout, adults, children, childrenAges, rooms);
   const detailHref = buildDetailHref(h);
+  // Curated (non-LiteAPI) cards route straight out to a partner interstitial
+  // instead of a hotel page of ours, so there is nothing coherent to "save".
+  const isInternalDetail = detailHref.startsWith('/hotels/');
 
   // Build a modified hotel object with the selected board's offerId for BookDirect
   const bookHotel = { ...h, offerId: displayOfferId, totalPrice: displayTotal, pricePerNight: displayPrice };
@@ -1605,7 +1609,29 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
       </button>
       <div className="grid grid-cols-1 md:grid-cols-[240px_1fr_auto] gap-0">
         {/* Image */}
-        <a href={detailHref} {...newTabProps()} className="relative h-48 md:h-full min-h-[180px] block group bg-gradient-to-br from-[#EFE4D6] to-[#F8F2E9]">
+        {/* Wrapper carries the grid sizing the anchor used to own, so the
+            favourite button can sit over the photo as a SIBLING of the link —
+            a <button> nested inside an <a> is invalid and unusable by
+            keyboard/screen readers. */}
+        <div className="relative h-48 md:h-full min-h-[180px]">
+        {isInternalDetail && (
+          <FavouriteButton
+            variant="card"
+            className="absolute bottom-2.5 right-2.5 z-10"
+            favourite={{
+              hotelId: String(h.id),
+              name: h.name,
+              city: searchedDest,
+              thumbnail: photoUrl,
+              stars: h.stars,
+              savedPricePence: Math.round(displayPrice * 100),
+              currency: h.currency || 'GBP',
+              url: detailHref,
+              createdAt: Date.now(),
+            }}
+          />
+        )}
+        <a href={detailHref} {...newTabProps()} className="absolute inset-0 block group bg-gradient-to-br from-[#EFE4D6] to-[#F8F2E9]">
           {photoUrl ? (
             <img src={photoUrl} alt={h.name} loading="lazy"
               className="w-full h-full object-cover group-hover:brightness-95 transition-all"
@@ -1627,6 +1653,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
             </span>
           )}
         </a>
+        </div>
 
         {/* Info */}
         <div className="p-5 flex flex-col justify-center">

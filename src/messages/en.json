@@ -1455,5 +1455,21 @@
     "cashback": "cashback",
     "sendCashback": "We'll send £5 to your card within 7 working days.",
     "tcsApply": "T&Cs apply"
+  },
+  "favourites": {
+    "add": "Add to favourites",
+    "remove": "Remove from favourites",
+    "save": "Save",
+    "saved": "Saved",
+    "pageTitle": "Your favourites",
+    "pageSub": "Hotels you've saved. Prices move daily — open one to see today's rate.",
+    "empty": "No saved hotels yet",
+    "emptyHint": "Tap the heart on any hotel to keep it here.",
+    "browse": "Search hotels",
+    "deviceOnly": "Saved on this device. Sign in to keep them on every device.",
+    "savedOn": "Saved {date}",
+    "priceWhenSaved": "{price} when you saved",
+    "removeAction": "Remove",
+    "countLabel": "{count} saved"
   }
 }
