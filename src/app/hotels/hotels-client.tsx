@@ -3511,6 +3511,12 @@ function HotelsContent() {
     if (h.perks && h.perks.length > 0) qp.set('perks', h.perks.join(','));
     if (h.signalType) qp.set('signal', h.signalType);
     if (h.excludedTaxes != null && h.excludedTaxes > 0) qp.set('localFees', String(h.excludedTaxes));
+    // Carry the hotel's own coordinates so the detail page can always show the
+    // "Show on map" popup + Location section — the LiteAPI /details response
+    // sometimes returns null lat/lng even when the search list had them, which
+    // otherwise hid the map on those hotels.
+    if (typeof h.lat === 'number') qp.set('hlat', String(h.lat));
+    if (typeof h.lng === 'number') qp.set('hlng', String(h.lng));
     // Carry the searched reference (landmark / place the visitor chose) so the
     // detail page's "Show on map" popup can pin it and show the distance too.
     // Only when a real place was selected — a hotel-average centroid isn't
