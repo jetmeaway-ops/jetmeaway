@@ -14,6 +14,7 @@ import HotelBackdrop from '@/components/HotelBackdrop';
 import { chooseDefaultTab } from '@/lib/silentScout';
 import { createRoomResolver } from '@/lib/room-match';
 import { vibeTagsForSearchedCity } from '@/data/destinations';
+import { NEW_TAB_PARAM } from '@/lib/new-tab';
 import { useTranslations } from 'next-intl';
 
 // Leaflet touches `window` on import, so SSR must be disabled. ScoutSidebar
@@ -348,6 +349,22 @@ export default function HotelDetailPage() {
   const perks = rawPerks.length > 0 ? rawPerks : (BOARD_TO_PERKS[normBoard(boardType)] || []);
   const signalType = sp?.get('signal') || '';
   const localFees = sp?.get('localFees') ? parseFloat(sp.get('localFees')!) : null;
+
+  // Hotel detail opens in a new tab from the results page (see lib/new-tab.ts),
+  // which is what keeps the results page mounted and its scroll position real.
+  // The flag tells us to close rather than re-search when the visitor is done.
+  const openedInNewTab = sp?.get(NEW_TAB_PARAM) === '1';
+  const backToResultsHref = useMemo(() => {
+    const qp = new URLSearchParams();
+    if (city) qp.set('destination', city);
+    if (checkin) qp.set('checkin', checkin);
+    if (checkout) qp.set('checkout', checkout);
+    if (adults) qp.set('adults', adults);
+    if (children && children !== '0') qp.set('children', children);
+    if (rooms) qp.set('rooms', rooms);
+    const qs = qp.toString();
+    return qs ? `/hotels?${qs}` : '/hotels';
+  }, [city, checkin, checkout, adults, children, rooms]);
 
   useEffect(() => {
     let cancelled = false;
@@ -872,17 +889,18 @@ export default function HotelDetailPage() {
             Falls back to /hotels with no params if we don't have a city. */}
         <div className="mb-3">
           <a
-            href={(() => {
-              const qp = new URLSearchParams();
-              if (city) qp.set('destination', city);
-              if (checkin) qp.set('checkin', checkin);
-              if (checkout) qp.set('checkout', checkout);
-              if (adults) qp.set('adults', adults);
-              if (children && children !== '0') qp.set('children', children);
-              if (rooms) qp.set('rooms', rooms);
-              const qs = qp.toString();
-              return qs ? `/hotels?${qs}` : '/hotels';
-            })()}
+            href={backToResultsHref}
+            onClick={openedInNewTab ? (e) => {
+              // We were opened in a new tab from the results page, so that tab
+              // is still sitting there with its scroll, page and filters
+              // intact. Closing this one lands the visitor straight back on it
+              // — no re-search, no second results tab. If the browser refuses
+              // to close a tab its own script didn't open, we fall through to
+              // the normal link after a beat (i.e. today's behaviour).
+              e.preventDefault();
+              window.close();
+              window.setTimeout(() => { window.location.href = backToResultsHref; }, 250);
+            } : undefined}
             className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-white border border-[#E8ECF4] text-[.78rem] font-poppins font-bold text-[#0a1628] hover:bg-[#FCFAF5] hover:border-[#E8D8A8] shadow-[0_2px_10px_rgba(10,22,40,0.04)] transition-colors"
             aria-label={t('backToSearchAria')}
           >

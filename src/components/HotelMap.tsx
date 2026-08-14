@@ -10,6 +10,7 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+import { newTabAttrs } from '@/lib/new-tab';
 
 /**
  * Leaflet + OpenStreetMap hotel map. Rendered as a dynamic import on /hotels
@@ -95,7 +96,7 @@ function popupHtml(h: HotelMapItem): string {
     <div style="font-family:Poppins,sans-serif;font-weight:900;font-size:14px;color:#1A1D2B;margin-bottom:4px;">${esc(h.name)}</div>
     ${stars}
     <div style="font-family:Poppins,sans-serif;font-weight:800;font-size:13px;color:#F97316;margin-bottom:8px;">${price}/night</div>
-    <a href="${esc(h.href)}" style="display:inline-block;background:#F97316;color:#fff;padding:6px 12px;border-radius:8px;font-family:Poppins,sans-serif;font-weight:800;font-size:12px;text-decoration:none;">View hotel →</a>
+    <a href="${esc(h.href)}"${newTabAttrs()} style="display:inline-block;background:#F97316;color:#fff;padding:6px 12px;border-radius:8px;font-family:Poppins,sans-serif;font-weight:800;font-size:12px;text-decoration:none;">View hotel →</a>
   </div>`;
 }
 

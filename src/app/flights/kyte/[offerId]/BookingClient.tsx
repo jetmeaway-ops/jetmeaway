@@ -21,6 +21,7 @@ import RyanairConfirmIframe, {
 } from '@/components/RyanairConfirmIframe';
 import RyanairTermsCheckbox from '@/components/RyanairTermsCheckbox';
 import FlightCheckoutLegal from '@/components/FlightCheckoutLegal';
+import { readKyteOffer } from '@/lib/kyte-offer-stash';
 import { neighbourhoodIntel, genericIntel } from '@/lib/neighbourhood-intel';
 import { scoutGreeting } from '@/lib/scout-greeting';
 
@@ -242,10 +243,12 @@ export default function BookingClient({
   // sales with no ATOL cover; the customer must tick this to unlock payment.
   const [legalAcknowledged, setLegalAcknowledged] = useState(false);
 
-  // Load the offer stashed in sessionStorage when the user clicked through.
+  // Load the offer stashed by the results page when the user clicked through.
+  // Reads sessionStorage first, then localStorage — this page now opens in a
+  // new tab, which starts with an empty sessionStorage. See lib/kyte-offer-stash.ts.
   useEffect(() => {
     try {
-      const stored = sessionStorage.getItem(`kyte-offer-${offerId}`);
+      const stored = readKyteOffer(offerId);
       if (stored) {
         const parsed = JSON.parse(stored) as StashedOffer;
         setOffer(parsed);
@@ -253,7 +256,7 @@ export default function BookingClient({
         return;
       }
     } catch {
-      /* sessionStorage unavailable */
+      /* storage unavailable or corrupt — fall through to the error step */
     }
     setError(
       'We could not find the offer details for this booking. Please return to flight results and pick the flight again — offers expire after ~15 minutes.',
