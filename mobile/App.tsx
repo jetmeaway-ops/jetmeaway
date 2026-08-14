@@ -18,17 +18,23 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
 
+import { APP_USER_AGENT } from './src/constants/app';
 import { Colors } from './src/constants/colors';
 import { registerForPushNotifications, syncPushTokenToBackend } from './src/services/push';
 import { saveBooking, parseBookingMessage } from './src/services/offline-bookings';
 import { INJECTED_BRIDGE, parseMessage } from './src/services/webview-bridge';
 import { MyTripsModal } from './src/screens/MyTripsModal';
+import StackedWebViewScreen, { stackedBackHandler } from './src/screens/StackedWebViewScreen';
+import { decideNavigation } from './src/lib/webview-routing';
 import { signInWithApple, signInWithGoogle, signOut } from './src/services/auth';
 import { recordSession, maybeReviewAfterEngagement, reviewAfterBooking } from './src/services/review';
 
 const HOME_URL = 'https://jetmeaway.co.uk/';
 const INTERNAL_HOST = 'jetmeaway.co.uk';
 const INTERNAL_HOSTS = new Set([INTERNAL_HOST, `www.${INTERNAL_HOST}`]);
+
+/** Either WebView the bridge can be talking to — the shell or a stacked screen. */
+type WebViewRef = React.RefObject<WebView | null>;
 
 /**
  * If the app was launched via a universal/app link to jetmeaway.co.uk,
@@ -78,6 +84,28 @@ export default function App() {
   const [tripsVisible, setTripsVisible] = useState(false);
   const [initialUrl, setInitialUrl] = useState<string>(HOME_URL);
 
+  /**
+   * URL of the screen stacked on top of the shell, if any (hotel detail, Kyte
+   * booking, affiliate interstitial). While this is set the shell's WebView
+   * stays mounted and untouched underneath — that is the whole point: closing
+   * the stacked screen returns the visitor to their results with the scroll
+   * position and filters simply still there, instead of re-running the search.
+   */
+  const [stackedUrl, setStackedUrl] = useState<string | null>(null);
+
+  /**
+   * Whether the shell has any page under it yet. Read inside
+   * `onShouldStartLoadWithRequest`, so it's a ref rather than state — the
+   * callback must see the current value without being rebuilt.
+   *
+   * Guards a cold start straight into a detail page: a universal link or push
+   * notification to /hotels/<id> makes that URL the shell's FIRST load, and
+   * stacking a screen over a shell that never loaded anything would leave a
+   * blank page behind it. In that case there is no results list to protect
+   * either, so the detail simply loads in the shell as it always did.
+   */
+  const hasLoadedOnceRef = useRef(false);
+
   // Review-prompt scheduling (see src/services/review.ts). We ask a RETURNING
   // user for a rating a short while after first content load — never at cold
   // launch — and only once per app process.
@@ -119,6 +147,9 @@ export default function App() {
     const sub = Linking.addEventListener('url', (event) => {
       const path = pathFromInboundUrl(event.url);
       if (!path || !webviewRef.current) return;
+      // An inbound link is an explicit "take me here" — close any stacked
+      // screen first, or the destination would load hidden behind it.
+      setStackedUrl(null);
       const safe = path.replace(/'/g, "\\'");
       webviewRef.current.injectJavaScript(`window.location.href = 'https://${INTERNAL_HOST}${safe}'; true;`);
     });
@@ -128,10 +159,16 @@ export default function App() {
     };
   }, []);
 
-  // Android hardware back → WebView back when possible
+  // Android hardware back → stacked screen first, then WebView back, then exit.
   useEffect(() => {
     if (Platform.OS !== 'android') return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      // A stacked screen owns Back while it's open: it walks its own history
+      // and only closes once there's nothing left to go back to.
+      if (stackedUrl && stackedBackHandler.current) {
+        stackedBackHandler.current();
+        return true;
+      }
       if (canGoBack && webviewRef.current) {
         webviewRef.current.goBack();
         return true;
@@ -139,77 +176,104 @@ export default function App() {
       return false;
     });
     return () => sub.remove();
-  }, [canGoBack]);
+  }, [canGoBack, stackedUrl]);
 
   const onNavigationStateChange = useCallback((nav: WebViewNavigation) => {
     setCanGoBack(nav.canGoBack);
   }, []);
 
   /**
-   * Intercept loads to external domains — open them in the system browser
-   * instead of inside the WebView. Keeps the app clean and lets affiliate
-   * sites run their own Stripe / auth flows without breaking.
+   * Hand a URL to the system browser / Safari View Controller. Used for
+   * affiliate domains (so partners can run their own Stripe / auth flows) and
+   * for our own checkout pages — see the `external` rules in
+   * src/lib/webview-routing.ts for why checkout can't stay in the WebView.
    *
-   * EXCEPTION (added 2026-05-02): /checkout/* and /hotels/checkout/* are
-   * also opened in Safari View Controller even though they're on our own
-   * domain. Reason: Stripe Elements (Duffel flights) and LiteAPI's Payment
-   * SDK (hotels) both create third-party iframes that render BLANK in
-   * WKWebView regardless of sharedCookiesEnabled / thirdPartyCookiesEnabled.
-   * Safari View Controller renders them perfectly. Customers were silently
-   * blocked at the Pay step — multiple bookings lost on 2026-05-01/02.
-   *
-   * UPDATE (2026-05-03): we used to redirect the WebView to /account/bookings
-   * once the SVC closed, but that broke decline-and-retry — a customer with
-   * a failed/declined card would close the SVC to try again and land on
-   * /account/bookings, losing their search and booking context. Now we leave
-   * the WebView on whichever page launched the SVC, so retry is one tap away
-   * (re-tapping Pay re-opens the SVC). On successful purchases the SVC's
-   * own /success page is what the user reads — no need to also force the
-   * WebView elsewhere.
+   * NOTE (2026-05-03): we deliberately do NOT redirect the WebView anywhere
+   * once the SVC closes. We used to send it to /account/bookings, which broke
+   * decline-and-retry — a customer with a declined card would close the SVC to
+   * try again and land on /account/bookings, losing their search and booking
+   * context. Leaving the WebView on whichever page launched the SVC keeps retry
+   * one tap away, and on success the SVC's own /success page is what they read.
    */
-  const onShouldStartLoadWithRequest = useCallback((req: { url: string }) => {
-    try {
-      const u = new URL(req.url);
-      if (u.hostname === INTERNAL_HOST || u.hostname === `www.${INTERNAL_HOST}`) {
-        const isCheckout =
-          u.pathname.startsWith('/checkout/') ||
-          u.pathname.startsWith('/hotels/checkout/');
-        if (isCheckout) {
-          WebBrowser.openBrowserAsync(req.url).catch(() =>
-            Linking.openURL(req.url),
-          );
-          return false;
-        }
-        return true;
-      }
-      if (u.protocol === 'about:' || u.protocol === 'data:') return true;
-      WebBrowser.openBrowserAsync(req.url).catch(() => Linking.openURL(req.url));
-      return false;
-    } catch {
-      return true;
-    }
+  const openExternally = useCallback((url: string) => {
+    WebBrowser.openBrowserAsync(url).catch(() => Linking.openURL(url));
   }, []);
+
+  /**
+   * Root shell navigation. Rules live in src/lib/webview-routing.ts so this and
+   * the stacked screen can't drift apart.
+   *
+   * The `push` case is the fix for the results-page problem: a hotel tap no
+   * longer navigates this WebView at all, so the list is never destroyed.
+   */
+  const onShouldStartLoadWithRequest = useCallback(
+    (req: { url: string }) => {
+      const decision = decideNavigation(req.url, 'root');
+      if (decision.kind === 'external') {
+        openExternally(req.url);
+        return false;
+      }
+      if (decision.kind === 'push') {
+        // Cold start straight into a detail page — nothing to stack over, and
+        // no results list to protect. Let the shell load it normally.
+        if (!hasLoadedOnceRef.current) return true;
+        setStackedUrl(decision.url);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+        return false;
+      }
+      return true;
+    },
+    [openExternally],
+  );
+
+  /**
+   * Navigation from inside a stacked screen. Same external/checkout rules, plus
+   * one extra: the detail page's own "Back to search results" link would load a
+   * SECOND copy of the results inside this screen, so following it closes the
+   * screen instead and reveals the live list that was there all along.
+   */
+  const onStackedShouldStartLoadWithRequest = useCallback(
+    (req: { url: string }) => {
+      const decision = decideNavigation(req.url, 'stacked');
+      if (decision.kind === 'external') {
+        openExternally(req.url);
+        return false;
+      }
+      if (decision.kind === 'close') {
+        setStackedUrl(null);
+        return false;
+      }
+      return true;
+    },
+    [openExternally],
+  );
 
   /**
    * Resolve a pending bridge call by injecting a script that calls back into
    * the web's __JMA_RESOLVE__ function.
+   *
+   * The reply must go back to the WebView that ASKED — a share or sign-in
+   * started from a stacked hotel detail page has its pending promise in that
+   * WebView, not in the shell — so the source ref travels with the call.
    */
-  const resolveBridge = useCallback((id: string, value: unknown) => {
-    if (!webviewRef.current || !id) return;
+  const resolveBridge = useCallback((ref: WebViewRef, id: string, value: unknown) => {
+    if (!ref.current || !id) return;
     const json = JSON.stringify(value).replace(/'/g, "\\'");
-    webviewRef.current.injectJavaScript(`window.__JMA_RESOLVE__ && window.__JMA_RESOLVE__('${id}', ${json}); true;`);
+    ref.current.injectJavaScript(`window.__JMA_RESOLVE__ && window.__JMA_RESOLVE__('${id}', ${json}); true;`);
   }, []);
 
-  const rejectBridge = useCallback((id: string, reason: string) => {
-    if (!webviewRef.current || !id) return;
+  const rejectBridge = useCallback((ref: WebViewRef, id: string, reason: string) => {
+    if (!ref.current || !id) return;
     const safe = reason.replace(/'/g, "\\'").slice(0, 200);
-    webviewRef.current.injectJavaScript(`window.__JMA_REJECT__ && window.__JMA_REJECT__('${id}', '${safe}'); true;`);
+    ref.current.injectJavaScript(`window.__JMA_REJECT__ && window.__JMA_REJECT__('${id}', '${safe}'); true;`);
   }, []);
 
-  const handleMessage = useCallback(async (event: WebViewMessageEvent) => {
+  const handleMessage = useCallback(async (event: WebViewMessageEvent, source: WebViewRef) => {
     const msg = parseMessage(event.nativeEvent.data);
     if (!msg) return;
     const id = msg.id ?? '';
+    const resolve = (value: unknown) => resolveBridge(source, id, value);
+    const reject = (reason: string) => rejectBridge(source, id, reason);
 
     try {
       if (msg.type === 'share') {
@@ -219,18 +283,18 @@ export default function App() {
           message: [p.text, p.url].filter(Boolean).join(' — ') || 'JetMeAway',
           url: typeof p.url === 'string' ? p.url : undefined,
         });
-        resolveBridge(id, { ok: true });
+        resolve({ ok: true });
         return;
       }
 
       if (msg.type === 'saveBooking') {
         const booking = parseBookingMessage(msg.payload);
         if (!booking) {
-          rejectBridge(id, 'Invalid booking payload');
+          reject('Invalid booking payload');
           return;
         }
         await saveBooking(booking);
-        resolveBridge(id, { ok: true, savedAt: Date.now() });
+        resolve({ ok: true, savedAt: Date.now() });
         // A confirmed booking is the strongest positive moment — ask for a
         // review (rate-limited in review.ts; the OS no-ops if already rated
         // or the yearly budget is spent).
@@ -241,11 +305,11 @@ export default function App() {
       if (msg.type === 'requestLocation') {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          rejectBridge(id, 'Permission denied');
+          reject('Permission denied');
           return;
         }
         const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        resolveBridge(id, { lat: pos.coords.latitude, lng: pos.coords.longitude });
+        resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         return;
       }
 
@@ -261,7 +325,7 @@ export default function App() {
         } else {
           await Haptics.impactAsync(style2impact[style] ?? Haptics.ImpactFeedbackStyle.Light);
         }
-        resolveBridge(id, { ok: true });
+        resolve({ ok: true });
         return;
       }
 
@@ -274,9 +338,9 @@ export default function App() {
           // "signed in but page says signed-out" race we hit when posting
           // from React Native (cookie went to NSHTTPCookieStorage and didn't
           // sync to WKHTTPCookieStore before the redirect fired).
-          resolveBridge(id, { ok: true, idToken: result.idToken, provider: 'apple' });
+          resolve({ ok: true, idToken: result.idToken, provider: 'apple' });
         } else {
-          rejectBridge(id, result.error);
+          reject(result.error);
         }
         return;
       }
@@ -284,20 +348,20 @@ export default function App() {
       if (msg.type === 'signInWithGoogle') {
         const result = await signInWithGoogle();
         if (result.ok) {
-          resolveBridge(id, { ok: true, idToken: result.idToken, provider: 'google' });
+          resolve({ ok: true, idToken: result.idToken, provider: 'google' });
         } else {
-          rejectBridge(id, result.error);
+          reject(result.error);
         }
         return;
       }
 
       if (msg.type === 'signOut') {
         await signOut();
-        resolveBridge(id, { ok: true });
+        resolve({ ok: true });
         return;
       }
     } catch (err) {
-      rejectBridge(id, err instanceof Error ? err.message : 'Native call failed');
+      reject(err instanceof Error ? err.message : 'Native call failed');
     }
   }, [resolveBridge, rejectBridge]);
 
@@ -308,9 +372,18 @@ export default function App() {
 
   const navigateInWebview = useCallback((url: string) => {
     if (!webviewRef.current) return;
+    // Opening a booking is a jump to somewhere else entirely — drop any stacked
+    // screen first so the destination isn't hidden behind a hotel detail.
+    setStackedUrl(null);
     const safe = url.replace(/'/g, "\\'");
     webviewRef.current.injectJavaScript(`window.location.href = '${safe}'; true;`);
   }, []);
+
+  /** The shell's own bridge messages resolve back into the shell. */
+  const handleRootMessage = useCallback(
+    (event: WebViewMessageEvent) => { void handleMessage(event, webviewRef); },
+    [handleMessage],
+  );
 
   if (!fontsLoaded) return null;
 
@@ -323,7 +396,7 @@ export default function App() {
           source={{ uri: initialUrl }}
           onNavigationStateChange={onNavigationStateChange}
           onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
-          onMessage={handleMessage}
+          onMessage={handleRootMessage}
           injectedJavaScriptBeforeContentLoaded={INJECTED_BRIDGE}
           injectedJavaScript={INJECTED_BRIDGE}
           onLoadStart={() => {
@@ -332,6 +405,7 @@ export default function App() {
           onLoadEnd={() => {
             setIsLoading(false);
             setHasFirstLoaded(true);
+            hasLoadedOnceRef.current = true;
             // First successful content load → after ~25s of engagement, ask a
             // returning user for a rating. Scheduled once per process; the
             // guard + cool-downs live in review.ts.
@@ -353,7 +427,7 @@ export default function App() {
           thirdPartyCookiesEnabled
           originWhitelist={['https://*', 'http://*']}
           setSupportMultipleWindows={false}
-          applicationNameForUserAgent="JetMeAway/1.0.5 Mobile"
+          applicationNameForUserAgent={APP_USER_AGENT}
           style={styles.webview}
         />
         {isLoading && !hasFirstLoaded ? (
@@ -367,6 +441,24 @@ export default function App() {
           onOpenBooking={navigateInWebview}
         />
       </SafeAreaView>
+      {/* Stacked detail screen — deliberately a sibling of the SafeAreaView, not
+          a child of it. It is ON TOP of the shell, never instead of it, so the
+          results list underneath keeps its scroll position, filters and
+          pagination while the visitor reads a hotel; closing it restores
+          nothing because nothing was ever lost.
+
+          Outside the SafeAreaView because that view already pads for the notch:
+          an absolutely-positioned child would start below that padding and the
+          screen's own `insets.top` would then pad a second time. Out here it
+          covers the full window and owns its own inset. */}
+      {stackedUrl ? (
+        <StackedWebViewScreen
+          url={stackedUrl}
+          onClose={() => setStackedUrl(null)}
+          onShouldStartLoadWithRequest={onStackedShouldStartLoadWithRequest}
+          onMessage={handleMessage}
+        />
+      ) : null}
     </SafeAreaProvider>
   );
 }
