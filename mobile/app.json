@@ -33,7 +33,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#1458B5"
+        "backgroundColor": "#DCEAF7"
       },
       "package": "uk.co.jetmeaway.app",
       "versionCode": 20,
