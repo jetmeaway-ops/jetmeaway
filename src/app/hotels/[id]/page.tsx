@@ -20,6 +20,7 @@ import { useTranslations } from 'next-intl';
 // renders its own Leaflet map when embedded on the detail page, replacing the
 // stand-alone HotelMap in the Location section — one map, richer signal.
 const ScoutSidebar = dynamic(() => import('@/components/ScoutSidebar'), { ssr: false });
+const HotelLocationModal = dynamic(() => import('@/components/HotelLocationModal'), { ssr: false });
 
 interface RoomMeta {
   id: string;
@@ -221,6 +222,15 @@ export default function HotelDetailPage() {
   const router = useRouter();
   const id = params?.id || '';
   const t = useTranslations('hotelDetail');
+  // Map popup strings live in the shared `hotels` namespace so the card and
+  // the detail page draw the same "Show on map" experience from one source.
+  const th = useTranslations('hotels');
+  const [locOpen, setLocOpen] = useState(false);
+  // The searched reference (landmark / place) carried over from the results
+  // page via buildDetailHref, so the popup can pin it and show the distance.
+  const refLat = parseFloat(sp?.get('refLat') || '');
+  const refLng = parseFloat(sp?.get('refLng') || '');
+  const refLabel = sp?.get('refLabel') || '';
 
   const [hotel, setHotel] = useState<HotelDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -820,6 +830,19 @@ export default function HotelDetailPage() {
           visually through the detail page and on into checkout. Reuses the
           already-fetched gallery images. */}
       <HotelBackdrop photos={gallery} />
+      {locOpen && typeof hotel.latitude === 'number' && typeof hotel.longitude === 'number' && (
+        <HotelLocationModal
+          hotelName={hotel.name}
+          lat={hotel.latitude}
+          lng={hotel.longitude}
+          reference={
+            Number.isFinite(refLat) && Number.isFinite(refLng)
+              ? { label: refLabel || th('mapRefCentre'), lat: refLat, lng: refLng }
+              : null
+          }
+          onClose={() => setLocOpen(false)}
+        />
+      )}
       <script
         type="application/ld+json"
         // eslint-disable-next-line react/no-danger
@@ -895,22 +918,6 @@ export default function HotelDetailPage() {
               <p className="text-[.85rem] text-[#5C6378] font-semibold mt-1">
                 <i className="fa-solid fa-location-dot text-[.78rem] text-[#287DFA] mr-1" />
                 {hotel.address}{hotel.city ? `, ${hotel.city}` : ''}
-                {/* The map already exists further down the page, but nothing up
-                    here pointed at it — so "where actually is this hotel?" meant
-                    hunting for it. This jumps straight to it. Only rendered when
-                    the section it targets will actually exist (lat/lng present). */}
-                {typeof hotel.latitude === 'number' && typeof hotel.longitude === 'number' && (
-                  <>
-                    <span className="mx-2 text-[#C8CEDA]" aria-hidden>·</span>
-                    <a
-                      href="#location"
-                      className="inline-flex items-center gap-1 text-[#287DFA] font-bold underline underline-offset-2 hover:text-[#0a58d0]"
-                    >
-                      <i className="fa-solid fa-map-location-dot text-[.75rem]" aria-hidden />
-                      {t('showMap')}
-                    </a>
-                  </>
-                )}
               </p>
             )}
             {/* Trust chip row — "Includes all taxes & fees" is the premium
@@ -929,6 +936,19 @@ export default function HotelDetailPage() {
                 <i className="fa-solid fa-shield-halved text-[.62rem]" />
                 {t('scoutPriceMatch')}
               </span>
+              {/* "Show on map" sits in the trust-chip row so it reads as part of
+                  the header, right after Scout Price Match. Opens the location
+                  popup (hotel + searched reference + distance). */}
+              {typeof hotel.latitude === 'number' && typeof hotel.longitude === 'number' && (
+                <button
+                  type="button"
+                  onClick={() => setLocOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#eef4ff] border border-[#cfe0ff] text-[#0a58d0] text-[.68rem] font-bold hover:bg-[#e2edff] transition-colors"
+                >
+                  <i className="fa-solid fa-map-location-dot text-[.62rem]" aria-hidden />
+                  {th('showOnMap')}
+                </button>
+              )}
             </div>
           </div>
         </div>
