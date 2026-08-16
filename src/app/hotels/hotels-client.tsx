@@ -4016,7 +4016,7 @@ function HotelsContent() {
 
           {/* Section 1: Results Summary */}
           {cheapest && (
-            <section className="max-w-[1000px] mx-auto px-5 pt-8 pb-4">
+            <section className="max-w-[1000px] mx-auto px-5 pt-4 sm:pt-8 pb-3 sm:pb-4">
               <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-2xl px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div className="flex items-center gap-3">
                   <span className="text-xl">🏷</span>
@@ -4029,8 +4029,12 @@ function HotelsContent() {
               {/* Site-wide guarantees, stated ONCE. These used to be repeated
                   on every single card (three separate blocks per card), which
                   roughly doubled card height and pushed real content below the
-                  fold. Same i18n keys, so no locale file changes. */}
-              <div className="mt-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-[.68rem] font-semibold text-[#5C6378]">
+                  fold. Same i18n keys, so no locale file changes.
+                  On mobile the page's fixed photo backdrop shows through, so the
+                  grey text was nearly invisible and read as empty space — give
+                  it a frosted chip on small screens so it's legible; transparent
+                  from sm up where it sits over a lighter area. */}
+              <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 sm:gap-x-5 gap-y-1 text-[.68rem] font-semibold text-[#5C6378] bg-white/85 backdrop-blur-sm rounded-xl px-3 py-2 sm:bg-transparent sm:backdrop-blur-none sm:rounded-none sm:px-0 sm:py-0">
                 <span className="inline-flex items-center gap-1.5">
                   <i className="fa-solid fa-circle-check text-[.62rem] text-emerald-600" aria-hidden />
                   {t('totalPriceInclTaxes')}
@@ -4116,10 +4120,15 @@ function HotelsContent() {
             </section>
           )}
 
-          {/* Sort + View toolbar */}
+          {/* Sort + View toolbar.
+              On mobile these four control groups used to stack as four full
+              rows (~200px of dead height before the first hotel). Wrap them
+              instead so they flow into ~two compact rows, and hide the
+              SORT BY / PER PAGE labels on small screens to save the width that
+              was forcing the wrap. */}
           {hotels!.length > 0 && (
             <section className="max-w-[1000px] mx-auto px-5 pb-3">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex flex-row flex-wrap items-center gap-2 sm:gap-3 sm:justify-between">
                 {/* View toggle */}
                 <div className="inline-flex bg-[#F1F3F7] rounded-xl p-1 self-start">
                   <button
@@ -4159,7 +4168,7 @@ function HotelsContent() {
 
                 {/* Sort dropdown */}
                 <div className="flex items-center gap-2">
-                  <label htmlFor="hotel-sort" className="text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9]">{t('sortBy')}</label>
+                  <label htmlFor="hotel-sort" className="hidden sm:inline text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9]">{t('sortBy')}</label>
                   <select
                     id="hotel-sort"
                     value={sortBy}
@@ -4175,7 +4184,7 @@ function HotelsContent() {
 
                 {/* Results-per-page selector */}
                 <div className="flex items-center gap-2">
-                  <label htmlFor="hotel-page-size" className="text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9]">{t('perPage')}</label>
+                  <label htmlFor="hotel-page-size" className="hidden sm:inline text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9]">{t('perPage')}</label>
                   <select
                     id="hotel-page-size"
                     value={pageSize}
