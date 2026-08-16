@@ -1022,7 +1022,8 @@
         "body": "位于合适地段的更便宜酒店可以省下交通费，并带来更好的体验。"
       }
     },
-    "tryAgain": "重试"
+    "tryAgain": "重试",
+    "roomsAutoSplit": "这里没有酒店提供可住 {guests} 人的单间，因此我们为您找了 2 间房的选择。"
   },
   "flights": {
     "heroBadge": "机票比价",

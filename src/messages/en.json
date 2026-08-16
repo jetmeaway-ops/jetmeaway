@@ -1029,7 +1029,8 @@
         "body": "A cheaper hotel in the right area can save on transport and give a better experience."
       }
     },
-    "tryAgain": "Try Again"
+    "tryAgain": "Try Again",
+    "roomsAutoSplit": "No hotel here has one room for {guests} guests, so we’ve found options across 2 rooms."
   },
   "flights": {
     "heroBadge": "Flight Comparison",

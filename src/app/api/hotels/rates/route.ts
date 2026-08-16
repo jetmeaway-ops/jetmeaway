@@ -34,6 +34,7 @@ import { NextRequest, NextResponse, after } from 'next/server';
 import { kv } from '@vercel/kv';
 import { getHotels as liteapiGetHotels } from '@/lib/liteapi';
 import { normaliseDisplayCurrency } from '@/lib/pricing-currency';
+import { decodeOccupancy } from '@/lib/occupancy';
 
 export const runtime = 'edge';
 
@@ -118,21 +119,38 @@ export async function GET(req: NextRequest) {
   // children all in room 0 — so detail-page prices match the results page.
   // (Was: full party repeated per room, which turned "4 adults, 2 rooms"
   // into an 8-person search and returned zero offers. 2026-07-08)
-  const adultsPerRoom: number[] = [];
-  let remainingAdults = adults;
-  for (let i = 0; i < rooms; i++) {
-    const a = i === rooms - 1 ? remainingAdults : Math.max(1, Math.floor(adults / rooms));
-    adultsPerRoom.push(Math.max(1, a));
-    remainingAdults -= a;
+  // Exact per-room occupancy carried from the results page as `occ=` wins when
+  // present — it preserves the SAME room split the visitor saw (e.g. an
+  // auto-split family of five as [1 adult+2 kids][1 adult+1 kid]). Without it
+  // we fall back to the flat split below (adults spread evenly, children all in
+  // room 0), which can differ from the results split and dead-end a hotel that
+  // only had availability under the even split. See src/lib/occupancy.ts and
+  // the auto-split retry in hotels-client.tsx.
+  const occParam = sp.get('occ') || '';
+  const decodedRooms = decodeOccupancy(occParam);
+  let occupancy: Array<{ adults: number; children?: number[] }>;
+  if (decodedRooms && decodedRooms.length > 0) {
+    occupancy = decodedRooms.map((r) =>
+      r.childAges.length > 0 ? { adults: r.adults, children: r.childAges } : { adults: r.adults },
+    );
+  } else {
+    const adultsPerRoom: number[] = [];
+    let remainingAdults = adults;
+    for (let i = 0; i < rooms; i++) {
+      const a = i === rooms - 1 ? remainingAdults : Math.max(1, Math.floor(adults / rooms));
+      adultsPerRoom.push(Math.max(1, a));
+      remainingAdults -= a;
+    }
+    occupancy = adultsPerRoom.map((a, idx) =>
+      idx === 0 && childrenAges.length > 0 ? { adults: a, children: childrenAges } : { adults: a },
+    );
   }
-  const occupancy = adultsPerRoom.map((a, idx) =>
-    idx === 0 && childrenAges.length > 0 ? { adults: a, children: childrenAges } : { adults: a },
-  );
 
-  // v3: bumped 2026-07-08 — rooms>1 occupancy semantics changed from
-  // "party per room" to "party split across rooms"; v2 entries priced the
-  // wrong headcount. (v2 2026-04-21 added cancelDeadline + paymentTypes.)
-  const cacheKey = `hotel-rates:v3:${hotelId}:${checkin}:${checkout}:${adults}:${children}:${childrenAgesRaw}:${rooms}:${currency}`;
+  // v4: bumped 2026-08-16 — `occ=` per-room occupancy now honoured, so the
+  // cache key must vary on it or a flat-split entry would be served for an
+  // occ-split request. (v3 2026-07-08 changed rooms>1 to split-across-rooms;
+  // v2 2026-04-21 added cancelDeadline + paymentTypes.)
+  const cacheKey = `hotel-rates:v4:${hotelId}:${checkin}:${checkout}:${adults}:${children}:${childrenAgesRaw}:${rooms}:${occParam}:${currency}`;
 
   try {
     const cached = await kv.get<CacheShape | { offers: BoardOptionOut[] }>(cacheKey);

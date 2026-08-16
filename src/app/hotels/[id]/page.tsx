@@ -338,6 +338,11 @@ export default function HotelDetailPage() {
   const children = sp?.get('children') || '0';
   const childrenAges = sp?.get('childrenAges') || '';
   const rooms = sp?.get('rooms') || '1';
+  // Exact per-room split carried from the results page (e.g. an auto-split
+  // family of five). When present, the rates + similar fetches forward it so
+  // this page prices the SAME rooms the visitor saw, not a re-split from the
+  // flat counts. See buildDetailHref in hotels-client.tsx.
+  const occ = sp?.get('occ') || '';
   const price = sp?.get('price') || '';
   // Every price on this page comes from getHotels() (via /api/hotels/rates),
   // and that layer force-converts EVERY supplier response into GBP before it
@@ -449,6 +454,7 @@ export default function HotelDetailPage() {
       stars: '0',
     });
     if (childrenAges) params.set('childrenAges', childrenAges);
+    if (occ) params.set('occ', occ);
     fetch(`/api/hotels?${params}`)
       .then(r => r.json())
       .then(data => {
@@ -462,7 +468,7 @@ export default function HotelDetailPage() {
         setSimilarLoading(false);
       })
       .catch(() => setSimilarLoading(false));
-  }, [city, checkin, checkout, adults, children, rooms, id]);
+  }, [city, checkin, checkout, adults, children, rooms, id, occ]);
 
   /* Auto room-split (owner request 2026-07-14): every hotel has its own
      occupancy policy — some sell triple/quad rooms, budget ones cap at 2.
@@ -495,6 +501,7 @@ export default function HotelDetailPage() {
           currency,
         });
         if (childrenAges) p.set('childrenAges', childrenAges);
+        if (occ) p.set('occ', occ);
         const res = await fetch(`/api/hotels/rates?${p.toString()}`);
         const data = await res.json();
         if (cancelled) return;
@@ -537,7 +544,7 @@ export default function HotelDetailPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [id, checkin, checkout, adults, children, rooms, currency, childrenAges, offerId]);
+  }, [id, checkin, checkout, adults, children, rooms, currency, childrenAges, offerId, occ]);
 
   /* Guests & rooms steppers — rendered TWICE: in the booking sidebar
      (desktop) and directly above the rooms table (mobile-only block).
