@@ -1022,7 +1022,8 @@
         "body": "Un hotel más barato en la zona adecuada puede ahorrar en transporte y ofrecer una mejor experiencia."
       }
     },
-    "tryAgain": "Inténtalo de nuevo"
+    "tryAgain": "Inténtalo de nuevo",
+    "roomsAutoSplit": "Ningún hotel aquí tiene una habitación para {guests} huéspedes, así que mostramos opciones en 2 habitaciones."
   },
   "flights": {
     "heroBadge": "Comparación de vuelos",

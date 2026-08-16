@@ -1022,7 +1022,8 @@
         "body": "Hoteli ya bei nafuu katika eneo sahihi inaweza kuokoa gharama za usafiri na kutoa uzoefu bora."
       }
     },
-    "tryAgain": "Jaribu Tena"
+    "tryAgain": "Jaribu Tena",
+    "roomsAutoSplit": "Hakuna hoteli hapa yenye chumba kimoja kwa wageni {guests}, kwa hivyo tumepata chaguo za vyumba 2."
   },
   "flights": {
     "heroBadge": "Ulinganisho wa Ndege",

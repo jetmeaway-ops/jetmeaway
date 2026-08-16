@@ -1022,7 +1022,8 @@
         "body": "Doğru bölgedeki daha ucuz bir otel, ulaşımdan tasarruf sağlayabilir ve daha iyi bir deneyim sunabilir."
       }
     },
-    "tryAgain": "Tekrar Dene"
+    "tryAgain": "Tekrar Dene",
+    "roomsAutoSplit": "Buradaki hiçbir otelde {guests} kişi için tek oda yok, bu yüzden 2 odalı seçenekler bulduk."
   },
   "flights": {
     "heroBadge": "Uçuş Karşılaştırması",

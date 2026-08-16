@@ -1022,7 +1022,8 @@
         "body": "Un hôtel moins cher dans le bon quartier peut faire économiser sur les transports et offrir une meilleure expérience."
       }
     },
-    "tryAgain": "Réessayer"
+    "tryAgain": "Réessayer",
+    "roomsAutoSplit": "Aucun hôtel ici n’a de chambre pour {guests} personnes, nous avons donc trouvé des options sur 2 chambres."
   },
   "flights": {
     "heroBadge": "Comparaison de vols",

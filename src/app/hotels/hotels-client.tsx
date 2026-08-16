@@ -608,6 +608,27 @@ function buildExpediaUrlPerRoom(
   return u;
 }
 
+/**
+ * Split one room's party across `n` rooms as evenly as possible.
+ *
+ * Used ONLY as an auto-retry when a single-room search for a large party came
+ * back with ZERO live rates — i.e. no hotel in that location sells one room for
+ * that many people. Hotels that DO offer a single room for the whole party
+ * (family rooms, interconnecting rates) still surface on the original one-room
+ * search, so this never overrides them and never misguides a family who could
+ * have booked one room. Every room keeps at least one adult (LiteAPI rejects
+ * adult-less rooms), so callers must ensure `room.adults >= n`.
+ */
+function splitPartyIntoRooms(
+  room: import('@/lib/occupancy').Room,
+  n: number,
+): import('@/lib/occupancy').Room[] {
+  const out = Array.from({ length: n }, () => ({ adults: 0, childAges: [] as number[] }));
+  for (let i = 0; i < room.adults; i++) out[i % n].adults += 1;
+  room.childAges.forEach((age, i) => out[i % n].childAges.push(age));
+  return out;
+}
+
 type Provider = {
   name: string;
   logo: string;
@@ -2262,6 +2283,9 @@ function HotelsContent() {
 
   const [loading, setLoading] = useState(false);
   const [hotels, setHotels] = useState<HotelResult[] | null>(null);
+  // Set when a single-room search for a large party found nothing and we
+  // auto-retried across 2 rooms (see handleSearch). Drives the info banner.
+  const [autoSplitInfo, setAutoSplitInfo] = useState<{ guests: number } | null>(null);
   // Progressive-load: bumped each search so a stale page loop from a previous
   // search can't append into the current results. `loadingMore` drives the
   // "loading more hotels…" hint while pages 1..N stream in.
@@ -2576,6 +2600,7 @@ function HotelsContent() {
     }
 
     setHotels(null);
+    setAutoSplitInfo(null); // clear any previous "split into 2 rooms" banner
     loadMoreSeqRef.current++; // cancel any in-flight progressive page loop
     setLoadingMore(false);
     setApiError('');
@@ -2703,13 +2728,54 @@ function HotelsContent() {
       if (occEncoded) params.set('occ', occEncoded);
 
       const mySeq = ++loadMoreSeqRef.current;
-      const res = await fetch(`/api/hotels?${params}`);
-      const data = await res.json();
+      let searchParams = params;
+      const res = await fetch(`/api/hotels?${searchParams}`);
+      let data = await res.json();
 
       if (data.error) {
         setApiError(data.error);
         setLoading(false);
         return;
+      }
+
+      // Auto-split a large party that NO single room in this location can hold.
+      // Trigger: the one-room search came back EMPTY. Hotels that DO sell a
+      // single room for the whole party (family / interconnecting rates) appear
+      // in `data.hotels` above, so we only ever reach this when there is
+      // genuinely no one-room option anywhere — we never override a hotel that
+      // accepts everyone in one room, and never misguide the customer. Each of
+      // the two rooms keeps an adult, so we need at least two adults; a party
+      // of four commonly fits one room, so we only bother from five up. Kept
+      // fully client-side so the server route and its KV caching are untouched.
+      const partyTotal = adults + childCount;
+      if (
+        (data.hotels?.length ?? 0) === 0 &&
+        roomsArr.length === 1 &&
+        adults >= 2 &&
+        partyTotal >= 5
+      ) {
+        const split = splitPartyIntoRooms(roomsArr[0], 2);
+        const sp = new URLSearchParams(searchParams);
+        sp.set('rooms', '2');
+        const enc = encodeOccupancy(split);
+        if (enc) sp.set('occ', enc);
+        sp.delete('childrenAges'); // occ carries the per-room ages now
+        try {
+          const rRes = await fetch(`/api/hotels?${sp}`);
+          const rData = await rRes.json();
+          if (mySeq !== loadMoreSeqRef.current) return; // superseded
+          if (!rData.error && (rData.hotels?.length ?? 0) > 0) {
+            data = rData;
+            searchParams = sp;
+            // Bring the whole page into 2-room mode so the cards, the detail
+            // links and the guest picker all agree with what we're showing.
+            setRoomsArr(split);
+            setRooms(2);
+            setAutoSplitInfo({ guests: partyTotal });
+          }
+        } catch {
+          /* keep the one-room empty state — the retry is best-effort */
+        }
       }
 
       setHotels(data.hotels || []);
@@ -2727,7 +2793,7 @@ function HotelsContent() {
           for (let pg = 1; pg <= 6; pg++) {
             if (loadMoreSeqRef.current !== mySeq) return; // superseded by a newer search
             try {
-              const pParams = new URLSearchParams(params.toString());
+              const pParams = new URLSearchParams(searchParams.toString());
               pParams.set('page', String(pg));
               const pr = await fetch(`/api/hotels?${pParams}`);
               const pd = await pr.json();
@@ -3531,6 +3597,13 @@ function HotelsContent() {
       city: searchedDest,
     });
     if (childrenAges.length > 0) qp.set('childrenAges', childrenAges.join(','));
+    // Carry the exact per-room split when the party spans more than one room
+    // (incl. an auto-split family of five), so the detail page prices the SAME
+    // rooms the visitor saw here rather than re-splitting from the flat counts.
+    if (roomsArr.length > 1) {
+      const occ = encodeOccupancy(roomsArr);
+      if (occ) qp.set('occ', occ);
+    }
     if (h.offerId) qp.set('offerId', h.offerId);
     if (h.totalPrice) qp.set('price', String(h.totalPrice));
     else qp.set('price', String(h.pricePerNight * Math.max(1, nights)));
@@ -3926,6 +3999,21 @@ function HotelsContent() {
                     </button>
                   </div>
                 )}
+          {/* Auto-split notice — shown only when a one-room search for a large
+              party found nothing and we re-ran it across 2 rooms. Honest: the
+              hotels below are 2-room options, because no hotel here sells one
+              room for the whole group. */}
+          {autoSplitInfo && (hotels?.length ?? 0) > 0 && (
+            <section className="max-w-[1000px] mx-auto px-5 pt-6">
+              <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-2xl px-5 py-3.5">
+                <span className="text-lg leading-none mt-0.5" aria-hidden>🛏️</span>
+                <p className="text-[.82rem] font-semibold text-[#0a58d0] leading-snug">
+                  {t('roomsAutoSplit', { guests: autoSplitInfo.guests })}
+                </p>
+              </div>
+            </section>
+          )}
+
           {/* Section 1: Results Summary */}
           {cheapest && (
             <section className="max-w-[1000px] mx-auto px-5 pt-8 pb-4">
