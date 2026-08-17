@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { kv } from '@vercel/kv';
 import { getHotels as liteapiGetHotels, type HotelOffer } from '@/lib/liteapi';
 import { dedupeKey } from '@/lib/giata';
@@ -33,11 +33,52 @@ export const maxDuration = 60;
 const KV_TTL = 1800; // 30 minutes
 
 /**
+ * Board/room summary carried on a SEARCH RESULT — display-only.
+ *
+ * LiteAPI hands back up to 50 (roomName × board) rate rows per hotel and each
+ * one carries a ~1 KB base64 offerId blob. Measured on prod 2026-08-17, a
+ * 395-hotel page-0 response was 4.35 MB of JSON, **93% of it boardOptions**.
+ * That payload gets written to KV, read back on every cached hit, downloaded,
+ * parsed and held in phone memory — then repeated for each of the six
+ * progressive pages the client appends. It was the single biggest cost in the
+ * ~30s the owner measured on mobile.
+ *
+ * The results list never reads any of the dropped fields. It uses exactly two:
+ *   - `boardType` → meal filters + sidebar facet counts
+ *   - `roomName`  → the "N room types available" chip (counts DISTINCT names)
+ * The card itself prices from the hotel's own top-level (cheapest) rate, and
+ * the detail page fetches live per-room rates from /api/hotels/rates — a
+ * search offerId is up to 30 minutes stale by then anyway, so it was never
+ * safe to book from.
+ *
+ * So keep those two fields, drop the rest, and de-duplicate on the pair.
+ */
+type SlimBoardOption = { boardType: string; roomName?: string };
+function slimBoardOptions(opts: HotelOffer['boardOptions']): SlimBoardOption[] | undefined {
+  if (!opts || opts.length === 0) return undefined;
+  const seen = new Set<string>();
+  const out: SlimBoardOption[] = [];
+  for (const o of opts) {
+    const boardType = o.boardType || '';
+    if (!boardType) continue;
+    const roomName = o.roomName?.trim() || '';
+    const key = `${boardType.toLowerCase()}|${roomName.toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(roomName ? { boardType, roomName } : { boardType });
+  }
+  return out.length > 0 ? out : undefined;
+}
+
+/**
  * Race a KV write against a 5s timer. A slow KV write on a large
  * (5-10MB) hotels-search payload was tipping Dubai 6A/3R searches past
  * the Vercel function kill window. The cache is best-effort — if the
  * write doesn't make it inside 5s we just don't cache, and the next
  * request goes back to LiteAPI. Way better than dropping the response.
+ *
+ * Callers schedule this through `after()` so the customer never waits on a
+ * cache write that only helps the NEXT visitor.
  */
 async function safeKvSet(key: string, value: unknown): Promise<void> {
   const timeout = new Promise<void>((_, reject) =>
@@ -1830,12 +1871,18 @@ export async function GET(req: NextRequest) {
   // real inputs to the upstream LiteAPI query, so they belong in the key.
   // Adds segments only — no stored value shape changes, and this key is read
   // and written nowhere else in the codebase.
+  // v31 — `boardOptions` is now the slim {boardType, roomName} summary (see
+  // slimBoardOptions). This IS a stored-shape change, so it needs its own
+  // namespace: during a rollout the old client is still live and reads
+  // boardOptions[0].pricePerNight for the card price — hand it a slim entry
+  // and every price renders as "£undefined". Old clients keep draining v30
+  // until it expires (30 min TTL); new clients read and write v31 only.
   const occCacheSuffix = parsed.data.occ ? `:occ=${parsed.data.occ}` : '';
   const ctrCacheSuffix = autocompleteCentre
     ? `:@${autocompleteCentre.lat.toFixed(3)},${autocompleteCentre.lng.toFixed(3)}`
     : '';
   const geoCacheSuffix = explicitRadiusKm ? `:r${explicitRadiusKm}` : '';
-  const kvKey = `hotels:v30:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}${occCacheSuffix}${ctrCacheSuffix}${geoCacheSuffix}`;
+  const kvKey = `hotels:v31:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}${occCacheSuffix}${ctrCacheSuffix}${geoCacheSuffix}`;
 
   // Group occupancy bypass: large groups (>4 guests) always get fresh prices
   // because cached availability/room blocks may not hold for that many people.
@@ -1882,7 +1929,7 @@ export async function GET(req: NextRequest) {
       thumbnail: o.thumbnail || null,
       refundable: o.refundable,
       boardType: o.boardType,
-      boardOptions: o.boardOptions || undefined,
+      boardOptions: slimBoardOptions(o.boardOptions),
       source: 'liteapi' as const,
       bookable: true,
       offerId: o.offerId,
@@ -2008,16 +2055,30 @@ export async function GET(req: NextRequest) {
       hasMore: pageHotels.length > 0 && capped < MAX_PAGES,
       city, checkin, checkout, adults: adultsNum, children: childrenNum, rooms: roomsNum,
     };
-    if (pageHotels.length > 0) await safeKvSet(pageKvKey, out);
+    // Cache AFTER responding — the write only helps the next visitor, so
+    // making this one wait up to 5s for Upstash was pure dead time.
+    if (pageHotels.length > 0) after(() => safeKvSet(pageKvKey, out));
     return NextResponse.json(out);
   }
 
   const liteApiPromise = fetchLiteApiHotels(cityKey, checkin, checkout, adultsNum, childrenNum, roomsNum, childAges, liteApiTimeoutMs, placeId || undefined, liteApiCentroid, roomsArr, searchType);
-  const rateHawkPromise = fetchRateHawkHotels(cityKey, checkin, checkout, adultsNum, roomsNum);
+  // RateHawk + DOTW rows are dropped from the response further down — the
+  // details endpoint can only route `la_` ids, so clicking one returns
+  // "Hotel not found". Fetching them therefore buys the customer nothing but
+  // wait: DOTW is a full edge→node internal round trip (its own lambda, its
+  // own cold start) and both share the page-0 critical path. Gate the fetch
+  // on the SAME flag as the filter, so re-enabling the suppliers is one line
+  // once /api/hotels/details/[id] learns to route their ids.
+  const INCLUDE_NON_LITEAPI_SUPPLIERS: boolean = false;
   // Absolute-origin proxy to the nodejs DOTW sub-route — Vercel requires
   // absolute URLs for edge → node internal fetches.
   const origin = new URL(req.url).origin;
-  const dotwPromise = fetchDotwHotels(origin, cityKey, checkin, checkout, adultsNum, childrenNum, childAges, roomsNum);
+  const rateHawkPromise = INCLUDE_NON_LITEAPI_SUPPLIERS
+    ? fetchRateHawkHotels(cityKey, checkin, checkout, adultsNum, roomsNum)
+    : Promise.resolve([] as HotelOffer[]);
+  const dotwPromise = INCLUDE_NON_LITEAPI_SUPPLIERS
+    ? fetchDotwHotels(origin, cityKey, checkin, checkout, adultsNum, childrenNum, childAges, roomsNum)
+    : Promise.resolve([] as Awaited<ReturnType<typeof fetchDotwHotels>>);
 
   // Apply server-side minStars filter. minStars === 5 means exactly 5; else >=.
   const passesStars = <T extends { stars: number }>(h: T) => {
@@ -2206,10 +2267,13 @@ export async function GET(req: NextRequest) {
     // MITIGATION — quarantine DOTW/RateHawk rows from the client feed until
     // /api/hotels/details/[id] knows how to route them to their supplier.
     // Clicking a non-LiteAPI card currently returns "Hotel not found" because
-    // the details endpoint only strips `la_` and calls LiteAPI. Keeping the
-    // upstream fetches intact (for dedupe/pricing telemetry) but dropping
-    // anything that isn't `la_` before it reaches the response.
-    const all: Row[] = [...liteNorm, ...rhNorm, ...dotwNorm].filter(h => h.id.startsWith('la_'));
+    // the details endpoint only strips `la_` and calls LiteAPI, so anything
+    // that isn't `la_` is dropped before it reaches the response. Gated on the
+    // same flag that skips those fetches (see INCLUDE_NON_LITEAPI_SUPPLIERS).
+    const merged: Row[] = [...liteNorm, ...rhNorm, ...dotwNorm];
+    const all: Row[] = INCLUDE_NON_LITEAPI_SUPPLIERS
+      ? merged
+      : merged.filter(h => h.id.startsWith('la_'));
     const seen = new Map<string, Row>();
     for (const h of all) {
       const giata = (h as { giataId?: string | null }).giataId ?? null;
@@ -2257,7 +2321,7 @@ export async function GET(req: NextRequest) {
       ];
 
       const result = { hotels, city: match.charAt(0).toUpperCase() + match.slice(1), checkin, checkout, adults: adultsNum, children: childrenNum, rooms: roomsNum, liteapiCount: apiHotels.length };
-      await safeKvSet(kvKey, result);
+      after(() => safeKvSet(kvKey, result));
       return NextResponse.json(result);
     }
 
@@ -2265,7 +2329,7 @@ export async function GET(req: NextRequest) {
     const apiHotels = geoFilter((await mergeApis()).filter(passesStars));
     if (apiHotels.length > 0) {
       const result = { hotels: apiHotels, city, checkin, checkout, adults: adultsNum, children: childrenNum, rooms: roomsNum, liteapiCount: apiHotels.length };
-      await safeKvSet(kvKey, result);
+      after(() => safeKvSet(kvKey, result));
       return NextResponse.json(result);
     }
 
@@ -2306,8 +2370,9 @@ export async function GET(req: NextRequest) {
     liteapiCount: apiHotels.length,
   };
 
-  // Cache in KV
-  await safeKvSet(kvKey, result);
+  // Cache in KV — scheduled AFTER the response so the customer who paid for
+  // the cold LiteAPI fetch doesn't also wait on the Upstash write.
+  after(() => safeKvSet(kvKey, result));
 
   return NextResponse.json(result);
   } catch (err: unknown) {
