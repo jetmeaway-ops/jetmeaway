@@ -4142,9 +4142,13 @@ function HotelsContent() {
                     `w-full` forces the group onto its own line on a phone so
                     Filters always lands beside the sort dropdown (owner's ask)
                     rather than wherever flex-wrap happens to drop it at that
-                    width. `sm:contents` dissolves the wrapper from sm up, so
-                    the desktop justify-between row is byte-for-byte as before. */}
-                <div className="flex w-full items-center gap-1.5 sm:w-auto sm:contents">
+                    width. `flex-nowrap` then guarantees all three stay on that
+                    one line at ANY phone width — the sort select is the only
+                    flexible one (`min-w-0`), so a narrow screen shrinks it
+                    instead of orphaning the per-page box onto a third row.
+                    `sm:contents` dissolves the wrapper from sm up, so the
+                    desktop justify-between row is byte-for-byte as before. */}
+                <div className="flex w-full flex-nowrap items-center gap-1.5 sm:w-auto sm:contents">
                   {/* Filters — mobile/tablet only (lg has the sticky sidebar rail) */}
                   <button
                     type="button"
@@ -4164,7 +4168,7 @@ function HotelsContent() {
                       id="hotel-sort"
                       value={sortBy}
                       onChange={e => setSortBy(e.target.value as SortBy)}
-                      className="min-w-0 px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl border border-[#E8ECF4] bg-white text-[.68rem] sm:text-[.8rem] font-bold text-[#1A1D2B] outline-none focus:border-orange-400 cursor-pointer"
+                      className="min-w-0 w-full sm:w-auto px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl border border-[#E8ECF4] bg-white text-[.68rem] sm:text-[.8rem] font-bold text-[#1A1D2B] outline-none focus:border-orange-400 cursor-pointer"
                     >
                       <option value="recommended">{t('sortRecommended')}</option>
                       <option value="price-asc">{t('sortPriceAsc')}</option>
