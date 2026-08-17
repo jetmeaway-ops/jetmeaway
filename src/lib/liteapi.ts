@@ -460,6 +460,15 @@ export interface GetHotelsParams {
    * hotelId) — no harm.
    */
   starRatings?: number[];
+
+  /**
+   * Called with each rates batch as it lands, so a caller can put the first
+   * hotels on screen instead of waiting for the slowest batch. Offers arrive
+   * unsorted and in arbitrary batch order — dedupe/sort downstream. Purely
+   * additive: the awaited return value is still the complete, sorted set, so
+   * omitting this behaves exactly as before.
+   */
+  onPartial?: (offers: HotelOffer[]) => void;
 }
 
 export interface HotelOffer {
@@ -629,6 +638,23 @@ type HotelMeta = {
   facilityIds?: number[];
 };
 
+/**
+ * Per-rate / per-offer tracing. OFF unless LITEAPI_DEBUG is set.
+ *
+ * These fired once per RATE — thousands of lines for a single big-city search —
+ * and `[liteapi:offer]` printed the full ~1.5 KB base64 offerId for every hotel.
+ * That was tolerable while all the network finished before any of it ran. It is
+ * NOT tolerable now that offers are built as each batch lands: the logging is
+ * synchronous, so it blocks the event loop while the other batches are still
+ * streaming in, and it made a 3-room search miss the 12s budget entirely
+ * (returned 0 hotels where the pre-streaming code returned 79). Measured
+ * locally 2026-08-17 — this was the whole difference.
+ *
+ * The one-line-per-search summary at the end of the fetch stays unconditional;
+ * that is the line worth having in prod logs.
+ */
+const LITEAPI_DEBUG = !!process.env.LITEAPI_DEBUG;
+
 /* ── Directory cache (see the call site in getHotels) ─────────────────────── */
 
 /** Bump on ANY change to the tuple order/meaning below — old entries are
@@ -725,6 +751,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     limit = 25,
     offset = 0,
     starRatings,
+    onPartial,
   } = params;
 
   const hasLatLng =
@@ -972,24 +999,22 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     i += size;
   }
 
-  const chunkResults = await Promise.all(
-    chunks.map((chunkIds) =>
-      liteFetch<RatesResponse>('/hotels/rates', {
-        method: 'POST',
-        body: JSON.stringify({ ...ratesBody, hotelIds: chunkIds }),
-      }).catch((err: unknown) => {
-        // One failed chunk shouldn't kill the whole search — log it and
-        // return an empty data array so the other chunks still surface.
-        const message = err instanceof Error ? err.message : 'rates chunk failed';
-        console.warn(`[liteapi:rates] chunk of ${chunkIds.length} failed:`, message);
-        return { data: [] } as RatesResponse;
-      }),
-    ),
+  // Fire every batch NOW, but do not await the set — each one is turned into
+  // offers the moment IT lands (see the Promise.all below), which is what lets
+  // `onPartial` hand the first hotels to the caller seconds before the slowest
+  // batch is done.
+  const chunkPromises = chunks.map((chunkIds) =>
+    liteFetch<RatesResponse>('/hotels/rates', {
+      method: 'POST',
+      body: JSON.stringify({ ...ratesBody, hotelIds: chunkIds }),
+    }).catch((err: unknown) => {
+      // One failed chunk shouldn't kill the whole search — log it and
+      // return an empty data array so the other chunks still surface.
+      const message = err instanceof Error ? err.message : 'rates chunk failed';
+      console.warn(`[liteapi:rates] chunk of ${chunkIds.length} failed:`, message);
+      return { data: [] } as RatesResponse;
+    }),
   );
-
-  const ratesRes: RatesResponse = {
-    data: chunkResults.flatMap((r) => r.data || []),
-  };
 
   const nights = Math.max(
     1,
@@ -1002,8 +1027,14 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
   // 3. Flatten: one cheapest offer per hotel, plus all board options.
   //    NOTE: offerId lives on the roomType (not the rate). Each roomType groups
   //    one or more rate variants; prebook/book operate on the offerId.
+  //
+  //    Every iteration below depends only on its own `entry` (plus `nights` and
+  //    the hotel directory) — there is no state carried between hotels. That is
+  //    what makes it safe to run this per rates batch instead of once over the
+  //    merged set, and therefore what makes streaming possible.
+  const buildOffers = (entries: RatesResponse['data']): HotelOffer[] => {
   const offers: HotelOffer[] = [];
-  for (const entry of ratesRes.data || []) {
+  for (const entry of entries || []) {
     let bestRoomType: RoomType | null = null;
     let bestRate: RateObj | null = null;
     let bestPrice = Infinity;
@@ -1077,7 +1108,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
         // Best price = negotiated if cheaper, else market
         const effectivePrice = (negPrice != null && negPrice < marketPrice) ? negPrice : marketPrice;
 
-        console.log(`[liteapi:rates] hotel=${entry.hotelId} offerId=${rateOfferId?.slice(0,20)} market=${marketPrice} negotiated=${negPrice} effective=${effectivePrice} priceType=${r.priceType}`);
+        if (LITEAPI_DEBUG) console.log(`[liteapi:rates] hotel=${entry.hotelId} offerId=${rateOfferId?.slice(0,20)} market=${marketPrice} negotiated=${negPrice} effective=${effectivePrice} priceType=${r.priceType}`);
 
         const board = r.boardName || r.boardType || r.name || 'Room Only';
         // Refundable: v3.0 flat format or old nested format
@@ -1287,7 +1318,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
         finalPrice = finalPrice * fx;
         finalCurrency = 'GBP';
         fxConverted = true;
-        console.log(`[liteapi:fx] hotel=${entry.hotelId} ${before.toFixed(2)} → £${finalPrice.toFixed(2)} (rate=${fx})`);
+        if (LITEAPI_DEBUG) console.log(`[liteapi:fx] hotel=${entry.hotelId} ${before.toFixed(2)} → £${finalPrice.toFixed(2)} (rate=${fx})`);
       } else {
         console.warn(`[liteapi:drop] hotel=${entry.hotelId} unknown currency=${finalCurrency} — no FX rate available, dropping`);
         continue;
@@ -1334,7 +1365,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     const signalType = entry.signalType || null; // hotel/search level
     const rateType = bestRate.priceType || bestRoomType.priceType || null;
 
-    console.log(`[liteapi:offer] hotel=${entry.hotelId} offerId=${bestOfferId} market=${marketRaw} negotiated=${negotiatedRaw} → final=${finalPrice} rateType=${rateType} perks=${perks?.join(',') || 'none'} signal=${signalType}`);
+    if (LITEAPI_DEBUG) console.log(`[liteapi:offer] hotel=${entry.hotelId} offerId=${bestOfferId} market=${marketRaw} negotiated=${negotiatedRaw} → final=${finalPrice} rateType=${rateType} perks=${perks?.join(',') || 'none'} signal=${signalType}`);
 
     // Prefer the expanded `hotel` object from /hotels/rates when present,
     // otherwise fall back to the directory we built from /data/hotels. This
@@ -1402,8 +1433,30 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       //  the UI falls back to the board label when absent — Phase-1 parity.)
     });
   }
+  return offers;
+  };
+
+  // Turn each batch into offers AS IT LANDS. The `.then` runs the moment that
+  // one request resolves, so `onPartial` fires with the first hotels while the
+  // slower batches are still in flight — the caller can put them on screen
+  // instead of holding everything until the last one is done. The awaited set
+  // is still the complete, sorted result, so every non-streaming caller
+  // (and the KV cache) is unaffected.
+  const perChunkOffers = await Promise.all(
+    chunkPromises.map((p) =>
+      p.then((res) => {
+        const built = buildOffers(res.data || []);
+        if (built.length > 0 && onPartial) {
+          // A throwing consumer must never take the search down with it.
+          try { onPartial(built); } catch { /* streaming is best-effort */ }
+        }
+        return built;
+      }),
+    ),
+  );
 
   // Sort cheapest first
+  const offers = perChunkOffers.flat();
   offers.sort((a, b) => a.price - b.price);
   return offers;
 }

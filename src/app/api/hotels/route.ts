@@ -755,6 +755,12 @@ async function fetchLiteApiHotels(
   // primaryLimit, used by the client to progressively pull the FULL city
   // inventory (the cheapest family-room properties sit past position 500).
   page: number = 0,
+  // Streaming: called with each rates batch of the PRIMARY tier as it lands, so
+  // the route can push those hotels to the browser instead of holding the whole
+  // response until the slowest batch finishes. Only the primary tier reports —
+  // the budget/landmark tiers overlap it heavily and the caller de-dupes by id
+  // anyway, so wiring them up would only add duplicate frames.
+  onPartial?: (offers: HotelOffer[]) => void,
 ): Promise<HotelOffer[]> {
   if (!process.env.LITE_API_KEY) {
     console.warn('[liteapi] LITE_API_KEY not set — skipping hotel search');
@@ -927,6 +933,7 @@ async function fetchLiteApiHotels(
           guestNationality: 'GB',
           limit: primaryLimit,
           offset: pageOffset,
+          onPartial,
         }),
         fetchTimeout,
       ]).catch((err: unknown) => {
@@ -2025,7 +2032,17 @@ export async function GET(req: NextRequest) {
   // 12s was too tight and the fallback for places like Meteora / Antelope
   // Canyon ran out of budget before the gateway city answered. Give landmark
   // searches 18s; everything else keeps the proven 12s.
-  const liteApiTimeoutMs = searchType === 'landmark' ? 18000 : 12000;
+  //
+  // Streaming changes that trade-off. The 12s ceiling exists because the
+  // customer is staring at a spinner — but when we stream they are already
+  // reading hotels, so cutting the tail off only costs them inventory for no
+  // benefit. (Measured: a streamed Barcelona search truncated at 12s returned
+  // 57 hotels where the same search unstreamed returned 455.) Give the streamed
+  // path the room the customer's attention no longer needs, still inside
+  // FETCH_HARD_CAP_MS (24s) and maxDuration (60s).
+  const isStreaming = searchParams.get('stream') === '1';
+  const liteApiTimeoutMs =
+    searchType === 'landmark' ? 18000 : isStreaming ? 20000 : 12000;
 
   // ── Progressive pagination (page >= 1) ──────────────────────────────────────
   // The cheapest family-room properties (e.g. Rome's White Vatican quintuple at
@@ -2061,7 +2078,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(out);
   }
 
-  const liteApiPromise = fetchLiteApiHotels(cityKey, checkin, checkout, adultsNum, childrenNum, roomsNum, childAges, liteApiTimeoutMs, placeId || undefined, liteApiCentroid, roomsArr, searchType);
+  // Set by the streaming branch at the end of this handler; stays null (and so
+  // costs nothing) for ordinary JSON responses. Declared here because the fetch
+  // has to be kicked off now, before we know which response shape we're
+  // building — the indirection lets the callback be attached a tick later.
+  let emitPartial: ((offers: HotelOffer[]) => void) | null = null;
+  const liteApiPromise = fetchLiteApiHotels(
+    cityKey, checkin, checkout, adultsNum, childrenNum, roomsNum, childAges,
+    liteApiTimeoutMs, placeId || undefined, liteApiCentroid, roomsArr, searchType,
+    0, (offers) => emitPartial?.(offers),
+  );
   // RateHawk + DOTW rows are dropped from the response further down — the
   // details endpoint can only route `la_` ids, so clicking one returns
   // "Hotel not found". Fetching them therefore buys the customer nothing but
@@ -2286,6 +2312,25 @@ export async function GET(req: NextRequest) {
     return Array.from(seen.values()).sort((a, b) => a.pricePerNight - b.pricePerNight);
   };
 
+  /**
+   * Assemble the final page-0 payload. Pulled out of the response path so the
+   * streaming branch below can run the identical pipeline while pushing
+   * partial batches out — there is exactly one implementation of what a
+   * result IS, so streamed and non-streamed searches can never diverge.
+   * Caching is the caller's job (it differs between the two paths).
+   */
+  type PageResult = {
+    hotels: unknown[];
+    city: string;
+    checkin: string;
+    checkout: string;
+    adults: number;
+    children: number;
+    rooms: number;
+    liteapiCount?: number;
+    message?: string;
+  };
+  const assembleResult = async (): Promise<PageResult> => {
   // Look up curated hotels
   const curated = CURATED[cityKey];
 
@@ -2320,20 +2365,16 @@ export async function GET(req: NextRequest) {
         ...(isAliasedSearch ? [] : geoFilter(curatedHotels.filter(passesStars))),
       ];
 
-      const result = { hotels, city: match.charAt(0).toUpperCase() + match.slice(1), checkin, checkout, adults: adultsNum, children: childrenNum, rooms: roomsNum, liteapiCount: apiHotels.length };
-      after(() => safeKvSet(kvKey, result));
-      return NextResponse.json(result);
+      return { hotels, city: match.charAt(0).toUpperCase() + match.slice(1), checkin, checkout, adults: adultsNum, children: childrenNum, rooms: roomsNum, liteapiCount: apiHotels.length };
     }
 
     // No curated match — still try APIs as a last resort
     const apiHotels = geoFilter((await mergeApis()).filter(passesStars));
     if (apiHotels.length > 0) {
-      const result = { hotels: apiHotels, city, checkin, checkout, adults: adultsNum, children: childrenNum, rooms: roomsNum, liteapiCount: apiHotels.length };
-      after(() => safeKvSet(kvKey, result));
-      return NextResponse.json(result);
+      return { hotels: apiHotels, city, checkin, checkout, adults: adultsNum, children: childrenNum, rooms: roomsNum, liteapiCount: apiHotels.length };
     }
 
-    return NextResponse.json({ hotels: [], city, checkin, checkout, adults: adultsNum, children: childrenNum, rooms: roomsNum, message: 'No hotels found for this destination' });
+    return { hotels: [], city, checkin, checkout, adults: adultsNum, children: childrenNum, rooms: roomsNum, message: 'No hotels found for this destination' };
   }
 
   const coords = CITY_COORDS[cityKey];
@@ -2359,7 +2400,7 @@ export async function GET(req: NextRequest) {
     ...(isAliasedSearch ? [] : geoFilter(curatedHotels.filter(passesStars))),
   ];
 
-  const result = {
+  return {
     hotels,
     city: city.charAt(0).toUpperCase() + city.slice(1),
     checkin,
@@ -2369,10 +2410,90 @@ export async function GET(req: NextRequest) {
     rooms: roomsNum,
     liteapiCount: apiHotels.length,
   };
+  };
 
+  /* ── Streaming (?stream=1) ────────────────────────────────────────────────
+     Same pipeline, but hotels go out as each LiteAPI rates batch lands rather
+     than all at once at the end. NDJSON, one JSON object per line:
+
+       {"t":"meta",   …}                  immediately
+       {"t":"hotels", hotels:[…]}         per batch, provisional
+       {"t":"final",  order:[ids], hotels:[…]}   authoritative
+
+     Why "provisional" then "final": the geo filter is set-dependent — it widens
+     the radius until enough hotels qualify, and on aliased searches it keeps
+     only the nearest 50 — so a batch cannot be filtered exactly until every
+     batch is in. We therefore only stream hotels that pass the STRICT radius
+     (guaranteed to survive), and the `final` frame carries the authoritative
+     order plus anything not already sent. The client reorders to `order` and
+     drops ids missing from it, so what the customer ends up looking at is
+     byte-for-byte what the non-streaming response would have given them.
+
+     Aliased searches (coulsdon→london) stream nothing early — "nearest 50 of
+     the whole set" genuinely cannot be known until the end, and showing rows
+     that then vanish is worse than waiting.  */
+  if (isStreaming) {
+    const encoder = new TextEncoder();
+    const streamBody = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        const send = (obj: unknown) => {
+          try { controller.enqueue(encoder.encode(JSON.stringify(obj) + '\n')); }
+          catch { /* client went away */ }
+        };
+        send({ t: 'meta', city, checkin, checkout, adults: adultsNum, children: childrenNum, rooms: roomsNum });
+
+        const sentIds = new Set<string>();
+        if (!isAliasedSearch) {
+          emitPartial = (offers) => {
+            const fresh = normaliseLiteApi(offers)
+              .filter(passesStars)
+              .filter(passesGeo)
+              .filter((h) => !sentIds.has(h.id));
+            if (fresh.length === 0) return;
+            for (const h of fresh) sentIds.add(h.id);
+            send({ t: 'hotels', hotels: fresh });
+          };
+        }
+
+        try {
+          const result = await assembleResult();
+          const rows = result.hotels as Array<{ id: string }>;
+          send({
+            t: 'final',
+            order: rows.map((h) => h.id),
+            hotels: rows.filter((h) => !sentIds.has(h.id)),
+            city: result.city,
+            liteapiCount: result.liteapiCount ?? null,
+            message: result.message ?? null,
+          });
+          // Write the cache before closing — the client already has everything
+          // it needs from `final`, so this costs it nothing, and `after()` is
+          // not available to us once we're inside the stream.
+          if (rows.length > 0) await safeKvSet(kvKey, result);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          console.error('[hotels:stream]', message);
+          send({ t: 'error', message: 'Search temporarily unavailable. Please try again in a moment.' });
+        } finally {
+          emitPartial = null;
+          try { controller.close(); } catch { /* already closed */ }
+        }
+      },
+    });
+    return new Response(streamBody, {
+      headers: {
+        'Content-Type': 'application/x-ndjson; charset=utf-8',
+        'Cache-Control': 'no-store',
+        // Proxies that buffer would defeat the entire point of streaming.
+        'X-Accel-Buffering': 'no',
+      },
+    });
+  }
+
+  const result = await assembleResult();
   // Cache in KV — scheduled AFTER the response so the customer who paid for
   // the cold LiteAPI fetch doesn't also wait on the Upstash write.
-  after(() => safeKvSet(kvKey, result));
+  if ((result.hotels?.length ?? 0) > 0) after(() => safeKvSet(kvKey, result));
 
   return NextResponse.json(result);
   } catch (err: unknown) {

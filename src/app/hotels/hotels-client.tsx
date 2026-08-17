@@ -658,6 +658,79 @@ type BoardOption = {
   roomName?: string | null;
 };
 
+/**
+ * Read the NDJSON search stream from `/api/hotels?stream=1`, painting hotels as
+ * each batch arrives, and return the same shape the plain JSON endpoint returns.
+ *
+ * The `final` frame is authoritative: the server can only apply the
+ * set-dependent geo filter once every batch is in, so we reorder to `order` and
+ * drop anything missing from it. What the customer ends up with is therefore
+ * identical to a non-streamed search — they just saw most of it sooner.
+ *
+ * Returns null if the search was superseded mid-stream (the caller should do
+ * nothing at all in that case).
+ */
+async function readHotelStream(
+  res: Response,
+  opts: {
+    stillCurrent: () => boolean;
+    onHotels: (rows: HotelResult[]) => void;
+  },
+): Promise<{ hotels: HotelResult[]; city?: string; message?: string; error?: string } | null> {
+  const reader = res.body?.getReader();
+  if (!reader) return null;
+  const decoder = new TextDecoder();
+  let buffer = '';
+  const seen = new Map<string | number, HotelResult>();
+  let order: Array<string | number> | null = null;
+  let city: string | undefined;
+  let message: string | undefined;
+  let errorMessage: string | undefined;
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (!opts.stillCurrent()) {
+      try { await reader.cancel(); } catch { /* already gone */ }
+      return null;
+    }
+    buffer += decoder.decode(value, { stream: true });
+    let nl: number;
+    while ((nl = buffer.indexOf('\n')) >= 0) {
+      const line = buffer.slice(0, nl);
+      buffer = buffer.slice(nl + 1);
+      if (!line.trim()) continue;
+      let frame: {
+        t?: string; hotels?: HotelResult[]; order?: Array<string | number>;
+        city?: string; message?: string | null;
+      };
+      try { frame = JSON.parse(line); } catch { continue; } // never let one bad line kill the search
+      if (frame.t === 'hotels' && Array.isArray(frame.hotels)) {
+        const fresh = frame.hotels.filter((h) => h.id != null && !seen.has(h.id));
+        for (const h of fresh) seen.set(h.id, h);
+        if (fresh.length > 0) opts.onHotels(fresh);
+      } else if (frame.t === 'final') {
+        for (const h of frame.hotels || []) if (h.id != null) seen.set(h.id, h);
+        order = frame.order || [];
+        city = frame.city;
+        message = frame.message ?? undefined;
+      } else if (frame.t === 'error') {
+        errorMessage = frame.message ?? undefined;
+      }
+    }
+  }
+
+  if (errorMessage) return { hotels: [], error: errorMessage };
+  // No `final` frame means the connection dropped early — keep whatever landed
+  // rather than throwing the customer's results away.
+  if (!order) return { hotels: [...seen.values()] };
+  return {
+    hotels: order.map((id) => seen.get(id)).filter((h): h is HotelResult => !!h),
+    city,
+    message,
+  };
+}
+
 type DealHotel = {
   id: string;
   offerId: string | null;
@@ -2707,8 +2780,30 @@ function HotelsContent() {
 
       const mySeq = ++loadMoreSeqRef.current;
       let searchParams = params;
-      const res = await fetch(`/api/hotels?${searchParams}`);
-      let data = await res.json();
+      // Ask for the streamed response so hotels can go on screen as each batch
+      // of live prices lands instead of after the slowest one. The server still
+      // answers with plain JSON when it can serve the whole thing instantly
+      // (KV cache hit), so branch on what actually came back, not on what we
+      // asked for.
+      const streamParams = new URLSearchParams(searchParams.toString());
+      streamParams.set('stream', '1');
+      const res = await fetch(`/api/hotels?${streamParams}`);
+      let data;
+      if ((res.headers.get('content-type') || '').includes('ndjson')) {
+        const streamed = await readHotelStream(res, {
+          stillCurrent: () => loadMoreSeqRef.current === mySeq,
+          onHotels: (rows) => {
+            // First batch replaces the loader; later ones append. The sort memo
+            // re-orders live, so the cheapest floats up as more arrive.
+            setHotels((prev) => (prev && prev.length ? [...prev, ...rows] : rows));
+            setLoading(false);
+          },
+        });
+        if (streamed === null) return; // superseded by a newer search
+        data = streamed;
+      } else {
+        data = await res.json();
+      }
 
       if (data.error) {
         setApiError(data.error);
