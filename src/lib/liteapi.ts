@@ -11,6 +11,7 @@
  * Env:
  *   LITE_API_KEY   — private API key (X-API-Key header)
  */
+import { kv } from '@vercel/kv';
 
 /**
  * Base URL — defaults to production.
@@ -587,6 +588,127 @@ export interface BookingResult {
  *   2. POST /hotels/rates with hotelIds + stay dates + occupancy → rates
  *   3. Normalise the cheapest offer per hotel into HotelOffer[]
  */
+/** One row of the `/data/hotels` directory — WHICH hotels exist near a
+ *  destination, independent of dates. Kept so we can fall back to it when
+ *  `/hotels/rates` doesn't echo an expanded `hotel` object (inconsistent in
+ *  sandbox — sometimes present, sometimes not). */
+type HotelMeta = {
+  id: string;
+  name?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  // LiteAPI v3 actually returns `starRating` (camelCase). The legacy
+  // `stars` and `rating` aliases are also accepted because the sandbox
+  // response shape is not 100% consistent. Without this, every hotel
+  // card rendered with empty stars (2026-04-28).
+  stars?: number;
+  starRating?: number;
+  rating?: number;
+  // LiteAPI v3 carries aggregate review data in the hotel directory
+  // response — the field naming varies by sandbox/prod, so we accept
+  // any of `reviewCount`/`numReviews`/`reviewsCount` for the count and
+  // `reviewScore`/`averageRating`/`guestRating` for the 0-10 score.
+  // If LiteAPI doesn't surface these here we silently fall back to no
+  // chip on the card; we'd need a separate /data/reviews batch call
+  // to populate them. (2026-04-28)
+  reviewCount?: number;
+  numReviews?: number;
+  reviewsCount?: number;
+  reviewScore?: number;
+  averageRating?: number;
+  guestRating?: number;
+  main_photo?: string;
+  hotelImages?: Array<{ url?: string } | string>;
+  latitude?: number;
+  longitude?: number;
+  // Phase-2 sidebar facets (carried straight from the /data/hotels list row):
+  // property-type code, brand/chain name, and the property facility ids.
+  hotelTypeId?: number;
+  chain?: string;
+  facilityIds?: number[];
+};
+
+/* ── Directory cache (see the call site in getHotels) ─────────────────────── */
+
+/** Bump on ANY change to the tuple order/meaning below — old entries are
+ *  positional and would otherwise be read as the wrong fields. */
+const DIR_CACHE_VERSION = 'v1';
+/** 3h. Which hotels exist near a place barely changes; this is long enough to
+ *  cover a customer trying several date ranges (and coming back later) while
+ *  still expiring on its own so the footprint can't creep. */
+const DIR_CACHE_TTL = 3 * 60 * 60;
+/** Refuse to cache a pathologically large destination. A 500-hotel city
+ *  encodes to ~150 KB, so this only ever trips on something abnormal. */
+const DIR_CACHE_MAX_BYTES = 1_000_000;
+
+/** Stored positionally rather than as objects: JSON key names were ~70 KB of a
+ *  218 KB Valencia entry (500 hotels x 14 keys), so dropping them cuts a third
+ *  off every entry for free. Order is load-bearing — see DIR_CACHE_VERSION. */
+type DirRow = [
+  id: string,
+  name: string | undefined,
+  address: string | undefined,
+  city: string | undefined,
+  country: string | undefined,
+  starRating: number | undefined,
+  reviewCount: number | undefined,
+  reviewScore: number | undefined,
+  mainPhoto: string | undefined,
+  latitude: number | undefined,
+  longitude: number | undefined,
+  hotelTypeId: number | undefined,
+  chain: string | undefined,
+  facilityIds: number[] | undefined,
+];
+
+/** Collapse LiteAPI's alias fields to one canonical each on the way in, so the
+ *  cached row is smaller AND the read path stays identical (the `??` chains at
+ *  the offer-building site simply hit their first branch). `hotelImages` is
+ *  folded into main_photo — only its first entry was ever used. */
+function encodeDirRow(h: HotelMeta): DirRow {
+  const firstImage = Array.isArray(h.hotelImages) && h.hotelImages.length
+    ? (typeof h.hotelImages[0] === 'string'
+        ? (h.hotelImages[0] as string)
+        : (h.hotelImages[0] as { url?: string }).url)
+    : undefined;
+  return [
+    h.id,
+    h.name,
+    h.address,
+    h.city,
+    h.country,
+    h.starRating ?? h.stars ?? h.rating,
+    h.reviewCount ?? h.numReviews ?? h.reviewsCount,
+    h.reviewScore ?? h.averageRating ?? h.guestRating,
+    h.main_photo || firstImage,
+    h.latitude,
+    h.longitude,
+    h.hotelTypeId,
+    h.chain,
+    h.facilityIds,
+  ];
+}
+
+function decodeDirRow(r: DirRow): HotelMeta {
+  return {
+    id: r[0],
+    name: r[1],
+    address: r[2],
+    city: r[3],
+    country: r[4],
+    starRating: r[5],
+    reviewCount: r[6],
+    reviewScore: r[7],
+    main_photo: r[8],
+    latitude: r[9],
+    longitude: r[10],
+    hotelTypeId: r[11],
+    chain: r[12],
+    facilityIds: r[13],
+  };
+}
+
 export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> {
   const {
     destinationId,
@@ -618,42 +740,6 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
   // 1. Resolve hotelIds — and keep a directory of hotel metadata so we can
   // fall back to it when /hotels/rates doesn't echo an expanded `hotel` object
   // (which is inconsistent in sandbox — sometimes present, sometimes not).
-  type HotelMeta = {
-    id: string;
-    name?: string;
-    address?: string;
-    city?: string;
-    country?: string;
-    // LiteAPI v3 actually returns `starRating` (camelCase). The legacy
-    // `stars` and `rating` aliases are also accepted because the sandbox
-    // response shape is not 100% consistent. Without this, every hotel
-    // card rendered with empty stars (2026-04-28).
-    stars?: number;
-    starRating?: number;
-    rating?: number;
-    // LiteAPI v3 carries aggregate review data in the hotel directory
-    // response — the field naming varies by sandbox/prod, so we accept
-    // any of `reviewCount`/`numReviews`/`reviewsCount` for the count and
-    // `reviewScore`/`averageRating`/`guestRating` for the 0-10 score.
-    // If LiteAPI doesn't surface these here we silently fall back to no
-    // chip on the card; we'd need a separate /data/reviews batch call
-    // to populate them. (2026-04-28)
-    reviewCount?: number;
-    numReviews?: number;
-    reviewsCount?: number;
-    reviewScore?: number;
-    averageRating?: number;
-    guestRating?: number;
-    main_photo?: string;
-    hotelImages?: Array<{ url?: string } | string>;
-    latitude?: number;
-    longitude?: number;
-    // Phase-2 sidebar facets (carried straight from the /data/hotels list row):
-    // property-type code, brand/chain name, and the property facility ids.
-    hotelTypeId?: number;
-    chain?: string;
-    facilityIds?: number[];
-  };
   let hotelIds: string[];
   const hotelDirectory = new Map<string, HotelMeta>();
   if (destinationId && destinationId.includes(',')) {
@@ -688,11 +774,45 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       // unfiltered set, which the caller dedupes against the primary fetch.
       listQuery.set('starRating', starRatings.join(','));
     }
-    const list = await liteFetch<{ data: HotelMeta[] }>(
-      `/data/hotels?${listQuery.toString()}`,
-      { method: 'GET' },
-    );
-    const rows = (list.data || []).slice(0, limit);
+    // ── Directory cache ────────────────────────────────────────────────────
+    // `/data/hotels` is WHICH hotels exist near a destination — it does not
+    // depend on the stay dates or the occupancy, so the same 900 KB response
+    // is re-fetched for every date the customer tries. Measured on prod:
+    // 0.65s of a ~6.9s cold search, on the critical path, every time.
+    //
+    // Cached for offset 0 ONLY. Pages 1-6 are fetched by the client in the
+    // background where nobody is waiting on 0.65s, and caching all seven
+    // pages would put ~1.5 MB per city into KV instead of ~150 KB. KV is
+    // load-bearing here (it also holds bookings and the bug inbox) and this
+    // cache is worth exactly one entry per destination.
+    const dirKey =
+      offset === 0 ? `hotels:dir:${DIR_CACHE_VERSION}:${listQuery.toString()}` : null;
+    let rows: HotelMeta[] | null = null;
+    if (dirKey) {
+      try {
+        const cached = await kv.get<DirRow[]>(dirKey);
+        if (Array.isArray(cached) && cached.length > 0) rows = cached.map(decodeDirRow);
+      } catch { /* miss or KV hiccup — fall through to the live call */ }
+    }
+    if (!rows) {
+      const list = await liteFetch<{ data: HotelMeta[] }>(
+        `/data/hotels?${listQuery.toString()}`,
+        { method: 'GET' },
+      );
+      rows = (list.data || []).slice(0, limit);
+      if (dirKey && rows.length > 0) {
+        const encoded = rows.map(encodeDirRow);
+        // Guard against a pathological destination bloating KV. Upstash also
+        // rejects oversized requests outright, which would just throw.
+        if (JSON.stringify(encoded).length <= DIR_CACHE_MAX_BYTES) {
+          // Deliberately not awaited: the rates fetch below runs for seconds,
+          // so this lands long before the response, and a slow cache write
+          // must never be something the customer waits on. Errors swallowed —
+          // the cache is an optimisation, never a correctness dependency.
+          kv.set(dirKey, encoded, { ex: DIR_CACHE_TTL }).catch(() => {});
+        }
+      }
+    }
     for (const row of rows) {
       if (row?.id) hotelDirectory.set(row.id, row);
     }
@@ -815,15 +935,41 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
 
   // CHUNKING: /hotels/rates with 200 hotelIds in one shot blew the 12s
   // edge timeout in prod (commit b16a820 had to revert a 50→200 bump
-  // 2026-04-29). Solution: split into batches of 50 and fetch in parallel.
-  // Each individual call stays well under the timeout; total wall-clock
-  // time is roughly the same as a single 50-hotel call. We can now serve
-  // up to ~200 hotels per search without breaking Paris (or any city
-  // with deep inventory).
-  const RATES_CHUNK_SIZE = 50;
+  // 2026-04-29). Solution: split into batches and fetch them in parallel, so
+  // no single call can approach the timeout.
+  //
+  // GRADUATED SIZES (2026-08-17). Uniform batches of 50 were badly unbalanced.
+  // `/data/hotels` returns hotels roughly best-first, and those early hotels
+  // carry far more rooms and rate rows than the long tail — so the first batch
+  // does several times the pricing work of the last. Measured against live
+  // LiteAPI (Valencia, 500 hotels, 3 runs on different dates):
+  //
+  //   batch #1 5.4s, #2 4.1s, #3 4.2s … #9 2.3s, #10 0.9s
+  //
+  // and it was the SAME early batch that was slowest on every run — this is
+  // workload, not a random straggler, so retrying or hedging it would not have
+  // helped. Because Promise.all waits for the slowest, that one fat batch set
+  // the wall-clock time of the entire search.
+  //
+  // Splitting only the heavy head rebalances it. Wall-clock, same runs, and
+  // every scheme returned the same ~137 priced hotels — this costs us nothing:
+  //
+  //   uniform 50 (old)   10 calls   5.25s   ← was setting our floor
+  //   uniform 25         20 calls   4.22s
+  //   head-200/10        26 calls   3.35s   ← chosen
+  //   uniform 10         50 calls   3.21s   (only 0.14s better, 2x the calls)
+  //
+  // head-200/10 keeps essentially all of the win at half the request count of
+  // uniform-10 — 50 concurrent calls per search is a lot of load to put on
+  // LiteAPI for 4% more speed.
+  const RATES_HEAD_COUNT = 200; // hotels treated as "heavy" (they price slowest)
+  const RATES_HEAD_CHUNK = 10;
+  const RATES_TAIL_CHUNK = 50;
   const chunks: string[][] = [];
-  for (let i = 0; i < hotelIds.length; i += RATES_CHUNK_SIZE) {
-    chunks.push(hotelIds.slice(i, i + RATES_CHUNK_SIZE));
+  for (let i = 0; i < hotelIds.length; ) {
+    const size = i < RATES_HEAD_COUNT ? RATES_HEAD_CHUNK : RATES_TAIL_CHUNK;
+    chunks.push(hotelIds.slice(i, i + size));
+    i += size;
   }
 
   const chunkResults = await Promise.all(
