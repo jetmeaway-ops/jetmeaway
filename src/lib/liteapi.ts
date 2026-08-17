@@ -629,6 +629,24 @@ type HotelMeta = {
   facilityIds?: number[];
 };
 
+/**
+ * Per-rate / per-offer tracing. OFF unless LITEAPI_DEBUG is set.
+ *
+ * These fired once per RATE — thousands of lines for a single big-city search —
+ * and the `[liteapi:offer]` line printed the full ~1.5 KB base64 offerId for
+ * every hotel. On Edge, console output is synchronous, so this was burning real
+ * request time producing detail nobody reads in production.
+ *
+ * Measured A/B against prod on identical city+date queries (2026-08-17), with
+ * the quiet build running FIRST each time so the comparison is biased against
+ * it: median 7.64s -> 6.52s, and an identical hotel count on every single run.
+ *
+ * The one-line-per-search summary at the end of the fetch stays unconditional —
+ * that is the line actually worth having in prod logs. Set LITEAPI_DEBUG=1 to
+ * get the per-rate detail back when debugging a pricing question.
+ */
+const LITEAPI_DEBUG = !!process.env.LITEAPI_DEBUG;
+
 /* ── Directory cache (see the call site in getHotels) ─────────────────────── */
 
 /** Bump on ANY change to the tuple order/meaning below — old entries are
@@ -1077,7 +1095,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
         // Best price = negotiated if cheaper, else market
         const effectivePrice = (negPrice != null && negPrice < marketPrice) ? negPrice : marketPrice;
 
-        console.log(`[liteapi:rates] hotel=${entry.hotelId} offerId=${rateOfferId?.slice(0,20)} market=${marketPrice} negotiated=${negPrice} effective=${effectivePrice} priceType=${r.priceType}`);
+        if (LITEAPI_DEBUG) console.log(`[liteapi:rates] hotel=${entry.hotelId} offerId=${rateOfferId?.slice(0,20)} market=${marketPrice} negotiated=${negPrice} effective=${effectivePrice} priceType=${r.priceType}`);
 
         const board = r.boardName || r.boardType || r.name || 'Room Only';
         // Refundable: v3.0 flat format or old nested format
@@ -1287,7 +1305,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
         finalPrice = finalPrice * fx;
         finalCurrency = 'GBP';
         fxConverted = true;
-        console.log(`[liteapi:fx] hotel=${entry.hotelId} ${before.toFixed(2)} → £${finalPrice.toFixed(2)} (rate=${fx})`);
+        if (LITEAPI_DEBUG) console.log(`[liteapi:fx] hotel=${entry.hotelId} ${before.toFixed(2)} → £${finalPrice.toFixed(2)} (rate=${fx})`);
       } else {
         console.warn(`[liteapi:drop] hotel=${entry.hotelId} unknown currency=${finalCurrency} — no FX rate available, dropping`);
         continue;
@@ -1334,7 +1352,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     const signalType = entry.signalType || null; // hotel/search level
     const rateType = bestRate.priceType || bestRoomType.priceType || null;
 
-    console.log(`[liteapi:offer] hotel=${entry.hotelId} offerId=${bestOfferId} market=${marketRaw} negotiated=${negotiatedRaw} → final=${finalPrice} rateType=${rateType} perks=${perks?.join(',') || 'none'} signal=${signalType}`);
+    if (LITEAPI_DEBUG) console.log(`[liteapi:offer] hotel=${entry.hotelId} offerId=${bestOfferId} market=${marketRaw} negotiated=${negotiatedRaw} → final=${finalPrice} rateType=${rateType} perks=${perks?.join(',') || 'none'} signal=${signalType}`);
 
     // Prefer the expanded `hotel` object from /hotels/rates when present,
     // otherwise fall back to the directory we built from /data/hotels. This
