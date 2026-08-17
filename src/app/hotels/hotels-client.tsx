@@ -3988,14 +3988,14 @@ function HotelsContent() {
               sizes step down below sm and are restored from sm up. */}
           {cheapest && (
             <section className="max-w-[1000px] mx-auto px-5 pt-2 sm:pt-8 pb-2 sm:pb-4">
-              <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-2xl px-4 py-3 sm:px-6 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <span className="text-base sm:text-xl">🏷</span>
-                  <span className="font-poppins font-black text-[.88rem] sm:text-[1rem] text-[#1A1D2B] leading-snug">
+              <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-2xl px-3 py-2 sm:px-6 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-3">
+                  <span className="text-[.8rem] sm:text-xl">🏷</span>
+                  <span className="font-poppins font-black text-[.78rem] sm:text-[1rem] text-[#1A1D2B] leading-tight sm:leading-snug">
                     {t('hotelsFound', { count: hotels!.length, dest: searchedDest })} {t('fromWord')} <span className="text-orange-600">£{cheapest.pricePerNight}{t('perNight')}</span>
                   </span>
                 </div>
-                <p className="text-[.62rem] sm:text-[.7rem] text-[#8E95A9] font-semibold leading-snug">{t('pricesRecentSearches')}</p>
+                <p className="text-[.56rem] sm:text-[.7rem] text-[#8E95A9] font-semibold leading-tight sm:leading-snug">{t('pricesRecentSearches')}</p>
               </div>
               {/* Site-wide guarantees, stated ONCE. These used to be repeated
                   on every single card (three separate blocks per card), which
@@ -4101,18 +4101,6 @@ function HotelsContent() {
           {hotels!.length > 0 && (
             <section className="max-w-[1000px] mx-auto px-5 pb-2 sm:pb-3">
               <div className="flex flex-row flex-wrap items-center gap-1.5 sm:gap-3 sm:justify-between">
-                {/* Filters — mobile only (lg has the sticky sidebar rail) */}
-                <button
-                  type="button"
-                  onClick={() => setMobileFiltersOpen(true)}
-                  className="lg:hidden inline-flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl border border-[#E8ECF4] bg-white text-[.76rem] sm:text-[.82rem] font-bold text-[#1A1D2B] shadow-sm"
-                >
-                  <i className="fa-solid fa-sliders text-orange-500" aria-hidden /> {t('filtersTitle')}
-                  {activeFilterCount > 0 && (
-                    <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-orange-500 text-white text-[.66rem] font-black">{activeFilterCount}</span>
-                  )}
-                </button>
-
                 {/* View toggle */}
                 <div className="inline-flex bg-[#F1F3F7] rounded-xl p-1 self-start">
                   <button
@@ -4150,38 +4138,58 @@ function HotelsContent() {
                   </button>
                 </div>
 
-                {/* Sort dropdown */}
-                <div className="flex items-center gap-2">
-                  <label htmlFor="hotel-sort" className="hidden sm:inline text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9]">{t('sortBy')}</label>
-                  <select
-                    id="hotel-sort"
-                    value={sortBy}
-                    onChange={e => setSortBy(e.target.value as SortBy)}
-                    className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl border border-[#E8ECF4] bg-white text-[.74rem] sm:text-[.8rem] font-bold text-[#1A1D2B] outline-none focus:border-orange-400 cursor-pointer"
+                {/* Second mobile row: Filters + Sort + Per-page, kept together.
+                    `w-full` forces the group onto its own line on a phone so
+                    Filters always lands beside the sort dropdown (owner's ask)
+                    rather than wherever flex-wrap happens to drop it at that
+                    width. `sm:contents` dissolves the wrapper from sm up, so
+                    the desktop justify-between row is byte-for-byte as before. */}
+                <div className="flex w-full items-center gap-1.5 sm:w-auto sm:contents">
+                  {/* Filters — mobile/tablet only (lg has the sticky sidebar rail) */}
+                  <button
+                    type="button"
+                    onClick={() => setMobileFiltersOpen(true)}
+                    className="lg:hidden inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:px-4 sm:py-2.5 rounded-xl border border-[#E8ECF4] bg-white text-[.7rem] sm:text-[.82rem] font-bold text-[#1A1D2B] shadow-sm shrink-0"
                   >
-                    <option value="recommended">{t('sortRecommended')}</option>
-                    <option value="price-asc">{t('sortPriceAsc')}</option>
-                    <option value="price-desc">{t('sortPriceDesc')}</option>
-                    <option value="distance" disabled={!cityCentre}>{t('sortDistance')}</option>
-                  </select>
-                </div>
+                    <i className="fa-solid fa-sliders text-orange-500" aria-hidden /> {t('filtersTitle')}
+                    {activeFilterCount > 0 && (
+                      <span className="inline-flex items-center justify-center min-w-[18px] h-4 sm:min-w-[20px] sm:h-5 px-1.5 rounded-full bg-orange-500 text-white text-[.6rem] sm:text-[.66rem] font-black">{activeFilterCount}</span>
+                    )}
+                  </button>
 
-                {/* Results-per-page selector */}
-                <div className="flex items-center gap-2">
-                  <label htmlFor="hotel-page-size" className="hidden sm:inline text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9]">{t('perPage')}</label>
-                  <select
-                    id="hotel-page-size"
-                    value={pageSize}
-                    onChange={e => setPageSize(parseInt(e.target.value, 10))}
-                    className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl border border-[#E8ECF4] bg-white text-[.74rem] sm:text-[.8rem] font-bold text-[#1A1D2B] outline-none focus:border-orange-400 cursor-pointer"
-                  >
-                    <option value={10}>10</option>
-                    <option value={20}>20</option>
-                    <option value={30}>30</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                    <option value={0}>{t('allOption')}</option>
-                  </select>
+                  {/* Sort dropdown */}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <label htmlFor="hotel-sort" className="hidden sm:inline text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9]">{t('sortBy')}</label>
+                    <select
+                      id="hotel-sort"
+                      value={sortBy}
+                      onChange={e => setSortBy(e.target.value as SortBy)}
+                      className="min-w-0 px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl border border-[#E8ECF4] bg-white text-[.68rem] sm:text-[.8rem] font-bold text-[#1A1D2B] outline-none focus:border-orange-400 cursor-pointer"
+                    >
+                      <option value="recommended">{t('sortRecommended')}</option>
+                      <option value="price-asc">{t('sortPriceAsc')}</option>
+                      <option value="price-desc">{t('sortPriceDesc')}</option>
+                      <option value="distance" disabled={!cityCentre}>{t('sortDistance')}</option>
+                    </select>
+                  </div>
+
+                  {/* Results-per-page selector */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <label htmlFor="hotel-page-size" className="hidden sm:inline text-[.65rem] font-extrabold uppercase tracking-[2px] text-[#8E95A9]">{t('perPage')}</label>
+                    <select
+                      id="hotel-page-size"
+                      value={pageSize}
+                      onChange={e => setPageSize(parseInt(e.target.value, 10))}
+                      className="px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl border border-[#E8ECF4] bg-white text-[.68rem] sm:text-[.8rem] font-bold text-[#1A1D2B] outline-none focus:border-orange-400 cursor-pointer"
+                    >
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={30}>30</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                      <option value={0}>{t('allOption')}</option>
+                    </select>
+                  </div>
                 </div>
 
                 {loadingMore && (
