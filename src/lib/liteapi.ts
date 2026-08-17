@@ -815,15 +815,41 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
 
   // CHUNKING: /hotels/rates with 200 hotelIds in one shot blew the 12s
   // edge timeout in prod (commit b16a820 had to revert a 50→200 bump
-  // 2026-04-29). Solution: split into batches of 50 and fetch in parallel.
-  // Each individual call stays well under the timeout; total wall-clock
-  // time is roughly the same as a single 50-hotel call. We can now serve
-  // up to ~200 hotels per search without breaking Paris (or any city
-  // with deep inventory).
-  const RATES_CHUNK_SIZE = 50;
+  // 2026-04-29). Solution: split into batches and fetch them in parallel, so
+  // no single call can approach the timeout.
+  //
+  // GRADUATED SIZES (2026-08-17). Uniform batches of 50 were badly unbalanced.
+  // `/data/hotels` returns hotels roughly best-first, and those early hotels
+  // carry far more rooms and rate rows than the long tail — so the first batch
+  // does several times the pricing work of the last. Measured against live
+  // LiteAPI (Valencia, 500 hotels, 3 runs on different dates):
+  //
+  //   batch #1 5.4s, #2 4.1s, #3 4.2s … #9 2.3s, #10 0.9s
+  //
+  // and it was the SAME early batch that was slowest on every run — this is
+  // workload, not a random straggler, so retrying or hedging it would not have
+  // helped. Because Promise.all waits for the slowest, that one fat batch set
+  // the wall-clock time of the entire search.
+  //
+  // Splitting only the heavy head rebalances it. Wall-clock, same runs, and
+  // every scheme returned the same ~137 priced hotels — this costs us nothing:
+  //
+  //   uniform 50 (old)   10 calls   5.25s   ← was setting our floor
+  //   uniform 25         20 calls   4.22s
+  //   head-200/10        26 calls   3.35s   ← chosen
+  //   uniform 10         50 calls   3.21s   (only 0.14s better, 2x the calls)
+  //
+  // head-200/10 keeps essentially all of the win at half the request count of
+  // uniform-10 — 50 concurrent calls per search is a lot of load to put on
+  // LiteAPI for 4% more speed.
+  const RATES_HEAD_COUNT = 200; // hotels treated as "heavy" (they price slowest)
+  const RATES_HEAD_CHUNK = 10;
+  const RATES_TAIL_CHUNK = 50;
   const chunks: string[][] = [];
-  for (let i = 0; i < hotelIds.length; i += RATES_CHUNK_SIZE) {
-    chunks.push(hotelIds.slice(i, i + RATES_CHUNK_SIZE));
+  for (let i = 0; i < hotelIds.length; ) {
+    const size = i < RATES_HEAD_COUNT ? RATES_HEAD_CHUNK : RATES_TAIL_CHUNK;
+    chunks.push(hotelIds.slice(i, i + size));
+    i += size;
   }
 
   const chunkResults = await Promise.all(
