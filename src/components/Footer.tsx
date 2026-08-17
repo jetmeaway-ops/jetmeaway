@@ -84,6 +84,23 @@ export default function Footer() {
             })}
           </p>
         </div>
+        {/* Our apps — a normal dofollow footer backlink (site-wide) to Safeinest,
+            the owner's parental-controls app, so Google discovers and indexes it.
+            Real visible anchor text, kept in English for a consistent backlink
+            across every locale; NO rel="nofollow" by design. External site, so
+            it opens in a new tab with rel="noopener" (a security attr only —
+            does not affect link equity). Owner SEO request 2026-08-17. */}
+        <div className="max-w-[800px] mb-7">
+          <div className="text-[.55rem] uppercase tracking-[2.5px] font-extrabold text-white/75 mb-1.5">{t('ourApps')}</div>
+          <a
+            href="https://safeinest.com"
+            target="_blank"
+            rel="noopener"
+            className="inline-block font-poppins font-semibold text-[.75rem] text-white/85 hover:text-white underline"
+          >
+            Safeinest — parental controls for iPhone
+          </a>
+        </div>
         {/* Popular Destinations row — passes footer link equity to the
             most-crawl-worthy destination pages on every route. From the
             2026-05-09 daily SEO audit (#8). Eight destinations chosen
