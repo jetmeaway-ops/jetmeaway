@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { DESTINATIONS, getDestination } from '@/data/destinations';
+import { WHERE_TO_STAY } from '@/data/where-to-stay';
 
 export const dynamicParams = false;
 export const revalidate = 86400; // refresh once a day — keeps pages fast + fresh
@@ -44,6 +45,9 @@ export default async function DestinationPage(
   const { city } = await params;
   const d = getDestination(city);
   if (!d) notFound();
+
+  // Does this city have a full "where to stay" neighbourhood comparison?
+  const stayGuide = WHERE_TO_STAY.find(g => g.citySlug === d.slug);
 
   // Scout sidebar — prefer explicit scout data, else derive from FAQs + neighbourhoods
   const morningFaq = d.faqs.find(f => /morning|ritual|sunrise/i.test(f.q));
@@ -330,6 +334,21 @@ export default async function DestinationPage(
             );
           })}
         </div>
+
+        {stayGuide && (
+          <div className="mt-6 bg-[#F8FAFC] border border-[#F1F3F7] rounded-2xl p-6 text-center">
+            <p className="text-[.92rem] text-[#5C6378] mb-4 max-w-[560px] mx-auto">
+              Not sure which area suits you? We compare {stayGuide.areas.length} {d.city} neighbourhoods — who each
+              one is for, and the honest reason not to book there.
+            </p>
+            <Link
+              href={`/destinations/${d.slug}/where-to-stay`}
+              className="inline-block bg-[#0066FF] hover:bg-[#0052CC] text-white font-poppins font-bold text-[.88rem] px-6 py-3 rounded-full transition-colors"
+            >
+              Where to stay in {d.city} — full area guide →
+            </Link>
+          </div>
+        )}
       </section>
 
       {/* FAQ */}
