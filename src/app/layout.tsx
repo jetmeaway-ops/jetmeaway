@@ -265,9 +265,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <meta name="apple-mobile-web-app-title" content="JetMeAway" />
         <meta name="application-name" content="JetMeAway" />
         <meta name="format-detection" content="telephone=no" />
-        {/* Apple touch icons — iOS picks the closest size. 192px scales
-            cleanly to the 180/167/152/120 slots across iPhone/iPad. */}
-        <link rel="apple-touch-icon" href="/icon-192x192.png" />
+        {/* Apple touch icons. src/app/apple-icon.png now emits the primary
+            180x180 slot automatically (the exact size iOS asks for), so the
+            old untagged 192 duplicate has been dropped — it declared the same
+            file twice. These two remain as larger options for iPad slots. */}
         <link rel="apple-touch-icon" sizes="192x192" href="/icon-192x192.png" />
         <link rel="apple-touch-icon" sizes="512x512" href="/icon-512x512.png" />
         <link rel="mask-icon" href="/icon-192x192.png" color="#0a1628" />
