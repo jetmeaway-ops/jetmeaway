@@ -2535,16 +2535,16 @@ function FlightsContent() {
 
           {/* Section 1: Price Summary Bar */}
           {cheapest && (
-            <section className="max-w-[1000px] mx-auto px-5 pt-8 pb-4">
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">🏷</span>
-                  <span className="font-poppins font-black text-[1rem] text-[#1A1D2B]">
+            <section className="max-w-[1000px] mx-auto px-5 pt-2 sm:pt-8 pb-2 sm:pb-4">
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl px-3 py-2 sm:px-6 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-3">
+                  <span className="text-[.8rem] sm:text-xl">🏷</span>
+                  <span className="font-poppins font-black text-[.78rem] sm:text-[1rem] leading-tight sm:leading-normal text-[#1A1D2B]">
                     {t('cheapestFound')}: <span className="text-green-600">£{priceView === 'total' ? Math.round(cheapest.price * (adults + children)) : cheapest.price}{priceView === 'total' ? t('priceSuffixTotal') : t('priceSuffixPp')}</span> {t('withWord')} {cheapest.airline}
                     {cheapest.transfers === 0 && <span className="text-green-600"> ({t('directLower')})</span>}
                   </span>
                 </div>
-                <p className="text-[.7rem] text-[#8E95A9] font-semibold">{cheapest.source === 'duffel' ? t('livePricesNote') : t('indicativePricesNote')}</p>
+                <p className="text-[.56rem] sm:text-[.7rem] leading-tight sm:leading-normal text-[#8E95A9] font-semibold">{cheapest.source === 'duffel' ? t('livePricesNote') : t('indicativePricesNote')}</p>
               </div>
             </section>
           )}
@@ -2569,9 +2569,9 @@ function FlightsContent() {
               as a tick-to-confirm — the consumer must be notified before they
               book, not before they search. */}
           <section className="max-w-[1000px] mx-auto px-5 pb-2">
-            <div className="flex items-center gap-2.5 bg-blue-50 border border-blue-200 rounded-2xl px-5 py-3">
-              <i className="fa-solid fa-shield-halved text-[#0066FF] text-[.95rem]" />
-              <p className="text-[.78rem] text-[#1A1D2B] font-semibold leading-snug">
+            <div className="flex items-center gap-2 sm:gap-2.5 bg-blue-50 border border-blue-200 rounded-2xl px-3 py-2 sm:px-5 sm:py-3">
+              <i className="fa-solid fa-shield-halved text-[#0066FF] text-[.8rem] sm:text-[.95rem] shrink-0" />
+              <p className="text-[.66rem] sm:text-[.78rem] text-[#1A1D2B] font-semibold leading-tight sm:leading-snug">
                 <strong className="font-black">{t('priceSecurity')}</strong> {t('priceSecurityBody')}
               </p>
             </div>
@@ -2581,10 +2581,10 @@ function FlightsContent() {
           {flights.length > 0 ? (
             <section className="max-w-[1240px] mx-auto px-5 pb-6">
               {/* Mobile filters toggle */}
-              <div className="md:hidden mb-4 flex items-center justify-between gap-3">
+              <div className="md:hidden mb-2 flex items-center justify-between gap-3">
                 <button
                   onClick={() => setFiltersOpenMobile(v => !v)}
-                  className="flex items-center gap-2 bg-white border border-[#E8ECF4] hover:border-[#0066FF] text-[#1A1D2B] font-poppins font-bold text-[.78rem] px-4 py-2 rounded-full shadow-sm transition-all"
+                  className="flex items-center gap-2 bg-white border border-[#E8ECF4] hover:border-[#0066FF] text-[#1A1D2B] font-poppins font-bold text-[.72rem] sm:text-[.78rem] px-3 py-1.5 sm:px-4 sm:py-2 rounded-full shadow-sm transition-all"
                 >
                   <span>⚙</span> {t('filtersSort')}
                   {filtersActive && <span className="w-1.5 h-1.5 rounded-full bg-[#0066FF]" />}
@@ -2742,8 +2742,8 @@ function FlightsContent() {
 
                 {/* ─── Results ─── */}
                 <div>
-                  <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-                    <h3 className="font-poppins font-black text-[.9rem] text-[#1A1D2B]">
+                  <div className="flex items-center justify-between gap-3 mb-2 sm:mb-3 flex-wrap">
+                    <h3 className="hidden md:block font-poppins font-black text-[.9rem] text-[#1A1D2B]">
                       {visibleFlights.length} {t('ofWord')} {directCount} {t('flightsWord')}
                     </h3>
                     <SaveSearchButton
