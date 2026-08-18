@@ -10,7 +10,8 @@
 
 import type { MetadataRoute } from 'next';
 import { getAllPosts, TRANSLATED_LOCALES } from '@/lib/blog';
-import { DESTINATIONS } from '@/data/destinations';
+import { DESTINATIONS, getDestination } from '@/data/destinations';
+import { WHERE_TO_STAY } from '@/data/where-to-stay';
 
 const BASE = 'https://jetmeaway.co.uk';
 
@@ -55,6 +56,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.75,
     },
   ];
+
+  // "Where to stay in <city>" — one per city that has a where-to-stay guide.
+  // Filtered against DESTINATIONS for the same reason the route is: a guide
+  // without a destination record has no hero image, IATA or price to render.
+  const whereToStay: MetadataRoute.Sitemap = WHERE_TO_STAY
+    .filter(g => getDestination(g.citySlug))
+    .map(g => ({
+      url: `${BASE}/destinations/${g.citySlug}/where-to-stay`,
+      lastModified: now,
+      changeFrequency: 'weekly' as const,
+      priority: 0.75,
+    }));
 
   // Informational routes — trust / legal / partnerships
   const info: MetadataRoute.Sitemap = [
@@ -112,5 +125,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     translated = [];
   }
 
-  return [...primary, ...info, ...destinations, ...neighbourhoods, ...posts, ...translated];
+  return [...primary, ...info, ...destinations, ...neighbourhoods, ...whereToStay, ...posts, ...translated];
 }
