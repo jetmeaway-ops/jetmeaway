@@ -89,3 +89,10 @@ scripts/serve-screenshots.mjs
 # no need to ship the PNG bytes through git.
 /public/apple-brand-cover-1600x1040.png
 tmp/
+
+# Google Play service-account key — used by `eas submit --platform android`.
+# Google automatically DISABLES service account keys it finds in public repos,
+# so this must never be committed. Referenced by mobile/eas.json as
+# submit.production.android.serviceAccountKeyPath.
+play-service-account.json
+mobile/play-service-account.json
