@@ -52,6 +52,132 @@ export default function PopularDestinations() {
   const pause = useCallback(() => setPaused(true), []);
   const resume = useCallback(() => setPaused(false), []);
 
+  // ── Manual drag, on top of the auto-scroll ────────────────────────────────
+  // Two bugs have been fixed in this file before and BOTH are easy to bring back
+  // by adding a drag naively:
+  //   1. dead taps — never gate the card's onClick on async React state; a tap
+  //      synthesises pointerdown → click and the state reads stale-true, so the
+  //      link is killed on mobile. Use a movement REF read synchronously.
+  //   2. trapped page scroll — the strip must not become a scroll container. It
+  //      still isn't: we only move `transform`, inside `overflow-x: clip`.
+  // A drag is only claimed once the pointer passes a small threshold AND the
+  // movement is more horizontal than vertical, so a vertical swipe that starts
+  // on a card is left to the page (touch-action: pan-y hands it to the browser).
+  const dragging = useRef(false);
+  const dragMoved = useRef(false);   // true = suppress the click that follows
+  const startX = useRef(0);
+  const startY = useRef(0);
+  const startPos = useRef(0);
+  const activeId = useRef<number | null>(null);
+  // Flick momentum: velocity is carried in "pos units per millisecond", positive
+  // when the finger travels left (which is the direction pos grows).
+  const velocity = useRef(0);
+  const lastX = useRef(0);
+  const lastT = useRef(0);
+  const glideRaf = useRef(0);
+
+  /** Keep the offset inside one set's width so the loop stays seamless both ways. */
+  const norm = useCallback((v: number) => {
+    const h = half.current;
+    if (!h) return v;
+    const x = v % h;
+    return x < 0 ? x + h : x;
+  }, []);
+
+  /** Coast on after a flick, shedding speed, then hand back to the auto-scroll. */
+  const glide = useCallback(() => {
+    cancelAnimationFrame(glideRaf.current);
+    let last = performance.now();
+    const FRICTION = 0.94;           // per 16ms frame
+    const step = (t: number) => {
+      const dt = Math.min(t - last, 32);   // clamp so a stalled tab can't jump
+      last = t;
+      pos.current = norm(pos.current + velocity.current * dt);
+      const track = trackRef.current;
+      if (track) track.style.transform = `translateX(${-pos.current}px)`;
+      velocity.current *= Math.pow(FRICTION, dt / 16);
+      if (Math.abs(velocity.current) > 0.02) {
+        glideRaf.current = requestAnimationFrame(step);
+      } else {
+        velocity.current = 0;
+        setPaused(false);            // auto-scroll takes over again
+      }
+    };
+    glideRaf.current = requestAnimationFrame(step);
+  }, [norm]);
+
+  useEffect(() => () => cancelAnimationFrame(glideRaf.current), []);
+
+  const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    cancelAnimationFrame(glideRaf.current);   // catching a glide stops it dead
+    velocity.current = 0;
+    dragging.current = true;
+    dragMoved.current = false;
+    startX.current = e.clientX;
+    startY.current = e.clientY;
+    startPos.current = pos.current;
+    lastX.current = e.clientX;
+    lastT.current = e.timeStamp || performance.now();
+    activeId.current = e.pointerId;
+    setPaused(true);
+  }, []);
+
+  const onPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragging.current || e.pointerId !== activeId.current) return;
+    const dx = e.clientX - startX.current;
+    const dy = e.clientY - startY.current;
+
+    if (!dragMoved.current) {
+      if (Math.abs(dx) < 6) return;               // still just a press, not a drag
+      if (Math.abs(dx) <= Math.abs(dy)) {         // vertical intent — hand it back
+        dragging.current = false;
+        return;
+      }
+      dragMoved.current = true;
+      // Capture only once we've committed to a horizontal drag, so a vertical
+      // swipe is never stolen from the page.
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
+
+    // Running velocity estimate, smoothed so one jittery sample can't fling it.
+    const now = e.timeStamp || performance.now();
+    const dt = now - lastT.current;
+    if (dt > 0) {
+      const inst = (lastX.current - e.clientX) / dt;
+      velocity.current = velocity.current * 0.7 + inst * 0.3;
+    }
+    lastX.current = e.clientX;
+    lastT.current = now;
+
+    pos.current = norm(startPos.current - dx);
+    const track = trackRef.current;
+    if (track) track.style.transform = `translateX(${-pos.current}px)`;
+  }, [norm]);
+
+  const endDrag = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (activeId.current !== null && e.currentTarget.hasPointerCapture?.(activeId.current)) {
+      e.currentTarget.releasePointerCapture(activeId.current);
+    }
+    dragging.current = false;
+    activeId.current = null;
+    // A real flick coasts on; anything slower hands straight back to auto-scroll.
+    if (dragMoved.current && Math.abs(velocity.current) > 0.05) {
+      glide();
+    } else {
+      velocity.current = 0;
+      setPaused(false);
+    }
+    // dragMoved is deliberately NOT reset here — the click fires after pointerup
+    // and needs to read it. It's reset on the next pointerdown, and in onClick.
+  }, [glide]);
+
+  const onCardClick = useCallback((e: React.MouseEvent) => {
+    if (dragMoved.current) {
+      e.preventDefault();       // it was a drag, not a tap — don't navigate
+      dragMoved.current = false;
+    }
+  }, []);
+
   const cards = [...DESTINATIONS, ...DESTINATIONS];
 
   return (
@@ -73,20 +199,23 @@ export default function PopularDestinations() {
         <div
           ref={trackRef}
           onPointerEnter={pause}
-          onPointerLeave={resume}
-          onPointerDown={pause}
-          onPointerUp={resume}
-          onPointerCancel={resume}
-          className="flex gap-5 px-6 select-none"
+          onPointerLeave={() => { if (!dragging.current) resume(); }}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          className="flex gap-5 px-6 select-none cursor-grab active:cursor-grabbing"
           // touch-action: pan-y keeps a vertical swipe as native page scroll and
           // disables pinch-zoom on the cards. The strip isn't a scroll container,
-          // so there is nothing to trap it.
+          // so there is nothing to trap it. Horizontal is left to us, which is
+          // what makes the manual drag possible.
           style={{ touchAction: 'pan-y', willChange: 'transform' }}
         >
           {cards.map((d, i) => (
             <a
               key={`${d.name}-${i}`}
               href={`/hotels?city=${encodeURIComponent(d.name)}`}
+              onClick={onCardClick}
               className="relative flex-shrink-0 w-[280px] md:w-[320px] rounded-2xl overflow-hidden group"
               style={{ height: '380px' }}
               draggable={false}
