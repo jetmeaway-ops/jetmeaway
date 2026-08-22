@@ -1,0 +1,84 @@
+Audited 545 Spanish files against English sources.
+Excluded by plan: scotland-world-cup-2026.mdx
+
+===== BLOCKERS (must fix before push): 0 =====
+
+===== WARNINGS (review): 38 =====
+  best-all-inclusive-hotels-benidorm-2026.mdx
+      - £ amounts 73/71
+  best-all-inclusive-hotels-majorca-2026.mdx
+      - £ amounts 74/73
+  best-all-inclusive-hotels-salou-2026.mdx
+      - £ amounts 6/79
+  best-all-inclusive-hotels-side-2026.mdx
+      - £ amounts 5/155
+  best-all-inclusive-hotels-tenerife-2026.mdx
+      - £ amounts 4/69
+  best-all-inclusive-hotels-turkey-2026.mdx
+      - £ amounts 11/150
+  best-hotels-aarhus-2026.mdx
+      - £ amounts 93/91
+  best-hotels-abu-dhabi-2026.mdx
+      - £ amounts 5/151
+  best-hotels-ankara-2026.mdx
+      - £ amounts 126/119
+  best-hotels-bergen-2026.mdx
+      - £ amounts 120/118
+  best-hotels-chengdu-2026.mdx
+      - £ amounts 95/97
+  best-hotels-copenhagen-2026.mdx
+      - £ amounts 116/117
+  best-hotels-da-nang-2026.mdx
+      - £ amounts 122/123
+  best-hotels-doha-2026.mdx
+      - £ amounts 123/124
+  best-hotels-foz-do-iguacu-2026.mdx
+      - FAQ count 29/27
+  best-hotels-lima-2026.mdx
+      - £ amounts 179/185
+  best-hotels-lucerne-2026.mdx
+      - £ amounts 106/104
+  best-hotels-luxembourg-2026.mdx
+      - £ amounts 120/121
+  best-hotels-malaga-2026.mdx
+      - £ amounts 118/115
+  best-hotels-monterrey-2026.mdx
+      - £ amounts 9/151
+  best-hotels-napier-2026.mdx
+      - £ amounts 56/60
+  best-hotels-negombo-2026.mdx
+      - £ amounts 98/102
+  best-hotels-nice-2026.mdx
+      - £ amounts 82/80
+  best-hotels-paris-2026.mdx
+      - £ amounts 101/98
+  best-hotels-prague-2026.mdx
+      - £ amounts 118/119
+  best-hotels-puerto-vallarta-2026.mdx
+      - £ amounts 18/202
+  best-hotels-rovaniemi-2026.mdx
+      - £ amounts 96/94
+  best-hotels-salzburg-2026.mdx
+      - £ amounts 19/174
+  best-hotels-santorini-2026.mdx
+      - £ amounts 113/112
+  best-hotels-shenzhen-2026.mdx
+      - £ amounts 99/97
+  best-hotels-stockholm-2026.mdx
+      - £ amounts 122/121
+  best-hotels-thessaloniki-2026.mdx
+      - £ amounts 144/152
+  best-hotels-toulouse-2026.mdx
+      - £ amounts 15/137
+  best-hotels-vientiane-2026.mdx
+      - £ amounts 83/85
+  best-hotels-zakopane-2026.mdx
+      - £ amounts 9/102
+  car-hire-faro-airport-2026.mdx
+      - £ amounts 0/32
+  cheapest-month-to-fly-from-uk-2026.mdx
+      - FAQ count 27/28
+  rishikesh-yoga-sabbatical-2026.mdx
+      - £ amounts 74/76
+
+RESULT: PASS — no blockers
