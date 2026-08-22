@@ -1166,7 +1166,18 @@ export default function HotelDetailPage() {
           </ul>
         </nav>
 
-        <div className="grid md:grid-cols-[1fr_340px] gap-6">
+        {/* Apple rejected 1.3.5 under Guideline 4 (Design) after reviewing this
+            page on an iPad Air 11-inch: the booking sidebar ran off the right
+            edge, so "Reserve" and the guest steppers were unreachable.
+            Two causes, both here:
+              1. `md:` (768px) put iPad portrait (820px) into two columns, leaving
+                 the rates table ~416px — room names wrapped one word per line.
+                 Raised to `lg:` (1024px) so tablet portrait stays single-column.
+              2. `1fr` is `minmax(auto, 1fr)`, and `auto` refuses to shrink below
+                 the content's min-content width. The rates column therefore
+                 pushed the grid wider than the viewport and shoved the sidebar
+                 off-screen. `minmax(0,1fr)` lets it shrink. */}
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_340px] gap-6">
           {/* Left: rates table → description → amenities */}
           <div>
             {/* ═══ Scout Rooms Table ═══
@@ -1176,7 +1187,10 @@ export default function HotelDetailPage() {
             {/* Guests & rooms — mobile-only copy at the TOP of the page.
                 90% of bookings come from phones, where the sidebar copy is
                 buried below rooms + reviews + details (owner report 07-14). */}
-            <div className="md:hidden mb-4">
+            {/* Follows the grid breakpoint above: below `lg` the sidebar sits
+                BELOW the rates, so the guest picker has to be offered up here or
+                it is buried. Was `md:hidden`. */}
+            <div className="lg:hidden mb-4">
               <div className="text-[.7rem] font-black uppercase tracking-[1px] text-[#8E95A9] mb-1.5">
                 <i className="fa-solid fa-user-group text-[.65rem] mr-1.5" />
                 {t('whoStaying')}
@@ -2025,9 +2039,12 @@ export default function HotelDetailPage() {
       {/* Phase-5: Mobile sticky-bottom CTA — pinned to the viewport on
           phones so the Reserve action is always one tap away, regardless of
           how far the customer has scrolled into the amenities / description.
-          Hidden on md+ where the sidebar stays in view. */}
+          Hidden on lg+ where the sidebar stays in view. Tracks the grid
+          breakpoint above: below lg the sidebar sits under the rates, so this
+          pinned CTA is the only always-reachable way to book — which is exactly
+          what Apple found missing on iPad. Was `md:hidden`. */}
       {(selectedRate || offerId) && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-[150] bg-white/98 backdrop-blur-md border-t border-[#E8ECF4] shadow-[0_-8px_24px_rgba(10,22,40,0.12)] px-4 py-3 flex items-center justify-between gap-3">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[150] bg-white/98 backdrop-blur-md border-t border-[#E8ECF4] shadow-[0_-8px_24px_rgba(10,22,40,0.12)] px-4 py-3 flex items-center justify-between gap-3">
           <div>
             <div className="text-[.58rem] font-semibold text-slate-500 uppercase tracking-[1.5px]">
               {t('totalFor')} {parseInt(rooms) > 1 ? t('roomsSep', { rooms }) : ''}{numNights || '—'} {t('nightWord', { count: numNights })}

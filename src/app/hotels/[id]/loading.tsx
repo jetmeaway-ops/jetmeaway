@@ -33,8 +33,12 @@ export default function HotelLoading() {
           ))}
         </div>
 
-        {/* Main grid — skeleton rooms table + sidebar */}
-        <div className="grid md:grid-cols-[1fr_340px] gap-6">
+        {/* Main grid — skeleton rooms table + sidebar.
+            Must mirror page.tsx exactly: `lg:` so tablet portrait stays single
+            column, and `minmax(0,1fr)` so the first column can shrink instead of
+            shoving the sidebar off-screen. Left on `md:`/`1fr` this skeleton
+            reproduced the very overflow Apple rejected, just during loading. */}
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_340px] gap-6">
           <div>
             <RoomsSkeleton />
             <div className="animate-pulse bg-white border border-[#E8ECF4] rounded-2xl p-6 mb-5 space-y-3">
