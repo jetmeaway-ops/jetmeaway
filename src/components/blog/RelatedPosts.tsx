@@ -28,7 +28,15 @@ export default function RelatedPosts({
   if (posts.length === 0) return null;
 
   const basePath = locale === 'en' ? '/blog' : `/${locale}/blog`;
-  const heading = locale === 'de' ? 'Das könnte Sie auch interessieren' : 'Read next';
+  // A map rather than a ternary chain, so adding a locale is one line and a
+  // missing one falls back to English instead of silently shipping the
+  // wrong language.
+  const HEADINGS: Record<PostLocale, string> = {
+    en: 'Read next',
+    de: 'Das könnte Sie auch interessieren',
+    es: 'Lee a continuación',
+  };
+  const heading = HEADINGS[locale] ?? HEADINGS.en;
 
   return (
     <section className="max-w-[960px] mx-auto px-5 mt-16">

@@ -40,6 +40,7 @@ export function blogBasePath(locale: PostLocale): string {
 const IN_LANGUAGE: Record<PostLocale, string> = {
   en: 'en-GB',
   de: 'de-DE',
+  es: 'es',
 };
 
 /** Visible chrome around the article body, per locale. */
@@ -74,6 +75,19 @@ const STRINGS: Record<PostLocale, {
     ctaBody:
       'Vergleichen Sie mit dem JetMeAway Scout Live-Preise von über 15 geprüften Anbietern. Keine Buchungsgebühren.',
     ctaButton: 'Jetzt suchen',
+  },
+  // Spanish uses informal "tú" throughout, matching src/messages/es.json and
+  // the translated corpus. German above is formal Sie — do not copy that here.
+  es: {
+    backToBlog: 'Volver al blog',
+    liveAlert: 'Alerta en vivo · Actualizado',
+    by: 'Por',
+    breadcrumbHome: 'Inicio',
+    breadcrumbBlog: 'Blog',
+    ctaHeading: 'Planea tu viaje de 2026 ahora',
+    ctaBody:
+      'Usa el JetMeAway Scout para comparar precios en vivo de más de 15 proveedores de confianza. Sin comisiones de reserva.',
+    ctaButton: 'Empieza a buscar',
   },
 };
 

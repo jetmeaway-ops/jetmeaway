@@ -79,7 +79,7 @@ export function isActiveLocale(x: string | undefined | null): x is Locale {
  * client components — importing the blog helper would pull `node:fs` into
  * the browser bundle. Add a locale here when its corpus ships.
  */
-export const BLOG_LOCALES: ReadonlySet<string> = new Set(['de']);
+export const BLOG_LOCALES: ReadonlySet<string> = new Set(['de', 'es']);
 
 /**
  * Where the "Blog" nav link should point for a locale. German readers get
