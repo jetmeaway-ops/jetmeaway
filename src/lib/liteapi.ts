@@ -460,6 +460,20 @@ export interface GetHotelsParams {
    * hotelId) — no harm.
    */
   starRatings?: number[];
+  /**
+   * Telemetry hook fired once, right after the /hotels/rates step, reporting how
+   * many rate chunks were fetched and how many FAILED (upstream timeout / non-2xx).
+   *
+   * A failed chunk means the priced result is INCOMPLETE — some hotels never got
+   * a rate not because they're sold out but because LiteAPI didn't answer in time.
+   * Under an upstream slowdown the head chunks (LiteAPI returns hotels best-first,
+   * which for many cities means the pricey flagship properties) can be the only
+   * ones that come back — so the customer sees "3 hotels, all expensive". Without
+   * this signal the route caches that degraded set for the full 30-min TTL and it
+   * keeps showing long after LiteAPI recovers. The route uses this to cache a
+   * degraded search only briefly so it self-heals on the next request.
+   */
+  onRatesQuality?: (q: { chunksTotal: number; chunksFailed: number }) => void;
 }
 
 export interface HotelOffer {
@@ -743,6 +757,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     limit = 25,
     offset = 0,
     starRatings,
+    onRatesQuality,
   } = params;
 
   const hasLatLng =
@@ -990,6 +1005,10 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     i += size;
   }
 
+  // Count chunks that fail (timeout / non-2xx) so the caller can tell an
+  // INCOMPLETE priced set apart from a genuinely-sparse one. A hotel with no
+  // rate because it's sold out is normal; a chunk that never answered is not.
+  let ratesChunksFailed = 0;
   const chunkResults = await Promise.all(
     chunks.map((chunkIds) =>
       liteFetch<RatesResponse>('/hotels/rates', {
@@ -998,12 +1017,17 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       }).catch((err: unknown) => {
         // One failed chunk shouldn't kill the whole search — log it and
         // return an empty data array so the other chunks still surface.
+        ratesChunksFailed++;
         const message = err instanceof Error ? err.message : 'rates chunk failed';
         console.warn(`[liteapi:rates] chunk of ${chunkIds.length} failed:`, message);
         return { data: [] } as RatesResponse;
       }),
     ),
   );
+  if (onRatesQuality) {
+    // Best-effort telemetry — must never break the search.
+    try { onRatesQuality({ chunksTotal: chunks.length, chunksFailed: ratesChunksFailed }); } catch { /* ignore */ }
+  }
 
   const ratesRes: RatesResponse = {
     data: chunkResults.flatMap((r) => r.data || []),

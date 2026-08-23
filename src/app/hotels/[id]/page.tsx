@@ -312,6 +312,21 @@ export default function HotelDetailPage() {
       if (nextRooms > 1) q.set('rooms', String(nextRooms));
       else q.delete('rooms');
     }
+    // `occ=` is the EXACT per-room split carried over from the results page, and
+    // it OVERRIDES the flat adults/children/rooms params everywhere downstream
+    // (see the decodeOccupancy-wins branch in /api/hotels/rates, and
+    // decodeFromParams in src/lib/occupancy.ts). It describes the party the
+    // visitor arrived with, so it cannot survive an edit here: leaving it meant
+    // every change made in this picker was silently discarded at pricing time.
+    // The URL would say "2 adults, 0 children, 1 room" while the quote was still
+    // priced for the original 5-person/2-room split — the same total came back
+    // for every party size, and the rate rows kept announcing "TOTAL FOR 3
+    // ROOMS" after the customer had dropped to one. Measured on prod for the
+    // hotel in the owner's screenshots (Milan, la_lp42761, 23→25 Aug): a couple
+    // in one room was quoted £194.86 instead of £85.23 (2026-08-23).
+    // Dropping it is enough — with no `occ` the server rebuilds the split from
+    // the flat params we just wrote, via the same decodeLegacy those params mean.
+    q.delete('occ');
     // Stale for the new occupancy — price belongs to the old party size.
     ['offerId', 'price', 'negPrice', 'mktPrice'].forEach((k) => q.delete(k));
     router.replace(`/hotels/${encodeURIComponent(String(id))}?${q.toString()}`, { scroll: false });

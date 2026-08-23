@@ -2501,7 +2501,17 @@ function HotelsContent() {
     // setAdults/setChildCount/setRooms in the same render, and the
     // handleSearch closure recreated for the next render sees the
     // correct roomsArr before auto-search fires.
-    const occParam = p.get('occ') ?? sticky?.occ;
+    // `occ=` wins over the flat adults/children/rooms inside decodeFromParams,
+    // so the STICKY occ may only stand in when this URL says nothing about
+    // occupancy at all. Previously any link that specified a party — a blog CTA
+    // like `?destination=Dijon&adults=2`, or a shared search — was silently
+    // re-priced with whatever party the visitor last searched: someone who had
+    // looked for a family of five then saw Dijon priced as 5 guests in 2 rooms,
+    // i.e. 7 hotels from £186/night instead of 27 from £52 (owner report,
+    // 2026-08-23). The flat params above already prefer the URL over sticky;
+    // this makes `occ` follow the same rule instead of quietly outranking it.
+    const urlStatesOccupancy = !!(p.get('occ') || a || c || r || p.get('childrenAges'));
+    const occParam = p.get('occ') ?? (urlStatesOccupancy ? null : sticky?.occ);
     const ra = decodeFromParams({
       occ: occParam,
       adults: a ?? (sticky?.adults != null ? String(sticky.adults) : null),
