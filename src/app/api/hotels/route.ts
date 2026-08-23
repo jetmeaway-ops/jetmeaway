@@ -1940,7 +1940,11 @@ export async function GET(req: NextRequest) {
     ? `:@${autocompleteCentre.lat.toFixed(3)},${autocompleteCentre.lng.toFixed(3)}`
     : '';
   const geoCacheSuffix = explicitRadiusKm ? `:r${explicitRadiusKm}` : '';
-  const kvKey = `hotels:v31:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}${occCacheSuffix}${ctrCacheSuffix}${geoCacheSuffix}`;
+  // v32 — `excludedTaxes` on each row is now scaled by the ROOM COUNT (it was
+  // multiplied by the number of rate plans on the room type, an unrelated
+  // number). Stored-value meaning change, so it needs its own namespace: v31
+  // entries carry the old figure and would keep serving it for their full TTL.
+  const kvKey = `hotels:v32:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}${occCacheSuffix}${ctrCacheSuffix}${geoCacheSuffix}`;
 
   // Group occupancy bypass: large groups (>4 guests) always get fresh prices
   // because cached availability/room blocks may not hold for that many people.

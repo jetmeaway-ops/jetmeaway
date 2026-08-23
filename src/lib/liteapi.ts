@@ -1140,14 +1140,24 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
         // Phase-3: per-row Scout Deal. negotiated only counts when strictly
         // cheaper than market — otherwise it's noise, not a deal.
         const hasDeal = negPrice != null && Number.isFinite(marketPrice) && negPrice < marketPrice;
-        // Phase-4: per-rate excluded taxes (city tax / VAT payable at
-        // property). Same shape as the offer-level sum, computed per rate so
-        // the table can show each row's true grand total honestly.
-        const rateExcludedTaxes = (typeof r.retailRate === 'object' && r.retailRate)
+        // Phase-4: per-rate excluded taxes (city tax / VAT / resort fee payable
+        // at the property). Same shape as the offer-level sum, computed per rate
+        // so the table can show each row's true grand total honestly.
+        //
+        // `taxesAndFees` carries ONE ENTRY PER TAX TYPE for a SINGLE room, while
+        // this row's `totalPrice` covers every room in the quote. Left unscaled,
+        // a 2-room stay advertised one room's tax beside a two-room price and a
+        // 3-room stay a third of it — so the figure went DOWN as the guest added
+        // rooms, which is visibly wrong and under-states what they owe at the
+        // desk. Measured on prod (la_lp42761, Milan 23->25 Aug, 2 adults):
+        // 1 room £41.62, 2 rooms £12.11, 3 rooms £8.08. Scale by the room count
+        // so the tax describes the same booking as the price next to it.
+        const perRoomRateTaxes = (typeof r.retailRate === 'object' && r.retailRate)
           ? ((r.retailRate as { taxesAndFees?: Array<{ amount: number; included?: boolean }> }).taxesAndFees || [])
               .filter((t) => t.included === false)
               .reduce((sum, t) => sum + (t.amount || 0), 0)
           : 0;
+        const rateExcludedTaxes = Math.max(0, perRoomRateTaxes) * Math.max(1, occupancy.length);
         // v2-plan step-2: free-cancellation deadline. Prefer the v3.0 flat
         // `cancellationPolicy.deadline`; fall back to the old nested
         // `cancelPolicyInfos[0].cancelTime` so older supplier payloads still
@@ -1241,7 +1251,14 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
           .filter((t) => t.included === false)
           .reduce((sum, t) => sum + (t.amount || 0), 0)
       : 0;
-    const roomCount = (bestRoomType.rates || []).length || 1;
+    // Number of ROOMS this quote covers — one `occupancy` entry per room, which
+    // is also what the price above covers. Previously this read
+    // `bestRoomType.rates.length`, i.e. the count of RATE PLANS on the room type
+    // (Room Only / B&B / refundable / non-refundable …). That is not a room
+    // count: it varies with how many rate variants the supplier happens to
+    // publish, so the property-payable tax was scaled by an arbitrary number
+    // — sometimes 1, sometimes 20 — with no relation to what the guest owes.
+    const roomCount = Math.max(1, occupancy.length);
     // Clamp negative supplier-side adjustments — taxes-and-fees field has been
     // observed to carry refund deltas as negative entries which would make
     // priceBeforeTax less than priceTotal, confusing the UI.
