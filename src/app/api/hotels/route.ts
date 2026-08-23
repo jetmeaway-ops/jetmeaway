@@ -80,19 +80,30 @@ function slimBoardOptions(opts: HotelOffer['boardOptions']): SlimBoardOption[] |
  * Callers schedule this through `after()` so the customer never waits on a
  * cache write that only helps the NEXT visitor.
  */
-async function safeKvSet(key: string, value: unknown): Promise<void> {
+async function safeKvSet(key: string, value: unknown, ttl: number = KV_TTL): Promise<void> {
   const timeout = new Promise<void>((_, reject) =>
     setTimeout(() => reject(new Error('kv-write-timeout')), 5000),
   );
   try {
     await Promise.race([
-      kv.set(key, value, { ex: KV_TTL }) as unknown as Promise<void>,
+      kv.set(key, value, { ex: ttl }) as unknown as Promise<void>,
       timeout,
     ]);
   } catch {
     /* swallow — best-effort */
   }
 }
+
+/**
+ * Short TTL used when a search came back DEGRADED (one or more LiteAPI rate
+ * chunks failed, so the priced set is incomplete — typically collapsing to a
+ * handful of the priciest hotels). Caching that for the normal 30 min is what
+ * made the owner's Dijon search show "3 expensive hotels" for hours while
+ * LiteAPI itself had 130+ properties. 60s still absorbs a burst of identical
+ * requests (so we don't hammer a struggling upstream) but lets the very next
+ * search after LiteAPI recovers fetch a full, correct result.
+ */
+const KV_TTL_DEGRADED = 60;
 
 /**
  * Airport WGS84 coords. When a search hits an airport-aliased term we use
@@ -433,8 +444,24 @@ const CITY_COUNTRY: Record<string, string> = {
   'liverpool': 'GB', 'birmingham': 'GB', 'bristol': 'GB', 'leeds': 'GB',
   'belfast': 'GB', 'cardiff': 'GB', 'dublin': 'IE',
   'horley': 'GB', 'crawley': 'GB', 'luton': 'GB',
-  // France
+  // France — pin the cities we can name so country resolution never depends on
+  // Nominatim (rate-limited, occasionally down). A missed/slow Nominatim lookup
+  // for an unlisted French city returns 0 hotels, and a stale wrong-country
+  // geocode:cc:* KV entry can pin the wrong country for 30 days. Dijon was the
+  // owner report (2026-08-23): traveller on the ground saw a collapsed result
+  // while LiteAPI clearly had 130+ Dijon properties. These all verified against
+  // LiteAPI /data/hotels?cityName=…&countryCode=FR returning live inventory.
   'paris': 'FR', 'nice': 'FR', 'lyon': 'FR', 'marseille': 'FR',
+  'dijon': 'FR', 'bordeaux': 'FR', 'toulouse': 'FR', 'lille': 'FR',
+  'strasbourg': 'FR', 'nantes': 'FR', 'montpellier': 'FR', 'rennes': 'FR',
+  'reims': 'FR', 'rouen': 'FR', 'tours': 'FR', 'grenoble': 'FR',
+  'annecy': 'FR', 'colmar': 'FR', 'avignon': 'FR', 'aix-en-provence': 'FR',
+  'cannes': 'FR', 'antibes': 'FR', 'biarritz': 'FR', 'la rochelle': 'FR',
+  'carcassonne': 'FR', 'chamonix': 'FR', 'deauville': 'FR', 'saint-malo': 'FR',
+  'clermont-ferrand': 'FR', 'metz': 'FR', 'nancy': 'FR', 'dunkirk': 'FR',
+  'perpignan': 'FR', 'nimes': 'FR', 'toulon': 'FR', 'brest': 'FR',
+  'le havre': 'FR', 'angers': 'FR', 'orleans': 'FR', 'versailles': 'FR',
+  'lourdes': 'FR',
   // Italy
   'rome': 'IT', 'venice': 'IT', 'florence': 'IT', 'milan': 'IT', 'naples': 'IT', 'amalfi': 'IT',
   // Portugal
@@ -755,7 +782,17 @@ async function fetchLiteApiHotels(
   // primaryLimit, used by the client to progressively pull the FULL city
   // inventory (the cheapest family-room properties sit past position 500).
   page: number = 0,
+  // Mutable quality accumulator. If ANY LiteAPI rate chunk fails during this
+  // search (upstream slow / erroring), `.degraded` is flipped to true so the
+  // caller can cache the incomplete result only briefly instead of pinning a
+  // collapsed "3 expensive hotels" set for the full TTL. Optional — legacy
+  // callers that don't care pass nothing.
+  quality?: { degraded: boolean },
 ): Promise<HotelOffer[]> {
+  const markDegraded = () => { if (quality) quality.degraded = true; };
+  const markQuality = (q: { chunksTotal: number; chunksFailed: number }) => {
+    if (q.chunksFailed > 0) markDegraded();
+  };
   if (!process.env.LITE_API_KEY) {
     console.warn('[liteapi] LITE_API_KEY not set — skipping hotel search');
     return [];
@@ -804,6 +841,9 @@ async function fetchLiteApiHotels(
   // every non-UK airport search returned 0 hotels.
   if (!countryCode && !centroid) {
     console.warn('[liteapi] could not resolve country code for city:', cityKey);
+    // Usually a Nominatim outage / rate-limit rather than a real "no such
+    // place" — transient, so don't let the resulting 0 hotels sit in cache.
+    markDegraded();
     return [];
   }
   if (!countryCode) {
@@ -927,11 +967,19 @@ async function fetchLiteApiHotels(
           guestNationality: 'GB',
           limit: primaryLimit,
           offset: pageOffset,
+          onRatesQuality: markQuality,
         }),
         fetchTimeout,
       ]).catch((err: unknown) => {
         const message = err instanceof Error ? err.message : String(err);
         console.warn(`[liteapi:primary] ${cityName} p${page} failed:`, message);
+        // The primary tier IS the search. Losing it (12s race timeout, upstream
+        // error) means the result is at best partial and often falls through to
+        // the curated placeholders — never pin that for the full cache TTL.
+        // Marked HERE rather than relying on onRatesQuality because the race
+        // rejects at 12s while the underlying rate chunks only settle at 20s:
+        // by then we have already responded and written the cache.
+        markDegraded();
         return [] as HotelOffer[];
       }),
       // Budget tier — skipped when budgetLimit === 0 (multi-room queries)
@@ -952,11 +1000,15 @@ async function fetchLiteApiHotels(
               guestNationality: 'GB',
               limit: budgetLimit,
               starRatings: [0, 1, 2, 3],
+              onRatesQuality: markQuality,
             }),
             fetchTimeout,
           ]).catch((err: unknown) => {
             const message = err instanceof Error ? err.message : String(err);
             console.warn(`[liteapi:budget] ${cityName} failed:`, message);
+            // Budget tier is what guarantees the cheap end of the list. Losing
+            // it is exactly the "everything shown is expensive" symptom.
+            markDegraded();
             return [] as HotelOffer[];
           }),
       // Landmark placeId tier — only fires when the search bar flagged this
@@ -982,11 +1034,13 @@ async function fetchLiteApiHotels(
               currency: 'GBP',
               guestNationality: 'GB',
               limit: Math.min(100, primaryLimit),
+              onRatesQuality: markQuality,
             }),
             fetchTimeout,
           ]).catch((err: unknown) => {
             const message = err instanceof Error ? err.message : String(err);
             console.warn(`[liteapi:landmark-placeid] ${cityName} failed:`, message);
+            markDegraded();
             return [] as HotelOffer[];
           })
         : Promise.resolve([] as HotelOffer[]),
@@ -1034,9 +1088,10 @@ async function fetchLiteApiHotels(
             currency: 'GBP',
             guestNationality: 'GB',
             limit: primaryLimit,
+            onRatesQuality: markQuality,
           }),
           fallbackTimeout,
-        ]).catch(() => [] as HotelOffer[]);
+        ]).catch(() => { markDegraded(); return [] as HotelOffer[]; });
         for (const h of cityFallback) {
           if (!h.hotelId || seenIds.has(h.hotelId)) continue;
           seenIds.add(h.hotelId);
@@ -1050,6 +1105,9 @@ async function fetchLiteApiHotels(
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.warn(`[liteapi] ${cityName} (${resolvedCountry}) fetch failed after ${Date.now() - t0}ms:`, message);
+    // Whole-fetch failure — the 0 hotels we return say nothing about real
+    // availability, so this must not be cached for the normal TTL.
+    markDegraded();
     // Soft signal — search returns 0 hotels (handled gracefully by the
     // curated fallback) but owner should still know LiteAPI is misbehaving.
     reportBug('LiteAPI hotel search failed', {
@@ -2043,9 +2101,10 @@ export async function GET(req: NextRequest) {
       const cachedPage = await kv.get<object>(pageKvKey);
       if (cachedPage) return NextResponse.json({ ...cachedPage, cached: true });
     } catch { /* KV read best-effort */ }
+    const pageQuality = { degraded: false };
     const pageOffers = await fetchLiteApiHotels(
       cityKey, checkin, checkout, adultsNum, childrenNum, roomsNum, childAges,
-      liteApiTimeoutMs, placeId || undefined, liteApiCentroid, roomsArr, searchType, capped,
+      liteApiTimeoutMs, placeId || undefined, liteApiCentroid, roomsArr, searchType, capped, pageQuality,
     );
     // Match page-0's star filter so a "4★+" search stays consistent across pages.
     const pageHotels = normaliseLiteApi(pageOffers).filter((h) => (h.stars ?? 0) >= minStars);
@@ -2056,12 +2115,21 @@ export async function GET(req: NextRequest) {
       city, checkin, checkout, adults: adultsNum, children: childrenNum, rooms: roomsNum,
     };
     // Cache AFTER responding — the write only helps the next visitor, so
-    // making this one wait up to 5s for Upstash was pure dead time.
-    if (pageHotels.length > 0) after(() => safeKvSet(pageKvKey, out));
+    // making this one wait up to 5s for Upstash was pure dead time. A degraded
+    // page (some LiteAPI rate chunks failed) is cached only briefly so the
+    // missing hotels reappear on the next load instead of being pinned.
+    if (pageHotels.length > 0) {
+      after(() => safeKvSet(pageKvKey, out, pageQuality.degraded ? KV_TTL_DEGRADED : KV_TTL));
+    }
     return NextResponse.json(out);
   }
 
-  const liteApiPromise = fetchLiteApiHotels(cityKey, checkin, checkout, adultsNum, childrenNum, roomsNum, childAges, liteApiTimeoutMs, placeId || undefined, liteApiCentroid, roomsArr, searchType);
+  // Quality accumulator — flipped to degraded=true if any LiteAPI rate chunk
+  // fails while pricing this search. Used below to cache an incomplete result
+  // only briefly (KV_TTL_DEGRADED) so a transient upstream slowdown can't pin a
+  // collapsed "3 expensive hotels" set for the full 30-min TTL.
+  const searchQuality = { degraded: false };
+  const liteApiPromise = fetchLiteApiHotels(cityKey, checkin, checkout, adultsNum, childrenNum, roomsNum, childAges, liteApiTimeoutMs, placeId || undefined, liteApiCentroid, roomsArr, searchType, 0, searchQuality);
   // RateHawk + DOTW rows are dropped from the response further down — the
   // details endpoint can only route `la_` ids, so clicking one returns
   // "Hotel not found". Fetching them therefore buys the customer nothing but
@@ -2321,7 +2389,7 @@ export async function GET(req: NextRequest) {
       ];
 
       const result = { hotels, city: match.charAt(0).toUpperCase() + match.slice(1), checkin, checkout, adults: adultsNum, children: childrenNum, rooms: roomsNum, liteapiCount: apiHotels.length };
-      after(() => safeKvSet(kvKey, result));
+      after(() => safeKvSet(kvKey, result, searchQuality.degraded ? KV_TTL_DEGRADED : KV_TTL));
       return NextResponse.json(result);
     }
 
@@ -2329,7 +2397,7 @@ export async function GET(req: NextRequest) {
     const apiHotels = geoFilter((await mergeApis()).filter(passesStars));
     if (apiHotels.length > 0) {
       const result = { hotels: apiHotels, city, checkin, checkout, adults: adultsNum, children: childrenNum, rooms: roomsNum, liteapiCount: apiHotels.length };
-      after(() => safeKvSet(kvKey, result));
+      after(() => safeKvSet(kvKey, result, searchQuality.degraded ? KV_TTL_DEGRADED : KV_TTL));
       return NextResponse.json(result);
     }
 
@@ -2372,7 +2440,7 @@ export async function GET(req: NextRequest) {
 
   // Cache in KV — scheduled AFTER the response so the customer who paid for
   // the cold LiteAPI fetch doesn't also wait on the Upstash write.
-  after(() => safeKvSet(kvKey, result));
+  after(() => safeKvSet(kvKey, result, searchQuality.degraded ? KV_TTL_DEGRADED : KV_TTL));
 
   return NextResponse.json(result);
   } catch (err: unknown) {
