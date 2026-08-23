@@ -47,6 +47,15 @@ export async function GET(
         ...(Array.isArray(record.childAges) ? { childAges: record.childAges } : {}),
         rooms: record.rooms ?? 1,
         nights: record.nights,
+        // Taxes/fees the PROPERTY collects at check-in (city tax, VAT, resort
+        // fee). `start-booking` stores this, and the checkout page has always
+        // been ready to render it — it prints the "pay at hotel" line and adds
+        // it into the grand total when `booking.localFees > 0` — but this route
+        // never echoed the field, so it was always undefined and the line never
+        // appeared. The customer therefore reached the Pay button seeing the
+        // room rate alone: for a family of five in Milan that hid £32-£44, a
+        // third or more on top of the price they were about to approve.
+        localFees: record.localFees ?? 0,
         thumbnail: record.thumbnail,
         refundable: typeof record.refundable === 'boolean' ? record.refundable : null,
         cancellationDeadline: record.cancellationDeadline ?? null,

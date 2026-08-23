@@ -2002,7 +2002,15 @@ export default function HotelDetailPage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {similarHotels.map((sh) => {
-                  const similarHref = `/hotels/${encodeURIComponent(String(sh.id))}?checkin=${checkin}&checkout=${checkout}&adults=${adults}&children=${children}&rooms=${rooms}&city=${encodeURIComponent(city)}${sh.totalPrice ? `&price=${sh.totalPrice}` : `&price=${sh.pricePerNight * numNights}`}&currency=${sh.currency || 'GBP'}${sh.offerId ? `&offerId=${sh.offerId}` : ''}${sh.boardType ? `&board=${encodeURIComponent(sh.boardType)}` : ''}${typeof sh.refundable === 'boolean' ? `&refundable=${sh.refundable ? '1' : '0'}` : ''}`;
+                  // Carry the CHILDREN'S AGES and the per-room split too. This
+                  // link passed adults/children/rooms but neither `childrenAges`
+                  // nor `occ`, so following it silently re-aged every child to
+                  // the default 8 and re-split the party from flat counts. A
+                  // family of five (16/14/10) landed on a quote for three
+                  // 8-year-olds — a different price on arrival, and on hotels
+                  // whose family rooms depend on the exact split, no rooms at
+                  // all. Both fields are already what this page was priced with.
+                  const similarHref = `/hotels/${encodeURIComponent(String(sh.id))}?checkin=${checkin}&checkout=${checkout}&adults=${adults}&children=${children}${childrenAges ? `&childrenAges=${encodeURIComponent(childrenAges)}` : ''}${occ ? `&occ=${encodeURIComponent(occ)}` : ''}&rooms=${rooms}&city=${encodeURIComponent(city)}${sh.totalPrice ? `&price=${sh.totalPrice}` : `&price=${sh.pricePerNight * numNights}`}&currency=${sh.currency || 'GBP'}${sh.offerId ? `&offerId=${sh.offerId}` : ''}${sh.boardType ? `&board=${encodeURIComponent(sh.boardType)}` : ''}${typeof sh.refundable === 'boolean' ? `&refundable=${sh.refundable ? '1' : '0'}` : ''}`;
 
                   return (
                     <a

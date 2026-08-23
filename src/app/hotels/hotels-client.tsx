@@ -2774,7 +2774,16 @@ function HotelsContent() {
       // sit deeper in the list. Pull pages 1..N in the background and append —
       // the sort memo re-orders live, so the true cheapest surfaces as they
       // arrive. Guarded by mySeq so a new search cancels this loop.
-      if (data.hasMore !== false && data.cached !== true) {
+      // NB: this deliberately does NOT skip on `data.cached` any more. Page 0 is
+      // cached for 30 minutes, so a customer refining a search — changing dates,
+      // going back, retyping the same city — got the cached first page and then
+      // no deeper pages at all. Rome collapsed from 1,313 hotels to 431, and
+      // because the cheapest properties sit deep in LiteAPI's default order the
+      // cheapest visible price rose from £73.98 to £87.11. The customer was
+      // punished for searching twice. Pages 1..6 have their own per-page KV
+      // entries (`${kvKey}:p${n}`), so refetching them on a cached page-0 is
+      // served from cache too — cheap, and the coverage is worth far more.
+      if (data.hasMore !== false) {
         (async () => {
           setLoadingMore(true);
           const seen = new Set<string | number>((data.hotels || []).map((h: HotelResult) => h.id));
