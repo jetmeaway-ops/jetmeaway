@@ -696,7 +696,13 @@ export default function HotelDetailPage() {
           rooms: parseInt(rooms),
           totalPrice: rate.totalPrice,
           currency,
-          localFees: localFees || 0,
+          // Property-payable taxes for THE ROW THE CUSTOMER CLICKED. `localFees`
+          // is a URL param carried over from the results card, i.e. the tax of
+          // the hotel's CHEAPEST rate — so booking any other row (a bigger room,
+          // a board upgrade) sent checkout a figure belonging to a different
+          // rate entirely. The row we are booking knows its own, so prefer it
+          // and keep the URL value only as a fallback for rows that carry none.
+          localFees: rate.excludedTaxes ?? localFees ?? 0,
           refundable: rate.refundable,
           checkInTime: hotel.checkInTime || null,
           checkOutTime: hotel.checkOutTime || null,
@@ -743,7 +749,11 @@ export default function HotelDetailPage() {
           rooms: parseInt(rooms),
           totalPrice: parseFloat(price),
           currency,
-          localFees: localFees || 0,
+          // Prefer the selected rate's own property-payable taxes over the
+          // results-card `localFees` param, for the same reason as the row-reserve
+          // path above: the URL value belongs to the hotel's cheapest rate, not
+          // necessarily the one being booked.
+          localFees: selectedRate?.excludedTaxes ?? localFees ?? 0,
           ...(refundable !== null ? { refundable } : {}),
           checkInTime: hotel.checkInTime || null,
           checkOutTime: hotel.checkOutTime || null,

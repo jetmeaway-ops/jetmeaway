@@ -150,7 +150,11 @@ export async function GET(req: NextRequest) {
   // cache key must vary on it or a flat-split entry would be served for an
   // occ-split request. (v3 2026-07-08 changed rooms>1 to split-across-rooms;
   // v2 2026-04-21 added cancelDeadline + paymentTypes.)
-  const cacheKey = `hotel-rates:v4:${hotelId}:${checkin}:${checkout}:${adults}:${children}:${childrenAgesRaw}:${rooms}:${occParam}:${currency}`;
+  // v5: `excludedTaxes` now covers ALL rooms in the quote rather than one room,
+  // so it lines up with the row's multi-room `totalPrice`. That is a stored-value
+  // meaning change — v4 entries hold the old per-room figure and would keep
+  // under-stating the tax for multi-room stays until they expired.
+  const cacheKey = `hotel-rates:v5:${hotelId}:${checkin}:${checkout}:${adults}:${children}:${childrenAgesRaw}:${rooms}:${occParam}:${currency}`;
 
   try {
     const cached = await kv.get<CacheShape | { offers: BoardOptionOut[] }>(cacheKey);
