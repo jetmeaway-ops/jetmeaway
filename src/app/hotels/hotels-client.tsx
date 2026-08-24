@@ -919,6 +919,11 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
   const t = useTranslations('hotels');
   const [apiResults, setApiResults] = useState<PlaceResult[]>([]);
   const [searching, setSearching] = useState(false);
+  // "Near me" row state. Geolocation is TAP-INITIATED ONLY — the ambient
+  // auto-fill was deliberately removed 2026-04-27 (owner: "no pre filled and
+  // keep asking again and again for location"); a button the visitor presses
+  // is the opposite of that complaint. Never fire this from an effect.
+  const [nearMe, setNearMe] = useState<'idle' | 'locating' | 'denied' | 'error'>('idle');
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -947,8 +952,54 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
   const handleInput = (v: string) => {
     onChange(v);
     onPlaceSelect(null); // Clear placeId when typing
+    setNearMe('idle'); // typing clears a failed near-me attempt
     setOpen(true);
     fetchPlaces(v);
+  };
+
+  /** "Near me" — browser geolocation → reverse-geocode → fill the search.
+   *  `city=` is schema-required (hotel-schemas.ts), which is why the
+   *  reverse-geocode call is mandatory, not decorative. Coords are kept and
+   *  passed via onPlaceSelect so the backend takes the true LiteAPI
+   *  radius-search path; 3 dp ≈ 110 m keeps street-level precision out of a
+   *  shareable URL. id:'' → selectedPlaceId stays null, which keeps the
+   *  landmark searchType flag off. */
+  const handleNearMe = () => {
+    if (nearMe === 'locating') return;
+    if (!('geolocation' in navigator)) { setNearMe('error'); return; }
+    setNearMe('locating');
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = Number(pos.coords.latitude.toFixed(3));
+        const lng = Number(pos.coords.longitude.toFixed(3));
+        try {
+          const r = await fetch(`/api/hotels/reverse-geocode?lat=${lat}&lng=${lng}`);
+          if (!r.ok) { setNearMe('error'); return; }
+          const j = await r.json();
+          const label = j.city || j.displayName || '';
+          if (!label) { setNearMe('error'); return; }
+          onChange(label);
+          onPlaceSelect({
+            id: '',
+            name: label,
+            description: t('nearMeHint'),
+            type: 'locality',
+            lat,
+            lng,
+            radiusKm: 25,
+          });
+          setNearMe('idle');
+          setOpen(false);
+          setApiResults([]);
+          setSearching(false);
+        } catch { setNearMe('error'); }
+      },
+      (err) => setNearMe(err.code === 1 ? 'denied' : 'error'),
+      // Same options as the removed 2026-04-27 handler (commit 59855d23):
+      // coarse fix is fine for a 25 km hotel search, 1h cache avoids
+      // re-prompting the hardware on every tap.
+      { enableHighAccuracy: false, timeout: 6_000, maximumAge: 3_600_000 },
+    );
   };
 
   const q = value.toLowerCase().trim();
@@ -996,6 +1047,33 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
       </div>
       {open && (
         <ul className="absolute z-50 w-full mt-1.5 bg-white border border-[#E8ECF4] rounded-2xl shadow-2xl overflow-auto max-h-72">
+          {/* "Near me" — always the first row while the dropdown is open,
+              visible before typing. Blue accent distinguishes it from the
+              orange landmark rows. Errors render INLINE in the sublabel (no
+              alert(), dropdown stays open, typing still works). */}
+          <li
+            onMouseDown={(e) => { e.preventDefault(); handleNearMe(); }}
+            className="px-4 py-3 hover:bg-blue-50 cursor-pointer transition-colors border-b border-[#F1F3F7] flex items-center gap-3 bg-blue-50/40"
+          >
+            {nearMe === 'locating' ? (
+              <span className="w-5 flex-shrink-0 flex justify-center">
+                <span className="w-4 h-4 border-2 border-[#0066FF] border-t-transparent rounded-full animate-spin" />
+              </span>
+            ) : (
+              <i className="fa-solid fa-location-crosshairs text-[.85rem] text-[#0066FF] w-5 text-center flex-shrink-0" />
+            )}
+            <div className="min-w-0 flex-1">
+              <span className="font-poppins font-bold text-[.85rem] text-[#1A1D2B] block truncate">{t('nearMe')}</span>
+              <span className={`text-[.68rem] font-semibold block truncate ${
+                nearMe === 'denied' || nearMe === 'error' ? 'text-rose-600' : 'text-[#8E95A9]'
+              }`}>
+                {nearMe === 'locating' ? t('nearMeLocating')
+                  : nearMe === 'denied' ? t('nearMeDenied')
+                  : nearMe === 'error' ? t('nearMeError')
+                  : t('nearMeHint')}
+              </span>
+            </div>
+          </li>
           {/* Curated landmark aliases — surface synthetic suggestions for famous spots
               like Durdle Door that LiteAPI can't search directly */}
           {q.length >= 2 && LANDMARK_ALIASES.filter(l => l.match.test(q)).map(l => (
@@ -2651,7 +2729,16 @@ function HotelsContent() {
       // instead of falling to Nominatim with the landmark name.
       // Case-insensitivity comes from the alias regex /i flag.
       const trimmedDest = destination.trim();
-      const landmarkMatch = LANDMARK_ALIASES.find((l) => l.match.test(trimmedDest));
+      // Coords WITHOUT a placeId = the pick came from "Near me" (landmark
+      // clicks and place picks both set selectedPlaceId). Skip the typed-
+      // landmark fallback entirely for near-me searches: a reverse-geocoded
+      // city that happens to match an alias regex must not be rewritten to
+      // the alias's searchAs city or flagged searchType=landmark. Curated
+      // landmark clicks still rely on the rewrite, so the guard is exactly
+      // coords-without-id, never coords alone.
+      const landmarkMatch = selectedPlaceCoords && !selectedPlaceId
+        ? undefined
+        : LANDMARK_ALIASES.find((l) => l.match.test(trimmedDest));
       const searchCity =
         landmarkMatch && trimmedDest.toLowerCase() !== landmarkMatch.searchAs.toLowerCase()
           ? landmarkMatch.searchAs

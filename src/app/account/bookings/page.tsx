@@ -68,15 +68,24 @@ export default async function AccountBookingsPage() {
               {email}
             </h1>
           </div>
-          <form action="/api/account/signout" method="POST">
-            <button
-              type="submit"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#E8ECF4] bg-white hover:bg-[#FCFAF5] text-[#0a1628] font-poppins font-bold text-[.78rem] transition-colors"
+          <div className="flex items-center gap-2">
+            <a
+              href="/account/favourites"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#E8ECF4] bg-white hover:bg-rose-50 hover:border-rose-200 text-[#0a1628] font-poppins font-bold text-[.78rem] transition-colors"
             >
-              <i className="fa-solid fa-arrow-right-from-bracket text-[.7rem]" />
-              Sign out
-            </button>
-          </form>
+              <i className="fa-solid fa-heart text-[.7rem] text-rose-500" />
+              Saved hotels
+            </a>
+            <form action="/api/account/signout" method="POST">
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#E8ECF4] bg-white hover:bg-[#FCFAF5] text-[#0a1628] font-poppins font-bold text-[.78rem] transition-colors"
+              >
+                <i className="fa-solid fa-arrow-right-from-bracket text-[.7rem]" />
+                Sign out
+              </button>
+            </form>
+          </div>
         </div>
 
         {/* Empty state — no bookings on this email yet */}

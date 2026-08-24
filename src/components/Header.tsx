@@ -7,6 +7,27 @@ import { usePathname } from 'next/navigation';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useLocale, useTranslations } from 'next-intl';
 import { blogHref } from '@/i18n/config';
+import { peekFavourites, subscribeFavourites } from '@/lib/favourites';
+
+/** Live count of saved hotels for the header heart. Reads localStorage only
+ *  (peek + subscription) — deliberately NEVER calls loadFavourites(), which
+ *  would add an /api/account/me round-trip to every page view. Accurate for
+ *  signed-out visitors natively, and for signed-in ones via the device
+ *  mirror that toggleFavourite/loadFavourites now maintain. Rendered in an
+ *  effect, not an initializer, to avoid an SSR hydration mismatch. */
+function SavedCount() {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    setCount(peekFavourites().length);
+    return subscribeFavourites((list) => setCount(list.length));
+  }, []);
+  if (count === 0) return null;
+  return (
+    <span className="inline-flex items-center justify-center min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-rose-500 text-white text-[.6rem] font-black leading-none">
+      {count > 99 ? '99+' : count}
+    </span>
+  );
+}
 
 /**
  * Main category nav — shown on desktop and in the mobile sticky bar.
@@ -234,6 +255,22 @@ export default function Header() {
               </svg>
               GBP
             </span>
+            {/* Saved hotels — the favourites page existed since PR#110 but had
+                ZERO inbound links; hearts collected hotels nobody could find
+                again (owner report 2026-08-24). Desktop pill + count badge. */}
+            <Link
+              href="/account/favourites"
+              className={`hidden md:inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl font-bold text-[.76rem] transition-all ${
+                isActive('/account/favourites')
+                  ? 'bg-rose-50 border border-rose-200 text-rose-600'
+                  : 'border border-[#E8ECF4] text-[#0a1628] hover:bg-rose-50 hover:border-rose-200'
+              }`}
+              aria-label={t('nav.savedHotels')}
+            >
+              <i className="fa-solid fa-heart text-[.78rem] text-rose-500" />
+              {t('nav.saved')}
+              <SavedCount />
+            </Link>
             {/* My Trips — always visible; /account redirects to the bookings
                 list when signed in, otherwise shows the sign-in form. */}
             <Link
@@ -253,6 +290,18 @@ export default function Header() {
               className="hidden md:inline-flex bg-[#0066FF] text-white px-4 py-2.5 rounded-xl font-poppins font-bold text-[.78rem] transition-all hover:bg-[#0052CC] shadow-[0_4px_16px_rgba(0,102,255,0.25)]"
             >
               {t('nav.contact')}
+            </Link>
+            {/* Saved hotels — mobile: icon-only heart, one tap from any page
+                (the drawer row below is the labelled fallback). */}
+            <Link
+              href="/account/favourites"
+              className="md:hidden relative inline-flex items-center justify-center w-9 h-9 rounded-xl border border-[#E8ECF4] text-rose-500 hover:bg-rose-50"
+              aria-label={t('nav.savedHotels')}
+            >
+              <i className="fa-solid fa-heart text-[.85rem]" />
+              <span className="absolute -top-1 -right-1">
+                <SavedCount />
+              </span>
             </Link>
             {/* Hamburger */}
             <button
@@ -371,6 +420,16 @@ export default function Header() {
           >
             <span className="text-lg w-6 text-center">🧳</span>
             {t('nav.myTrips')}
+          </Link>
+          <Link
+            href="/account/favourites"
+            onClick={() => setMobileOpen(false)}
+            className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold text-[.9rem] transition-all ${
+              isActive('/account/favourites') ? 'bg-rose-50 text-rose-600' : 'text-[#1A1D2B] hover:bg-rose-50 hover:text-rose-600'
+            }`}
+          >
+            <span className="text-lg w-6 text-center">🤍</span>
+            {t('nav.saved')}
           </Link>
         </div>
 
