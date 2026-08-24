@@ -24,6 +24,10 @@ export async function GET(
 
   // Strip the `la_` prefix added by /api/hotels search results
   const hotelId = rawId.startsWith('la_') ? rawId.slice(3) : rawId;
+  // v7 — bumped 2026-08-24: rooms[].beds was null for every supplier that
+  // keys bed entries as `bedType` instead of `name` (the common live shape),
+  // and `hotelTypeId` (drives the "Entire apartment" chip) is now included.
+  // v6 entries would hide both for up to the full 24h TTL.
   // v6 — bumped 2026-08-13 so cached entries re-fetch with the corrected
   // room-photo mapping: LiteAPI returns the high-res room image as snake_case
   // `hd_url` (we only read camelCase `urlHd`, which exists on hotelImages[]
@@ -34,7 +38,7 @@ export async function GET(
   // labels like "(Room Only)"). v4 entries used the weaker cleaner that
   // broke the rates → details room-name key match, which is why per-room
   // thumbnails stopped showing on some hotels.
-  const kvKey = `hotel-details:v6:${hotelId}`;
+  const kvKey = `hotel-details:v7:${hotelId}`;
 
   try {
     const cached = await kv.get(kvKey);

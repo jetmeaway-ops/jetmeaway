@@ -28,16 +28,30 @@
  * contained within it. Measured 14.3% → 73.4% on the same sample.
  */
 
-/** Generic words that carry no room identity and would create false matches. */
+/** Generic words that carry no room identity and would create false matches.
+ *
+ *  2026-08-24: 'bedroom'/'bedrooms' and the digits 1-4 are deliberately NOT
+ *  stopped any more. They are exactly the tokens that distinguish apartment
+ *  categories — with them stopped, "Superior Apartment, 1 Bedroom, Balcony"
+ *  and a "2 Bedroom" variant tokenized identically, so the matcher literally
+ *  could not tell a one-bed from a four-bed unit and pinned a bogus
+ *  "Sleeps 2" chip on family apartments (live case: lp6870b carries both a
+ *  maxOcc-4 and a maxOcc-2 room BOTH named "One-Bedroom Apartment"). 'bed'/
+ *  'beds' stay stopped — genuinely generic. */
 const STOP = new Set([
-  'room', 'rooms', 'bed', 'beds', 'bedroom', 'bedrooms',
+  'room', 'rooms', 'bed', 'beds',
   'with', 'and', 'or', 'the', 'a', 'an', 'in', 'of', 'for',
   'free', 'wifi', 'wi', 'fi',
   'subject', 'availability', 'type', 'is', 'to', 'size',
   'full', 'non', 'smoking', 'guests', 'guest',
-  '1', '2', '3', '4',
   'includes', 'include', 'breakfast', 'only', 'board', 'inclusive', 'all', 'half',
 ]);
+
+/** Number-words → digits, so "Two-Bedroom Apartment" (rates endpoint) and
+ *  "Apartment, 2 Bedrooms" (catalogue) normalise to the same tokens. */
+const NUMBER_WORDS: Record<string, string> = {
+  one: '1', two: '2', three: '3', four: '4', five: '5',
+};
 
 /** Lowercase, drop parenthetical asides, split to meaningful tokens. */
 export function roomNameTokens(s: string): string[] {
@@ -46,7 +60,20 @@ export function roomNameTokens(s: string): string[] {
     .replace(/\([^)]*\)/g, ' ') // "(full double bed)", "(bed type is subject to availability)"
     .replace(/[^a-z0-9]+/g, ' ')
     .split(' ')
+    .map((w) => NUMBER_WORDS[w] ?? (w === 'bedrooms' ? 'bedroom' : w))
     .filter((w) => w && !STOP.has(w));
+}
+
+/** Extract a stated bedroom count from a RAW name ("Two-Bedroom Apartment",
+ *  "Apartment (2 bedrooms)"). Runs on the raw string — before parenthetical
+ *  stripping — so a count stated only in parens still counts. Null when the
+ *  name doesn't state one. */
+function bedroomCount(raw: string): number | null {
+  const m = raw.toLowerCase().match(/\b(\d{1,2}|one|two|three|four|five)[-\s]?bedrooms?\b/);
+  if (!m) return null;
+  const n = NUMBER_WORDS[m[1]] ?? m[1];
+  const num = parseInt(n, 10);
+  return Number.isFinite(num) && num > 0 ? num : null;
 }
 
 /** Minimum blended score before we accept a fuzzy match. */
@@ -63,11 +90,19 @@ export function bestRoomMatch<T extends { name: string }>(
 ): T | null {
   const rateTokens = new Set(roomNameTokens(rateName));
   if (rateTokens.size === 0) return null;
+  const rateBedrooms = bedroomCount(rateName);
 
   let best: T | null = null;
   let bestScore = 0;
 
   for (const room of rooms) {
+    // Bedroom-count agreement: when BOTH names state a count and they differ,
+    // this is a different unit — hard reject, whatever the tokens say. When
+    // only one side states it, no constraint (many suppliers omit it, and
+    // nuking those matches would cost far more than it saves).
+    const roomBedrooms = bedroomCount(room.name);
+    if (rateBedrooms != null && roomBedrooms != null && rateBedrooms !== roomBedrooms) continue;
+
     const roomTokens = new Set(roomNameTokens(room.name));
     if (roomTokens.size === 0) continue;
 
@@ -82,6 +117,13 @@ export function bestRoomMatch<T extends { name: string }>(
     // Tie-break toward the room that explains more of the rate name, so
     // "Classic Room" beats a bare "Room" for "classic room(1 king bed)".
     const precision = intersection / rateTokens.size;
+
+    // A one-token catalogue name ("Apartment") is 100%-contained in EVERY
+    // apartment rate name, however specific — it used to swallow long rate
+    // names and pin its own (often tiny) maxOccupancy on them. Require the
+    // single token to explain at least half the rate name before it may win.
+    if (roomTokens.size < 2 && precision < 0.5) continue;
+
     const score = containment * 0.75 + precision * 0.25;
 
     if (score > bestScore) {
@@ -90,6 +132,9 @@ export function bestRoomMatch<T extends { name: string }>(
     }
   }
 
+  // A wrong match is worse than no match: rows without one fall back to the
+  // rate's own maxOccupancy chip (threaded from /hotels/rates), so a null here
+  // no longer renders a bare row.
   return bestScore >= SCORE_FLOOR ? best : null;
 }
 

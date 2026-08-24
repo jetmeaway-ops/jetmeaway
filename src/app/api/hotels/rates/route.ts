@@ -68,6 +68,10 @@ type BoardOptionOut = {
   /** v2-plan step-3: supported payment methods (e.g. ["PAY_AT_HOTEL"]).
    *  Used to render the Pay-at-hotel chip — null/empty hides it. */
   paymentTypes?: string[] | null;
+  /** Sleeping capacity this row was priced for — per-rate figure from
+   *  /hotels/rates, whole-booking on multi-room quotes. Null when the
+   *  supplier omitted it. Authoritative (unlike the catalogue's ceiling). */
+  maxOccupancy?: number | null;
   /** LiteAPI commission — our merchant margin on the booking, in the offer's
    *  currency. LiteAPI only reports a single commission figure per hotel,
    *  not per-boardOption, so every row in this array carries the same value
@@ -146,6 +150,18 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  // Echo of the occupancy this request was PRICED for — the client renders
+  // "Price for X adults + Y children" from this, never from its own URL
+  // params: `occ=` overrides them, missing child ages get padded, and rooms
+  // get clamped, so the URL can disagree with what was actually priced (that
+  // exact drift was the 2026-08-23 £194.86-for-a-couple bug). Derived from
+  // the request, deliberately NOT stored in KV.
+  const party = {
+    adults: occupancy.reduce((s, r) => s + r.adults, 0),
+    children: occupancy.reduce((s, r) => s + (r.children?.length || 0), 0),
+    rooms: occupancy.length,
+  };
+
   // v4: bumped 2026-08-16 — `occ=` per-room occupancy now honoured, so the
   // cache key must vary on it or a flat-split entry would be served for an
   // occ-split request. (v3 2026-07-08 changed rooms>1 to split-across-rooms;
@@ -154,7 +170,9 @@ export async function GET(req: NextRequest) {
   // so it lines up with the row's multi-room `totalPrice`. That is a stored-value
   // meaning change — v4 entries hold the old per-room figure and would keep
   // under-stating the tax for multi-room stays until they expired.
-  const cacheKey = `hotel-rates:v5:${hotelId}:${checkin}:${checkout}:${adults}:${children}:${childrenAgesRaw}:${rooms}:${occParam}:${currency}`;
+  // v6: offers now carry per-rate `maxOccupancy` (2026-08-24). v5 entries
+  // lack the field, which would render bare "Sleeps" chips for their full TTL.
+  const cacheKey = `hotel-rates:v6:${hotelId}:${checkin}:${checkout}:${adults}:${children}:${childrenAgesRaw}:${rooms}:${occParam}:${currency}`;
 
   try {
     const cached = await kv.get<CacheShape | { offers: BoardOptionOut[] }>(cacheKey);
@@ -172,7 +190,7 @@ export async function GET(req: NextRequest) {
       }
 
       return NextResponse.json(
-        { success: true, offers: cached.offers, currency, cached: true, stale: ageSec >= REFRESH_THRESHOLD },
+        { success: true, offers: cached.offers, currency, party, cached: true, stale: ageSec >= REFRESH_THRESHOLD },
         { headers: SWR_HEADERS },
       );
     }
@@ -182,7 +200,7 @@ export async function GET(req: NextRequest) {
     const offers = await fetchAndCacheRates({ hotelId, checkin, checkout, occupancy, currency, cacheKey });
     // `currency` is reported so callers never have to infer it from a URL param
     // — that guesswork is what produced "INR 412.50" over a sterling amount.
-    return NextResponse.json({ success: true, offers, currency }, { headers: SWR_HEADERS });
+    return NextResponse.json({ success: true, offers, currency, party }, { headers: SWR_HEADERS });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'LiteAPI rates lookup failed';
     return NextResponse.json({ success: false, error: msg }, { status: 502 });
@@ -242,6 +260,7 @@ async function fetchAndCacheRates(args: FetchArgs): Promise<BoardOptionOut[]> {
         excludedTaxes: o.excludedTaxes ?? null,
         cancelDeadline: o.cancelDeadline ?? null,
         paymentTypes: o.paymentTypes ?? null,
+        maxOccupancy: o.maxOccupancy ?? null,
         commission: scaledCommission(o.totalPrice),
       }))
     : [{
@@ -257,6 +276,8 @@ async function fetchAndCacheRates(args: FetchArgs): Promise<BoardOptionOut[]> {
         excludedTaxes: match.excludedTaxes ?? null,
         cancelDeadline: match.cancellationDeadline ?? null,
         paymentTypes: null,
+        // Synthesised single-rate fallback has no per-rate data to read from.
+        maxOccupancy: null,
         commission: baseCommission,
       }];
 

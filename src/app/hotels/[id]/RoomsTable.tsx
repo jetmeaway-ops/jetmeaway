@@ -92,6 +92,12 @@ export type RoomRate = {
   /** v2-plan step-3: supported payment methods. When the list includes
    *  `PAY_AT_HOTEL` we render an emerald chip saying so; otherwise silent. */
   paymentTypes?: string[] | null;
+  /** Sleeping capacity this rate was priced for — per-rate figure from
+   *  /hotels/rates, whole-booking on multi-room quotes. AUTHORITATIVE:
+   *  preferred over the catalogue's name-matched ceiling, so the "Sleeps N"
+   *  chip renders even when the catalogue match misses (the owner's blank
+   *  £451 apartment row) and never lies when it mismatches. */
+  maxOccupancy?: number | null;
   /** LiteAPI commission — our merchant margin for this row (scaled pro-rata
    *  from the hotel-level commission reported by LiteAPI). Not displayed in
    *  the UI; forwarded to /api/hotels/start-booking so the admin unified
@@ -202,6 +208,8 @@ function RateRow({
   isSelected,
   roomMeta,
   fallbackPhoto,
+  party,
+  unitLabel,
   onSelect,
   onReserve,
   onShowDetails,
@@ -220,6 +228,12 @@ function RateRow({
   roomMeta: RoomMetaInput | null;
   /** Hotel-level fallback thumbnail when roomMeta lookup misses. */
   fallbackPhoto?: string | null;
+  /** The occupancy this quote was PRICED for (server echo, never URL params).
+   *  Renders "Price for 2 adults + 3 children" on every row — the one line
+   *  that is always available and always true. Null hides the line. */
+  party?: { adults: number; children: number; rooms: number } | null;
+  /** Pre-translated property-unit pill ("Entire apartment"). Null hides it. */
+  unitLabel?: string | null;
   onSelect: () => void;
   onReserve: () => void;
   onShowDetails?: () => void;
@@ -292,21 +306,32 @@ function RateRow({
             </div>
           )}
 
-          {/* Phase-4: spec chips — size / beds / occupancy. Each chip is a
-              small, quiet pill — never shouting, always legible. */}
-          {(roomMeta?.sizeSqm || roomMeta?.beds || roomMeta?.maxOccupancy) && (
-            <div className="mt-2.5 flex flex-wrap gap-1.5">
-              {roomMeta.sizeSqm && (
-                <SpecPill icon="fa-up-right-and-down-left-from-center" label={`${roomMeta.sizeSqm} m²`} />
-              )}
-              {roomMeta.beds && (
-                <SpecPill icon="fa-bed" label={truncate(roomMeta.beds, 32)} />
-              )}
-              {roomMeta.maxOccupancy && (
-                <SpecPill icon="fa-user-group" label={t('sleeps', { n: roomMeta.maxOccupancy })} />
-              )}
-            </div>
-          )}
+          {/* Phase-4: spec chips — unit / size / beds / occupancy. Each chip is
+              a small, quiet pill — never shouting, always legible.
+              Sleeps is RATE-FIRST: the per-rate maxOccupancy is what this
+              offer was actually priced/capped for, so it renders even when the
+              catalogue name-match misses (the rows that used to be bare) and
+              overrides the catalogue when the match picked the wrong room. */}
+          {(() => {
+            const sleeps = rate.maxOccupancy ?? roomMeta?.maxOccupancy ?? null;
+            if (!(unitLabel || roomMeta?.sizeSqm || roomMeta?.beds || sleeps)) return null;
+            return (
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                {unitLabel && (
+                  <SpecPill icon="fa-house" label={unitLabel} />
+                )}
+                {roomMeta?.sizeSqm && (
+                  <SpecPill icon="fa-up-right-and-down-left-from-center" label={`${roomMeta.sizeSqm} m²`} />
+                )}
+                {roomMeta?.beds && (
+                  <SpecPill icon="fa-bed" label={truncate(roomMeta.beds, 32)} />
+                )}
+                {sleeps && (
+                  <SpecPill icon="fa-user-group" label={t('sleeps', { n: sleeps })} />
+                )}
+              </div>
+            );
+          })()}
 
           {/* Phase-4: top-3 in-room amenity highlights */}
           {roomHighlights.length > 0 && (
@@ -395,6 +420,16 @@ function RateRow({
               + {fmtGBP(rate.excludedTaxes)} {t('cityTaxPayable')}
             </div>
           )}
+          {/* The one line that is ALWAYS available and always true: who this
+              price is for — straight from the server's occupancy echo, so it
+              cannot drift from what was actually priced. Booking.com prints
+              "3 nights, 2 adults, 3 children" on every card for the same
+              reason: it kills the "is this for all of us?" doubt. */}
+          {party && (
+            <div className="text-[.68rem] font-semibold text-slate-600 mt-0.5">
+              {t('pricedForParty', { adults: party.adults, children: party.children, rooms: party.rooms })}
+            </div>
+          )}
           {rate.negotiatedPrice != null && rate.marketPrice != null && rate.negotiatedPrice < rate.marketPrice && (
             <div className="text-[.68rem] font-bold text-emerald-600 mt-1">
               {t('youSave')} {fmtGBP(rate.marketPrice - rate.negotiatedPrice)}
@@ -430,6 +465,8 @@ export default function RoomsTable({
   selectedOfferId,
   resolveRoomMeta,
   fallbackPhoto,
+  party,
+  unitLabel,
   onSelect,
   onReserve,
   onShowDetails,
@@ -453,6 +490,10 @@ export default function RoomsTable({
    *  /data/hotel rooms, so the lookup silently misses on most hotels and
    *  we end up with photo-less rows. A hotel photo is better than none. */
   fallbackPhoto?: string | null;
+  /** Server-echoed occupancy this quote was priced for (see RateRow). */
+  party?: { adults: number; children: number; rooms: number } | null;
+  /** Pre-translated property-unit pill ("Entire apartment"). */
+  unitLabel?: string | null;
   onSelect: (offerId: string) => void;
   onReserve: (offerId: string) => void;
   /** Phase-4: open the room detail modal for a given offerId. Page owns the
@@ -489,6 +530,8 @@ export default function RoomsTable({
               roomName={roomName || ''}
               roomMeta={meta}
               fallbackPhoto={fallbackPhoto ?? null}
+              party={party ?? null}
+              unitLabel={unitLabel ?? null}
               isSelected={rate.offerId === selectedOfferId}
               onSelect={() => onSelect(rate.offerId)}
               onReserve={() => onReserve(rate.offerId)}

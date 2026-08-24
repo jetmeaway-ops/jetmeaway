@@ -77,6 +77,10 @@ interface HotelDetails {
   amenities: string[];
   checkInTime: string | null;
   checkOutTime: string | null;
+  /** LiteAPI property-type code (201 = Apartments …). Drives the
+   *  "Entire apartment" pill on rate rows. Optional — cached v6 details
+   *  entries (expire within 24h) don't carry it. */
+  hotelTypeId?: number | null;
   policies?: HotelPolicy[];
   rooms?: RoomMeta[];
   /** BACKLOG B2: aggregate score + most-recent reviews. Optional on the
@@ -493,6 +497,11 @@ export default function HotelDetailPage() {
      manual button. One attempt per (hotel × dates × party) so manually
      stepping rooms back down to 1 doesn't fight the automation. */
   const autoSplitKey = useRef<string | null>(null);
+  // The occupancy the CURRENT rate table was priced for — the server's echo,
+  // never our own URL params (occ= overrides them, missing child ages get
+  // padded, rooms get clamped, so the URL can lie about what was priced).
+  // Drives the "Price for 2 adults + 3 children" line on every rate row.
+  const [ratesParty, setRatesParty] = useState<{ adults: number; children: number; rooms: number } | null>(null);
 
   /* Fetch the full rate table for this hotel. We pass the exact same
      search-context params as the results page used so the prices here
@@ -545,6 +554,11 @@ export default function HotelDetailPage() {
             }
           }
           setRates(list);
+          setRatesParty(
+            data.party && typeof data.party.adults === 'number'
+              ? { adults: data.party.adults, children: data.party.children ?? 0, rooms: data.party.rooms ?? 1 }
+              : null,
+          );
           // Pre-select whichever row matches the offerId the user clicked
           // on the search results page — landing state already reflects
           // the card they came from.
@@ -552,6 +566,7 @@ export default function HotelDetailPage() {
           setSelectedRate(pre);
         } else {
           setRates([]);
+          setRatesParty(null);
         }
       } catch {
         if (!cancelled) setRates([]);
@@ -648,6 +663,22 @@ export default function HotelDetailPage() {
       </div>
     );
   };
+
+  /* "Entire place" property types (LITEAPI_HOTEL_TYPES): the whole unit is
+     yours — the single highest-signal fact for apartment-class properties.
+     A hotel room and a whole apartment at the same price are different
+     products; Booking.com leads every apartment card with this pill.
+     201 Apartments / 219 Aparthotels / 229 Condos → apartment;
+     213 Villas → villa; 220 Holiday homes / 230 Cottages / 250 Private
+     vacation homes → home. Anything else (hotels) shows no pill. */
+  const ENTIRE_PLACE: Record<number, string> = {
+    201: 'entireApartment', 219: 'entireApartment', 229: 'entireApartment',
+    213: 'entireVilla',
+    220: 'entireHome', 230: 'entireHome', 250: 'entireHome',
+  };
+  const unitLabel = hotel?.hotelTypeId != null && ENTIRE_PLACE[hotel.hotelTypeId]
+    ? t(ENTIRE_PLACE[hotel.hotelTypeId])
+    : null;
 
   /* Row click — updates the selected rate and triggers the sidebar
      "breathe" (1.00 → 1.02 → 1.00 over 180ms ease-out). `will-change-
@@ -1271,6 +1302,8 @@ export default function HotelDetailPage() {
                   offers={rates}
                   nights={numNights || 1}
                   rooms={Math.max(1, parseInt(rooms) || 1)}
+                  party={ratesParty}
+                  unitLabel={unitLabel}
                   selectedOfferId={selectedRate?.offerId || null}
                   resolveRoomMeta={resolveRoomMeta}
                   fallbackPhoto={hotel.mainPhoto || hotel.photos[0] || null}
