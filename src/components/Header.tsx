@@ -292,16 +292,20 @@ export default function Header() {
               {t('nav.contact')}
             </Link>
             {/* Saved hotels — mobile: icon-only heart, one tap from any page
-                (the drawer row below is the labelled fallback). */}
+                (the drawer row below is the labelled fallback). Styled as an
+                EXACT twin of the LanguageSwitcher globe beside it — same
+                padding, radius, bg and border — so the pair reads as one
+                family and never overflows the header pill (the first cut used
+                its own boxed style + an absolute badge and stuck out past the
+                pill's rounded corner — owner screenshot 2026-08-24). Count
+                renders inline, and SavedCount is null at zero. */}
             <Link
               href="/account/favourites"
-              className="md:hidden relative inline-flex items-center justify-center w-9 h-9 rounded-xl border border-[#E8ECF4] text-rose-500 hover:bg-rose-50"
+              className="md:hidden inline-flex items-center gap-1 px-2.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-rose-500 hover:bg-white transition-colors"
               aria-label={t('nav.savedHotels')}
             >
-              <i className="fa-solid fa-heart text-[.85rem]" />
-              <span className="absolute -top-1 -right-1">
-                <SavedCount />
-              </span>
+              <i className="fa-solid fa-heart text-[.8rem]" />
+              <SavedCount />
             </Link>
             {/* Hamburger */}
             <button
