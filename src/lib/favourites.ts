@@ -117,23 +117,36 @@ export async function loadFavourites(): Promise<Favourite[]> {
   }
 
   try {
-    if (local.length > 0) {
-      const res = await fetch('/api/account/favourites', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ merge: local }),
-      });
-      // Only drop the local copy once the server has definitely taken it.
-      if (res.ok) writeLocal([]);
-    }
+    // GET first, then push up only the local entries the account doesn't have.
+    // The old order — POST a merge whenever local was non-empty, then clear
+    // local — meant that once the device mirror (below) exists, EVERY page
+    // load with hearts on it would fire a redundant merge POST. Reading first
+    // makes the merge a rare catch-up, not a hot-path write.
     const res = await fetch('/api/account/favourites', { credentials: 'include' });
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data?.items)) {
-        cache = data.items as Favourite[];
-        emit();
+      const account: Favourite[] = Array.isArray(data?.items) ? (data.items as Favourite[]) : [];
+      const missing = local.filter((l) => !account.some((a) => a.hotelId === l.hotelId));
+      if (missing.length > 0) {
+        const post = await fetch('/api/account/favourites', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ merge: missing }),
+        });
+        // Merge is idempotent and account entries win (see the route), so the
+        // client-side union mirrors what a re-GET would return.
+        cache = post.ok
+          ? [...missing, ...account].sort((a, b) => b.createdAt - a.createdAt).slice(0, MAX)
+          : account;
+      } else {
+        cache = account;
       }
+      // Device mirror — the signed-in list survives sign-out/offline, and it
+      // is what makes the header count instant on the next visit. This write
+      // replaces the old "clear local after merge" behaviour.
+      writeLocal(cache);
+      emit();
     }
   } catch {
     /* offline — keep serving whatever we already have */
@@ -161,23 +174,29 @@ export async function toggleFavourite(fav: Favourite): Promise<boolean> {
   }
 
   try {
-    if (exists) {
-      await fetch(`/api/account/favourites?hotelId=${encodeURIComponent(fav.hotelId)}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-    } else {
-      await fetch('/api/account/favourites', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(fav),
-      });
-    }
+    // Capture the response: `fetch` resolves normally on 400/401, so the old
+    // fire-and-forget left the heart filled while NOTHING was written anywhere
+    // — a session that expired inside its 30-day window silently ate saves.
+    const res = exists
+      ? await fetch(`/api/account/favourites?hotelId=${encodeURIComponent(fav.hotelId)}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        })
+      : await fetch('/api/account/favourites', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(fav),
+        });
+    // Session expired mid-visit — flip the cached flag so future toggles go
+    // straight to the local store instead of bouncing off 401s.
+    if (res.status === 401) signedIn = false;
   } catch {
-    // Network failed — keep it on the device so the save isn't lost, and the
-    // next loadFavourites() merge will push it up.
-    writeLocal(next);
+    /* network failed — the unconditional mirror below keeps the save */
   }
+  // ALWAYS mirror to the device: on success it is the local mirror (instant
+  // header count next visit), on any failure it is the fallback that stops
+  // the save vanishing — the next loadFavourites() pushes it up as `merge`.
+  writeLocal(next);
   return !exists;
 }
