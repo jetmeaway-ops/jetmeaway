@@ -16,6 +16,7 @@ import { createRoomResolver } from '@/lib/room-match';
 import { vibeTagsForSearchedCity } from '@/data/destinations';
 import { NEW_TAB_PARAM } from '@/lib/new-tab';
 import { currencyPrefix, normaliseDisplayCurrency } from '@/lib/pricing-currency';
+import { MAX_ROOMS, MAX_GUESTS_TOTAL, MAX_ADULTS_PER_ROOM, MAX_CHILDREN_PER_ROOM } from '@/lib/occupancy';
 import FavouriteButton from '@/components/FavouriteButton';
 import { useTranslations } from 'next-intl';
 
@@ -568,9 +569,21 @@ export default function HotelDetailPage() {
      hotel details just to find where to change the party (owner report
      2026-07-14; ~90% of traffic is mobile). Plain function, no hooks. */
   const renderOccupancyPicker = () => {
-    const adultsN = Math.max(1, Math.min(6, parseInt(adults) || 2));
-    const childCount = Math.max(0, Math.min(4, parseInt(children) || 0));
-    const roomsN = Math.max(1, Math.min(3, parseInt(rooms) || 1));
+    // Caps mirror the SHARED occupancy laws in src/lib/occupancy.ts — the same
+    // clamps the pricing layer applies (decodeLegacy/clampRooms). The sidebar
+    // used to allow 6 adults in 1 room and cap rooms at 3, while the server
+    // priced at most 4 adults per room and supports 5 rooms (LiteAPI itself
+    // accepts 9+ rooms per request — verified live 2026-08-24). Any gap between
+    // what the picker shows and what actually gets priced is a silent lie, and
+    // a visitor arriving with rooms=4 in the URL saw "3" here while being
+    // priced for 4 — so the two sides must move together, from one source.
+    const roomsN = Math.max(1, Math.min(MAX_ROOMS, parseInt(rooms) || 1));
+    const childCount = Math.max(0, Math.min(MAX_CHILDREN_PER_ROOM, parseInt(children) || 0));
+    // Adults ceiling: per-room law (4 × rooms) AND the party-total law (9 incl.
+    // children). More rooms ⇒ more adults allowed, exactly like the server.
+    const adultsMax = Math.min(MAX_GUESTS_TOTAL - childCount, MAX_ADULTS_PER_ROOM * roomsN);
+    const adultsN = Math.max(1, Math.min(adultsMax, parseInt(adults) || 2));
+    const childrenMax = Math.min(MAX_CHILDREN_PER_ROOM, MAX_GUESTS_TOTAL - adultsN);
     const agesFromParam = (childrenAges || '').split(',').map(Number).filter((n) => Number.isFinite(n) && n >= 0 && n <= 17);
     const ages = Array.from({ length: childCount }, (_, i) => agesFromParam[i] ?? 7);
     const stepBtn = 'w-8 h-8 rounded-full border border-[#E8ECF4] bg-[#F8FAFC] hover:bg-white text-[#1A1D2B] font-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors';
@@ -582,7 +595,7 @@ export default function HotelDetailPage() {
             <button type="button" aria-label={t('fewerAdults')} className={stepBtn} disabled={adultsN <= 1}
               onClick={() => updateOccupancy(adultsN - 1, ages)}>−</button>
             <span className="w-5 text-center font-black text-[#1A1D2B]">{adultsN}</span>
-            <button type="button" aria-label={t('moreAdults')} className={stepBtn} disabled={adultsN >= 6}
+            <button type="button" aria-label={t('moreAdults')} className={stepBtn} disabled={adultsN >= adultsMax}
               onClick={() => updateOccupancy(adultsN + 1, ages)}>+</button>
           </div>
         </div>
@@ -592,7 +605,7 @@ export default function HotelDetailPage() {
             <button type="button" aria-label={t('fewerChildren')} className={stepBtn} disabled={childCount <= 0}
               onClick={() => updateOccupancy(adultsN, ages.slice(0, -1))}>−</button>
             <span className="w-5 text-center font-black text-[#1A1D2B]">{childCount}</span>
-            <button type="button" aria-label={t('moreChildren')} className={stepBtn} disabled={childCount >= 4}
+            <button type="button" aria-label={t('moreChildren')} className={stepBtn} disabled={childCount >= childrenMax}
               onClick={() => updateOccupancy(adultsN, [...ages, 7])}>+</button>
           </div>
         </div>
@@ -620,9 +633,14 @@ export default function HotelDetailPage() {
           <span className="text-[.82rem] font-semibold text-[#5C6378]">{t('roomsLabel')}</span>
           <div className="flex items-center gap-2.5">
             <button type="button" aria-label={t('fewerRooms')} className={stepBtn} disabled={roomsN <= 1}
-              onClick={() => updateOccupancy(adultsN, ages, roomsN - 1)}>−</button>
+              onClick={() => updateOccupancy(
+                // Fewer rooms can shrink the adults ceiling (4 per room) — clamp
+                // the adults we re-write so the URL never carries a party the
+                // pricing layer would silently cut down.
+                Math.min(adultsN, MAX_ADULTS_PER_ROOM * (roomsN - 1)),
+                ages, roomsN - 1)}>−</button>
             <span className="w-5 text-center font-black text-[#1A1D2B]">{roomsN}</span>
-            <button type="button" aria-label={t('moreRooms')} className={stepBtn} disabled={roomsN >= 3}
+            <button type="button" aria-label={t('moreRooms')} className={stepBtn} disabled={roomsN >= MAX_ROOMS}
               onClick={() => updateOccupancy(adultsN, ages, roomsN + 1)}>+</button>
           </div>
         </div>
@@ -2088,7 +2106,7 @@ export default function HotelDetailPage() {
             </div>
             {selectedRate?.excludedTaxes != null && selectedRate.excludedTaxes > 0 && (
               <div className="text-[.62rem] font-medium text-slate-500 mt-0.5">
-                + £{Math.round(selectedRate.excludedTaxes)} {t('cityTaxAtProperty')}
+                + {currencyPrefix(currency)}{selectedRate.excludedTaxes.toFixed(2)} {t('cityTaxAtProperty')}
               </div>
             )}
           </div>

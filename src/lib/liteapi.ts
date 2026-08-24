@@ -918,7 +918,14 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     s = s.replace(/\s*[-–—]\s*(room only|bed(?: and| &)? breakfast|breakfast included|half board|full board|all[- ]?inclusive)\s*$/i, '');
     s = s.replace(/\s*\(?\b(room only|breakfast included|half board|full board|all[- ]?inclusive)\b\)?\s*$/i, '');
     s = s.replace(/\s+/g, ' ').trim();
-    if (!s || s.length > 120) return null;
+    if (!s) return null;
+    // Long names used to be DROPPED entirely (return null) — the row title then
+    // fell back to the board label, so the customer saw "Room Only" where the
+    // room name belonged. Apartment listings routinely exceed old the 120-char
+    // cap ("NYE apart S SIRO stadium Milan FIERA city Life …"), which is
+    // exactly the property class where the name carries the bedroom info a
+    // family needs. Truncate instead of discarding.
+    if (s.length > 90) s = s.slice(0, 87).trimEnd() + '…';
     return s;
   }
 
