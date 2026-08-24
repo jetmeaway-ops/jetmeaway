@@ -559,6 +559,11 @@ export interface HotelOffer {
      *  (e.g. ["PAY_AT_HOTEL", "ACH"]). Used to render the Pay-at-hotel chip
      *  when the supplier allows it. Null/empty → hidden. */
     paymentTypes?: string[] | null;
+    /** Sleeping capacity this row was priced for — per-rate figure straight
+     *  from /hotels/rates (authoritative), summed across rooms on multi-room
+     *  quotes so it always describes the WHOLE booking the price covers.
+     *  Null when the supplier omitted it (chip falls back to the catalogue). */
+    maxOccupancy?: number | null;
   }>;
 }
 
@@ -892,6 +897,14 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     offerId?: string;
     /** v3.0: cancellation policy (new flat format) */
     cancellationPolicy?: { refundable?: boolean; deadline?: string };
+    /** Per-rate occupancy — what THIS rate was priced for (verified live
+     *  2026-08-24 on lp6870b + lp42761: every rate carries these). This is
+     *  the AUTHORITATIVE "sleeps N" for the row — unlike the /data/hotel
+     *  catalogue figure, which is a category ceiling joined by name-matching.
+     *  On multi-room quotes `occupancyNumber` says WHICH requested room this
+     *  rate belongs to (1-based), and `maxOccupancy` describes that one room. */
+    occupancyNumber?: number;
+    maxOccupancy?: number;
   };
   type AmountObj = { amount: number; currency: string };
   type RoomType = {
@@ -1080,6 +1093,8 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       cancelDeadline?: string | null;
       /** v2-plan step-3: payment methods (e.g. ["PAY_AT_HOTEL"]). */
       paymentTypes?: string[] | null;
+      /** Whole-booking sleeping capacity (per-rate, authoritative). */
+      maxOccupancy?: number | null;
     };
     const optionsByKey = new Map<string, OptionRow>();
 
@@ -1087,6 +1102,25 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       // Prefer the roomType-level name, fall back to the first rate's name.
       // We clean both so the row title never duplicates the board label.
       const roomTypeName = cleanRoomName(rt.name || rt.roomName);
+      // Whole-booking capacity for MULTI-room quotes. A rate's maxOccupancy
+      // describes ONE room (verified live: a 2-room split returns rates with
+      // occupancyNumber 1 and 2 inside the same roomType, maxOcc 3 and 2).
+      // Sum the best per requested room so the chip matches the price beside
+      // it, which covers every room. Null when any room's group is missing —
+      // no chip beats a wrong chip.
+      let rtMaxOcc: number | null = null;
+      if (occupancy.length > 1) {
+        const byRoom = new Map<number, number>();
+        for (const r of rt.rates || []) {
+          if (typeof r.maxOccupancy === 'number' && r.maxOccupancy > 0) {
+            const n = r.occupancyNumber ?? 1;
+            byRoom.set(n, Math.max(byRoom.get(n) ?? 0, r.maxOccupancy));
+          }
+        }
+        if (byRoom.size === occupancy.length) {
+          rtMaxOcc = [...byRoom.values()].reduce((s, v) => s + v, 0);
+        }
+      }
       // offerId can be on roomType (old) or rate (v3.0) — we check both below
       for (const r of rt.rates || []) {
         // Resolve offerId: rate-level (v3.0) takes priority, then roomType-level
@@ -1192,6 +1226,9 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
           excludedTaxes: rateExcludedTaxes > 0 ? Math.round(rateExcludedTaxes * 100) / 100 : null,
           cancelDeadline,
           paymentTypes,
+          maxOccupancy: occupancy.length === 1
+            ? (typeof r.maxOccupancy === 'number' && r.maxOccupancy > 0 ? r.maxOccupancy : null)
+            : rtMaxOcc,
         };
         if (!existing || effectivePrice < existing.totalPrice) {
           optionsByKey.set(mapKey, nextRow);
@@ -1511,6 +1548,9 @@ export interface HotelDetails {
   amenities: string[];
   checkInTime: string | null;
   checkOutTime: string | null;
+  /** LiteAPI property-type code (map via LITEAPI_HOTEL_TYPES; 201 =
+   *  Apartments). Drives the "Entire apartment" chip on rate rows. */
+  hotelTypeId: number | null;
   /** v2-plan step-1: structured hotel policies (internet, parking, pets,
    *  children, groups, etc.) from LiteAPI `/data/hotel` `policies[]`. Each
    *  entry is already HTML-stripped + whitespace-tidied. Empty array when
@@ -1587,6 +1627,11 @@ export async function getHotelDetails(hotelId: string): Promise<HotelDetails | n
       longitude?: number;
       main_photo?: string;
       thumbnail?: string;
+      /** Property-type code + label ("Apartments" = 201). Returned at top
+       *  level by /data/hotel (verified live 2026-08-24) but previously
+       *  dropped — the detail page couldn't say "Entire apartment". */
+      hotelTypeId?: number;
+      hotelType?: string;
       hotelImages?: Array<{ url?: string; urlHd?: string } | string>;
       hotelFacilities?: Array<string | { name?: string }>;
       facilities?: Array<string | { name?: string }>;
@@ -1639,8 +1684,12 @@ export async function getHotelDetails(hotelId: string): Promise<HotelDetails | n
       roomSize?: number;
       sizeSquareMeters?: number;
       roomSizeUnit?: string;       // "sqm" | "sqft"
-      bedTypes?: Array<{ name?: string; quantity?: number } | string>;
-      beds?: Array<{ name?: string; quantity?: number } | string>;
+      // Live `/data/hotel` uses the key `bedType`, not `name` (verified
+      // 2026-08-24, lp6870b: {quantity: 2, bedType: "Twin bed", …}). The
+      // parser used to read only `name`, so beds stayed null for this —
+      // common — supplier shape and the beds chip never rendered.
+      bedTypes?: Array<{ name?: string; bedType?: string; quantity?: number } | string>;
+      beds?: Array<{ name?: string; bedType?: string; quantity?: number } | string>;
     };
     // BACKLOG B2 (2026-04-21): fetch hotel metadata + reviews in parallel.
     // Same KV entry will hold both (v4 bump), so the UI never has to do a
@@ -1748,7 +1797,7 @@ export async function getHotelDetails(hotelId: string): Promise<HotelDetails | n
         if (!b) continue;
         if (typeof b === 'string') { bedEntries.push(b); continue; }
         const qty = typeof b.quantity === 'number' && b.quantity > 0 ? b.quantity : 1;
-        const name = b.name || '';
+        const name = b.name || b.bedType || '';
         if (!name) continue;
         bedEntries.push(qty > 1 ? `${qty} ${name}s` : `${qty} ${name}`);
       }
@@ -1822,6 +1871,7 @@ export async function getHotelDetails(hotelId: string): Promise<HotelDetails | n
       amenities,
       checkInTime,
       checkOutTime,
+      hotelTypeId: typeof h.hotelTypeId === 'number' ? h.hotelTypeId : null,
       policies,
       rooms,
       reviews,
