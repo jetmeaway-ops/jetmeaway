@@ -1625,6 +1625,13 @@ export async function getHotelDetails(hotelId: string): Promise<HotelDetails | n
       rating?: number;
       latitude?: number;
       longitude?: number;
+      /** Where /data/hotel ACTUALLY puts the coordinates (verified live
+       *  2026-08-25): nested, not top-level. The top-level latitude/longitude
+       *  fields above never exist on this endpoint, so the details response
+       *  shipped null coords for every hotel since the page was built —
+       *  "Show on map" only survived via the hlat/hlng URL params search
+       *  results append, and vanished on every deep link. */
+      location?: { latitude?: number; longitude?: number };
       main_photo?: string;
       thumbnail?: string;
       /** Property-type code + label ("Apartments" = 201). Returned at top
@@ -1864,8 +1871,8 @@ export async function getHotelDetails(hotelId: string): Promise<HotelDetails | n
       city: h.city || null,
       country: h.country || null,
       stars: h.starRating ?? h.stars ?? h.rating ?? null,
-      latitude: h.latitude ?? null,
-      longitude: h.longitude ?? null,
+      latitude: h.latitude ?? h.location?.latitude ?? null,
+      longitude: h.longitude ?? h.location?.longitude ?? null,
       mainPhoto: h.main_photo || h.thumbnail || photos[0] || null,
       photos,
       amenities,

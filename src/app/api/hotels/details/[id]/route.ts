@@ -38,7 +38,11 @@ export async function GET(
   // labels like "(Room Only)"). v4 entries used the weaker cleaner that
   // broke the rates → details room-name key match, which is why per-room
   // thumbnails stopped showing on some hotels.
-  const kvKey = `hotel-details:v7:${hotelId}`;
+  // v8 — bumped 2026-08-25: latitude/longitude were null for EVERY hotel
+  // (LiteAPI nests them under `location`, the parser read top level), so
+  // "Show on map" died on all deep links. v7 entries carry null coords for
+  // up to 24h and must not be served.
+  const kvKey = `hotel-details:v8:${hotelId}`;
 
   try {
     const cached = await kv.get(kvKey);
