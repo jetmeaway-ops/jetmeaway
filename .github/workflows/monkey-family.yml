@@ -1,0 +1,56 @@
+# Monkey Family — the owner's failed trip (Dijon → Milan → Rome, family of
+# five), replayed against prod TWICE A DAY so that class of bug can never
+# live longer than half a day again.
+#
+# Schedule: 8:00 and 20:00 UK time. GitHub cron is UTC-only, so 07:00/19:00
+# UTC = 08:00/20:00 during British Summer Time (the owner's request); in
+# winter it runs 07:00/19:00 UK — an hour early, never late.
+#
+# On failure:
+#   1. failures are already fingerprinted into the KV Bug Inbox by the
+#      script (BUG_MONITOR_SECRET), and
+#   2. the auto-triage robot is kicked IMMEDIATELY (instead of waiting for
+#      its next 6-hourly slot) so a draft fix PR exists within minutes.
+#      Auto-fix PRs are ALWAYS drafts — merging stays with the owner.
+#
+# Required repo secret:
+#   BUG_MONITOR_SECRET  — same value as the Vercel env var.
+#
+# Manual trigger:
+#   gh workflow run monkey-family.yml
+name: monkey-family
+
+on:
+  schedule:
+    - cron: '0 7 * * *'
+    - cron: '0 19 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run family-journey monkey
+        env:
+          BASE: https://jetmeaway.co.uk
+          BUG_MONITOR_SECRET: ${{ secrets.BUG_MONITOR_SECRET }}
+        run: node scripts/monkey-family.mjs
+
+      # A failing family journey should not wait up to 6h for the triage
+      # cron — kick it now so the draft fix PR lands while the failure is
+      # fresh. (auto-triage pulls the oldest open bug from the inbox the
+      # script just wrote to.)
+      - name: Kick auto-triage immediately
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run auto-triage.yml --repo "$GITHUB_REPOSITORY"

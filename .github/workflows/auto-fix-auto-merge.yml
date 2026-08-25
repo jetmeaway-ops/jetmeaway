@@ -1,0 +1,77 @@
+# Auto-merge for auto-fix/* PRs — the owner's 2026-08-25 instruction:
+# "No need my approval for bug fix merge, keep it automatic", after his trip
+# proved bugs live too long waiting for a human. This closes the loop:
+#
+#   monkey catches bug → inbox → auto-triage drafts fix PR → THIS workflow
+#   gates it → merges it → Vercel ships it → post-merge monkey verifies prod
+#   (a bad fix re-files the bug and the loop runs again)
+#
+# Runs entirely on GitHub + Vercel — the owner's laptop can be off.
+#
+# GATES (all must hold, or the PR stays a draft for the owner's eyes):
+#   1. Branch is auto-fix/* (auto-triage's namespace — nothing else).
+#   2. Every PR check passes (typecheck-build, Vercel deploy, the 20-search
+#      monkey that already runs on auto-fix PRs).
+#   3. The diff is small (≤ 400 changed lines) — big fixes need a human.
+#   4. The diff never touches the money path (book/prebook/checkout/stripe
+#      files) — a robot must not merge its own code into the payment rail.
+name: auto-fix-auto-merge
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  gate-and-merge:
+    if: startsWith(github.head_ref, 'auto-fix/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Gate 4: refuse to touch the money path"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          FILES=$(gh pr view "$PR" --json files -q '.files[].path')
+          echo "$FILES"
+          BLOCKED='api/hotels/book|api/hotels/prebook|api/hotels/start-booking|api/hotels/pending|api/liteapi/book|checkout|stripe|payment'
+          if echo "$FILES" | grep -Ei "$BLOCKED"; then
+            echo "::warning::Auto-fix touches the booking/payment path — leaving as draft for the owner."
+            exit 1
+          fi
+
+      - name: "Gate 3: diff must be small"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          LINES=$(gh pr view "$PR" --json additions,deletions -q '.additions + .deletions')
+          echo "changed lines: $LINES"
+          if [ "$LINES" -gt 400 ]; then
+            echo "::warning::Auto-fix is large ($LINES lines) — leaving as draft for the owner."
+            exit 1
+          fi
+
+      - name: "Gate 2: wait for every check to pass"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        # --watch exits non-zero the moment any check fails, which stops the
+        # job before the merge step — exactly what we want.
+        run: gh pr checks "$PR" --watch --interval 30
+
+      - name: Promote from draft and merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr ready "$PR" || true
+          gh pr merge "$PR" --squash
+          echo "Auto-fix merged. Vercel ships it; the post-merge family monkey verifies prod."
