@@ -31,3 +31,25 @@ jobs:
             -H "Authorization: Bearer $ADMIN_SECRET" \
             -H 'Content-Type: application/json' \
             -d "{\"id\":\"$BUG_ID\",\"resolvedBy\":\"auto-triage\",\"note\":\"Auto-fix merged: $PR_URL\"}"
+
+  # Close the self-healing loop (2026-08-25): after an auto-fix ships, verify
+  # PRODUCTION with the family-journey monkey. If the fix didn't actually fix
+  # (or broke something else), the monkey re-files the bug into the inbox and
+  # the triage robot drafts the next attempt — no human in the loop, no
+  # laptop required.
+  verify-prod:
+    if: github.event.pull_request.merged == true && startsWith(github.head_ref, 'auto-fix/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Wait for the production deploy to settle
+        run: sleep 240
+      - name: Family-journey monkey against prod
+        env:
+          BASE: https://jetmeaway.co.uk
+          BUG_MONITOR_SECRET: ${{ secrets.BUG_MONITOR_SECRET }}
+        run: node scripts/monkey-family.mjs
