@@ -132,6 +132,18 @@ export default function SignInForm() {
 
   return (
     <div className="bg-white border border-[#E8ECF4] rounded-2xl p-6 shadow-[0_4px_24px_rgba(10,22,40,0.04)]">
+      {/* Saved hotels — works signed OUT (device list), so it belongs above
+          the sign-in wall, not behind it. Full-width, same shape as the
+          Apple/Google buttons below (owner request 2026-08-25: the compact
+          header heart was cramped on phones — this is the primary mobile
+          entrance now; the header keeps the desktop pill + drawer row). */}
+      <a
+        href="/account/favourites"
+        className="w-full inline-flex items-center justify-center gap-2 bg-white hover:bg-rose-50 border border-rose-200 text-rose-600 font-poppins font-bold text-[.92rem] py-3.5 rounded-xl transition-all mb-4"
+      >
+        <i className="fa-solid fa-heart text-[1rem]" />
+        My saved hotels
+      </a>
       {isNative && (
         <>
           <div className="flex flex-col gap-2.5 mb-4">

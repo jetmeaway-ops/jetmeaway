@@ -291,22 +291,12 @@ export default function Header() {
             >
               {t('nav.contact')}
             </Link>
-            {/* Saved hotels — mobile: icon-only heart, one tap from any page
-                (the drawer row below is the labelled fallback). Styled as an
-                EXACT twin of the LanguageSwitcher globe beside it — same
-                padding, radius, bg and border — so the pair reads as one
-                family and never overflows the header pill (the first cut used
-                its own boxed style + an absolute badge and stuck out past the
-                pill's rounded corner — owner screenshot 2026-08-24). Count
-                renders inline, and SavedCount is null at zero. */}
-            <Link
-              href="/account/favourites"
-              className="md:hidden inline-flex items-center gap-1 px-2.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-rose-500 hover:bg-white transition-colors"
-              aria-label={t('nav.savedHotels')}
-            >
-              <i className="fa-solid fa-heart text-[.8rem]" />
-              <SavedCount />
-            </Link>
+            {/* Mobile header heart REMOVED (owner, 2026-08-25): even styled as
+                a globe-twin it overflowed the header pill on narrow phones —
+                the bar simply has no room for a fifth item. Mobile entrances
+                to saved hotels are now: the full-width "My saved hotels"
+                button on /account (above the sign-in form), the drawer row
+                below, and the bookings-page pill. Desktop keeps its pill. */}
             {/* Hamburger */}
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
