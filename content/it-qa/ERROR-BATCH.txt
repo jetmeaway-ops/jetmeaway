@@ -16,3 +16,6 @@ best-hotels-cancun-2026      # THIN 346/478 lines, 0.79 word ratio (imgs/links O
 best-hotels-disneyland-paris-2026  # OVERSIZED: Haiku 32k output cap exceeded — split in 2 halves OR use Sonnet; do NOT plain-Haiku re-run
 best-hotels-lake-como-2026   # THIN 397/477 lines, 0.87 word ratio (imgs/links OK) — re-run fuller
 best-hotels-matera-2026      # THIN 428/493 lines (87%), imgs/links OK — re-run fuller (agent word-count was a miscount)
+best-hotels-lima-2026        # OVERSIZED: Haiku 32k output cap exceeded (513 lines) — split in 2 halves OR Sonnet; do NOT plain-Haiku re-run
+best-hotels-monterrey-2026   # THIN 373/503 lines (0.78 words), imgs/links OK — re-run fuller
+best-hotels-graz-2026        # OVERSIZED: Haiku 32k cap exceeded twice — split in 2 halves OR Sonnet; do NOT plain-Haiku re-run
