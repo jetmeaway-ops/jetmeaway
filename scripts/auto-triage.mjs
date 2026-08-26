@@ -228,7 +228,25 @@ async function main() {
   console.log('Claude verdict:', verdict.verdict, '—', verdict.reasoning);
 
   if (verdict.verdict !== 'fixable') {
-    console.log('Bug judged not_fixable — leaving in inbox for human review.');
+    // Resolve it WITH the reasoning attached — leaving it open meant the same
+    // oldest bug was re-picked, re-analyzed and re-emailed every 6 hours
+    // forever (owner's inbox, 2026-08-25/26: two days of identical emails
+    // about one monkey-family false positive). The verdict is preserved in
+    // the resolution note; reopen from the admin inbox if a human disagrees.
+    console.log('Bug judged not_fixable — resolving with reasoning to stop re-analysis.');
+    try {
+      await fetch(`${BASE}/api/admin/bugs`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${ADMIN_SECRET}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: bug.id,
+          resolvedBy: 'auto-triage',
+          note: `not_fixable: ${String(verdict.reasoning || '').slice(0, 500)}`,
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to resolve not_fixable bug (will re-analyze next run):', err?.message);
+    }
     return;
   }
   if (!verdict.file_path || !verdict.old_string || !verdict.new_string) {
