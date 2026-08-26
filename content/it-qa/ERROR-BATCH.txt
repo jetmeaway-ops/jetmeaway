@@ -34,3 +34,4 @@ best-hotels-warsaw-2026      # EXT 49/51 (dropped 2 external links) — link-par
 best-hotels-zagreb-2026      # EXT 52/51 (one extra external link) — link-parity fix
 best-hotels-zermatt-2026     # THIN 384/461 lines (0.83), imgs/links OK — re-run fuller
 best-hotels-zakopane-2026    # EXT 52/51 (one extra external link) — link-parity fix
+strait-of-hormuz-2026-rainbow-island-safety  # EXT 1/2 (dropped 1 external link) — link-parity fix
