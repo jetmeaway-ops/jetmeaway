@@ -29,3 +29,4 @@ best-hotels-strasbourg-2026  # OVERSIZED: Haiku 32k output cap exceeded — spli
 best-hotels-tallinn-2026     # EXT 50/51 (dropped 1 external link) — link-parity fix
 best-hotels-sousse-2026      # EXT 33/32 (one extra external link) — link-parity fix
 best-hotels-tromso-2026      # EXT 30/29 (one extra external link) — link-parity fix
+best-hotels-venice-2026      # THIN 402/494 lines (0.81), imgs/links OK — re-run fuller (Italian city: keep Italian proper names)
