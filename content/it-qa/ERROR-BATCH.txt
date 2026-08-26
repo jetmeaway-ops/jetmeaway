@@ -19,3 +19,5 @@ best-hotels-matera-2026      # THIN 428/493 lines (87%), imgs/links OK — re-ru
 best-hotels-lima-2026        # OVERSIZED: Haiku 32k output cap exceeded (513 lines) — split in 2 halves OR Sonnet; do NOT plain-Haiku re-run
 best-hotels-monterrey-2026   # THIN 373/503 lines (0.78 words), imgs/links OK — re-run fuller
 best-hotels-graz-2026        # OVERSIZED: Haiku 32k cap exceeded twice — split in 2 halves OR Sonnet; do NOT plain-Haiku re-run
+best-hotels-rabat-2026       # THIN 403/478 lines (0.84), ext 50/51 (dropped 1) — re-run fuller
+best-hotels-montreal-2026    # OVERSIZED: Haiku 32k output cap exceeded — split in 2 halves OR Sonnet; do NOT plain-Haiku re-run
