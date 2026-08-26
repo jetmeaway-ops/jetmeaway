@@ -1,0 +1,13 @@
+# ERROR BATCH — re-run these at the END (owner rule 2026-08-26)
+# A post lands here if it hard-errors OR fails QA (truncated / thin / image mismatch / over-generated).
+# Re-run each with the standard Haiku prompt, then re-QA. Remove once it passes.
+
+best-hotels-amsterdam-2026   # IMG 59 vs EN 49 (+10 over-generated) + EXT 63/53 — re-run
+best-hotels-agadir-2026      # THIN 355/433 lines, 0.87 word ratio, EXT 47/48 — re-run
+
+# --- NOT re-runs; handled by end-of-run corpus scripts (tracked in WAVE-LOG.md) ---
+# Link-parity (fix-link-parity): best-all-inclusive-hotels-alanya-2026 (50/51),
+#   best-hotels-alexandria-2026 (50/51), best-hotels-amman-2026 (50/51)
+# Adjective leaks (find/replace four-star->quattro stelle etc.): majorca, lanzarote, marbella,
+#   salou, benidorm, gran-canaria, side, lloret, marmaris, fethiye, san-sebastian, tenerife, kusadasi,
+#   alexandria(self-catering x38), algiers(1)
