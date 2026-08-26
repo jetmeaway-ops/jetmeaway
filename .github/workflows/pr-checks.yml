@@ -40,6 +40,11 @@ jobs:
           # Add real ones via repo secrets when CI needs to run E2E tests.
           NEXT_PUBLIC_SITE_URL: https://jetmeaway.co.uk
         run: npm run build
+      # Tripwire for the recurring category-tap freeze (13 owner reports and
+      # counting): fails the PR if the 117 KB DESTINATIONS dataset ever gets
+      # statically re-coupled into the hotels/flights main client chunks.
+      - name: Bundle tripwire
+        run: node scripts/check-bundle-budget.mjs
 
   monkey-smoke:
     # Lightweight smoke against the live prod after main pushes. Runs the

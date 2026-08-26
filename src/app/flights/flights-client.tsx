@@ -13,7 +13,11 @@ import { newTabProps } from '@/lib/new-tab';
 import SaveSearchButton from '@/components/SaveSearchButton';
 import { saveSticky, loadSticky, type StickyFlights } from '@/lib/sticky-search';
 import AppStoreBadges from '@/components/AppStoreBadges';
-import DestinationBackdrop from '@/components/DestinationBackdrop';
+// Lazy: DestinationBackdrop renders null until a search fires, but its static
+// import chained cityHero → the 117 KB DESTINATIONS array into this route's
+// main chunk (part of the dead-tap seconds on phones — owner 2026-08-26).
+import dynamicImport from 'next/dynamic';
+const DestinationBackdrop = dynamicImport(() => import('@/components/DestinationBackdrop'), { ssr: false });
 import { useTranslations } from 'next-intl';
 
 /* ═══════════════════════════════════════════════════════════════════════════

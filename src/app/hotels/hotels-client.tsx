@@ -7,8 +7,11 @@ import DateRangePicker from '@/components/DateRangePicker';
 import DateMatrixStrip, { type MatrixOption } from '@/components/DateMatrixStrip';
 import SaveSearchButton from '@/components/SaveSearchButton';
 import { redirectUrl } from '@/lib/redirect';
-import { chooseDefaultTab } from '@/lib/silentScout';
-import { vibeTagsForSearchedCity } from '@/data/destinations';
+// chooseDefaultTab + vibeTagsForSearchedCity moved into ScoutSidebarLauncher
+// (lazy chunk): vibeTagsForSearchedCity drags the whole 117 KB DESTINATIONS
+// array, and importing it here put those bytes in the main route chunk every
+// category tap must parse before the search form responds (12-16 s dead taps
+// on phones — owner report 2026-08-26).
 import { saveSticky, loadSticky, type StickyHotels } from '@/lib/sticky-search';
 import { decodeFromParams, encodeOccupancy } from '@/lib/occupancy';
 import { persistResults, savePosition, hasFreshPosition, readSnapshot, isReturnFromDetail } from '@/lib/hotels-result-cache';
@@ -38,10 +41,13 @@ import { LITEAPI_FACILITY_GROUPS } from '@/data/liteapi-facility-groups';
 // tile-handoff path showed 1-room pricing. Sync import + sync decode in
 // the URL effect closes the race.
 import AppStoreBadges from '@/components/AppStoreBadges';
-import DestinationBackdrop from '@/components/DestinationBackdrop';
+// DestinationBackdrop is pure post-search decoration (renders null until a
+// search fires) yet its static import chained cityHero → the full 117 KB
+// DESTINATIONS array into this route's main chunk. Lazy — with the sidebar.
 import { useTranslations } from 'next-intl';
 
-const ScoutSidebar = dynamic(() => import('@/components/ScoutSidebar'), { ssr: false });
+const ScoutSidebarLauncher = dynamic(() => import('@/components/ScoutSidebarLauncher'), { ssr: false });
+const DestinationBackdrop = dynamic(() => import('@/components/DestinationBackdrop'), { ssr: false });
 const HotelMap = dynamic(() => import('@/components/HotelMap'), { ssr: false });
 const HotelLocationModal = dynamic(() => import('@/components/HotelLocationModal'), { ssr: false });
 
@@ -4638,18 +4644,17 @@ function HotelsContent() {
         </div>
       </section>
 
-      {/* Scout Sidebar */}
+      {/* Scout Sidebar — the launcher computes defaultTab inside its own lazy
+          chunk so the 117 KB city-vibes data never rides in this route. */}
       {scoutHotel && (
-        <ScoutSidebar
+        <ScoutSidebarLauncher
           hotelName={scoutHotel.name}
           latitude={scoutHotel.lat}
           longitude={scoutHotel.lng}
+          adults={adults}
+          childCount={childCount}
+          searchedDest={searchedDest}
           onClose={() => setScoutHotel(null)}
-          defaultTab={chooseDefaultTab({
-            adults,
-            children: childCount,
-            vibeTags: vibeTagsForSearchedCity(searchedDest),
-          })}
         />
       )}
 
