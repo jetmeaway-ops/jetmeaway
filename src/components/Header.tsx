@@ -162,6 +162,12 @@ export default function Header() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  /* Full prefetch: these routes are dynamic (root layout reads
+                     headers()), so default prefetch only warms the loading.tsx
+                     boundary — every tap still paid a full edge round trip.
+                     prefetch={true} pre-fetches the whole RSC payload (cached
+                     ~5 min), removing that round trip from the tap itself. */
+                  prefetch={true}
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[.72rem] font-extrabold uppercase tracking-[1.2px] transition-all ${
                     active
                       ? 'bg-[#0066FF] text-white shadow-[0_4px_12px_rgba(0,102,255,0.3)]'
@@ -326,6 +332,9 @@ export default function Header() {
               <Link
                 key={item.href}
                 href={item.href}
+                /* Same full-prefetch rationale as the desktop nav above —
+                   the mobile pills are where the 12-16 s dead taps were felt. */
+                prefetch={true}
                 className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[.65rem] font-extrabold uppercase tracking-[0.8px] whitespace-nowrap transition-all flex-shrink-0 ${
                   active
                     ? 'bg-[#0066FF] text-white shadow-sm'
