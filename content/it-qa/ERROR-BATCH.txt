@@ -26,3 +26,6 @@ best-hotels-punta-cana-2026  # OVERSIZED: Haiku 32k output cap exceeded — spli
 best-hotels-puerto-vallarta-2026  # OVERSIZED: Haiku 32k output cap exceeded — split in 2 halves OR Sonnet; do NOT plain-Haiku re-run
 best-hotels-salzburg-2026    # OVERSIZED: Haiku 32k output cap exceeded — split in 2 halves OR Sonnet; do NOT plain-Haiku re-run
 best-hotels-strasbourg-2026  # OVERSIZED: Haiku 32k output cap exceeded — split in 2 halves OR Sonnet; do NOT plain-Haiku re-run
+best-hotels-tallinn-2026     # EXT 50/51 (dropped 1 external link) — link-parity fix
+best-hotels-sousse-2026      # EXT 33/32 (one extra external link) — link-parity fix
+best-hotels-tromso-2026      # EXT 30/29 (one extra external link) — link-parity fix
