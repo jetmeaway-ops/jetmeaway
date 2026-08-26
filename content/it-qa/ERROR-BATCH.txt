@@ -11,3 +11,5 @@ best-hotels-agadir-2026      # THIN 355/433 lines, 0.87 word ratio, EXT 47/48 �
 # Adjective leaks (find/replace four-star->quattro stelle etc.): majorca, lanzarote, marbella,
 #   salou, benidorm, gran-canaria, side, lloret, marmaris, fethiye, san-sebastian, tenerife, kusadasi,
 #   alexandria(self-catering x38), algiers(1)
+best-hotels-atlanta-2026     # IMG 65 vs EN 57 (+8 over-generated) + EXT 66/58 — re-run
+best-hotels-cancun-2026      # THIN 346/478 lines, 0.79 word ratio (imgs/links OK) — re-run fuller
