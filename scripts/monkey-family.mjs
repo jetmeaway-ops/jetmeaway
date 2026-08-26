@@ -139,10 +139,16 @@ async function runCity(city) {
     }
     const t1 = o1.find((o) => o.totalPrice === p1)?.excludedTaxes;
     const t2 = o2.find((o) => o.totalPrice === p2)?.excludedTaxes;
-    // Tax shrinking is only suspicious when the PRICE didn't shrink too —
-    // VAT scales with price, so cheaper rooms genuinely carry less tax.
+    // WARN only (demoted 2026-08-26 after 2 days of false alarms in
+    // Milan/Rome/London): the cheapest rooms=1 and rooms=2 offers are
+    // DIFFERENT RATE PLANS, and plans genuinely differ in how much tax they
+    // include in the headline price vs leave payable at the desk — so the
+    // excluded slice can honestly shrink while the true total grows
+    // (verified on la_lp5d952: the 2-room £294 rate simply includes most
+    // taxes). Cross-rate tax comparison cannot prove the division bug;
+    // the FROZEN-price check above remains the only S4 hard failure.
     if (typeof t1 === 'number' && typeof t2 === 'number' && t2 < t1 - 0.01 && p2 >= p1) {
-      errs.push(`S4 TAX SHRANK as rooms grew on ${hotelId}: £${t1} → £${t2} at same-or-higher price — per-room tax division bug`);
+      console.log(`     WARN ${city}: excluded tax lower on 2-room rate (${hotelId}: £${t1} → £${t2}) — different rate plans, not failing`);
     }
   } else if (r1.status === 200 && o1.length === 0) {
     errs.push(`S4 zero couple offers on ${hotelId} (search said it was bookable)`);
