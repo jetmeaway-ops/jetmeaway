@@ -909,10 +909,16 @@ type StayParams = {
   childrenAges?: number[];
 };
 
-function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
+function DestinationPicker({ value, onChange, onPlaceSelect, onNearMePicked, stayParams }: {
   value: string;
   onChange: (v: string) => void;
   onPlaceSelect: (place: PlaceResult | null) => void;
+  /** Fired when a "Near me" pick succeeds. The parent uses it to snap the
+   *  dates to TONIGHT — someone searching near their own location is standing
+   *  there and wants a bed for the current night, not the form's default
+   *  two-weeks-out window (owner insight, 2026-08-26, testing from Rome).
+   *  Dates stay fully editable afterwards. */
+  onNearMePicked?: () => void;
   stayParams?: StayParams;
 }) {
   const [open, setOpen] = useState(false);
@@ -988,6 +994,7 @@ function DestinationPicker({ value, onChange, onPlaceSelect, stayParams }: {
             lng,
             radiusKm: 25,
           });
+          onNearMePicked?.();
           setNearMe('idle');
           setOpen(false);
           setApiResults([]);
@@ -3762,6 +3769,19 @@ function HotelsContent() {
                 setSelectedPlaceRadius(
                   p && typeof p.radiusKm === 'number' ? p.radiusKm : null,
                 );
+              }}
+              onNearMePicked={() => {
+                // "Near me" = the visitor is STANDING there — default the stay
+                // to tonight (1 night), in THEIR local calendar, not UTC: at
+                // 00:30 in Rome the UTC date is still yesterday, and offering
+                // last night's date as "tonight" would fail validation.
+                const local = (d: Date) =>
+                  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                const now = new Date();
+                const tomorrow = new Date(now);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                setCheckin(local(now));
+                setCheckout(local(tomorrow));
               }}
               stayParams={{ checkin, checkout, adults, children: childCount, rooms, childrenAges }}
             />
