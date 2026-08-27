@@ -6,6 +6,15 @@ import { redirectUrl } from '@/lib/redirect';
 import { saveSticky, loadSticky, type StickyPackages } from '@/lib/sticky-search';
 import AppStoreBadges from '@/components/AppStoreBadges';
 import { useTranslations } from 'next-intl';
+import {
+  clampRooms,
+  encodeOccupancy,
+  totalGuests,
+  MAX_ROOMS,
+  MAX_ADULTS_PER_ROOM,
+  MAX_CHILDREN_PER_ROOM,
+  type Room,
+} from '@/lib/occupancy';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DESTINATIONS (matches hotels page)
@@ -225,6 +234,94 @@ function FromPicker({ value, onChange }: { value: string; onChange: (v: string) 
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   PARTY → PER-ROOM OCCUPANCY
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/** The age the picker shows for a child the customer hasn't aged yet. Kept as
+ *  one constant so the dropdown, the deep-link seeding and the hotel lookup
+ *  can never disagree about who we are pricing — a search that quotes age 8
+ *  while the form displays age 5 is the same class of lie this file just
+ *  stopped telling. */
+const PKG_DEFAULT_CHILD_AGE = 5;
+
+/**
+ * Turn the packages guest picker's flat party (adults + children + ages) into
+ * the per-room shape /api/hotels actually prices, or null when the party
+ * cannot be encoded without losing somebody.
+ *
+ * WHY this exists: the hotel lookup used to send `adults=N` and nothing else,
+ * so the estimate quoted a party that was not the customer's. Measured live on
+ * Almaty, 15–22 Sep 2026, same minute: `adults=2` returned 43 hotels from
+ * £25.52/night; the identical search carrying the real 2 adults + 3 children
+ * returned 2 hotels from £110.26/night — 4.3× — because that cheap property
+ * has no 5-person inventory at all.
+ *
+ * Room count is DERIVED, never chosen: the packages form has no room picker,
+ * and occupancy.ts caps one room at 4 adults / 4 children (the LiteAPI
+ * ceiling). A single-room party of six is silently clamped to four by the
+ * route — measured: `adults=6` came back echoing `adults=4`, 7 hotels from
+ * £94.97, none of which sleeps six. The same six split 3/3 returned 21 hotels
+ * from £134.31 for both rooms. So we spread the party across the smallest
+ * number of rooms that holds it, round-robin, and never more rooms than there
+ * are adults — a child cannot be the sole occupant of a room.
+ *
+ * Returns null when clampRooms (the same gate the API applies) would have to
+ * drop a guest: over the 9-guest engine cap (10 adults), or more children than
+ * the adults present can spread across (1 adult + 6 children). The caller then
+ * skips the hotel leg entirely rather than price a party that isn't theirs.
+ */
+function partyToRooms(
+  adults: number,
+  children: number,
+  childrenAges: number[],
+  /** Force a specific room count for the thin-result split retry. Ignored when
+   *  it would exceed the caps or leave a room without an adult. */
+  forceRooms?: number,
+): Room[] | null {
+  const a = Math.max(1, Math.floor(adults) || 1);
+  const c = Math.max(0, Math.floor(children) || 0);
+  const ages = Array.from({ length: c }, (_, i) => {
+    const v = childrenAges[i];
+    return typeof v === 'number' && v >= 0 && v <= 17 ? Math.floor(v) : PKG_DEFAULT_CHILD_AGE;
+  });
+
+  const needed = Math.max(
+    Math.ceil(a / MAX_ADULTS_PER_ROOM),
+    Math.ceil(c / MAX_CHILDREN_PER_ROOM),
+    forceRooms && forceRooms > 0 ? Math.floor(forceRooms) : 1,
+    1,
+  );
+  const roomCount = Math.min(needed, a, MAX_ROOMS);
+  const rooms: Room[] = Array.from({ length: roomCount }, () => ({
+    adults: 0,
+    childAges: [] as number[],
+  }));
+  for (let i = 0; i < a; i++) rooms[i % roomCount].adults += 1;
+  ages.forEach((age, i) => rooms[i % roomCount].childAges.push(age));
+
+  const clamped = clampRooms(rooms);
+  if (totalGuests(clamped) !== a + c) return null;
+  return clamped;
+}
+
+/** Legacy + `occ=` params for one party, in the shape /api/hotels and the
+ *  /hotels page both read. `occ` is the per-room truth and wins server-side;
+ *  the flat trio rides along so anything still on the old decoder (and the
+ *  KV cache key) sees the same party. Mirrors hotels-client.tsx. */
+function partyParams(rooms: Room[]): URLSearchParams {
+  const sp = new URLSearchParams();
+  const adults = rooms.reduce((s, r) => s + r.adults, 0);
+  const ages = rooms.flatMap((r) => r.childAges);
+  sp.set('adults', String(adults));
+  sp.set('children', String(ages.length));
+  sp.set('rooms', String(rooms.length));
+  if (ages.length > 0) sp.set('childrenAges', ages.join(','));
+  const occ = encodeOccupancy(rooms);
+  if (occ) sp.set('occ', occ);
+  return sp;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    GUEST PICKER (reused from old page)
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -244,7 +341,7 @@ function PkgGuestPicker({ adults, children: ch, childrenAges, onChange }: {
   function setAdults(n: number) { onChange(n, ch, childrenAges); }
   function setChildren(n: number) {
     const ages = [...childrenAges];
-    while (ages.length < n) ages.push(5);
+    while (ages.length < n) ages.push(PKG_DEFAULT_CHILD_AGE);
     onChange(adults, n, ages.slice(0, n));
   }
   function setChildAge(idx: number, age: number) {
@@ -291,7 +388,7 @@ function PkgGuestPicker({ adults, children: ch, childrenAges, onChange }: {
                 {Array.from({ length: ch }).map((_, i) => (
                   <div key={i} className="text-center">
                     <div className="text-[.6rem] text-[#8E95A9] mb-1">{t('childN', { n: i + 1 })}</div>
-                    <select value={childrenAges[i] ?? 5} onChange={e => setChildAge(i, Number(e.target.value))}
+                    <select value={childrenAges[i] ?? PKG_DEFAULT_CHILD_AGE} onChange={e => setChildAge(i, Number(e.target.value))}
                       className="w-full text-center text-[.8rem] font-bold text-[#1A1D2B] bg-[#F8FAFC] border border-[#E8ECF4] rounded-lg py-1.5 outline-none focus:border-purple-500">
                       {Array.from({ length: 16 }, (_, a) => a).map(age => (
                         <option key={age} value={age}>{age < 1 ? t('underOne') : age}</option>
@@ -818,6 +915,19 @@ function PackagesContent() {
   const [cheapestHotel, setCheapestHotel] = useState<number | null>(null);
   const [flightAirline, setFlightAirline] = useState('');
 
+  /** How many rooms the quoted nightly hotel price actually covers. A party of
+   *  six needs two rooms, and "£134.31 /night" without that word reads as one
+   *  room. Null until a hotel price lands. */
+  const [hotelRoomsUsed, setHotelRoomsUsed] = useState<number | null>(null);
+
+  /** Why the hotel leg has no number, so the card can say something true
+   *  instead of the generic "pricing unavailable":
+   *    'party'       — the city has hotels, none can take this party
+   *    'unpriceable' — the party is bigger than the hotel engine can encode
+   *    'unavailable' — the lookup itself gave us nothing (route/coverage)
+   *  Null when we have a price. */
+  const [hotelGap, setHotelGap] = useState<'party' | 'unpriceable' | 'unavailable' | null>(null);
+
   // True when the user landed on this page with search params already in
   // the URL (e.g. from the native mobile app or a deep-link). We hide the
   // curated "7 nights from London Heathrow" FAMILY_PACKAGES section in
@@ -839,6 +949,22 @@ function PackagesContent() {
     const ret = p.get('return') || '';
     const a = p.get('adults');
     const c = p.get('children');
+    const agesParam = p.get('childrenAges');
+
+    // A deep-link that says `children=3` has to arrive with three ages, or the
+    // hotel lookup prices ages nobody chose while the picker displays the
+    // house default. Parse what the link gave us, pad the rest with the same
+    // default the dropdown shows, and never keep more ages than children.
+    const seedAges = (raw: string | null, n: number): number[] => {
+      const parsed = (raw || '')
+        .split(',')
+        .map((s) => Number(s.trim()))
+        .filter((v) => Number.isFinite(v) && v >= 0 && v <= 17)
+        .map((v) => Math.floor(v))
+        .slice(0, n);
+      while (parsed.length < n) parsed.push(PKG_DEFAULT_CHILD_AGE);
+      return parsed;
+    };
 
     // Treat the page as "user has an inflight query" the moment we see
     // any meaningful search param. That hides the curated 7-night
@@ -862,8 +988,17 @@ function PackagesContent() {
     if (a) setAdults(Math.max(1, parseInt(a)));
     else if (sticky?.adults) setAdults(Math.max(1, sticky.adults));
 
-    if (c) setChildren(Math.max(0, parseInt(c)));
-    else if (typeof sticky?.children === 'number') setChildren(Math.max(0, sticky.children));
+    if (c) {
+      const n = Math.max(0, parseInt(c) || 0);
+      setChildren(n);
+      setChildrenAges(seedAges(agesParam, n));
+    } else if (typeof sticky?.children === 'number') {
+      // Sticky search stores the child COUNT only (StickyPackages has no ages
+      // field), so a restored search is seeded at the house default age.
+      const n = Math.max(0, sticky.children);
+      setChildren(n);
+      setChildrenAges(seedAges(null, n));
+    }
 
     // From field: URL > sticky > saved-airport pref > London default.
     if (f) {
@@ -935,6 +1070,8 @@ function PackagesContent() {
     setCheapestFlight(null);
     setCheapestHotel(null);
     setFlightAirline('');
+    setHotelRoomsUsed(null);
+    setHotelGap(null);
 
     // Persist this search so the user comes back to a pre-filled form.
     saveSticky<StickyPackages>('packages', {
@@ -958,13 +1095,30 @@ function PackagesContent() {
       return d.toISOString().split('T')[0];
     })();
 
+    // The hotel leg must price the party the customer actually picked. Sending
+    // `adults=N` alone quoted a room for the grown-ups and ignored the kids —
+    // Almaty, 2 adults + 3 children: £25.52/night for two adults vs £110.26 for
+    // the five of them, because the cheap property sells nothing that sleeps
+    // five. Null here means the party cannot be encoded without dropping a
+    // guest (see partyToRooms); we skip the call rather than quote a smaller
+    // family back at them.
+    const hotelRooms = partyToRooms(adults, children, childrenAges);
+    const hotelQuery = hotelRooms ? partyParams(hotelRooms) : null;
+    if (hotelQuery) {
+      hotelQuery.set('city', dest);
+      hotelQuery.set('checkin', depDate);
+      hotelQuery.set('checkout', effectiveReturn);
+    }
+
     const [flightRes, hotelRes] = await Promise.all([
       fromCode && destCode
         ? fetch(`/api/flights?origin=${fromCode}&destination=${destCode}&departure=${depDate}&return=${effectiveReturn}&adults=${adults}`)
             .then(r => r.ok ? r.json() : null).catch(() => null)
         : Promise.resolve(null),
-      fetch(`/api/hotels?city=${encodeURIComponent(dest)}&checkin=${depDate}&checkout=${effectiveReturn}&adults=${adults}`)
-        .then(r => r.ok ? r.json() : null).catch(() => null),
+      hotelQuery
+        ? fetch(`/api/hotels?${hotelQuery.toString()}`)
+            .then(r => r.ok ? r.json() : null).catch(() => null)
+        : Promise.resolve(null),
     ]);
 
     // Extract cheapest flight
@@ -974,16 +1128,71 @@ function PackagesContent() {
       setFlightAirline(cheapest.airline || '');
     }
 
-    // Extract cheapest hotel
-    if (hotelRes?.hotels?.length > 0) {
-      const sorted = [...hotelRes.hotels].sort((a: HotelResult, b: HotelResult) => a.pricePerNight - b.pricePerNight);
+    // Extract cheapest hotel — and when there is none, record WHY. Pricing the
+    // real party legitimately empties some cities (Almaty went from 43 hotels
+    // to 2 for a family of five); an honest "nobody here can take your party"
+    // beats a cheap number that was never available to them.
+    // Rescue a thin one-room answer by splitting the party across two rooms —
+    // the same rule the hotel search itself uses (see splitPartyIntoRooms in
+    // hotels-client). partyToRooms deliberately derives the FEWEST rooms that
+    // respect the per-room caps, and for a family of five that is one room,
+    // which almost no property sells: Chambéry returns a single £524 hotel on
+    // one room and seven from £88 on two. Adopted only when the split is more
+    // choice AND not more money, so it can never bury a genuine family room
+    // that undercuts every pair.
+    let hotelRows: HotelResult[] = Array.isArray(hotelRes?.hotels) ? hotelRes.hotels : [];
+    let roomsUsed = hotelRooms?.length ?? 0;
+    const partySize = adults + children;
+    if (hotelQuery && hotelRooms && hotelRooms.length === 1 && adults >= 2 && partySize >= 5 && hotelRows.length <= 3) {
+      const split = partyToRooms(adults, children, childrenAges, 2);
+      if (split && split.length === 2) {
+        const sp = partyParams(split);
+        sp.set('city', dest);
+        sp.set('checkin', depDate);
+        sp.set('checkout', effectiveReturn);
+        try {
+          const retry = await fetch(`/api/hotels?${sp.toString()}`).then((r) => (r.ok ? r.json() : null));
+          const retryRows: HotelResult[] = Array.isArray(retry?.hotels) ? retry.hotels : [];
+          const cheapestOf = (rows: HotelResult[]) =>
+            rows.reduce((min: number, r: HotelResult) => (r.pricePerNight > 0 && r.pricePerNight < min ? r.pricePerNight : min), Infinity);
+          const notDearer = hotelRows.length === 0 || cheapestOf(retryRows) <= cheapestOf(hotelRows);
+          if (retryRows.length > hotelRows.length && notDearer) {
+            hotelRows = retryRows;
+            roomsUsed = 2;
+          }
+        } catch {
+          /* best-effort — keep the one-room answer */
+        }
+      }
+    }
+
+    if (!hotelRooms) {
+      setHotelGap('unpriceable');
+    } else if (hotelRows.length > 0) {
+      const sorted = [...hotelRows].sort((a: HotelResult, b: HotelResult) => a.pricePerNight - b.pricePerNight);
       setCheapestHotel(sorted[0].pricePerNight);
+      setHotelRoomsUsed(roomsUsed);
+    } else if (hotelRes && Array.isArray(hotelRes.hotels)) {
+      // The route answers with the same empty shape whether the CITY has no
+      // coverage or no room big enough for this party, so we cannot name the
+      // cause — and `noHotelForParty` deliberately doesn't try to. What we can
+      // do is point an unusual party at the lever they control (guests per
+      // room); a plain two-adult blank is a coverage gap and keeps the
+      // original route-level wording.
+      const partyIsUnusual = children > 0 || adults > 2;
+      setHotelGap(partyIsUnusual ? 'party' : 'unavailable');
+    } else {
+      setHotelGap('unavailable');
     }
 
     setLoading(false);
     setSearched(true);
     setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-  }, [from, dest, depDate, retDate, adults, duration]);
+    // children + childrenAges are in the deps because the hotel leg now prices
+    // them. Without them the callback closes over a stale party and the very
+    // bug this fix closes reopens the moment the customer adds a child and
+    // presses Search again.
+  }, [from, dest, depDate, retDate, adults, children, childrenAges, duration]);
 
   // Auto-search when URL params fill all required fields
   const autoSearched = useRef(false);
@@ -1002,10 +1211,39 @@ function PackagesContent() {
   })();
 
   const hotelTotal = cheapestHotel ? cheapestHotel * nights : null;
-  const estimatedTotal = cheapestFlight && hotelTotal ? cheapestFlight + hotelTotal : null;
+  // The two legs are quoted on different bases: the flight is PER PERSON, and
+  // now that the hotel leg sends the real party, its nightly figure is the
+  // whole party across every room it needed. Adding them and stamping "per
+  // person" on the result described neither number. Multiply the flight up to
+  // the party and present an honest trip total instead — the figure a family
+  // is actually trying to work out.
+  const travellers = Math.max(1, adults + children);
+  const flightTotal = cheapestFlight ? cheapestFlight * travellers : null;
+  const estimatedTotal = flightTotal && hotelTotal ? flightTotal + hotelTotal : null;
   const hasPartialData = cheapestFlight !== null || cheapestHotel !== null;
 
   const destIata = DEST_IATA[searchedDest.toLowerCase()] || '';
+
+  // "Compare hotels" hands the customer to /hotels — carry the same party the
+  // estimate was built on, otherwise the click silently drops the children and
+  // /hotels shows adults-only prices again, one page after we fixed them here.
+  // /hotels reads destination/adults/children/rooms/childrenAges and prefers occ.
+  const hotelSearchHref = (() => {
+    const rooms = partyToRooms(adults, children, childrenAges);
+    // Unpriceable party (over the engine's caps): hand /hotels the flat party
+    // anyway and let its own decoder do what it can — losing the children
+    // entirely on the way over would be worse than /hotels clamping them.
+    const sp = rooms
+      ? partyParams(rooms)
+      : new URLSearchParams({ adults: String(adults), children: String(children) });
+    if (!rooms && childrenAges.length > 0) {
+      sp.set('childrenAges', childrenAges.slice(0, children).join(','));
+    }
+    sp.set('destination', searchedDest);
+    sp.set('checkin', depDate);
+    if (effectiveReturn) sp.set('checkout', effectiveReturn);
+    return `/hotels?${sp.toString()}`;
+  })();
 
   return (
     <>
@@ -1137,6 +1375,13 @@ function PackagesContent() {
                           <span className="font-poppins font-black text-[1rem] text-[#1A1D2B]">£{cheapestHotel}</span>
                           <span className="text-[.65rem] text-[#8E95A9] font-medium ml-1">{t('perNight')}</span>
                           <div className="text-[.6rem] text-[#8E95A9]">{t('indicativePrice')}</div>
+                          {/* A party of six is priced across two rooms — the
+                              figure above covers both, and reads as one room
+                              unless we say so. Silent for the single-room
+                              majority. */}
+                          {hotelRoomsUsed !== null && hotelRoomsUsed > 1 && (
+                            <div className="text-[.6rem] text-[#8E95A9]">{t('pricedForRooms', { count: hotelRoomsUsed })}</div>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center justify-between">
@@ -1148,13 +1393,20 @@ function PackagesContent() {
                   {estimatedTotal !== null && (
                     <div className="flex items-center justify-between pt-3 border-t border-purple-200">
                       <span className="text-[.95rem] text-[#1A1D2B] font-black">💰 {t('estimatedTotalFrom')}</span>
-                      <span className="font-poppins font-black text-[1.4rem] text-purple-600">£{estimatedTotal}<span className="text-[.7rem] font-semibold text-[#8E95A9] ml-1">{t('perPerson')}</span></span>
+                      <span className="font-poppins font-black text-[1.4rem] text-purple-600">£{Math.round(estimatedTotal)}<span className="text-[.7rem] font-semibold text-[#8E95A9] ml-1">{t('forTravellers', { n: travellers })}</span></span>
                     </div>
                   )}
+                  {/* Same amber block as before — only the sentence changes, so
+                      a family whose real party emptied the city is told that,
+                      not the generic "route pricing unavailable". */}
                   {!estimatedTotal && (
                     <div className="pt-3 border-t border-purple-200">
                       <p className="text-[.78rem] text-amber-700 font-semibold">
-                        ⚠️ {t('partialEstimate', { leg: cheapestFlight === null ? t('flightWord') : t('hotelWord') })}
+                        ⚠️ {hotelGap === 'party'
+                          ? t('noHotelForParty', { dest: searchedDest })
+                          : hotelGap === 'unpriceable'
+                            ? t('partyNotPriceable')
+                            : t('partialEstimate', { leg: cheapestFlight === null ? t('flightWord') : t('hotelWord') })}
                       </p>
                     </div>
                   )}
@@ -1265,7 +1517,7 @@ function PackagesContent() {
                   <p className="text-[.72rem] text-[#5C6378] font-semibold mb-3">
                     {t('hotelsInShort', { dest: searchedDest })}{cheapestHotel ? ` ${t('fromLower')} £${cheapestHotel}${t('perNight')}` : ''}
                   </p>
-                  <a href={`/hotels?destination=${encodeURIComponent(searchedDest)}&checkin=${depDate}&checkout=${effectiveReturn}`}
+                  <a href={hotelSearchHref}
                     className="inline-block px-4 py-2 rounded-xl bg-white border-2 border-[#0066FF] text-[#0066FF] hover:bg-blue-50 font-poppins font-bold text-[.75rem] transition-all">
                     {t('compareHotels')}
                   </a>

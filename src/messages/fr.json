@@ -759,6 +759,7 @@
     "perNight": "/nuit",
     "indicativePrice": "(prix indicatif)",
     "estimatedTotalFrom": "Total estimé à partir de",
+    "forTravellers": "pour {n, plural, one {# voyageur} other {# voyageurs}}",
     "perPerson": "par personne",
     "partialEstimate": "Estimation partielle : les prix pour {leg} ne sont pas disponibles pour cet itinéraire. Consultez les fournisseurs pour des offres de séjour complètes.",
     "pricedForRooms": "{count, plural, one {pour # chambre} other {pour # chambres}}",

@@ -759,6 +759,7 @@
     "perNight": "/रात",
     "indicativePrice": "(सांकेतिक मूल्य)",
     "estimatedTotalFrom": "अनुमानित कुल से",
+    "forTravellers": "{n, plural, one {# यात्री} other {# यात्रियों}} के लिए",
     "perPerson": "प्रति व्यक्ति",
     "partialEstimate": "आंशिक अनुमान — इस मार्ग के लिए {leg} मूल्य उपलब्ध नहीं। पूर्ण पैकेज डील के लिए प्रदाता देखें।",
     "pricedForRooms": "{count, plural, one {# कमरे के लिए} other {# कमरों के लिए}}",

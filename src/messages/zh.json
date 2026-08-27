@@ -759,6 +759,7 @@
     "perNight": "/晚",
     "indicativePrice": "(参考价格)",
     "estimatedTotalFrom": "预估总价起",
+    "forTravellers": "共 {n} 位旅客",
     "perPerson": "每人",
     "partialEstimate": "部分估价——此航线的 {leg} 价格不可用。请查看供应商以获取完整套餐优惠。",
     "pricedForRooms": "涵盖 {count} 间客房",
