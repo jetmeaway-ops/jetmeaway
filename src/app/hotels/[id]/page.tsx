@@ -751,8 +751,23 @@ export default function HotelDetailPage() {
           // a board upgrade) sent checkout a figure belonging to a different
           // rate entirely. The row we are booking knows its own, so prefer it
           // and keep the URL value only as a fallback for rows that carry none.
-          localFees: rate.excludedTaxes ?? localFees ?? 0,
+          // We have the row, so the row is authoritative and there is NO
+          // fallback: /api/hotels/rates emits `excludedTaxes: null` to mean
+          // "this rate has nothing payable at the property" (both map paths in
+          // that route coalesce a missing value to null, never undefined). The
+          // old `?? localFees ?? 0` could not tell that null from "unknown", so
+          // a Deluxe Room at St George's Wembley — which LiteAPI marks entirely
+          // tax-included — inherited £22.33 from the card's cheapest rate and
+          // showed a total 17.4% too high. On a 2-room quote it doubled.
+          localFees: rate.excludedTaxes ?? 0,
           refundable: rate.refundable,
+          // The free-cancellation deadline this row advertised. Without it the
+          // booking record stored null, the Cancel button never rendered, and
+          // our own cancel API told a customer with free cancellation until
+          // 17 Oct 10:00 that "this rate is non-refundable" — 4 of 4 refundable
+          // offers lost it. Omitted rather than nulled when there is no
+          // deadline, matching the optional fields around it.
+          ...(rate.cancelDeadline ? { cancellationDeadline: rate.cancelDeadline } : {}),
           checkInTime: hotel.checkInTime || null,
           checkOutTime: hotel.checkOutTime || null,
           // LiteAPI commission (our merchant margin on this rate) — optional,
@@ -798,12 +813,16 @@ export default function HotelDetailPage() {
           rooms: parseInt(rooms),
           totalPrice: parseFloat(price),
           currency,
-          // Prefer the selected rate's own property-payable taxes over the
-          // results-card `localFees` param, for the same reason as the row-reserve
-          // path above: the URL value belongs to the hotel's cheapest rate, not
-          // necessarily the one being booked.
-          localFees: selectedRate?.excludedTaxes ?? localFees ?? 0,
+          // Same rule as the row-reserve path above: when a row is selected it
+          // is authoritative and null means zero, so it must NOT fall through
+          // to the card's `localFees`. The URL value survives only for the one
+          // case where it is still the best information we have — booking the
+          // hotel-level offer without having picked a row at all.
+          localFees: selectedRate ? (selectedRate.excludedTaxes ?? 0) : (localFees ?? 0),
           ...(refundable !== null ? { refundable } : {}),
+          ...(selectedRate?.cancelDeadline
+            ? { cancellationDeadline: selectedRate.cancelDeadline }
+            : {}),
           checkInTime: hotel.checkInTime || null,
           checkOutTime: hotel.checkOutTime || null,
         }),
