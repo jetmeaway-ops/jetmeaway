@@ -2490,6 +2490,18 @@ function HotelsContent() {
   // Set when a single-room search for a large party found nothing and we
   // auto-retried across 2 rooms (see handleSearch). Drives the info banner.
   const [autoSplitInfo, setAutoSplitInfo] = useState<{ guests: number } | null>(null);
+  /* ── Map area search ──────────────────────────────────────────────────────
+     Hotels discovered by moving the map, kept SEPARATE from `hotels` so the
+     list, its filters, sort and paging are untouched — panning the map must
+     never rewrite the results the visitor was reading. They are merged into
+     the map's pin set only. */
+  const [mapFound, setMapFound] = useState<HotelResult[]>([]);
+  const [mapSearching, setMapSearching] = useState(false);
+  const [mapNotice, setMapNotice] = useState<string | null>(null);
+  /** Areas already searched, as `lat,lng,radius` — a viewport well inside one
+   *  of these has nothing new to offer, so we skip the call. */
+  const searchedAreas = useRef<Array<{ lat: number; lng: number; r: number }>>([]);
+  const mapSeq = useRef(0);
   // Set when the arriving URL asked for a bigger party than the occupancy caps
   // allow, so the search below is priced for FEWER guests than were requested.
   // `canAddRoom` distinguishes the two causes: a per-room ceiling (adding a
@@ -2625,6 +2637,139 @@ function HotelsContent() {
       window.location.assign(fallbackHref);
     }
   };
+
+  /**
+   * Search whatever area the map is now showing — the "zoom out and see what's
+   * in Geneva" behaviour the owner asked for after comparing us with another
+   * site. Our map used to plot ONLY the original city's hotels, so exploring
+   * revealed nothing.
+   *
+   * Three things keep this from becoming expensive or annoying:
+   *  1. 🔴 LiteAPI's radius search DEGRADES badly past ~80 km (a law learned
+   *     the hard way on the 2026-08 coverage audit — beyond it the supplier
+   *     returns less, not more). So we cap the request there and, when the
+   *     visible area is wider than that, say so instead of quietly returning
+   *     a slice of the middle and calling it "hotels in this area".
+   *  2. A viewport comfortably inside an area we already searched is skipped.
+   *  3. Results are MERGED, never replaced, so zooming out keeps everything
+   *     found so far on screen.
+   */
+  const handleMapViewport = useCallback(async (v: { lat: number; lng: number; radiusKm: number; zoom: number }) => {
+    if (!checkin || !checkout) return;
+
+    /* 🔴 THE SUPPLIER IGNORES A GROWING RADIUS. Measured 2026-08-27 on raw
+       LiteAPI around Chambéry: `distance` of 10 km and of 80 km both return
+       exactly the same 71 hotels. Asking for a wider circle finds nothing
+       extra — which is precisely why zooming out used to reveal nothing.
+       A search CENTRED on Geneva, however, returns 103 hotels of its own.
+       Inventory is reached by MOVING THE CENTRE, not by widening the circle.
+
+       So a wide viewport is covered by SAMPLING it: one probe per cell of a
+       grid laid over the visible rectangle, each with a modest radius the
+       supplier actually honours. Panning toward Geneva finds Geneva; zooming
+       out to hold both finds both. */
+    const PROBE_RADIUS_KM = 25;
+    // A full 3x3 grid. Measured: capping at 6 truncated the grid row-major and
+    // silently dropped the whole NORTHERN row — searching a Chambéry-to-Geneva
+    // viewport then returned 158 hotels but not one of Geneva's, which is the
+    // exact complaint this feature exists to fix. Nine probes is the honest
+    // cost of covering a wide viewport; they run in parallel, only when zoomed
+    // out, and every cell is remembered so panning back is free.
+    const MAX_PROBES = 9;
+
+    const probes: Array<{ lat: number; lng: number }> = [];
+    if (v.radiusKm <= PROBE_RADIUS_KM) {
+      probes.push({ lat: v.lat, lng: v.lng });
+    } else {
+      // Lay a square grid over the viewport, one probe per PROBE_RADIUS cell,
+      // capped so a world-level zoom-out can never fan out unboundedly.
+      const side = Math.min(3, Math.ceil(v.radiusKm / PROBE_RADIUS_KM));
+      const stepKm = (v.radiusKm * 2) / side;
+      const kmPerLat = 111;
+      const kmPerLng = 111 * Math.cos((v.lat * Math.PI) / 180) || 1;
+      for (let r = 0; r < side; r++) {
+        for (let c = 0; c < side; c++) {
+          const offLat = (r - (side - 1) / 2) * stepKm;
+          const offLng = (c - (side - 1) / 2) * stepKm;
+          probes.push({ lat: v.lat + offLat / kmPerLat, lng: v.lng + offLng / kmPerLng });
+        }
+      }
+    }
+
+    // Drop probes already covered by an earlier one — panning a little should
+    // not re-run the whole grid.
+    const fresh = probes.filter((p) => !searchedAreas.current.some((a) => {
+      const dLat = (p.lat - a.lat) * 111;
+      const dLng = (p.lng - a.lng) * 111 * Math.cos((p.lat * Math.PI) / 180);
+      return Math.sqrt(dLat * dLat + dLng * dLng) < a.r * 0.6;
+    }))
+      // Nearest-to-centre first, so if the cap ever bites it drops the far
+      // corners rather than an arbitrary row.
+      .sort((a, b) => {
+        const d = (p: { lat: number; lng: number }) =>
+          (p.lat - v.lat) ** 2 + (p.lng - v.lng) ** 2;
+        return d(a) - d(b);
+      })
+      .slice(0, MAX_PROBES);
+    if (fresh.length === 0) { setMapNotice(null); return; }
+
+    const seq = ++mapSeq.current;
+    setMapSearching(true);
+    setMapNotice(null);
+    try {
+      const baseParams = () => {
+        const qp = new URLSearchParams({
+          // `city` is required by the schema; lat/lng/radius override the centre.
+          city: searchedDest || destination || 'map',
+          checkin,
+          checkout,
+          adults: String(adults),
+          children: String(childCount),
+          rooms: String(rooms),
+          radius: String(PROBE_RADIUS_KM),
+        });
+        if (childrenAges.length > 0) qp.set('childrenAges', childrenAges.join(','));
+        const occEncoded = roomsArr && roomsArr.length > 0 ? encodeOccupancy(roomsArr) : '';
+        if (occEncoded) qp.set('occ', occEncoded);
+        return qp;
+      };
+
+      const batches = await Promise.all(fresh.map(async (p) => {
+        const qp = baseParams();
+        qp.set('lat', p.lat.toFixed(4));
+        qp.set('lng', p.lng.toFixed(4));
+        try {
+          const data = await fetch(`/api/hotels?${qp}`).then((r) => (r.ok ? r.json() : null));
+          return Array.isArray(data?.hotels) ? (data.hotels as HotelResult[]) : [];
+        } catch {
+          return [];
+        }
+      }));
+      if (seq !== mapSeq.current) return; // a newer viewport superseded this
+
+      searchedAreas.current = [
+        ...searchedAreas.current,
+        ...fresh.map((p) => ({ lat: p.lat, lng: p.lng, r: PROBE_RADIUS_KM })),
+      ].slice(-40);
+
+      const rows = batches.flat();
+      if (rows.length > 0) {
+        setMapFound((prev) => {
+          const seen = new Set(prev.map((h) => String(h.id)));
+          const add = rows.filter((h) => {
+            if (h.id == null || seen.has(String(h.id))) return false;
+            seen.add(String(h.id));
+            return true;
+          });
+          return add.length ? [...prev, ...add] : prev;
+        });
+      }
+    } catch {
+      /* best-effort: a failed area search must not disturb the list */
+    } finally {
+      if (seq === mapSeq.current) setMapSearching(false);
+    }
+  }, [checkin, checkout, searchedDest, destination, adults, childCount, rooms, childrenAges, roomsArr]);
 
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -4634,7 +4779,14 @@ function HotelsContent() {
                                      → desktop (lg+): side-by-side, sticky map
               We reuse a single card-render helper so both branches stay in sync. */}
           {hotels!.length > 0 && (() => {
-            const mapHotels = sortedHotels!
+            // Pins = the current search PLUS anything found by moving the map.
+            // `mapFound` is deliberately merged only here: the list, its
+            // filters, sort and paging stay exactly as the visitor left them.
+            const seenPin = new Set(sortedHotels!.map((h) => String(h.id)));
+            const mapHotels = [
+              ...sortedHotels!,
+              ...mapFound.filter((h) => h.id != null && !seenPin.has(String(h.id))),
+            ]
               .filter((h) => typeof h.lat === 'number' && typeof h.lng === 'number')
               .map((h) => ({
                 id: h.id,
@@ -4645,7 +4797,12 @@ function HotelsContent() {
                 lat: h.lat as number,
                 lng: h.lng as number,
                 href: buildDetailHref(h),
+                thumbnail: h.thumbnail ?? null,
+                reviewScore: typeof h.reviewScore === 'number' ? h.reviewScore : null,
               }));
+            // Re-frame the map only on a genuinely new search — not when area
+            // results arrive (see FitBounds).
+            const mapFitKey = `${searchedDest}|${checkin}|${checkout}|${adults}|${childCount}|${rooms}`;
             const renderCards = (compact: boolean) => (
               <div className={compact ? 'space-y-3' : 'space-y-3'}>
                 {pagedHotels!.map((h, i) => (
@@ -4710,6 +4867,10 @@ function HotelsContent() {
                           const el = document.getElementById(`hotel-card-${id}`);
                           if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         }}
+                        onViewportChange={handleMapViewport}
+                        searching={mapSearching}
+                        notice={mapNotice}
+                        fitKey={mapFitKey}
                         height="h-[calc(100vh-7rem)]"
                       />
                     </div>
@@ -4728,6 +4889,10 @@ function HotelsContent() {
                       onPinClick={(id) => {
                         setActiveHotelId(id);
                       }}
+                      onViewportChange={handleMapViewport}
+                      searching={mapSearching}
+                      notice={mapNotice}
+                      fitKey={mapFitKey}
                       height="h-[calc(100vh-12rem)] min-h-[420px]"
                     />
                   </div>

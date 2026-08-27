@@ -1031,6 +1031,7 @@
     },
     "tryAgain": "Tekrar Dene",
     "roomsAutoSplit": "Buradaki hiçbir otelde {guests} kişi için tek oda yok, bu yüzden 2 odalı seçenekler bulduk.",
+    "mapZoomInToSearch": "Bu alanda arama yapmak için yakınlaştırın",
     "partyTrimmedRoomCap": "{asked} yerine {searched} misafir için arama yaptık — bir oda en fazla {maxAdults} yetişkin ve {maxChildren} çocuk alır.",
     "partyTrimmedTotalCap": "{asked} yerine {searched} misafir için arama yaptık — bir arama {maxRooms} odada en fazla {maxGuests} misafiri kapsar.",
     "partyTrimmedAddRoom": "Grubunuzdan daha fazla kişiyi dahil etmek için Misafirler ve Odalar bölümünden bir oda daha ekleyin."

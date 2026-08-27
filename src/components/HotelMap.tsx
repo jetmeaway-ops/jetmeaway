@@ -30,6 +30,34 @@ export interface HotelMapItem {
   lat: number;
   lng: number;
   href: string;
+  /** Shown in the pin popup — the owner's ask was to see the hotel, not just
+   *  a price, before deciding to open it. Optional: a pin without a photo
+   *  still renders, just without the image. */
+  thumbnail?: string | null;
+  /** Guest score out of 10, when the supplier gave one. */
+  reviewScore?: number | null;
+}
+
+/** What the map is currently looking at, handed to the parent so it can search
+ *  that area. `radiusKm` is the centre-to-corner distance, i.e. a circle that
+ *  covers the whole visible rectangle. */
+export interface MapViewport {
+  lat: number;
+  lng: number;
+  radiusKm: number;
+  zoom: number;
+}
+
+/** Great-circle distance in km — used to turn the visible rectangle into the
+ *  radius our search API takes. */
+function haversineKm(aLat: number, aLng: number, bLat: number, bLng: number): number {
+  const R = 6371;
+  const dLat = ((bLat - aLat) * Math.PI) / 180;
+  const dLng = ((bLng - aLng) * Math.PI) / 180;
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((aLat * Math.PI) / 180) * Math.cos((bLat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(s)));
 }
 
 // Price-pill divIcon — shows the nightly rate on the map
@@ -86,18 +114,78 @@ function clusterIcon(cluster: L.MarkerCluster): L.DivIcon {
   });
 }
 
-/** Popup markup for a hotel pin (imperative Leaflet — no JSX available here). */
+/** Popup markup for a hotel pin (imperative Leaflet — no JSX available here).
+ *  Carries the photo and the guest score as well as the price: tapping a pin
+ *  should tell you enough to decide, not just repeat the number already on
+ *  the pin. Only a whole 1-5 renders as stars — the same rule the rest of the
+ *  site now uses, because LiteAPI's `rating` is a 0-10 guest score and showing
+ *  it as stars invented five-star campsites. */
 function popupHtml(h: HotelMapItem): string {
-  const stars = h.stars > 0
-    ? `<div style="color:#F59E0B;font-size:12px;margin-bottom:4px;">${'★'.repeat(Math.min(5, Math.round(h.stars)))}</div>`
+  const whole = Number.isInteger(h.stars) && h.stars >= 1 && h.stars <= 5;
+  const stars = whole
+    ? `<div style="color:#F59E0B;font-size:12px;margin-bottom:2px;">${'★'.repeat(h.stars)}</div>`
+    : '';
+  const score = typeof h.reviewScore === 'number' && h.reviewScore > 0
+    ? `<div style="display:inline-block;background:#0C6E4C;color:#fff;font-family:Poppins,sans-serif;font-weight:800;font-size:11px;padding:2px 6px;border-radius:6px;margin-bottom:6px;">${h.reviewScore.toFixed(1)}</div>`
+    : '';
+  const photo = h.thumbnail
+    ? `<img src="${esc(h.thumbnail)}" alt="" loading="lazy" style="width:100%;height:96px;object-fit:cover;border-radius:8px;margin-bottom:8px;display:block;" />`
     : '';
   const price = `${h.currency === 'GBP' ? '£' : `${esc(h.currency)} `}${Math.round(h.pricePerNight)}`;
-  return `<div style="min-width:180px">
-    <div style="font-family:Poppins,sans-serif;font-weight:900;font-size:14px;color:#1A1D2B;margin-bottom:4px;">${esc(h.name)}</div>
+  return `<div style="min-width:190px;max-width:220px">
+    ${photo}
+    <div style="font-family:Poppins,sans-serif;font-weight:900;font-size:14px;color:#1A1D2B;margin-bottom:4px;line-height:1.25;">${esc(h.name)}</div>
     ${stars}
+    ${score}
     <div style="font-family:Poppins,sans-serif;font-weight:800;font-size:13px;color:#F97316;margin-bottom:8px;">${price}/night</div>
     <a href="${esc(h.href)}"${newTabAttrs()} style="display:inline-block;background:#F97316;color:#fff;padding:6px 12px;border-radius:8px;font-family:Poppins,sans-serif;font-weight:800;font-size:12px;text-decoration:none;">View hotel →</a>
   </div>`;
+}
+
+/**
+ * Tells the parent what the map is looking at, so it can search that area.
+ *
+ * The owner's ask, comparing us with another site: "when you zoom out, if we
+ * have inventory in the cities coming into view, show it". Our map only ever
+ * plotted the hotels from the original city search, so zooming out revealed
+ * nothing new.
+ *
+ * Fires on `moveend` (pan and zoom both end there), debounced — a pinch emits
+ * a burst of moves and each search is a live supplier call. The parent decides
+ * whether a given viewport is worth searching; this component only reports.
+ */
+function ViewportWatcher({
+  onViewportChange,
+  debounceMs = 700,
+}: {
+  onViewportChange: (v: MapViewport) => void;
+  debounceMs?: number;
+}) {
+  const map = useMap();
+  const cbRef = useRef(onViewportChange);
+  cbRef.current = onViewportChange;
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const report = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        const c = map.getCenter();
+        const b = map.getBounds();
+        const ne = b.getNorthEast();
+        // Centre-to-corner: a circle that covers the whole visible rectangle.
+        const radiusKm = haversineKm(c.lat, c.lng, ne.lat, ne.lng);
+        cbRef.current({ lat: c.lat, lng: c.lng, radiusKm, zoom: map.getZoom() });
+      }, debounceMs);
+    };
+    map.on('moveend', report);
+    return () => {
+      map.off('moveend', report);
+      if (timer) clearTimeout(timer);
+    };
+  }, [map, debounceMs]);
+
+  return null;
 }
 
 /**
@@ -216,20 +304,54 @@ function ClusteredPins({
  * both whenever the box actually changes — covering the toggle, an orientation
  * change, and the browser chrome collapsing on scroll.
  */
-function FitBounds({ hotels }: { hotels: HotelMapItem[] }) {
+function FitBounds({ hotels, fitKey }: { hotels: HotelMapItem[]; fitKey: string }) {
   const map = useMap();
+  // Once the visitor has moved the map themselves, the map belongs to them.
+  // 🔴 This matters much more now that panning/zooming LOADS MORE HOTELS: an
+  // auto-fit on every arrival would drag the view back to the original city
+  // the instant new pins appeared, and the harder you explored the harder it
+  // would fight you. Auto-fit therefore applies to the first paint, to a
+  // genuine container resize, and to a NEW SEARCH (fitKey) — never to hotels
+  // simply arriving.
+  const userMoved = useRef(false);
+  const programmatic = useRef(false);
+
+  useEffect(() => {
+    // A new search is a fresh start: the map is ours to frame again.
+    userMoved.current = false;
+  }, [fitKey]);
+
+  useEffect(() => {
+    const onMoveStart = () => {
+      if (!programmatic.current) userMoved.current = true;
+    };
+    const onMoveEnd = () => {
+      programmatic.current = false;
+    };
+    map.on('movestart', onMoveStart);
+    map.on('moveend', onMoveEnd);
+    return () => {
+      map.off('movestart', onMoveStart);
+      map.off('moveend', onMoveEnd);
+    };
+  }, [map]);
+
   useEffect(() => {
     if (!hotels.length) return;
+    // Frame the ORIGINAL search, not everything discovered since — otherwise
+    // one far-off hotel found while exploring would zoom the whole map out.
     const bounds = L.latLngBounds(hotels.map((h) => [h.lat, h.lng]));
-    const apply = () => {
+    const apply = (force: boolean) => {
+      if (userMoved.current && !force) return;
+      programmatic.current = true;
       map.invalidateSize({ animate: false });
       map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
     };
 
     // Once now, and once after the browser has painted a frame — the mount
     // pass frequently runs while the container is still 0-height.
-    apply();
-    const raf = requestAnimationFrame(apply);
+    apply(true);
+    const raf = requestAnimationFrame(() => apply(true));
 
     const el = map.getContainer();
     let ro: ResizeObserver | null = null;
@@ -237,11 +359,11 @@ function FitBounds({ hotels }: { hotels: HotelMapItem[] }) {
       let last = `${el.clientWidth}x${el.clientHeight}`;
       ro = new ResizeObserver(() => {
         const next = `${el.clientWidth}x${el.clientHeight}`;
-        // Only refit on a REAL size change. Firing on every observer tick
-        // would fight the user's own panning and zooming.
+        // Only refit on a REAL size change, and never over a view the visitor
+        // chose for themselves.
         if (next === last || el.clientWidth === 0 || el.clientHeight === 0) return;
         last = next;
-        apply();
+        apply(false);
       });
       ro.observe(el);
     }
@@ -250,7 +372,10 @@ function FitBounds({ hotels }: { hotels: HotelMapItem[] }) {
       cancelAnimationFrame(raf);
       ro?.disconnect();
     };
-  }, [hotels, map]);
+    // Deliberately keyed on fitKey, NOT on `hotels`: pins arriving from an
+    // area search must not re-frame the map.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fitKey, map]);
   return null;
 }
 
@@ -273,6 +398,10 @@ export default function HotelMap({
   activeHotelId = null,
   onPinHover,
   onPinClick,
+  onViewportChange,
+  searching = false,
+  notice = null,
+  fitKey,
   height,
 }: {
   hotels: HotelMapItem[];
@@ -281,6 +410,16 @@ export default function HotelMap({
   activeHotelId?: string | number | null;
   onPinHover?: (id: string | number | null) => void;
   onPinClick?: (id: string | number) => void;
+  /** Called (debounced) whenever the visible area settles, so the parent can
+   *  search it. Omit to keep the map purely a plot of what it was given. */
+  onViewportChange?: (v: MapViewport) => void;
+  /** True while the parent is fetching hotels for the current area. */
+  searching?: boolean;
+  /** Short status line shown over the map — e.g. "zoom in to search here". */
+  notice?: string | null;
+  /** Changes when a NEW SEARCH happens (city + dates + party). The map
+   *  re-frames itself on a change and never on pins merely arriving. */
+  fitKey?: string;
   /** Override the default height. Accepts any Tailwind class or inline value. */
   height?: string;
 }) {
@@ -301,7 +440,20 @@ export default function HotelMap({
   }
 
   return (
-    <div className={`w-full ${containerHeight} rounded-2xl overflow-hidden border border-[#E8ECF4]`}>
+    <div className={`relative w-full ${containerHeight} rounded-2xl overflow-hidden border border-[#E8ECF4]`}>
+      {/* Status over the map: what it is doing, or why it is not doing it.
+          Above Leaflet's own panes (z-400 for popups) so it is never buried,
+          and pointer-events-none so it can never eat a pin tap. */}
+      {(searching || notice) && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[500] pointer-events-none">
+          <span className="inline-flex items-center gap-2 rounded-full bg-[#0a1628]/90 text-white px-3 py-1.5 text-[.72rem] font-bold shadow-lg backdrop-blur-sm">
+            {searching && (
+              <i className="fa-solid fa-circle-notch fa-spin text-[.66rem]" aria-hidden />
+            )}
+            {searching ? 'Searching this area…' : notice}
+          </span>
+        </div>
+      )}
       <MapContainer
         center={[centerLat, centerLng]}
         zoom={13}
@@ -312,8 +464,9 @@ export default function HotelMap({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <FitBounds hotels={hotels} />
+        <FitBounds hotels={hotels} fitKey={fitKey ?? ''} />
         <PanToActive hotels={hotels} activeId={activeHotelId} />
+        {onViewportChange && <ViewportWatcher onViewportChange={onViewportChange} />}
         <ClusteredPins
           hotels={hotels}
           activeHotelId={activeHotelId}

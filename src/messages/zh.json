@@ -1031,6 +1031,7 @@
     },
     "tryAgain": "重试",
     "roomsAutoSplit": "这里没有酒店提供可住 {guests} 人的单间，因此我们为您找了 2 间房的选择。",
+    "mapZoomInToSearch": "放大以搜索此区域",
     "partyTrimmedRoomCap": "我们按 {searched} 位客人搜索，而非您要求的 {asked} 位——每间客房最多容纳 {maxAdults} 位成人和 {maxChildren} 位儿童。",
     "partyTrimmedTotalCap": "我们按 {searched} 位客人搜索，而非您要求的 {asked} 位——一次搜索最多涵盖 {maxRooms} 间客房、{maxGuests} 位客人。",
     "partyTrimmedAddRoom": "在“客人与房间”中再添加一间客房，即可容纳更多同行者。"
