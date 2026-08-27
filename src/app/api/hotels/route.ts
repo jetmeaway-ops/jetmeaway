@@ -130,9 +130,18 @@ const AIRPORT_COORDS_RAW: Array<{ keys: string[]; lat: number; lng: number; radi
   // EU
   { keys: ['cdg', 'paris cdg', 'charles de gaulle', 'paris charles de gaulle', 'roissy'], lat: 49.0097, lng: 2.5479, radiusKm: 12 },
   { keys: ['orly', 'paris orly', 'ory'], lat: 48.7233, lng: 2.3794, radiusKm: 10 },
-  { keys: ['fco', 'fiumicino', 'rome fiumicino', 'rome airport'], lat: 41.8003, lng: 12.2389, radiusKm: 12 },
-  { keys: ['mxp', 'malpensa', 'milan malpensa'], lat: 45.6306, lng: 8.7281, radiusKm: 12 },
-  { keys: ['lin', 'linate', 'milan linate'], lat: 45.4451, lng: 9.2767, radiusKm: 8 },
+  // Italian airports carry their NATIVE names in Google autocomplete
+  // ("Milano Malpensa Airport (MXP)", "Roma Fiumicino") — the owner hit 0
+  // results at MXP itself (2026-08-27) because only the English "milan
+  // malpensa" was keyed. Native variants added, plus the previously missing
+  // Ciampino / Bergamo / Venice / Naples airports.
+  { keys: ['fco', 'fiumicino', 'rome fiumicino', 'roma fiumicino', 'rome airport', 'leonardo da vinci'], lat: 41.8003, lng: 12.2389, radiusKm: 12 },
+  { keys: ['cia', 'ciampino', 'rome ciampino', 'roma ciampino'], lat: 41.7994, lng: 12.5949, radiusKm: 12 },
+  { keys: ['mxp', 'malpensa', 'milan malpensa', 'milano malpensa'], lat: 45.6306, lng: 8.7281, radiusKm: 12 },
+  { keys: ['lin', 'linate', 'milan linate', 'milano linate'], lat: 45.4451, lng: 9.2767, radiusKm: 8 },
+  { keys: ['bgy', 'orio al serio', 'bergamo airport', 'milan bergamo', 'milano bergamo'], lat: 45.6739, lng: 9.7042, radiusKm: 12 },
+  { keys: ['vce', 'marco polo', 'venice airport', 'venezia marco polo', 'venice marco polo'], lat: 45.5053, lng: 12.3519, radiusKm: 15 },
+  { keys: ['nap', 'capodichino', 'naples airport', 'napoli capodichino'], lat: 40.8860, lng: 14.2908, radiusKm: 12 },
   { keys: ['bcn', 'el prat', 'barcelona airport'], lat: 41.2974, lng: 2.0833, radiusKm: 10 },
   { keys: ['mad', 'barajas', 'madrid airport', 'madrid barajas'], lat: 40.4983, lng: -3.5676, radiusKm: 10 },
   { keys: ['ams', 'schiphol', 'amsterdam airport'], lat: 52.3086, lng: 4.7639, radiusKm: 10 },
@@ -315,9 +324,13 @@ const AIRPORT_TO_CITY: Record<string, string> = {
   // EU
   'cdg': 'paris', 'paris cdg': 'paris', 'charles de gaulle': 'paris', 'paris charles de gaulle': 'paris', 'roissy': 'paris',
   'orly': 'paris', 'paris orly': 'paris', 'ory': 'paris',
-  'fco': 'rome', 'fiumicino': 'rome', 'rome fiumicino': 'rome', 'rome airport': 'rome',
-  'mxp': 'milan', 'malpensa': 'milan', 'milan malpensa': 'milan',
-  'lin': 'milan', 'linate': 'milan', 'milan linate': 'milan',
+  'fco': 'rome', 'fiumicino': 'rome', 'rome fiumicino': 'rome', 'roma fiumicino': 'rome', 'rome airport': 'rome', 'leonardo da vinci': 'rome',
+  'cia': 'rome', 'ciampino': 'rome', 'rome ciampino': 'rome', 'roma ciampino': 'rome',
+  'mxp': 'milan', 'malpensa': 'milan', 'milan malpensa': 'milan', 'milano malpensa': 'milan',
+  'lin': 'milan', 'linate': 'milan', 'milan linate': 'milan', 'milano linate': 'milan',
+  'bgy': 'bergamo', 'orio al serio': 'bergamo', 'bergamo airport': 'bergamo', 'milan bergamo': 'bergamo', 'milano bergamo': 'bergamo',
+  'vce': 'venice', 'marco polo': 'venice', 'venice airport': 'venice', 'venezia marco polo': 'venice', 'venice marco polo': 'venice',
+  'nap': 'naples', 'capodichino': 'naples', 'naples airport': 'naples', 'napoli capodichino': 'naples',
   'bcn': 'barcelona', 'el prat': 'barcelona', 'barcelona airport': 'barcelona',
   'mad': 'madrid', 'barajas': 'madrid', 'madrid airport': 'madrid', 'madrid barajas': 'madrid',
   'ams': 'amsterdam', 'schiphol': 'amsterdam', 'amsterdam airport': 'amsterdam',
@@ -1862,11 +1875,33 @@ export async function GET(req: NextRequest) {
   // form) — searches for Heathrow, Gatwick, CDG, JFK etc. silently returned
   // 0 hotels because the cityKey didn't match any entry and LiteAPI has no
   // city by that name either.
-  const rawCityKey = city
+  let rawCityKey = city
     .toLowerCase()
     .trim()
     .replace(/\s*\([a-z]{3}\)\s*$/i, '')
     .trim();
+  // Fuzzy airport rescue (2026-08-27 — the owner stood AT Malpensa while the
+  // site showed 0 hotels): Google's autocomplete fills the LOCAL name
+  // ("Milano Malpensa Airport") while the alias tables key the English form
+  // ("milan malpensa"), so both exact lookups missed and the search fell
+  // through to a LiteAPI cityName that doesn't exist. When the exact keys
+  // miss, scan the airport table for a DISTINCTIVE key (≥5 chars, matched as
+  // a whole word — "malpensa" ⊂ "milano malpensa airport") and normalise
+  // rawCityKey to it, so every downstream consumer (AIRPORT_COORDS,
+  // AIRPORT_TO_CITY, geo filter, cache key) agrees on the same canonical
+  // airport. ~60 rows scanned only on a miss — negligible.
+  if (!AIRPORT_COORDS[rawCityKey] && !AIRPORT_TO_CITY[rawCityKey]) {
+    const padded = ` ${rawCityKey} `;
+    outer: for (const row of AIRPORT_COORDS_RAW) {
+      for (const k of row.keys) {
+        if (k.length >= 5 && padded.includes(` ${k} `)) {
+          console.log(`[hotels] airport fuzzy-normalised "${rawCityKey}" → "${k}"`);
+          rawCityKey = k;
+          break outer;
+        }
+      }
+    }
+  }
   // Rewrite airport/landmark names → nearest city LiteAPI knows. Without this,
   // searches for "Gatwick", "Heathrow", "JFK" etc return 0 hotels because
   // LiteAPI's /data/hotels?cityName=Gatwick has no city by that name.

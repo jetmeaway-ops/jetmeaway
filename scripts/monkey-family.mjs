@@ -40,10 +40,15 @@ const FAMILY = { adults: 2, childrenAges: [16, 14, 10] };
 /** Major-inventory cities only — the baseline thresholds assume real depth.
  *  Dijon is deliberately on the list: it is where the owner stood in the
  *  street while his own site showed him 3 expensive hotels. */
-const CITIES = ['Milan', 'Rome', 'Dijon', 'London', 'Paris', 'Barcelona', 'Dubai', 'Istanbul'];
+const CITIES = ['Milan', 'Rome', 'Dijon', 'London', 'Paris', 'Barcelona', 'Dubai', 'Istanbul',
+  // Native-name airport, exactly as Google autocomplete fills it — locks the
+  // 2026-08-27 MXP bug (owner AT the airport, site showed 0 for everyone
+  // because only the English "milan malpensa" was keyed).
+  'Milano Malpensa Airport (MXP)'];
 
-/** Couple-search floor per city. Dijon is a small city — lower bar. */
-const COUPLE_MIN = { Dijon: 8 };
+/** Couple-search floor per city. Dijon is a small city — lower bar; the
+ *  airport ring holds ~a dozen hotels. */
+const COUPLE_MIN = { Dijon: 8, 'Milano Malpensa Airport (MXP)': 4 };
 const COUPLE_MIN_DEFAULT = 20;
 
 function dates() {
@@ -79,11 +84,13 @@ const cheapest = (rows, key = 'pricePerNight') =>
 async function runCity(city) {
   const { checkin, checkout } = dates();
   const errs = [];
+  // Encode — the airport entry carries spaces and "(MXP)".
+  const cityQ = encodeURIComponent(city);
   const stay = `checkin=${checkin}&checkout=${checkout}`;
   const fam = `adults=${FAMILY.adults}&children=${FAMILY.childrenAges.length}&childrenAges=${FAMILY.childrenAges.join(',')}`;
 
   // ── S1: couple baseline — is the city healthy at all? ──────────────────
-  const couple = await getJson(`/api/hotels?city=${city}&${stay}&adults=2&children=0&rooms=1`);
+  const couple = await getJson(`/api/hotels?city=${cityQ}&${stay}&adults=2&children=0&rooms=1`);
   const coupleRows = bookable(couple.body);
   const coupleFloor = COUPLE_MIN[city] ?? COUPLE_MIN_DEFAULT;
   if (couple.status !== 200) errs.push(`S1 couple search HTTP ${couple.status}`);
@@ -93,7 +100,7 @@ async function runCity(city) {
   const coupleCheapest = cheapest(coupleRows);
 
   // ── S2: the family search + the Dijon fingerprint ──────────────────────
-  const famSearch = await getJson(`/api/hotels?city=${city}&${stay}&${fam}&rooms=1`);
+  const famSearch = await getJson(`/api/hotels?city=${cityQ}&${stay}&${fam}&rooms=1`);
   const famRows = bookable(famSearch.body);
   if (famSearch.status !== 200) errs.push(`S2 family search HTTP ${famSearch.status}`);
   else if (famRows.length === 0) {
@@ -109,7 +116,7 @@ async function runCity(city) {
   }
 
   // ── S3: the same family search AGAIN — a repeat must not shrink ────────
-  const famRepeat = await getJson(`/api/hotels?city=${city}&${stay}&${fam}&rooms=1`);
+  const famRepeat = await getJson(`/api/hotels?city=${cityQ}&${stay}&${fam}&rooms=1`);
   const famRepeatRows = bookable(famRepeat.body);
   if (famRepeat.status === 200 && famRows.length > 0 && famRepeatRows.length < famRows.length * 0.8) {
     errs.push(`S3 repeat search shrank: ${famRows.length} → ${famRepeatRows.length} bookable — cached-degraded / dropped-pages class`);
