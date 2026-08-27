@@ -32,6 +32,7 @@ import ClientErrorReporter from '@/components/ClientErrorReporter';
 // the actual telemetry POST is still async — eager mount only costs us
 // the queue init, not the network or heavy lifting.
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import ZoomGuard from '@/components/ZoomGuard';
 
 const poppins = Poppins({
   // 2026-08-03: Poppins is now the SINGLE UI/body font (DM Sans dropped —
@@ -314,6 +315,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             other chrome (BackToTopButton, AndroidAppBanner) now mounts
             via DeferredWidgets at +6s. */}
         <ClientErrorReporter />
+        {/* Pinch-zoom crash guard — flags <html> with `is-zoomed` while the
+            visual viewport is actually zoomed, so globals.css can hide the
+            decorative fixed backdrops and pause backdrop-filter surfaces.
+            Deep pinch-zoom was OOM-killing WKWebView (the iOS app went
+            white-card) because those layers rasterise at zoomed resolution
+            (owner report + app-switcher proof, 2026-08-27). */}
+        <ZoomGuard />
         {/* SpeedInsights also eager — see import comment. CLS observation
             must start before any layout shift fires. */}
         <SpeedInsights />

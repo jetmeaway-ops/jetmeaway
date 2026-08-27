@@ -426,8 +426,9 @@ function RateRow({
               "3 nights, 2 adults, 3 children" on every card for the same
               reason: it kills the "is this for all of us?" doubt. */}
           {party && (
-            <div className="text-[.68rem] font-semibold text-slate-600 mt-0.5">
-              {t('pricedForParty', { adults: party.adults, children: party.children, rooms: party.rooms })}
+            <div className="inline-flex items-center gap-1.5 mt-1.5 px-2.5 py-1 rounded-full bg-[#0066FF]/10 border border-[#0066FF]/25 text-[.72rem] font-bold text-[#0052CC] leading-snug">
+              <i className="fa-solid fa-user-group text-[.6rem]" aria-hidden />
+              <span>{t('pricedForParty', { adults: party.adults, children: party.children, rooms: party.rooms })}</span>
             </div>
           )}
           {rate.negotiatedPrice != null && rate.marketPrice != null && rate.negotiatedPrice < rate.marketPrice && (

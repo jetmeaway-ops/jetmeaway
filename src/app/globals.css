@@ -89,3 +89,22 @@ html {
   font-family: 'Font Awesome 6 Brands';
   font-display: swap;
 }
+
+/* ── Pinch-zoom crash guard (2026-08-27) ─────────────────────────────────
+   While the visual viewport is genuinely zoomed (>~15%, flagged by
+   <ZoomGuard /> as `is-zoomed` on <html>), WebKit rasterises every
+   compositing layer at the zoomed resolution — tile memory grows with the
+   SQUARE of the pinch scale. This site stacks full-viewport fixed backdrop
+   images under ~50 backdrop-filter surfaces; at 4-5x zoom that OOM-killed
+   WKWebView (the iOS app showed a white card until relaunch) and blanked
+   Safari. A zoomed-in reader is looking at content, not glass effects, so:
+   hide the decorative backdrops and swap frosted glass for a plain
+   translucent fill until they zoom back out. Zooming itself stays fully
+   allowed — this is an accessibility-preserving fix, not a zoom cap. */
+html.is-zoomed [data-decor-backdrop] {
+  display: none !important;
+}
+html.is-zoomed [class*='backdrop-blur'] {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
