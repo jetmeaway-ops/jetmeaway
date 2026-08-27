@@ -569,6 +569,9 @@ export interface HotelOffer {
      *  for 3" priced for 2 rooms. Null on single-room quotes or when any
      *  room's name is missing (no list beats a wrong list). */
     roomBreakdown?: string[] | null;
+    /** Sleeping arrangement for this room, as the supplier worded it
+     *  ("2 Twin Bunk Beds and 1 Double Bed"). Null when unavailable. */
+    bedInfo?: string | null;
   }>;
 }
 
@@ -947,6 +950,39 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     return s;
   }
 
+  /** A trailing parenthetical that names BEDS, not a room feature. Deliberately
+   *  narrow: only the nouns "bed(s)" and "bunk(s)" qualify. Matching "king" or
+   *  "queen" alone would swallow real room names ("Room (Queen Anne Wing)"),
+   *  and a wrong strip is worse than a missed one. */
+  const BED_NOUNS = /\b(beds?|bunks?)\b/i;
+
+  /**
+   * Suppliers routinely sell the SAME room twice: once plainly, and once with
+   * the sleeping arrangement appended as a trailing parenthetical. Measured on
+   * La Maison Rouge Chambéry (2026-08-27, owner screenshot):
+   *
+   *   £105.43 Room Only  "Family Cabin (Pets not allowed)"
+   *   £105.43 Room Only  "Family Cabin (Pets not allowed)(2 Twin Bunk Beds and 1 Double Bed)"
+   *
+   * Same price, same board, same tax, same capacity — one room, listed twice,
+   * and the pair repeated again on the breakfast rate. Splitting the bed text
+   * off lets the row key ignore it (so the twins collapse) AND gives the card
+   * the bed line, which is the single fact a family checks before paying.
+   * "(Pets not allowed)" must survive as part of the name — hence BED_NOUNS.
+   */
+  function splitBedSuffix(name: string | null): { name: string | null; beds: string | null } {
+    if (!name) return { name, beds: null };
+    const m = name.match(/^(.*?)\s*\(([^()]*)\)\s*$/);
+    if (!m) return { name, beds: null };
+    const inner = m[2].trim();
+    if (!BED_NOUNS.test(inner)) return { name, beds: null };
+    const head = m[1].trim();
+    // The whole name IS the bed description ("(2 Double Beds)") — keep it as
+    // the name rather than leaving the row with no title at all.
+    if (!head) return { name, beds: null };
+    return { name: head, beds: inner };
+  }
+
   /** Safely extract a numeric amount whether the field is a single object or an array */
   function extractAmount(v: AmountObj | AmountObj[] | undefined | null): number | undefined {
     if (!v) return undefined;
@@ -1104,6 +1140,10 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
        *  (["TRIPLE…", "DOUBLE…"]). Null on single-room quotes or when any
        *  room's name is missing. */
       roomBreakdown?: string[] | null;
+      /** The sleeping arrangement, split off the room name by splitBedSuffix
+       *  ("2 Twin Bunk Beds and 1 Double Bed"). Null when the supplier didn't
+       *  put it there — the card then falls back to the room catalogue. */
+      bedInfo?: string | null;
     };
     const optionsByKey = new Map<string, OptionRow>();
 
@@ -1200,6 +1240,12 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
         // missing we store `null` and let the UI fall back to the board label.
         const roomName = roomTypeName || cleanRoomName(r.name) || null;
 
+        // Split the sleeping arrangement off the room name (see splitBedSuffix)
+        // so the key ignores it and the UI can render it as a bed line.
+        const nameSplit = splitBedSuffix(roomName);
+        const keyName = nameSplit.name;
+        const rowBedInfo = nameSplit.beds;
+
         // Key by (roomName, boardType) — different rooms get different rows,
         // identical combos collapse to the cheapest rate.
         //
@@ -1210,7 +1256,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
         // times at slightly different prices (owner report 2026-08-27,
         // hotelF1 Chambéry). Strip everything but letters/digits (any script)
         // so cosmetic variants share a key and collapse.
-        const roomKey = (roomName || '__none__')
+        const roomKey = (keyName || '__none__')
           .toLowerCase()
           .replace(/[^\p{L}\p{N}]+/gu, ' ')
           .trim() || '__none__';
@@ -1269,6 +1315,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
             ? (typeof r.maxOccupancy === 'number' && r.maxOccupancy > 0 ? r.maxOccupancy : null)
             : rtMaxOcc,
           roomBreakdown: rtRoomNames,
+          bedInfo: rowBedInfo,
         };
         // Collapse by GRAND total (rate + property-payable taxes), not the
         // sticker price: one supplier sells the room at £104.78 all-in while
@@ -1279,8 +1326,14 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
         const existingGrand = existing
           ? existing.totalPrice + (existing.excludedTaxes ?? 0)
           : Infinity;
+        // Whichever twin wins on price, keep the bed text: it is the whole
+        // reason the duplicate existed, and losing it would trade a visible
+        // duplicate for a silently less informative card.
+        const mergedBedInfo = rowBedInfo ?? existing?.bedInfo ?? null;
         if (!existing || nextGrand < existingGrand) {
-          optionsByKey.set(mapKey, nextRow);
+          optionsByKey.set(mapKey, { ...nextRow, bedInfo: mergedBedInfo });
+        } else if (mergedBedInfo && !existing.bedInfo) {
+          existing.bedInfo = mergedBedInfo;
         }
 
         if (effectivePrice < bestPrice) {
@@ -1549,7 +1602,13 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       signalType,
 
       excludedTaxes: extraTaxes > 0 ? Math.round(extraTaxes * 100) / 100 : null,
-      boardOptions: allOptions.length > 1 ? allOptions : undefined,
+      // Emitted from ONE option upward, not two. The old `> 1` threshold meant
+      // a hotel selling a single rate lost the whole array, and the detail
+      // page's single-row fallback has no room name and no capacity to fall
+      // back ON — so 8-9 of 26 Málaga properties (and every Rome apartment
+      // measured) rendered a bare board label and a price, while LiteAPI had
+      // supplied both facts all along.
+      boardOptions: allOptions.length > 0 ? allOptions : undefined,
       // (Each option now carries its own roomName when LiteAPI provides one;
       //  the UI falls back to the board label when absent — Phase-1 parity.)
     });
