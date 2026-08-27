@@ -204,6 +204,22 @@ const AIRPORT_COORDS_RAW: Array<{ keys: string[]; lat: number; lng: number; radi
   // every coastal town (Cowes, Ryde, Bembridge, Ventnor, Freshwater) while
   // keeping Portsmouth/Southampton across the Solent OUT of the circle.
   { keys: ['isle of wight'], lat: 50.6500, lng: -1.3200, radiusKm: 18 },
+  // Canary Islands — coverage-audit find (2026-08-27), same island-not-a-city
+  // disease as Malta: LiteAPI's cityName index has almost nothing under the
+  // island names (Tenerife 11, Lanzarote 8, Fuerteventura 2) while the
+  // lat/lng radius query returns the real inventory (300/300/104, verified
+  // live). Centroids sized to span each island's resort coasts.
+  // Newcastle — coverage-audit find (2026-08-27): LiteAPI's own city index
+  // resolves cityName=Newcastle&countryCode=GB to Newcastle in NORTHERN
+  // IRELAND (all 121 results ~288km from upon Tyne, led by the Slieve
+  // Donard), so the correctly-centred geo filter rejected every one → 0.
+  // The upon-Tyne hotels are filed under "Newcastle upon Tyne" (300 by
+  // coords, verified live). Centroid-driven search sidesteps the naming.
+  { keys: ['newcastle', 'newcastle upon tyne'], lat: 54.9783, lng: -1.6178, radiusKm: 15 },
+  { keys: ['tenerife'], lat: 28.2916, lng: -16.6291, radiusKm: 55 },
+  { keys: ['lanzarote'], lat: 29.0469, lng: -13.5899, radiusKm: 35 },
+  { keys: ['fuerteventura'], lat: 28.3587, lng: -14.0537, radiusKm: 50 },
+  { keys: ['gran canaria'], lat: 27.9202, lng: -15.5474, radiusKm: 45 },
 ];
 
 const AIRPORT_COORDS: Record<string, { lat: number; lng: number; radiusKm?: number }> = {};
@@ -455,6 +471,11 @@ const CITY_COUNTRY: Record<string, string> = {
   // UK & Ireland
   'london': 'GB', 'edinburgh': 'GB', 'manchester': 'GB', 'glasgow': 'GB', 'isle of wight': 'GB',
   'liverpool': 'GB', 'birmingham': 'GB', 'bristol': 'GB', 'leeds': 'GB',
+  // Coverage-audit find (2026-08-27): 'newcastle' was unpinned, so country
+  // resolution fell to Nominatim, which favours Newcastle NSW (Australia) —
+  // LiteAPI then searched AU while the UK geo-filter rejected every result.
+  // 121 GB hotels exist under cityName=Newcastle. Same class as Dijon.
+  'newcastle': 'GB', 'newcastle upon tyne': 'GB',
   'belfast': 'GB', 'cardiff': 'GB', 'dublin': 'IE',
   'horley': 'GB', 'crawley': 'GB', 'luton': 'GB',
   // France — pin the cities we can name so country resolution never depends on
@@ -1293,6 +1314,13 @@ const CITY_RADIUS_KM: Record<string, number> = {
   // Isle of Wight — 18km from the mid-island centroid covers every coastal
   // town but stops short of Portsmouth (~23km away) across the Solent.
   'isle of wight': 18,
+  // Canary Islands — post-filter radii matching the upstream centroids
+  // (coverage-audit 2026-08-27). Without these the default 10km filter would
+  // strip the resort coasts the wide upstream search just fetched.
+  'tenerife': 55,
+  'lanzarote': 35,
+  'fuerteventura': 50,
+  'gran canaria': 45,
   // London boroughs — strict so a "Croydon" search doesn't return Hammersmith
   'croydon': 10,
   'wembley': 10,
