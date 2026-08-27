@@ -2143,7 +2143,9 @@ export async function GET(req: NextRequest) {
   // city's own centre, so every entry holds more hotels than before. Measured
   // across 12 cities: Chambery 21->43, Nice 170->204, Verona 139->185. A v34
   // entry would keep serving the short list for its full 30-minute TTL.
-  const kvKey = `hotels:v35:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}${occCacheSuffix}${agesCacheSuffix}${ctrCacheSuffix}${geoCacheSuffix}`;
+  // v36 — wrong-continent supplier records are filtered out, so a v35 entry
+  // could still serve a bookable hotel 1,040 km from the searched city.
+  const kvKey = `hotels:v36:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}${occCacheSuffix}${agesCacheSuffix}${ctrCacheSuffix}${geoCacheSuffix}`;
 
   // Group occupancy bypass: large groups (>4 guests) always get fresh prices
   // because cached availability/room blocks may not hold for that many people.

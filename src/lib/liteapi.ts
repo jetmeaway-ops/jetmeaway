@@ -690,7 +690,11 @@ const LITEAPI_DEBUG = !!process.env.LITEAPI_DEBUG;
 // is keyed on the QUERY, not the dates, so a v3 entry would keep serving the
 // un-widened list for a full 24h no matter which dates were searched — the
 // third time today a stale cache has hidden a shipped fix.
-const DIR_CACHE_VERSION = 'v4';
+// v5 (2026-08-27) — mislabelled supplier records (a Finnish property sold as
+// Warsaw, a Brazilian one as Bruges) are now dropped before the directory is
+// stored, so a v4 entry would keep serving a bookable wrong-continent hotel
+// for its full 24h.
+const DIR_CACHE_VERSION = 'v5';
 
 /** How far around a city's own centre the name search is widened. 15 km keeps
  *  the extra properties genuinely "in" the city — the suburb and lakeside
@@ -704,6 +708,15 @@ const CITY_WIDEN_KM = 15;
  *  150 is roughly a 30% overshoot on a 500-hotel city, which bought Nice its
  *  missing ~34 without a latency change worth measuring. */
 const CITY_WIDEN_EXTRA_MAX = 150;
+
+/** How far from a city's own centre a property may sit before we treat the
+ *  supplier record as mislabelled rather than merely rural. 250 km is far
+ *  beyond any honest "near this city" — a Salzburg chalet 61 km out in the
+ *  state of the same name, an island centroid, a mega-region all pass — while
+ *  still catching Finland-sold-as-Warsaw (1,040 km) and Brazil-sold-as-Bruges
+ *  (9,730 km). Deliberately loose: dropping a real hotel is worse than showing
+ *  a distant one, and a tighter number is a separate, careful decision. */
+const MAX_CITY_OUTLIER_KM = 250;
 /** 3h. Which hotels exist near a place barely changes; this is long enough to
  *  cover a customer trying several date ranges (and coming back later) while
  *  still expiring on its own so the footprint can't creep. */
@@ -950,6 +963,54 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
           }
         } catch {
           /* widen is a bonus, never a dependency — keep the name results */
+        }
+
+        /* 🔴 THE WRONG-CONTINENT GUARD.
+           Some supplier records are simply mislabelled: a property in
+           Sastamala, FINLAND carries city "Warsaw", and one in São Paulo
+           state, BRAZIL carries city "Bruges" with country "be". A cityName
+           search hands those straight to the customer, and they are fully
+           bookable — measured 2026-08-27, "Villa Breikki, Sastamala" sold in a
+           Warsaw search at GBP 85.63/night, 1,040 km from Warsaw, reproduced
+           on 2 of 18 city+date combinations. That is the one defect class
+           where the customer pays and the trip does not exist.
+           There was a distance guard already, but it only covered cities
+           listed in a 95-entry table — Warsaw, Bruges, Prague, Vienna and
+           Seville were not in it, so those searches had no guard at all.
+           The median centre computed just above gives every city one for
+           free, with no table to maintain.
+           The threshold is deliberately loose: this is a wrong-CONTINENT
+           filter, not a tidy-up. Legitimate spread — a Salzburg chalet 61 km
+           out in the state of the same name, an island centroid, a mega-region
+           — must survive untouched, so only the absurd is dropped. */
+        try {
+          const lats2 = rows.map((h) => h.latitude).filter((n): n is number => typeof n === 'number').sort((a, b) => a - b);
+          const lngs2 = rows.map((h) => h.longitude).filter((n): n is number => typeof n === 'number').sort((a, b) => a - b);
+          if (lats2.length >= 5 && lngs2.length >= 5) {
+            const cLat = lats2[Math.floor(lats2.length / 2)];
+            const cLng = lngs2[Math.floor(lngs2.length / 2)];
+            const before = rows.length;
+            rows = rows.filter((h) => {
+              // A row with no coordinates cannot be judged — keep it.
+              if (typeof h.latitude !== 'number' || typeof h.longitude !== 'number') return true;
+              const dLat = (h.latitude - cLat) * 111;
+              const dLng = (h.longitude - cLng) * 111 * Math.cos((cLat * Math.PI) / 180);
+              const km = Math.sqrt(dLat * dLat + dLng * dLng);
+              if (km > MAX_CITY_OUTLIER_KM) {
+                console.warn(
+                  `[liteapi:outlier] dropped ${h.id} "${h.name}" — ${Math.round(km)}km from the centre of ${cityName}, supplier record is mislabelled`,
+                );
+                return false;
+              }
+              return true;
+            });
+            if (rows.length !== before) {
+              hotelDirectory.clear();
+              for (const row of rows) if (row?.id) hotelDirectory.set(row.id, row);
+            }
+          }
+        } catch {
+          /* the guard must never be the reason a search fails */
         }
       }
 
