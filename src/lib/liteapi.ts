@@ -693,6 +693,12 @@ const DIR_CACHE_VERSION = 'v3';
  *  results, and it sits well inside the ~80 km band where LiteAPI's radius
  *  search still behaves. */
 const CITY_WIDEN_KM = 15;
+
+/** How many extra properties the widen may add beyond the caller's own limit.
+ *  Every one is a hotel we then have to price, so this is real upstream load:
+ *  150 is roughly a 30% overshoot on a 500-hotel city, which bought Nice its
+ *  missing ~34 without a latency change worth measuring. */
+const CITY_WIDEN_EXTRA_MAX = 150;
 /** 3h. Which hotels exist near a place barely changes; this is long enough to
  *  cover a customer trying several date ranges (and coming back later) while
  *  still expiring on its own so the footprint can't creep. */
@@ -902,7 +908,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
          Failure here is never fatal: the widen is best-effort and the name
          results stand on their own if it throws. */
       const usedNamePath = !destinationId && !hasLatLng && !!cityName;
-      if (usedNamePath && rows.length >= 3 && rows.length < limit) {
+      if (usedNamePath && rows.length >= 3) {
         try {
           const lats = rows.map((h) => h.latitude).filter((n): n is number => typeof n === 'number').sort((a, b) => a - b);
           const lngs = rows.map((h) => h.longitude).filter((n): n is number => typeof n === 'number').sort((a, b) => a - b);
@@ -920,9 +926,17 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
               `/data/hotels?${wideQuery.toString()}`,
               { method: 'GET' },
             );
+            // A big city's name search FILLS `limit` on its own, and an
+            // earlier cut skipped the widen in exactly that case — so Nice
+            // gained nothing (170 -> 170) while Chambéry doubled. The
+            // surrounding towns a large city hides are the ones no amount of
+            // paging reaches, because every page repeats the same cityName
+            // query. So the merged list is allowed a bounded overshoot rather
+            // than being capped at the name result's own ceiling.
+            const ceiling = Math.max(limit, rows.length) + CITY_WIDEN_EXTRA_MAX;
             const seenId = new Set(rows.map((h) => h.id));
             for (const h of wide.data || []) {
-              if (rows.length >= limit) break;
+              if (rows.length >= ceiling) break;
               if (h?.id && !seenId.has(h.id)) {
                 seenId.add(h.id);
                 rows.push(h);
