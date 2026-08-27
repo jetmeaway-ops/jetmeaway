@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -423,7 +424,32 @@ export default function HotelMap({
   /** Override the default height. Accepts any Tailwind class or inline value. */
   height?: string;
 }) {
-  const containerHeight = height || 'h-[500px] md:h-[600px]';
+  // 'hotels' — the namespace expandMap/collapseMap actually live in, the same
+  // one HotelLocationModal reads them from.
+  const t = useTranslations('hotels');
+  /* Full-screen toggle, matching the control already on the hotel card's
+     "Show on map" modal — same two icons, same aria labels, so the two maps
+     behave identically. Owner's ask 2026-08-27 after testing the results map.
+     Leaflet re-measures itself on the size change through FitBounds's
+     ResizeObserver, so no extra invalidateSize plumbing is needed here. */
+  const [expanded, setExpanded] = useState(false);
+
+  // Escape closes it, and while full-screen the page behind must not scroll.
+  useEffect(() => {
+    if (!expanded) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setExpanded(false);
+    };
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [expanded]);
+
+  const containerHeight = expanded ? 'h-full' : (height || 'h-[500px] md:h-[600px]');
 
   // Stable `hotels` identity for FitBounds — prevents a jitter loop when the
   // parent re-renders with the same underlying list.
@@ -440,7 +466,33 @@ export default function HotelMap({
   }
 
   return (
-    <div className={`relative w-full ${containerHeight} rounded-2xl overflow-hidden border border-[#E8ECF4]`}>
+    <div
+      className={
+        expanded
+          ? 'fixed inset-0 z-[130] bg-white'
+          : `relative w-full ${containerHeight} rounded-2xl overflow-hidden border border-[#E8ECF4]`
+      }
+    >
+      <div className={expanded ? 'relative w-full h-full' : 'contents'}>
+      {/* Expand / collapse — same icons and labels as the hotel card's map
+          modal so the control reads as the same thing in both places. Sits
+          under the status chip's z-index and above Leaflet's panes. */}
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        aria-label={expanded ? t('collapseMap') : t('expandMap')}
+        className="absolute top-3 right-3 z-[600] w-9 h-9 rounded-lg border border-[#E8ECF4] bg-white text-[#5C6378] shadow-md flex items-center justify-center hover:bg-[#F8FAFC] active:scale-95 transition"
+      >
+        {expanded ? (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M9 3v3a2 2 0 0 1-2 2H4M15 3v3a2 2 0 0 0 2 2h3M9 21v-3a2 2 0 0 0-2-2H4M15 21v-3a2 2 0 0 1 2-2h3" />
+          </svg>
+        ) : (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M4 9V5a2 2 0 0 1 2-2h4M20 9V5a2 2 0 0 0-2-2h-4M4 15v4a2 2 0 0 0 2 2h4M20 15v4a2 2 0 0 1-2 2h-4" />
+          </svg>
+        )}
+      </button>
       {/* Status over the map: what it is doing, or why it is not doing it.
           Above Leaflet's own panes (z-400 for popups) so it is never buried,
           and pointer-events-none so it can never eat a pin tap. */}
@@ -474,6 +526,7 @@ export default function HotelMap({
           onPinClick={onPinClick}
         />
       </MapContainer>
+      </div>
     </div>
   );
 }
