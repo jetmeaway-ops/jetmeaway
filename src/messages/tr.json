@@ -759,6 +759,7 @@
     "perNight": "/gece",
     "indicativePrice": "(gösterge fiyat)",
     "estimatedTotalFrom": "Tahmini toplam başlangıç",
+    "forTravellers": "{n} yolcu için",
     "perPerson": "kişi başı",
     "partialEstimate": "Kısmi tahmin — bu rota için {leg} fiyatlandırması kullanılamıyor. Eksiksiz paket fırsatları için sağlayıcıları kontrol edin.",
     "pricedForRooms": "{count} oda için",

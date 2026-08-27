@@ -759,6 +759,7 @@
     "perNight": "/رات",
     "indicativePrice": "(اشاراتی قیمت)",
     "estimatedTotalFrom": "تخمینی کل شروع",
+    "forTravellers": "{n, plural, one {# مسافر} other {# مسافروں}} کے لیے",
     "perPerson": "فی کس",
     "partialEstimate": "جزوی تخمینہ — اس روٹ کے لیے {leg} کی قیمتیں دستیاب نہیں۔ مکمل پیکج ڈیلز کے لیے فراہم کنندگان دیکھیں۔",
     "pricedForRooms": "{count, plural, one {# کمرے کے لیے} other {# کمروں کے لیے}}",

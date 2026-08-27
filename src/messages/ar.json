@@ -759,6 +759,7 @@
     "perNight": "/ليلة",
     "indicativePrice": "(سعر استرشادي)",
     "estimatedTotalFrom": "الإجمالي التقديري من",
+    "forTravellers": "{n, plural, one {لمسافر واحد} two {لمسافرين} few {لـ # مسافرين} many {لـ # مسافرًا} other {لـ # مسافر}}",
     "perPerson": "للشخص",
     "partialEstimate": "تقدير جزئي — أسعار {leg} غير متوفرة لهذا المسار. تحقق من المزودين للحصول على باقات كاملة.",
     "pricedForRooms": "{count, plural, one {يشمل غرفة واحدة} two {يشمل غرفتين} few {يشمل # غرف} many {يشمل # غرفة} other {يشمل # غرفة}}",

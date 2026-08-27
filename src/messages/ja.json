@@ -759,6 +759,7 @@
     "perNight": "/泊",
     "indicativePrice": "（目安価格）",
     "estimatedTotalFrom": "推定合計 〜から",
+    "forTravellers": "{n}名分",
     "perPerson": "1名あたり",
     "partialEstimate": "部分的な見積もり — このルートでは{leg}の価格が利用できません。完全なパッケージ商品はプロバイダーをご確認ください。",
     "pricedForRooms": "{count}室分",

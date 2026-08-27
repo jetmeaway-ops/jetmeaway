@@ -759,6 +759,7 @@
     "perNight": "/usiku",
     "indicativePrice": "(bei ya makadirio)",
     "estimatedTotalFrom": "Jumla inayokadiriwa kuanzia",
+    "forTravellers": "kwa {n, plural, one {msafiri #} other {wasafiri #}}",
     "perPerson": "kwa mtu",
     "partialEstimate": "Makadirio ya sehemu — bei ya {leg} haipatikani kwa njia hii. Angalia watoa huduma kwa ofa kamili za vifurushi.",
     "pricedForRooms": "{count, plural, one {kwa chumba #} other {kwa vyumba #}}",
