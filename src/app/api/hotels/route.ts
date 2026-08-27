@@ -256,9 +256,7 @@ const AIRPORT_COORDS_RAW: Array<{ keys: string[]; lat: number; lng: number; radi
   { keys: ['antigua'], lat: 17.0747, lng: -61.8175, radiusKm: 25 },
   { keys: ['aruba'], lat: 12.5211, lng: -69.9683, radiusKm: 25 },
   { keys: ['trinidad', 'trinidad and tobago'], lat: 10.6549, lng: -61.5019, radiusKm: 40 },
-  { keys: ['havana', 'la habana'], lat: 23.1136, lng: -82.3666, radiusKm: 25 },
   { keys: ['washington dc', 'washington d.c.'], lat: 38.9072, lng: -77.0369, radiusKm: 20 },
-  { keys: ['ashgabat'], lat: 37.9601, lng: 58.3261, radiusKm: 25 },
   { keys: ['chamonix', 'chamonix-mont-blanc', 'chamonix mont blanc'], lat: 45.9237, lng: 6.8694, radiusKm: 20 },
   { keys: ['dilijan'], lat: 40.7405, lng: 44.8628, radiusKm: 20 },
   { keys: ['kazbegi', 'stepantsminda'], lat: 42.6569, lng: 44.6423, radiusKm: 20 },
@@ -543,7 +541,6 @@ const CITY_COUNTRY: Record<string, string> = {
   'turks and caicos': 'TC', 'providenciales': 'TC',
   'antigua': 'AG', 'aruba': 'AW',
   'trinidad': 'TT', 'trinidad and tobago': 'TT',
-  'la habana': 'CU',
   'washington d.c.': 'US',
   'dilijan': 'AM', 'kazbegi': 'GE', 'stepantsminda': 'GE',
   'mallorca': 'ES', 'majorca': 'ES', 'palma de mallorca': 'ES',
@@ -1417,9 +1414,7 @@ const CITY_RADIUS_KM: Record<string, number> = {
   'turks and caicos': 40, 'providenciales': 40,
   'antigua': 25, 'aruba': 25,
   'trinidad': 40, 'trinidad and tobago': 40,
-  'havana': 25, 'la habana': 25,
   'washington dc': 20, 'washington d.c.': 20,
-  'ashgabat': 25,
   'chamonix': 20, 'chamonix-mont-blanc': 20, 'chamonix mont blanc': 20,
   'dilijan': 20, 'kazbegi': 20, 'stepantsminda': 20,
   // London boroughs — strict so a "Croydon" search doesn't return Hammersmith
@@ -2023,7 +2018,9 @@ export async function GET(req: NextRequest) {
     const padded = ` ${rawCityKey} `;
     outer: for (const row of AIRPORT_COORDS_RAW) {
       for (const k of row.keys) {
-        if (k.length >= 5 && padded.includes(` ${k} `)) {
+        // >=4 keeps distinctive short names (bali, gozo, fiji, nadi, orly)
+        // in the net while still excluding 3-letter IATA codes.
+        if (k.length >= 4 && padded.includes(` ${k} `)) {
           console.log(`[hotels] airport fuzzy-normalised "${rawCityKey}" → "${k}"`);
           rawCityKey = k;
           break outer;
