@@ -1318,6 +1318,7 @@
     },
     "seePhotosOf": "Смотреть фото {title}",
     "sleeps": "Спальных мест: {n}",
+    "fitsYourParty": "Цена за {n, plural, one {# гостя} few {# гостей} many {# гостей} other {# гостей}}",
     "seeRoomDetails": "Смотреть детали номера и фото",
     "breakfastIncluded": "Завтрак включён",
     "allMealsDrinks": "Все блюда и напитки включены",

@@ -77,6 +77,9 @@ type BoardOptionOut = {
    *  is what the customer is actually booking. Null on single-room quotes
    *  or when any room's name is missing. */
   roomBreakdown?: string[] | null;
+  /** Sleeping arrangement ("2 Twin Bunk Beds and 1 Double Bed"), split off
+   *  the supplier's room name. The card renders it as the bed line. */
+  bedInfo?: string | null;
   /** LiteAPI commission — our merchant margin on the booking, in the offer's
    *  currency. LiteAPI only reports a single commission figure per hotel,
    *  not per-boardOption, so every row in this array carries the same value
@@ -181,7 +184,11 @@ export async function GET(req: NextRequest) {
   // v6 entries lack it and would hide the per-room list for their full TTL.
   // v8: cosmetic room-name variants now collapse to one row, kept by grand
   // total (2026-08-27) — v7 entries still hold the duplicate rows.
-  const cacheKey = `hotel-rates:v8:${hotelId}:${checkin}:${checkout}:${adults}:${children}:${childrenAgesRaw}:${rooms}:${occParam}:${currency}`;
+  // v9: bed text is split off the room name into `bedInfo`, which both
+  // collapses the "…(2 Twin Bunk Beds…)" twin and feeds the card's bed line;
+  // single-rate hotels also keep their room name and capacity now. v8 entries
+  // hold the duplicate rows and no bed line for their full TTL.
+  const cacheKey = `hotel-rates:v9:${hotelId}:${checkin}:${checkout}:${adults}:${children}:${childrenAgesRaw}:${rooms}:${occParam}:${currency}`;
 
   try {
     const cached = await kv.get<CacheShape | { offers: BoardOptionOut[] }>(cacheKey);
@@ -271,6 +278,7 @@ async function fetchAndCacheRates(args: FetchArgs): Promise<BoardOptionOut[]> {
         paymentTypes: o.paymentTypes ?? null,
         maxOccupancy: o.maxOccupancy ?? null,
         roomBreakdown: o.roomBreakdown ?? null,
+        bedInfo: o.bedInfo ?? null,
         commission: scaledCommission(o.totalPrice),
       }))
     : [{
@@ -287,8 +295,12 @@ async function fetchAndCacheRates(args: FetchArgs): Promise<BoardOptionOut[]> {
         cancelDeadline: match.cancellationDeadline ?? null,
         paymentTypes: null,
         // Synthesised single-rate fallback has no per-rate data to read from.
+        // Since 2026-08-27 getHotels emits boardOptions from one option upward,
+        // so this branch is now only reached when the supplier returned no
+        // options at all — genuinely nothing to describe.
         maxOccupancy: null,
         roomBreakdown: null,
+        bedInfo: null,
         commission: baseCommission,
       }];
 

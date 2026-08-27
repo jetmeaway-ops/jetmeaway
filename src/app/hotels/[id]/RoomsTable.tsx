@@ -92,17 +92,28 @@ export type RoomRate = {
   /** v2-plan step-3: supported payment methods. When the list includes
    *  `PAY_AT_HOTEL` we render an emerald chip saying so; otherwise silent. */
   paymentTypes?: string[] | null;
-  /** Sleeping capacity this rate was priced for — per-rate figure from
-   *  /hotels/rates, whole-booking on multi-room quotes. AUTHORITATIVE:
-   *  preferred over the catalogue's name-matched ceiling, so the "Sleeps N"
-   *  chip renders even when the catalogue match misses (the owner's blank
-   *  £451 apartment row) and never lies when it mismatches. */
+  /** How many guests THIS PRICE COVERS — the per-rate figure from
+   *  /hotels/rates, summed across rooms on multi-room quotes.
+   *
+   *  🔴 It is NOT the room's capacity, and must never be labelled "Sleeps N".
+   *  Audited 2026-08-27: searching 2 adults badged every room in the hotel
+   *  "Sleeps 2" — including "Family Room (4 Adults)" — and searching 3 adults
+   *  re-badged a Standard Double as "Sleeps 3". The figure simply echoes the
+   *  party searched, so it misleads in both directions: a family rules out a
+   *  real family room, and three people are told a double fits them. The
+   *  room's true size comes from the catalogue (RoomMetaInput.maxOccupancy);
+   *  this number answers a different, still-useful question — "is the price
+   *  I'm looking at for all of us?" — and is labelled accordingly. */
   maxOccupancy?: number | null;
   /** Multi-room bundles: the name of EACH room in the quote, in occupancy
    *  order. LiteAPI titles a bundle by ONE of its rooms, so a "Room for 3
    *  people" title priced "for 2 rooms" left the customer guessing what the
    *  second room is (owner report 2026-08-27). Null/absent hides the list. */
   roomBreakdown?: string[] | null;
+  /** The sleeping arrangement as the supplier worded it ("2 Twin Bunk Beds
+   *  and 1 Double Bed"), split off the room name upstream. Preferred over the
+   *  catalogue's bed string because it belongs to THIS rate. */
+  bedInfo?: string | null;
   /** LiteAPI commission — our merchant margin for this row (scaled pro-rata
    *  from the hotel-level commission reported by LiteAPI). Not displayed in
    *  the UI; forwarded to /api/hotels/start-booking so the admin unified
@@ -171,6 +182,42 @@ function ChoiceDot({ tone }: { tone: 'positive' | 'neutral' }) {
     return <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" aria-hidden />;
   }
   return <span className="inline-block w-1.5 h-1.5 rounded-full border border-slate-300 bg-transparent shrink-0" aria-hidden />;
+}
+
+/* Capacity as a row of little people. A number has to be read and converted;
+   five figures are counted at a glance, which is why every serious booking
+   site draws them. Above six the row stops being countable, so it collapses
+   to one figure and a multiplier. Decorative only — the caller supplies the
+   accessible text. */
+function GuestIcons({ n }: { n: number }) {
+  if (n <= 0) return null;
+  if (n > 6) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[#0a1628]" aria-hidden>
+        <i className="fa-solid fa-user text-[.72rem]" />
+        <span className="text-[.75rem] font-bold">×{n}</span>
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-[3px]" aria-hidden>
+      {Array.from({ length: n }).map((_, i) => (
+        <i key={i} className="fa-solid fa-user text-[.72rem] text-[#0a1628]" />
+      ))}
+    </span>
+  );
+}
+
+/* The bed line — the fact a family looks for first and the one our cards used
+   to bury. Rendered whenever either the rate or the room catalogue supplies
+   it. */
+function BedLine({ text }: { text: string }) {
+  return (
+    <div className="flex items-start gap-2 mt-2">
+      <i className="fa-solid fa-bed text-[.72rem] text-[#8a6d00] mt-[3px]" aria-hidden />
+      <span className="text-[.82rem] font-semibold text-[#1A1D2B] leading-snug">{text}</span>
+    </div>
+  );
 }
 
 function SpecPill({ icon, label }: { icon: string; label: string }) {
@@ -334,30 +381,47 @@ function RateRow({
             </div>
           )}
 
-          {/* Phase-4: spec chips — unit / size / beds / occupancy. Each chip is
-              a small, quiet pill — never shouting, always legible.
-              Sleeps is RATE-FIRST: the per-rate maxOccupancy is what this
-              offer was actually priced/capped for, so it renders even when the
-              catalogue name-match misses (the rows that used to be bare) and
-              overrides the catalogue when the match picked the wrong room. */}
+          {/* What you actually get, in the order a family reads it: the beds,
+              then who fits, then the room's other facts.
+
+              CAPACITY IS TWO DIFFERENT FACTS and they must not be conflated
+              (audit 2026-08-27):
+                • the ROOM's size comes from the catalogue — that is the only
+                  source entitled to say "Sleeps N";
+                • the RATE's figure only echoes the party searched, so it can
+                  answer "is this price for all of us?" and nothing more.
+              Showing the rate figure as "Sleeps N" badged a Standard Double as
+              sleeping 3 and a 4-person Family Room as sleeping 2. */}
           {(() => {
-            const sleeps = rate.maxOccupancy ?? roomMeta?.maxOccupancy ?? null;
-            if (!(unitLabel || roomMeta?.sizeSqm || roomMeta?.beds || sleeps)) return null;
+            const beds = rate.bedInfo || roomMeta?.beds || null;
+            const roomSleeps = roomMeta?.maxOccupancy ?? null;
+            const pricedFor = rate.maxOccupancy ?? null;
+            const capacityN = roomSleeps ?? pricedFor;
+            const capacityLabel = roomSleeps
+              ? t('sleeps', { n: roomSleeps })
+              : pricedFor
+                ? t('fitsYourParty', { n: pricedFor })
+                : null;
+
+            if (!(beds || capacityLabel || unitLabel || roomMeta?.sizeSqm)) return null;
             return (
-              <div className="mt-2.5 flex flex-wrap gap-1.5">
-                {unitLabel && (
-                  <SpecPill icon="fa-house" label={unitLabel} />
+              <>
+                {beds && <BedLine text={truncate(beds, 72)} />}
+                {capacityLabel && capacityN && (
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <GuestIcons n={capacityN} />
+                    <span className="text-[.8rem] font-bold text-[#0a1628]">{capacityLabel}</span>
+                  </div>
                 )}
-                {roomMeta?.sizeSqm && (
-                  <SpecPill icon="fa-up-right-and-down-left-from-center" label={`${roomMeta.sizeSqm} m²`} />
+                {(unitLabel || roomMeta?.sizeSqm) && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {unitLabel && <SpecPill icon="fa-house" label={unitLabel} />}
+                    {roomMeta?.sizeSqm && (
+                      <SpecPill icon="fa-up-right-and-down-left-from-center" label={`${roomMeta.sizeSqm} m²`} />
+                    )}
+                  </div>
                 )}
-                {roomMeta?.beds && (
-                  <SpecPill icon="fa-bed" label={truncate(roomMeta.beds, 32)} />
-                )}
-                {sleeps && (
-                  <SpecPill icon="fa-user-group" label={t('sleeps', { n: sleeps })} />
-                )}
-              </div>
+              </>
             );
           })()}
 
@@ -416,7 +480,15 @@ function RateRow({
         {isPayAtHotel(rate.paymentTypes) && (
           <Choice tone="positive">{t('noPrepayment')}</Choice>
         )}
-        <Choice tone="positive">{t('highSpeedWifi')}</Choice>
+        {/* There was a hardcoded "High-speed Wi-Fi" line here, outside every
+            conditional, so 100% of rate rows sitewide promised it. Audited
+            2026-08-27 against Hotel Tachfine, Marrakech: the entire hotel
+            record contains no mention of wifi or internet, and all 13 rows
+            still advertised it — and LiteAPI never returns a speed attribute
+            for any hotel, so "high-speed" was unsupported even where wifi
+            exists. Wi-Fi now appears only via the room amenity list above,
+            which is built from supplier data. Same rule as the Pay-at-hotel
+            chip two lines up: we never invent a positive. */}
       </div>
 
       {/* ─── Column 3: Price + CTA ─── */}
@@ -437,8 +509,11 @@ function RateRow({
           <div className="font-[var(--font-playfair)] font-black text-[1.6rem] md:text-[1.75rem] text-[#0a1628] tracking-tight leading-none">
             {fmtGBP(rate.totalPrice)}
           </div>
+          {/* Always name the ROOM COUNT, not only when it is more than one.
+              A single-room quote used to read "TOTAL FOR 1 NIGHT", which left
+              the owner asking how many rooms he was getting (2026-08-27). */}
           <div className="text-[.62rem] font-semibold text-slate-400 uppercase tracking-[1.5px] mt-1">
-            {t('totalFor')} {rooms > 1 ? t('roomsSep', { rooms }) : ''}{nights} {t('nightWord', { count: nights })}
+            {t('totalFor')} {t('roomsSep', { rooms })}{nights} {t('nightWord', { count: nights })}
           </div>
           <div className="text-[.68rem] font-medium text-slate-500 mt-1">
             {fmtGBP(rate.pricePerNight)} {t('perNightSlash')}{rooms > 1 ? ` ${t('forNRooms', { rooms })}` : ''} · {rate.excludedTaxes && rate.excludedTaxes > 0 ? t('inclVat') : t('allTaxesIncluded')}
