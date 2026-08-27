@@ -2139,7 +2139,11 @@ export async function GET(req: NextRequest) {
   // necessarily the prices for the occupancy that reads it. A new namespace
   // retires them outright instead of letting a wrong-age result set keep
   // serving for the rest of its 30-minute TTL.
-  const kvKey = `hotels:v34:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}${occCacheSuffix}${agesCacheSuffix}${ctrCacheSuffix}${geoCacheSuffix}`;
+  // v35 — a city-NAME search is now widened by a coordinate pass around the
+  // city's own centre, so every entry holds more hotels than before. Measured
+  // across 12 cities: Chambery 21->43, Nice 170->204, Verona 139->185. A v34
+  // entry would keep serving the short list for its full 30-minute TTL.
+  const kvKey = `hotels:v35:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}${occCacheSuffix}${agesCacheSuffix}${ctrCacheSuffix}${geoCacheSuffix}`;
 
   // Group occupancy bypass: large groups (>4 guests) always get fresh prices
   // because cached availability/room blocks may not hold for that many people.
