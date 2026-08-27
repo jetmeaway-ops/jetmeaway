@@ -188,7 +188,17 @@ export async function GET(req: NextRequest) {
   // collapses the "…(2 Twin Bunk Beds…)" twin and feeds the card's bed line;
   // single-rate hotels also keep their room name and capacity now. v8 entries
   // hold the duplicate rows and no bed line for their full TTL.
-  const cacheKey = `hotel-rates:v9:${hotelId}:${checkin}:${checkout}:${adults}:${children}:${childrenAgesRaw}:${rooms}:${occParam}:${currency}`;
+  // v10 (2026-08-27) — two changes to what a stored row MEANS, both money:
+  //   1. `excludedTaxes` on a multi-room row is now the SUM of each room's
+  //      property-payable tax, not one room's tax multiplied by the room
+  //      count. v9 entries under-state the desk bill on mixed-occupancy
+  //      bundles (measured: Meliá Milano 1A+3A, £66.20 stored vs £86.45 owed),
+  //      and re-serving them would keep quoting the old promise.
+  //   2. Refundability is now part of the row identity, so a hotel returns
+  //      BOTH the locked and the free-cancellation price for the same room and
+  //      board. v9 entries hold only the cheap locked half — they would render
+  //      a hotel as having no flexible rates at all for their full TTL.
+  const cacheKey = `hotel-rates:v10:${hotelId}:${checkin}:${checkout}:${adults}:${children}:${childrenAgesRaw}:${rooms}:${occParam}:${currency}`;
 
   try {
     const cached = await kv.get<CacheShape | { offers: BoardOptionOut[] }>(cacheKey);

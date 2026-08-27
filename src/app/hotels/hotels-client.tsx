@@ -13,7 +13,14 @@ import { redirectUrl } from '@/lib/redirect';
 // category tap must parse before the search form responds (12-16 s dead taps
 // on phones — owner report 2026-08-26).
 import { saveSticky, loadSticky, type StickyHotels } from '@/lib/sticky-search';
-import { decodeFromParams, encodeOccupancy } from '@/lib/occupancy';
+import {
+  decodeFromParams,
+  encodeOccupancy,
+  MAX_ROOMS,
+  MAX_GUESTS_TOTAL,
+  MAX_ADULTS_PER_ROOM,
+  MAX_CHILDREN_PER_ROOM,
+} from '@/lib/occupancy';
 import { persistResults, savePosition, hasFreshPosition, readSnapshot, isReturnFromDetail } from '@/lib/hotels-result-cache';
 import { newTabProps, opensInNewTab, NEW_TAB_PARAM } from '@/lib/new-tab';
 import FavouriteButton from '@/components/FavouriteButton';
@@ -633,6 +640,55 @@ function splitPartyIntoRooms(
   for (let i = 0; i < room.adults; i++) out[i % n].adults += 1;
   room.childAges.forEach((age, i) => out[i % n].childAges.push(age));
   return out;
+}
+
+/**
+ * The party a URL ASKED for, before any cap is applied.
+ *
+ * `decodeFromParams` runs every arriving party through `clampRooms`, which
+ * silently drops guests past the per-room ceilings (4 adults / 4 children)
+ * and past the 9-guest, 5-room search ceilings. That clamp is correct — the
+ * suppliers reject bigger single-room occupancies — but until 2026-08-27 the
+ * page never mentioned it, so a family of 2 adults + 5 children landing on
+ * `/hotels?...&children=5&rooms=1` was quietly priced as 2 + 4. Measured that
+ * day against the live route: the request echoed back `children: 4`. This is
+ * the "before" half of the comparison that lets us say so out loud.
+ *
+ * It deliberately MIRRORS decodeFromParams' input precedence — `occ` wins
+ * over the flat params, malformed `occ` falls through to them — while
+ * applying no caps at all. Returns null when the URL states no party, so a
+ * bare `?destination=Rome` never triggers a notice about the 2-adult default.
+ */
+function requestedPartySize(src: {
+  occ?: string | null;
+  adults?: string | null;
+  children?: string | null;
+}): { adults: number; children: number } | null {
+  if (src.occ) {
+    const parts = src.occ.split('/').map((p) => p.trim()).filter(Boolean);
+    let adults = 0;
+    let children = 0;
+    let usable = parts.length > 0;
+    for (const part of parts) {
+      const nums = part
+        .split('-')
+        .map((tk) => tk.trim())
+        .filter((tk) => tk !== '')
+        .map(Number);
+      if (nums.length === 0 || nums.some((n) => Number.isNaN(n))) { usable = false; break; }
+      adults += nums[0];
+      children += nums.length - 1; // every token after adults is one child's age
+    }
+    if (usable) return { adults, children };
+  }
+  const a = parseInt(src.adults ?? '', 10);
+  const c = parseInt(src.children ?? '', 10);
+  if (!Number.isFinite(a) && !Number.isFinite(c)) return null;
+  // Same defaults decodeLegacy uses when only one of the two is present.
+  return {
+    adults: Number.isFinite(a) ? Math.max(1, a) : 2,
+    children: Number.isFinite(c) ? Math.max(0, c) : 0,
+  };
 }
 
 type Provider = {
@@ -2400,6 +2456,14 @@ function HotelsContent() {
   // Set when a single-room search for a large party found nothing and we
   // auto-retried across 2 rooms (see handleSearch). Drives the info banner.
   const [autoSplitInfo, setAutoSplitInfo] = useState<{ guests: number } | null>(null);
+  // Set when the arriving URL asked for a bigger party than the occupancy caps
+  // allow, so the search below is priced for FEWER guests than were requested.
+  // `canAddRoom` distinguishes the two causes: a per-room ceiling (adding a
+  // room genuinely fixes it) from the 9-guest / 5-room search ceiling (it
+  // does not, so we must not send them on a pointless errand).
+  const [partyTrimmed, setPartyTrimmed] = useState<
+    { asked: number; searched: number; canAddRoom: boolean } | null
+  >(null);
   // Progressive-load: bumped each search so a stale page loop from a previous
   // search can't append into the current results. `loadingMore` drives the
   // "loading more hotels…" hint while pages 1..N stream in.
@@ -2657,14 +2721,21 @@ function HotelsContent() {
     // this makes `occ` follow the same rule instead of quietly outranking it.
     const urlStatesOccupancy = !!(p.get('occ') || a || c || r || p.get('childrenAges'));
     const occParam = p.get('occ') ?? (urlStatesOccupancy ? null : sticky?.occ);
+    // Hoisted out of the decodeFromParams() call so the un-clamped "asked for"
+    // reading below is built from EXACTLY the same inputs — otherwise the two
+    // sides of the comparison could drift apart and invent a phantom notice.
+    const srcAdults = a ?? (sticky?.adults != null ? String(sticky.adults) : null);
+    const srcChildren = c ?? (typeof sticky?.children === 'number' ? String(sticky.children) : null);
+    const srcRooms = r ?? (sticky?.rooms != null ? String(sticky.rooms) : null);
+    const srcAges =
+      p.get('childrenAges') ??
+      (Array.isArray(sticky?.childrenAges) ? sticky!.childrenAges!.join(',') : null);
     const ra = decodeFromParams({
       occ: occParam,
-      adults: a ?? (sticky?.adults != null ? String(sticky.adults) : null),
-      children: c ?? (typeof sticky?.children === 'number' ? String(sticky.children) : null),
-      rooms: r ?? (sticky?.rooms != null ? String(sticky.rooms) : null),
-      childrenAges:
-        p.get('childrenAges') ??
-        (Array.isArray(sticky?.childrenAges) ? sticky!.childrenAges!.join(',') : null),
+      adults: srcAdults,
+      children: srcChildren,
+      rooms: srcRooms,
+      childrenAges: srcAges,
     });
     setRoomsArr(ra);
     // Re-derive flat counts from the rebuilt roomsArr so they're in
@@ -2677,6 +2748,37 @@ function HotelsContent() {
     setChildCount(flatC);
     setRooms(ra.length);
     setChildrenAges(flatAges);
+
+    // 2026-08-27 — a child could vanish from a family search in silence.
+    // clampRooms() enforces MAX_CHILDREN_PER_ROOM (4) and returns the trimmed
+    // party with no signal, so 2 adults + 5 children arriving in ONE room came
+    // out as 2 + 4. Reachable without hand-typing a URL: the "Back to hotels"
+    // link emits `?destination=..&adults=N` with no children or rooms, which
+    // throws the whole party into a single room where the clamp bites.
+    // Measured against the live route the same day:
+    //   /api/hotels?city=London&...&children=5&childrenAges=16,14,10,8,6&rooms=1
+    //   → response echoed  adults: 2, children: 4, rooms: 1   (one child gone)
+    // The prices on the page are honestly labelled for the party we actually
+    // priced — the defect is purely that nobody TOLD the customer. So: say it.
+    // Deliberately NOT cleared in handleSearch (which clears autoSplitInfo) —
+    // the auto-search fired by this very effect would wipe the notice before
+    // it rendered. It stays true for as long as the trimmed party is what we
+    // are searching, and clears when the customer edits the guest picker.
+    const asked = requestedPartySize({ occ: occParam, adults: srcAdults, children: srcChildren });
+    if (asked) {
+      const askedTotal = asked.adults + asked.children;
+      const searchedTotal = flatA + flatC;
+      if (askedTotal > searchedTotal) {
+        setPartyTrimmed({
+          asked: askedTotal,
+          searched: searchedTotal,
+          // Adding a room only helps when a PER-ROOM ceiling did the trimming.
+          // If we are already at the 9-guest or 5-room search ceiling, another
+          // room buys nothing and the nudge would be a lie.
+          canAddRoom: ra.length < MAX_ROOMS && searchedTotal < MAX_GUESTS_TOTAL,
+        });
+      }
+    }
   }, []);
 
   // Geolocation auto-fill removed 2026-04-27 — real Clarity recording
@@ -3894,6 +3996,11 @@ function HotelsContent() {
                   setRooms(r);
                   setChildrenAges(ages);
                   setRoomsArr(ra);
+                  // The customer has taken the party into their own hands, so
+                  // the "we trimmed the party your link asked for" notice is
+                  // no longer about anything they can see. The picker itself
+                  // enforces the caps live, so it can never re-create it.
+                  setPartyTrimmed(null);
                 }}
               />
             </div>
@@ -4172,6 +4279,44 @@ function HotelsContent() {
               full-width row above the results summary. It now rides in the
               Sort + View toolbar further down — same button, no row of its
               own, and the display controls end up grouped together. */}
+          {/* Party-trimmed notice — the arriving link asked for more guests
+              than the occupancy caps allow, so the results below are priced
+              for a SMALLER party. Says so before the customer reads a single
+              price. Unlike the auto-split banner this is NOT gated on having
+              results: a family told "no hotels found" most needs to know we
+              searched for six of them, not seven. Same container, icon
+              treatment and tone as the auto-split notice below so it reads as
+              one family of messages rather than a bolted-on warning. */}
+          {partyTrimmed && (
+            <section className="max-w-[1000px] mx-auto px-5 pt-6">
+              <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-2xl px-5 py-3.5">
+                <span className="text-lg leading-none mt-0.5" aria-hidden>👥</span>
+                <div>
+                  <p className="text-[.82rem] font-semibold text-[#0a58d0] leading-snug">
+                    {partyTrimmed.canAddRoom
+                      ? t('partyTrimmedRoomCap', {
+                          searched: partyTrimmed.searched,
+                          asked: partyTrimmed.asked,
+                          maxAdults: MAX_ADULTS_PER_ROOM,
+                          maxChildren: MAX_CHILDREN_PER_ROOM,
+                        })
+                      : t('partyTrimmedTotalCap', {
+                          searched: partyTrimmed.searched,
+                          asked: partyTrimmed.asked,
+                          maxGuests: MAX_GUESTS_TOTAL,
+                          maxRooms: MAX_ROOMS,
+                        })}
+                  </p>
+                  {partyTrimmed.canAddRoom && (
+                    <p className="text-[.78rem] font-semibold text-[#0a58d0]/80 leading-snug mt-1">
+                      {t('partyTrimmedAddRoom')}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </section>
+          )}
+
           {/* Auto-split notice — shown only when a one-room search for a large
               party found nothing and we re-ran it across 2 rooms. Honest: the
               hotels below are 2-room options, because no hotel here sells one

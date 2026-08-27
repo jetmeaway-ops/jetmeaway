@@ -761,6 +761,9 @@
     "estimatedTotalFrom": "Tahmini toplam başlangıç",
     "perPerson": "kişi başı",
     "partialEstimate": "Kısmi tahmin — bu rota için {leg} fiyatlandırması kullanılamıyor. Eksiksiz paket fırsatları için sağlayıcıları kontrol edin.",
+    "pricedForRooms": "{count} oda için",
+    "noHotelForParty": "Bu tarihlerde {dest} şehrinde grubunuz için otel bulunamadı. Otel aramayı deneyin veya oda başına daha az misafir seçin.",
+    "partyNotPriceable": "Bu büyüklükte bir grup için otel fiyatı hesaplayamıyoruz. Aşağıdaki paket sağlayıcılarla grup fırsatlarını karşılaştırın.",
     "flightWord": "uçuş",
     "hotelWord": "otel",
     "estimateInfo": "Bu, uçuş ve otelleri ayrı ayrı rezerve etmeye dayalı bir tahmindir. Aşağıdaki paket sağlayıcılar %15–30 daha ucuz paket fırsatları sunabilir. Her zaman karşılaştırın.",
@@ -1026,7 +1029,10 @@
       }
     },
     "tryAgain": "Tekrar Dene",
-    "roomsAutoSplit": "Buradaki hiçbir otelde {guests} kişi için tek oda yok, bu yüzden 2 odalı seçenekler bulduk."
+    "roomsAutoSplit": "Buradaki hiçbir otelde {guests} kişi için tek oda yok, bu yüzden 2 odalı seçenekler bulduk.",
+    "partyTrimmedRoomCap": "{asked} yerine {searched} misafir için arama yaptık — bir oda en fazla {maxAdults} yetişkin ve {maxChildren} çocuk alır.",
+    "partyTrimmedTotalCap": "{asked} yerine {searched} misafir için arama yaptık — bir arama {maxRooms} odada en fazla {maxGuests} misafiri kapsar.",
+    "partyTrimmedAddRoom": "Grubunuzdan daha fazla kişiyi dahil etmek için Misafirler ve Odalar bölümünden bir oda daha ekleyin."
   },
   "flights": {
     "heroBadge": "Uçuş Karşılaştırması",

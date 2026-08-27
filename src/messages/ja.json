@@ -761,6 +761,9 @@
     "estimatedTotalFrom": "推定合計 〜から",
     "perPerson": "1名あたり",
     "partialEstimate": "部分的な見積もり — このルートでは{leg}の価格が利用できません。完全なパッケージ商品はプロバイダーをご確認ください。",
+    "pricedForRooms": "{count}室分",
+    "noHotelForParty": "この日程で{dest}にご一行が泊まれるホテルは見つかりませんでした。ホテル検索をお試しいただくか、1室あたりの人数を減らしてください。",
+    "partyNotPriceable": "この人数のホテル料金は算出できません。下記のパッケージ提供会社でグループ向けプランをご比較ください。",
     "flightWord": "フライト",
     "hotelWord": "ホテル",
     "estimateInfo": "これは航空券とホテルを別々に予約した場合の見積もりです。以下のパッケージプロバイダーは、15〜30％安いセット商品を提供している場合があります。常に比較してください。",
@@ -1026,7 +1029,10 @@
       }
     },
     "tryAgain": "もう一度試す",
-    "roomsAutoSplit": "ここには {guests} 名で 1 部屋のホテルがないため、2 部屋での選択肢をご用意しました。"
+    "roomsAutoSplit": "ここには {guests} 名で 1 部屋のホテルがないため、2 部屋での選択肢をご用意しました。",
+    "partyTrimmedRoomCap": "ご指定の{asked}名ではなく{searched}名で検索しました。1室あたり大人{maxAdults}名、子供{maxChildren}名までです。",
+    "partyTrimmedTotalCap": "ご指定の{asked}名ではなく{searched}名で検索しました。1回の検索は{maxRooms}室・最大{maxGuests}名までです。",
+    "partyTrimmedAddRoom": "「人数・部屋数」でもう1室追加すると、より多くの同行者を含められます。"
   },
   "flights": {
     "heroBadge": "航空券比較",

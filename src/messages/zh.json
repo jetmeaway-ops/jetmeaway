@@ -761,6 +761,9 @@
     "estimatedTotalFrom": "预估总价起",
     "perPerson": "每人",
     "partialEstimate": "部分估价——此航线的 {leg} 价格不可用。请查看供应商以获取完整套餐优惠。",
+    "pricedForRooms": "涵盖 {count} 间客房",
+    "noHotelForParty": "这些日期在{dest}没有找到可容纳您一行人的酒店。请尝试酒店搜索，或减少每间客房的人数。",
+    "partyNotPriceable": "我们无法为这种规模的团队计算酒店价格。请与下方的套餐供应商比较团队优惠。",
     "flightWord": "机票",
     "hotelWord": "酒店",
     "estimateInfo": "这是基于分开预订机票和酒店的估算。下方的套餐供应商可能提供便宜 15–30% 的组合优惠。请务必比较。",
@@ -1026,7 +1029,10 @@
       }
     },
     "tryAgain": "重试",
-    "roomsAutoSplit": "这里没有酒店提供可住 {guests} 人的单间，因此我们为您找了 2 间房的选择。"
+    "roomsAutoSplit": "这里没有酒店提供可住 {guests} 人的单间，因此我们为您找了 2 间房的选择。",
+    "partyTrimmedRoomCap": "我们按 {searched} 位客人搜索，而非您要求的 {asked} 位——每间客房最多容纳 {maxAdults} 位成人和 {maxChildren} 位儿童。",
+    "partyTrimmedTotalCap": "我们按 {searched} 位客人搜索，而非您要求的 {asked} 位——一次搜索最多涵盖 {maxRooms} 间客房、{maxGuests} 位客人。",
+    "partyTrimmedAddRoom": "在“客人与房间”中再添加一间客房，即可容纳更多同行者。"
   },
   "flights": {
     "heroBadge": "机票比价",

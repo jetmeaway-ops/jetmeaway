@@ -763,6 +763,9 @@
     "estimatedTotalFrom": "Estimated total from",
     "perPerson": "per person",
     "partialEstimate": "Partial estimate — {leg} pricing unavailable for this route. Check providers for complete package deals.",
+    "pricedForRooms": "{count, plural, one {covers # room} other {covers # rooms}}",
+    "noHotelForParty": "No hotel in {dest} came back for your party on these dates. Try the hotel search, or fewer guests per room.",
+    "partyNotPriceable": "We can't price a hotel for a party this size. Compare group deals with the package providers below.",
     "flightWord": "flight",
     "hotelWord": "hotel",
     "estimateInfo": "This is an estimate based on booking flights and hotels separately. Package providers below may offer bundled deals that are 15–30% cheaper. Always compare.",
@@ -1040,7 +1043,10 @@
       }
     },
     "tryAgain": "Try Again",
-    "roomsAutoSplit": "No hotel here has one room for {guests} guests, so we’ve found options across 2 rooms."
+    "roomsAutoSplit": "No hotel here has one room for {guests} guests, so we’ve found options across 2 rooms.",
+    "partyTrimmedRoomCap": "We searched for {searched} guests, not the {asked} you asked for — one room takes at most {maxAdults} adults and {maxChildren} children.",
+    "partyTrimmedTotalCap": "We searched for {searched} guests, not the {asked} you asked for — one search covers up to {maxGuests} guests across {maxRooms} rooms.",
+    "partyTrimmedAddRoom": "Add another room under Guests & Rooms to include more of your party."
   },
   "flights": {
     "heroBadge": "Flight Comparison",

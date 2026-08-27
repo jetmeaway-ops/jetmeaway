@@ -761,6 +761,9 @@
     "estimatedTotalFrom": "Jumla inayokadiriwa kuanzia",
     "perPerson": "kwa mtu",
     "partialEstimate": "Makadirio ya sehemu — bei ya {leg} haipatikani kwa njia hii. Angalia watoa huduma kwa ofa kamili za vifurushi.",
+    "pricedForRooms": "{count, plural, one {kwa chumba #} other {kwa vyumba #}}",
+    "noHotelForParty": "Hakuna hoteli {dest} iliyopatikana kwa kundi lako katika tarehe hizi. Jaribu utafutaji wa hoteli, au wageni wachache kwa kila chumba.",
+    "partyNotPriceable": "Hatuwezi kupanga bei ya hoteli kwa kundi la ukubwa huu. Linganisha ofa za makundi na watoa vifurushi hapa chini.",
     "flightWord": "ndege",
     "hotelWord": "hoteli",
     "estimateInfo": "Haya ni makadirio kulingana na kubuku ndege na hoteli kwa kando. Watoa huduma wa vifurushi walio hapa chini wanaweza kutoa ofa za pamoja zenye bei nafuu kwa 15–30%. Daima linganisha.",
@@ -1026,7 +1029,10 @@
       }
     },
     "tryAgain": "Jaribu Tena",
-    "roomsAutoSplit": "Hakuna hoteli hapa yenye chumba kimoja kwa wageni {guests}, kwa hivyo tumepata chaguo za vyumba 2."
+    "roomsAutoSplit": "Hakuna hoteli hapa yenye chumba kimoja kwa wageni {guests}, kwa hivyo tumepata chaguo za vyumba 2.",
+    "partyTrimmedRoomCap": "Tumetafuta kwa wageni {searched}, si {asked} ulioomba — chumba kimoja huchukua watu wazima {maxAdults} na watoto {maxChildren} kwa juu.",
+    "partyTrimmedTotalCap": "Tumetafuta kwa wageni {searched}, si {asked} ulioomba — utafutaji mmoja hufikia wageni {maxGuests} katika vyumba {maxRooms}.",
+    "partyTrimmedAddRoom": "Ongeza chumba kingine chini ya Wageni na Vyumba ili kujumuisha wengi zaidi wa kundi lako."
   },
   "flights": {
     "heroBadge": "Ulinganisho wa Ndege",

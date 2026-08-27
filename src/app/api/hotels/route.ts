@@ -2105,7 +2105,14 @@ export async function GET(req: NextRequest) {
   // multiplied by the number of rate plans on the room type, an unrelated
   // number). Stored-value meaning change, so it needs its own namespace: v31
   // entries carry the old figure and would keep serving it for their full TTL.
-  const kvKey = `hotels:v32:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}${occCacheSuffix}${ctrCacheSuffix}${geoCacheSuffix}`;
+  // v33 — the offer-level `excludedTaxes` stored here is now the SUM of each
+  // requested room's tax rather than one room's figure multiplied by the room
+  // count (2026-08-27). Measured on Meliá Milano, 1 adult + 3 adults: £77.22
+  // advertised against £97.47 genuinely owed — and in the other direction too,
+  // £124.66 where £104.41 was due. This field is half of the all-in figure the
+  // results list now ranks on (allInTotal in hotels-client), so a v32 entry
+  // would keep both mis-stating the desk bill and mis-ordering families.
+  const kvKey = `hotels:v33:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}${occCacheSuffix}${ctrCacheSuffix}${geoCacheSuffix}`;
 
   // Group occupancy bypass: large groups (>4 guests) always get fresh prices
   // because cached availability/room blocks may not hold for that many people.
