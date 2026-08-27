@@ -1,0 +1,649 @@
+Audited 545 Italian files against English sources.
+Excluded by plan: scotland-world-cup-2026.mdx
+
+===== BLOCKERS (must fix before push): 165 =====
+  best-all-inclusive-hotels-alanya-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/turkey (en:1 it:0)
+  best-all-inclusive-hotels-belek-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpa41bc?city=Belek) (en:1 it:0); ](/hotels/la_lp_a41bc?city=Belek) (en:0 it:1)
+  best-all-inclusive-hotels-fethiye-2026.mdx
+      - frontmatter category CHANGED: en="Hotels" it="Hotel"
+  best-all-inclusive-hotels-gran-canaria-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpbf471?city=Las%20Palmas) (en:1 it:0); ](/hotels/la_lp bf471?city=Las%20Palmas) (en:0 it:1)
+  best-all-inclusive-hotels-malaga-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpb1840?city=Malaga) (en:1 it:0); ](/hotels/la_lp6lpb1840?city=Malaga) (en:0 it:1)
+  best-hotels-abu-dhabi-2026.mdx
+      - YAML PARSE: can not read an implicit mapping pair; a colon is missed at line 49, column 522:
+  best-hotels-adelaide-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpff563?city=Adelaide) (en:1 it:0); ](/hotels/la_lp_lp_lpff563?city=Adelaide) (en:0 it:1)
+  best-hotels-agadir-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/morocco (en:1 it:0)
+      - BODY FAQ BLOCK MISSING: 2/28 questions in body
+  best-hotels-akureyri-2026.mdx
+      - TRUNCATION/agent note marker found
+  best-hotels-alexandria-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/egypt (en:1 it:0)
+  best-hotels-amman-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/jordan (en:1 it:0)
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpb1838?city=Amman) (en:1 it:0); ](/hotels/la_lp1b838?city=Amman) (en:0 it:1)
+  best-hotels-amritsar-2026.mdx
+      - EXTERNAL URLS CHANGED: https://static.cupid.travel/hotels/72940996.jpg (en:1 it:0); https://static.cupid.travel/hotels/72988090.jpg (en:0 it:1)
+  best-hotels-amsterdam-2026.mdx
+      - EXTERNAL URLS CHANGED: https://static.cupid.travel/hotels/470251896.jpg (en:1 it:2); https://static.cupid.travel/hotels/54805528.jpg (en:1 it:2); https://static.cupid.travel/hotels/594768543.jpg (en:1 it:2) (+7)
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lp2fd20?city=Amsterdam) (en:5 it:6); ](/hotels/la_lp3b94b?city=Amsterdam) (en:3 it:4); ](/hotels/la_lp1bc1a?city=Amsterdam) (en:3 it:4) (+7)
+      - IMAGES 59/49
+  best-hotels-annecy-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpef8e0?city=Annecy) (en:2 it:0); ](/hotels/la_lp2adpef8e0?city=Annecy) (en:0 it:2)
+  best-hotels-atlanta-2026.mdx
+      - EXTERNAL URLS CHANGED: https://static.cupid.travel/hotels/97692023.jpg (en:2 it:3); https://static.cupid.travel/hotels/474957904.jpg (en:2 it:3); https://static.cupid.travel/hotels/110316744.jpg (en:2 it:3) (+5)
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lp51fd3?city=Atlanta) (en:5 it:6); ](/hotels/la_lp22ead?city=Atlanta) (en:6 it:9); ](/hotels/la_lp1e364?city=Atlanta) (en:5 it:7) (+9)
+      - IMAGES 65/57
+  best-hotels-auckland-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpda9f1?city=Auckland) (en:1 it:0); ](/hotels/la_lp_da9f1?city=Auckland) (en:0 it:1)
+  best-hotels-ayutthaya-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/thailand (en:1 it:0)
+  best-hotels-baden-baden-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpac0d7?city=Baden-Baden) (en:1 it:0); ](/hotels/la_lp ac0d7?city=Baden-Baden) (en:0 it:1)
+  best-hotels-bath-2026.mdx
+      - YAML PARSE: incomplete explicit mapping pair; a key node is missed; or followed by a non-tabulated empty line at line 2, column 25:
+  best-hotels-bay-of-islands-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpa74a6?city=Paihia) (en:1 it:0); ](/hotels/la_lp74a6?city=Paihia) (en:0 it:1)
+  best-hotels-beijing-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpa8618?city=Beijing) (en:1 it:0); ](/hotels/la_lp5a618?city=Beijing) (en:0 it:1)
+  best-hotels-beirut-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/lebanon (en:1 it:0)
+  best-hotels-belfast-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.nationalrail.co.uk (en:1 it:0)
+  best-hotels-bergen-2026.mdx
+      - EXTERNAL URLS CHANGED: https://avinor.no/en (en:1 it:0)
+  best-hotels-bilbao-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpb9722?city=Bilbao) (en:1 it:0); ](/hotels/la_lp b9722?city=Bilbao) (en:0 it:1)
+  best-hotels-bogota-2026.mdx
+      - frontmatter: missing slug
+      - frontmatter slug CHANGED: en="best-hotels-bogota-2026" it="undefined"
+      - frontmatter category CHANGED: en="Hotels" it="undefined"
+      - frontmatter author CHANGED: en="JetMeAway Scout" it="undefined"
+      - frontmatter date CHANGED: en="2026-07-24" it="undefined"
+      - frontmatter dateModified CHANGED: en="2026-07-24" it="undefined"
+      - frontmatter heroImage CHANGED: en="https://static.cupid.travel/hotels/427393012.jpg" it="undefined"
+      - frontmatter ctaCity CHANGED: en="Bogota" it="undefined"
+      - frontmatter ctaFlightsTo CHANGED: en="BOG" it="undefined"
+      - frontmatter title MISSING in IT
+      - frontmatter excerpt MISSING in IT
+      - frontmatter readTime MISSING in IT
+      - EXTERNAL URLS CHANGED: https://static.cupid.travel/hotels/427393012.jpg (en:2 it:0); https://static.cupid.travel/hotels/134476400.jpg (en:1 it:0); https://static.cupid.travel/hotels/123701695.jpg (en:1 it:0) (+47)
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lp19ee7?city=Bogota) (en:2 it:0); ](/hotels/la_lp60659?city=Bogota) (en:2 it:0); ](/hotels/la_lp3d26c?city=Bogota) (en:2 it:0) (+50)
+      - IMAGES 0/49
+      - STUB/TRUNCATED: IT is 0% of EN words (2/13481)
+      - BODY FAQ BLOCK MISSING: 0/31 questions in body
+  best-hotels-boracay-2026.mdx
+      - YAML PARSE: can not read an implicit mapping pair; a colon is missed at line 39, column 610:
+  best-hotels-bratislava-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/slovakia (en:1 it:0)
+  best-hotels-bruges-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpb0eb3?city=Bruges) (en:1 it:0); ](/hotels/la_lp566b0eb3?city=Bruges) (en:0 it:1)
+  best-hotels-brussels-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/belgium (en:1 it:0)
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lp6c24a?city=Brussels) (en:1 it:2); ](/hotels/la_lpf3243?city=Brussels) (en:1 it:0)
+  best-hotels-bucharest-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/romania (en:1 it:2)
+  best-hotels-buenos-aires-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/blog/best-hotels-rio-de-janeiro-2026) (en:1 it:0); ](/blog/best-hotels-sao-paulo-2026) (en:1 it:0)
+  best-hotels-bursa-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpbb76b?city=Bursa) (en:1 it:0); ](/hotels/la_lpafb9a?city=Bursa) (en:1 it:0); ](/hotels/la_lp55857b76?city=Bursa) (en:0 it:1) (+1)
+  best-hotels-cairns-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpbf1bb?city=Cairns) (en:1 it:0); ](/hotels/la_lp_bf1bb?city=Cairns) (en:0 it:1)
+  best-hotels-cairo-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/egypt (en:1 it:0)
+  best-hotels-cancun-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels?city=Cancun) (en:5 it:4); ](/flights?to=CUN) (en:5 it:4)
+      - BODY FAQ BLOCK MISSING: 0/32 questions in body
+  best-hotels-cebu-2026.mdx
+      - EXTERNAL URLS CHANGED: https://static.cupid.travel/hotels/382645677.jpg (en:1 it:0); https://static.cupid.travel/hotels/ex_6583c492?city=Moalboal (en:0 it:1)
+  best-hotels-chittagong-sylhet-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/bangladesh (en:1 it:0)
+  best-hotels-copenhagen-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/denmark (en:1 it:2)
+  best-hotels-corfu-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpb2098?city=Corfu) (en:2 it:1); ](/hotels/la_lp2098?city=Corfu) (en:0 it:1)
+  best-hotels-coxs-bazar-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/bangladesh (en:1 it:0)
+  best-hotels-da-lat-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lp91be0?city=Da%20Lat) (en:2 it:5); ](/hotels/la_lpfc150?city=Da%20Lat) (en:2 it:0); ](/hotels/la_lpd4943?city=Da%20Lat) (en:3 it:2) (+3)
+  best-hotels-da-nang-2026.mdx
+      - EXTERNAL URLS CHANGED: https://static.cupid.travel/hotels/121081183.jpg (en:1 it:0); https://www.gov.uk/foreign-travel-advice/vietnam (en:1 it:0); https://static.cupid.travel/hotels/121181183.jpg (en:0 it:1)
+  best-hotels-disneyland-paris-2026.mdx
+      - EXTERNAL URLS CHANGED: https://lh3.googleusercontent.com/place-photos/AJRVUZNtibBRVtJkkSKiuK2z8z9ar-0G0kTZp3LN38fVfO19ZjtlU3tQNSiYvMDl6RXlgVuRd7pPOlgNRUjFW79dtL8EGjDaB_BhCONaoKzWbR2wUPqH0rpuU9VzlNKZmBnZlPOFag1UBSaBzNkU=s4800-w1024 (en:1 it:0); https://lh3.googleusercontent.com/place-photos/AJRVUZPCDWoHmdOpS7g1Qe0YQYWhmAUKs7OgB7RDMOjoLoi6JjCnzFO11YZWigo13EGLqjSp-st6ZeBCMZlAcypsbfZXAPqB9On7ls5KkxVsAxVNrCH603nHEls1DK0JSW58ru8h8EX-dyt0J7n53jenOgpA=s4800-w1200 (en:1 it:0); https://lh3.googleusercontent.com/place-photos/AJRVUZNtibBRVtJkkSKiuK2z8z9ar-0G0kTZp3LN38fVfO19ZjtlU3tQNSiYvMDl6RXlgVuRd7pPOlgNRUjFW79dtL8EGDaB_BhCONaoKzWbR2wUPqH0rpuU9VzlNKZmBnZlPOFag1UBSaBzNkU=s4800-w1024 (en:0 it:1) (+1)
+  best-hotels-djerba-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/tunisia (en:1 it:0)
+  best-hotels-dubrovnik-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/croatia (en:1 it:0)
+  best-hotels-edinburgh-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lp2a7e2?city=Edinburgh) (en:3 it:4); ](/hotels/la_lpde0ab?city=Edinburgh) (en:1 it:0); ](/hotels/la_lpcd6ce?city=Edinburgh) (en:1 it:0) (+3)
+  best-hotels-fez-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/morocco (en:1 it:0)
+      - INTERNAL LINKS CHANGED: ](/foreign-travel-advice/morocco) (en:0 it:1)
+  best-hotels-ganja-gabala-sheki-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/azerbaijan (en:1 it:0)
+  best-hotels-grenoble-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpe60b9?city=Grenoble) (en:1 it:0); ](/hotels/la_lp60b9?city=Grenoble) (en:0 it:1)
+  best-hotels-hamburg-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/germany (en:1 it:2)
+  best-hotels-hanoi-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/vietnam (en:1 it:0)
+  best-hotels-helsinki-2026.mdx
+      - BODY FAQ BLOCK MISSING: 1/27 questions in body
+  best-hotels-ho-chi-minh-city-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/vietnam (en:1 it:0)
+  best-hotels-hoi-an-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/vietnam (en:1 it:0)
+  best-hotels-hua-hin-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/thailand (en:1 it:0)
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpad01a?city=Hua%20Hin) (en:1 it:0); ](/hotels/la_lp​ad01a?city=Hua%20Hin) (en:0 it:1)
+  best-hotels-ibiza-2026.mdx
+      - BODY FAQ BLOCK MISSING: 7/27 questions in body
+  best-hotels-jaipur-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpe50d6?city=Jaipur) (en:1 it:0); ](/hotels/la_lp50d6?city=Jaipur) (en:0 it:1)
+  best-hotels-kampot-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpb5f42?city=Kampot) (en:1 it:0); ](/hotels/la_lp b5f42?city=Kampot) (en:0 it:1)
+  best-hotels-kerala-2026.mdx
+      - YAML PARSE: unexpected end of the stream within a double quoted scalar at line 66, column 1:
+  best-hotels-koh-samui-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/thailand (en:1 it:0)
+  best-hotels-krabi-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/thailand (en:1 it:0)
+  best-hotels-krakow-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/poland (en:1 it:0)
+  best-hotels-lagos-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpfe04c?city=Lagos) (en:1 it:0); ](/hotels/la_lpaa04d?city=Lagos) (en:1 it:0); ](/hotels/la_lp fe04c?city=Lagos) (en:0 it:1) (+1)
+  best-hotels-lahore-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/pakistan (en:1 it:0)
+  best-hotels-lake-como-2026.mdx
+      - BODY FAQ BLOCK MISSING: 0/27 questions in body
+  best-hotels-langkawi-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpfe9cc?city=Langkawi) (en:1 it:0); ](/hotels/la_lp_fe9cc?city=Langkawi) (en:0 it:1)
+  best-hotels-lecce-2026.mdx
+      - BODY FAQ BLOCK MISSING: 4/26 questions in body
+  best-hotels-ljubljana-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/slovenia (en:1 it:0)
+  best-hotels-luxembourg-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/luxembourg (en:1 it:0)
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpf8359?city=Luxembourg) (en:1 it:0); ](/hotels/la_lp1f69db?city=Luxembourg) (en:1 it:2)
+  best-hotels-luxor-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/egypt (en:1 it:0)
+  best-hotels-malmo-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpa45fa?city=Malmo) (en:1 it:0); ](/hotels/la_lp45fa?city=Malmo) (en:0 it:1)
+  best-hotels-marsa-alam-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/egypt (en:1 it:0)
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpe5594?city=El%20Quseir) (en:1 it:0); ](/hotels/la_lp
+e5594?city=El%20Quseir) (en:0 it:1)
+  best-hotels-marseille-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.france.fr/en (en:1 it:0); https://lh3.googleusercontent.com/place-photos/AJRVUZOrYgK57P0cgGHn-hq5yxVtE4Gua5ALe-DxYzZvJzkqoJVL3WJME2Jl94dVI-gXaQ2EicDbsKolNZic208U9jrD1izqvNwGv1Hbi6I-ewJ8_E71Plr5b-M=s4800-w1200 (en:1 it:0); https://www.france.fr/it (en:0 it:1) (+1)
+  best-hotels-matera-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels?city=Matera) (en:6 it:5); ](/hotels/la_lp50ce2?city=Matera) (en:3 it:4)
+      - BODY FAQ BLOCK MISSING: 3/26 questions in body
+  best-hotels-melbourne-2026.mdx
+      - YAML PARSE: can not read an implicit mapping pair; a colon is missed at line 31, column 474:
+  best-hotels-monterrey-2026.mdx
+      - BODY FAQ BLOCK MISSING: 1/34 questions in body
+  best-hotels-muscat-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/blog/best-hotels-dubai-2026) (en:3 it:2); ](/blog/best-hotels-abu-dhabi-2026) (en:3 it:2); ](/blog/best-hotels-salalah-2026) (en:2 it:1)
+  best-hotels-naples-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/https://www.gov.uk/foreign-travel-advice/italy) (en:0 it:1)
+  best-hotels-nice-2026.mdx
+      - EXTERNAL URLS CHANGED: https://lh3.googleusercontent.com/place-photos/AJRVUZMxrgCTP_YUBCnM71qNZejKAOJKu1qx3x07TA16EQgLAvU_KqItPBgHzJcFIXFLZF_bqBkmtP3B9Z5gC6S39wOb3aiAUC9anIVkF_1hyjhQ67Y9O-al753VmOJuxiNPdIix1elDaWdDC3XusAePnkg=s4800-w1200 (en:1 it:0); https://lh3.googleusercontent.com/place-photos/AJRVUZMxrgCTP_YUBCnM71qNZejKAOJKu1qx3x07TA16EQgLAvU_KqItPbgHzJcFIXFLZF_bqBkmtP3B9Z5gC6S39wOb3aiAUC9anIVkF_1hyjhQ67Y9O-al753VmOJuxiNPdIix1elDaWdDC3XusAePnkg=s4800-w1200 (en:0 it:1)
+  best-hotels-nusa-penida-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpb81e2?city=Nusa%20Penida) (en:2 it:1); ](/hotels/la_lp85c72c4?city=Nusa%20Penida) (en:0 it:1)
+  best-hotels-oslo-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/norway (en:1 it:0)
+  best-hotels-palermo-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpdd450?city=Palermo) (en:1 it:0); ](/hotels/la_lpa3556?city=Palermo) (en:2 it:0); ](/hotels/la_lp_dd450?city=Palermo) (en:0 it:1) (+1)
+  best-hotels-paros-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpfe6ed?city=Parikia) (en:1 it:0); ](/hotels/la_lp655fb7b7?city=Parikia) (en:0 it:1)
+  best-hotels-penang-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpad18e?city=George%20Town) (en:1 it:0); ](/hotels/la_lpf48cc?city=George%20Town) (en:1 it:0); ](/hotels/la_lpc2099?city=George%20Town) (en:3 it:0) (+5)
+  best-hotels-petra-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/jordan (en:1 it:2)
+  best-hotels-phong-nha-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/vietnam (en:1 it:0)
+  best-hotels-pisa-2026.mdx
+      - EXTERNAL URLS CHANGED: https://static.cupid.travel/hotels/160905198.jpg (en:1 it:0); https://static.cupid.travel/hotels/160205198.jpg (en:0 it:1)
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpf6b7d?city=Pisa) (en:1 it:0); ](/hotels/la_lpf4091?city=Pisa) (en:1 it:0); ](/hotels/la_lp656b7d?city=Pisa) (en:0 it:1) (+1)
+  best-hotels-plovdiv-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/bulgaria (en:1 it:2)
+  best-hotels-pokhara-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpfea6e?city=Pokhara) (en:1 it:0); ](/hotels/la_lpa87f3?city=Pokhara) (en:1 it:0); ](/hotels/la_lp1a8ce1?city=Pokhara) (en:1 it:0) (+7)
+  best-hotels-poznan-2026.mdx
+      - BODY FAQ BLOCK MISSING: 4/30 questions in body
+  best-hotels-punta-cana-2026.mdx
+      - EXTERNAL URLS CHANGED: https://static.cupid.travel/hotels/248218723.jpg (en:1 it:0); https://static.cupid.travel/hotels/606042542.jpg (en:1 it:0); https://static.cupid.travel/hotels/ex_96017d26_z.jpg (en:1 it:0) (+29)
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lp6bd0d?city=Punta%20Cana) (en:2 it:1); ](/hotels/la_lp786d6?city=Punta%20Cana) (en:2 it:1); ](/hotels/la_lp656d835c?city=Punta%20Cana) (en:2 it:1) (+31)
+      - IMAGES 10/40
+      - STUB/TRUNCATED: IT is 44% of EN words (7239/16551)
+      - BODY FAQ BLOCK MISSING: 0/33 questions in body
+  best-hotels-rabat-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/morocco (en:1 it:0)
+      - BODY FAQ BLOCK MISSING: 2/27 questions in body
+  best-hotels-riga-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/latvia (en:1 it:2)
+  best-hotels-rio-de-janeiro-2026.mdx
+      - BODY FAQ BLOCK MISSING: 8/28 questions in body
+  best-hotels-rome-2026.mdx
+      - YAML PARSE: can not read an implicit mapping pair; a colon is missed at line 23, column 614:
+  best-hotels-salamanca-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpd3aa3?city=Salamanca) (en:1 it:0); ](/hotels/la_lp85d3aa3?city=Salamanca) (en:0 it:1)
+  best-hotels-salzburg-2026.mdx
+      - YAML PARSE: unexpected end of the stream within a double quoted scalar at line 66, column 1:
+  best-hotels-santorini-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpc15b2?city=Kamari) (en:1 it:0); ](/hotels/la_lp15b2?city=Kamari) (en:0 it:1)
+  best-hotels-seminyak-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpaadfb?city=Seminyak) (en:1 it:0); ](/hotels/la_lp aadfb?city=Seminyak) (en:0 it:1)
+  best-hotels-seville-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/blog/best-hotels-granada-2026) (en:2 it:1)
+  best-hotels-sibiu-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/romania (en:1 it:0)
+  best-hotels-siena-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/blog/best-hotels-pisa-2026) (en:1 it:0); ](/blog/best-hotels-lucca-2026) (en:1 it:0); ](/blog/best-hotels-venice-2026) (en:1 it:0) (+14)
+      - BODY FAQ BLOCK MISSING: 0/26 questions in body
+  best-hotels-sousse-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/tunisia (en:1 it:2)
+  best-hotels-south-iceland-2026.mdx
+      - TRUNCATION/agent note marker found
+  best-hotels-split-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/croatia (en:1 it:0)
+  best-hotels-stavanger-2026.mdx
+      - EXTERNAL URLS CHANGED: https://avinor.no/en (en:1 it:0)
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpcc789?city=Stavanger) (en:1 it:0); ](/hotels/la_lp_cc789?city=Stavanger) (en:0 it:1)
+  best-hotels-sunny-beach-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/bulgaria (en:1 it:2)
+  best-hotels-tallinn-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/estonia (en:1 it:0)
+  best-hotels-tangier-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lp2c5b5?city=Tangier) (en:1 it:2); ](/hotels/la_lpac06a?city=Tangier) (en:1 it:0); ](/hotels/la_lpbd65b?city=Tangier) (en:1 it:0) (+1)
+  best-hotels-taormina-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lp3b337?city=Taormina) (en:1 it:2); ](/hotels/la_lpe39df?city=Taormina) (en:1 it:0)
+  best-hotels-tromso-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/norway (en:1 it:2)
+  best-hotels-varanasi-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lpfd961?city=Varanasi) (en:1 it:0); ](/hotels/la_lp655acfed?city=Varanasi) (en:1 it:2)
+  best-hotels-venice-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/flights?to=VCE) (en:5 it:4); ](/hotels?city=Venice) (en:7 it:5)
+      - BODY FAQ BLOCK MISSING: 0/27 questions in body
+  best-hotels-wadi-rum-2026.mdx
+      - YAML PARSE: can not read a block mapping entry; a multiline key may not be an implicit key at line 6, column 5:
+  best-hotels-warsaw-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.poland.travel/en (en:1 it:0); https://www.gov.uk/foreign-travel-advice/poland (en:1 it:0)
+  best-hotels-zagreb-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/croatia (en:1 it:2)
+  best-hotels-zakopane-2026.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/poland (en:1 it:2)
+      - INTERNAL LINKS CHANGED: ](/hotels/la_lp5edda?city=Zakopane) (en:3 it:4)
+  best-hotels-zermatt-2026.mdx
+      - BODY FAQ BLOCK MISSING: 0/26 questions in body
+  diy-travel-vs-package-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels) (en:6 it:5)
+  england-world-cup-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/hotels?destination=Mexico%20City) (en:1 it:0); ](/hotels?destination=Città%20del%20Messico) (en:0 it:1)
+  esim-vs-roaming-vs-local-sim-uk-travellers-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/blog/best-student-esims-uk-2026) (en:2 it:1)
+  family-holidays-spain.mdx
+      - EXTERNAL URLS CHANGED: https://lh3.googleusercontent.com/place-photos/AJRVUZNb0kUviedewVEmyL1FAEWBMSDoXH5X2UV6kYWRV5xRi_lvEK_q9e7RoFUgHErtzu4WAItyY9jqSR33w2A4AdtJasFKMz-60TzWAgoA4STXVOXPKeGpn5ObpMqXn53w_DHEh6d3Mwi29stj7-16H_c=s4800-w1200 (en:1 it:0); https://lh3.googleusercontent.com/place-photos/AJRVUZOdI1E8GZce5YS0TU-t_jgbg53kDrMUjKfLInvISrXh1fEFzN_3aoPoKd3RiXQXnJIsLpW5Rd1qhTkEFJ6ecM1_EYj_VhiU3OSSa4bHBaJefwRnOj7whzPnfVDnsFu1IAfLMUN9i5LgL5B58A=s4800-w1200 (en:1 it:0); https://lh3.googleusercontent.com/place-photos/AJRVUZOJPsWjB6doXwcBmn7GVUdy8kYyKsXTWqFMcVRPRgyHUSyCdjMrhZ1AJeOElNcswHF4q5KqJCQALxG0pxQZ6a8JFfmIcJpfPCqS7k289eQyvNNobkVz7EPgswVjIkax-dEZeuGiw7-rjaI4=s4800-w1200 (en:1 it:0) (+3)
+  flights-to-copenhagen-from-uk-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/blog/best-hotels-copenhagen-2026) (en:3 it:4)
+  flights-to-edinburgh-from-uk-2026.mdx
+      - INTERNAL LINKS CHANGED: ](/blog/best-hotels-edinburgh-2026) (en:3 it:0); ](/blog/cheapest-month-to-fly-from-uk-2026) (en:1 it:0); ](/blog/cheap-flights-from-uk) (en:1 it:0) (+3)
+  strait-of-hormuz-2026-rainbow-island-safety.mdx
+      - EXTERNAL URLS CHANGED: https://www.gov.uk/foreign-travel-advice/iran (en:2 it:1)
+
+===== WARNINGS (review): 191 =====
+  best-all-inclusive-hotels-benidorm-2026.mdx
+      - ENGLISH LEAK: self-catering, design-led
+  best-all-inclusive-hotels-fethiye-2026.mdx
+      - ENGLISH LEAK: design-led, self-catering
+  best-all-inclusive-hotels-gran-canaria-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-all-inclusive-hotels-kusadasi-2026.mdx
+      - ENGLISH LEAK: design-led
+  best-all-inclusive-hotels-lanzarote-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-all-inclusive-hotels-lloret-de-mar-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-all-inclusive-hotels-majorca-2026.mdx
+      - £ amounts 74/73
+      - ENGLISH LEAK: four-star, three-star, five-star, design-led, self-catering
+  best-all-inclusive-hotels-marbella-2026.mdx
+      - ENGLISH LEAK: live page
+  best-all-inclusive-hotels-marmaris-2026.mdx
+      - ENGLISH LEAK: design-led
+  best-all-inclusive-hotels-salou-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-all-inclusive-hotels-san-sebastian-2026.mdx
+      - ENGLISH LEAK: design-led
+  best-all-inclusive-hotels-side-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-all-inclusive-hotels-tenerife-2026.mdx
+      - FAQ count 25/27
+      - ENGLISH LEAK: design-led
+  best-all-inclusive-hotels-turkey-2026.mdx
+      - £ amounts 149/150
+  best-hotels-aarhus-2026.mdx
+      - £ amounts 89/91
+  best-hotels-adelaide-2026.mdx
+      - £ amounts 79/83
+  best-hotels-agadir-2026.mdx
+      - £ amounts 107/118
+  best-hotels-alexandria-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-hotels-algiers-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-hotels-amsterdam-2026.mdx
+      - £ amounts 98/88
+  best-hotels-andorra-2026.mdx
+      - £ amounts 116/120
+  best-hotels-antalya-2026.mdx
+      - £ amounts 122/128
+  best-hotels-astana-2026.mdx
+      - FAQ count 27/26
+  best-hotels-atlanta-2026.mdx
+      - £ amounts 120/116
+      - ENGLISH LEAK: five-star
+  best-hotels-ayia-napa-2026.mdx
+      - £ amounts 134/132
+  best-hotels-bandung-2026.mdx
+      - £ amounts 84/89
+  best-hotels-bangkok-2026.mdx
+      - £ amounts 100/101
+  best-hotels-basel-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-hotels-batumi-2026.mdx
+      - £ amounts 135/141
+  best-hotels-bay-of-islands-2026.mdx
+      - FAQ count 22/21
+  best-hotels-bern-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-hotels-bilbao-2026.mdx
+      - £ amounts 109/107
+      - ENGLISH LEAK: design-led
+  best-hotels-bishkek-issyk-kul-2026.mdx
+      - £ amounts 94/95
+  best-hotels-bogota-2026.mdx
+      - FAQ count 0/29
+      - £ amounts 0/135
+  best-hotels-bohol-2026.mdx
+      - ENGLISH LEAK: five-star
+  best-hotels-bratislava-2026.mdx
+      - £ amounts 118/116
+  best-hotels-bremen-2026.mdx
+      - FAQ count 27/26
+  best-hotels-brighton-2026.mdx
+      - FAQ count 23/25
+      - £ amounts 115/116
+  best-hotels-bristol-2026.mdx
+      - ENGLISH LEAK: design-led
+  best-hotels-budapest-2026.mdx
+      - ENGLISH LEAK: design-led
+  best-hotels-buenos-aires-2026.mdx
+      - £ amounts 130/131
+  best-hotels-cairns-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-hotels-calgary-2026.mdx
+      - FAQ count 27/28
+  best-hotels-cameron-highlands-2026.mdx
+      - £ amounts 99/100
+  best-hotels-cancun-2026.mdx
+      - FAQ count 31/30
+      - £ amounts 142/157
+      - short: IT 79% of EN words
+      - ENGLISH LEAK: self-catering
+  best-hotels-cannes-2026.mdx
+      - ENGLISH LEAK: self-catering, design-led
+  best-hotels-cape-town-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-hotels-cardiff-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-hotels-christchurch-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-hotels-copenhagen-2026.mdx
+      - FAQ count 28/27
+      - £ amounts 116/117
+      - ENGLISH LEAK: design-led
+  best-hotels-corfu-2026.mdx
+      - FAQ count 26/25
+  best-hotels-dallas-2026.mdx
+      - £ amounts 88/82
+  best-hotels-dalyan-2026.mdx
+      - £ amounts 164/167
+  best-hotels-disneyland-paris-2026.mdx
+      - ENGLISH LEAK: the scout's take
+  best-hotels-doha-2026.mdx
+      - £ amounts 123/124
+  best-hotels-dubrovnik-2026.mdx
+      - FAQ count 26/25
+  best-hotels-durban-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-hotels-french-alps-ski-resorts-2026.mdx
+      - FAQ count 26/25
+  best-hotels-gdansk-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-hotels-geneva-2026.mdx
+      - FAQ count 27/26
+      - £ amounts 104/103
+  best-hotels-ghent-2026.mdx
+      - £ amounts 127/125
+  best-hotels-gothenburg-2026.mdx
+      - £ amounts 108/109
+  best-hotels-guangzhou-2026.mdx
+      - £ amounts 100/103
+  best-hotels-hamburg-2026.mdx
+      - FAQ count 27/26
+  best-hotels-helsinki-2026.mdx
+      - £ amounts 100/120
+      - ENGLISH LEAK: five-star
+  best-hotels-hermanus-2026.mdx
+      - FAQ count 27/26
+      - ENGLISH LEAK: self-catering
+  best-hotels-hoedspruit-2026.mdx
+      - £ amounts 61/64
+  best-hotels-hoi-an-2026.mdx
+      - FAQ count 27/26
+  best-hotels-hvar-2026.mdx
+      - £ amounts 114/112
+  best-hotels-hyderabad-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-hotels-ibiza-2026.mdx
+      - £ amounts 111/121
+  best-hotels-ipoh-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-hotels-islamabad-2026.mdx
+      - ENGLISH LEAK: four-star, three-star
+  best-hotels-izmir-2026.mdx
+      - £ amounts 112/116
+  best-hotels-jiufen-2026.mdx
+      - FAQ count 16/15
+  best-hotels-johannesburg-2026.mdx
+      - FAQ count 24/23
+      - £ amounts 81/79
+  best-hotels-kanchanaburi-2026.mdx
+      - £ amounts 120/127
+  best-hotels-kandy-2026.mdx
+      - FAQ count 26/25
+  best-hotels-kaohsiung-2026.mdx
+      - £ amounts 94/92
+  best-hotels-kigali-2026.mdx
+      - FAQ count 28/27
+      - £ amounts 92/98
+  best-hotels-knysna-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-hotels-koh-samui-2026.mdx
+      - FAQ count 26/25
+  best-hotels-kota-kinabalu-2026.mdx
+      - £ amounts 126/132
+  best-hotels-krakow-2026.mdx
+      - £ amounts 121/114
+      - ENGLISH LEAK: five-star
+  best-hotels-kyoto-2026.mdx
+      - ENGLISH LEAK: five-star
+  best-hotels-lahore-2026.mdx
+      - £ amounts 70/73
+  best-hotels-lake-como-2026.mdx
+      - £ amounts 110/127
+  best-hotels-lausanne-2026.mdx
+      - ENGLISH LEAK: genuinely
+  best-hotels-lecce-2026.mdx
+      - £ amounts 153/162
+  best-hotels-liverpool-2026.mdx
+      - £ amounts 135/137
+  best-hotels-luang-prabang-2026.mdx
+      - £ amounts 118/120
+  best-hotels-lucerne-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-hotels-luxor-2026.mdx
+      - £ amounts 134/132
+  best-hotels-madeira-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-hotels-malacca-2026.mdx
+      - £ amounts 113/114
+  best-hotels-malaga-2026.mdx
+      - £ amounts 114/115
+  best-hotels-manchester-2026.mdx
+      - ENGLISH LEAK: five-star
+  best-hotels-matera-2026.mdx
+      - FAQ count 26/25
+      - £ amounts 136/143
+      - ENGLISH LEAK: design-led
+  best-hotels-medellin-2026.mdx
+      - £ amounts 141/145
+      - ENGLISH LEAK: five-star
+  best-hotels-mekong-delta-2026.mdx
+      - £ amounts 139/143
+  best-hotels-miami-2026.mdx
+      - £ amounts 93/94
+  best-hotels-monterrey-2026.mdx
+      - FAQ count 33/32
+      - £ amounts 137/147
+      - short: IT 77% of EN words
+  best-hotels-nelson-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-hotels-newcastle-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-hotels-nice-2026.mdx
+      - £ amounts 82/80
+  best-hotels-nicosia-2026.mdx
+      - £ amounts 108/106
+  best-hotels-osaka-2026.mdx
+      - £ amounts 171/173
+  best-hotels-oslo-2026.mdx
+      - £ amounts 133/122
+      - ENGLISH LEAK: self-catering
+  best-hotels-oxford-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-hotels-pamukkale-2026.mdx
+      - £ amounts 100/101
+  best-hotels-phu-quoc-2026.mdx
+      - ENGLISH LEAK: min read
+  best-hotels-playa-del-carmen-2026.mdx
+      - FAQ count 33/31
+      - £ amounts 130/128
+  best-hotels-plovdiv-2026.mdx
+      - £ amounts 104/108
+  best-hotels-poznan-2026.mdx
+      - FAQ count 29/28
+      - £ amounts 131/144
+  best-hotels-prague-2026.mdx
+      - £ amounts 120/119
+      - ENGLISH LEAK: design-led
+  best-hotels-protaras-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-hotels-pune-2026.mdx
+      - £ amounts 128/135
+      - ENGLISH LEAK: self-catering
+  best-hotels-punta-cana-2026.mdx
+      - £ amounts 43/137
+  best-hotels-queenstown-2026.mdx
+      - ENGLISH LEAK: five-star
+  best-hotels-rabat-2026.mdx
+      - £ amounts 97/108
+  best-hotels-recife-2026.mdx
+      - FAQ count 29/25
+      - £ amounts 128/122
+  best-hotels-rovaniemi-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-hotels-salamanca-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-hotels-samarkand-2026.mdx
+      - ENGLISH LEAK: design-led
+  best-hotels-san-diego-2026.mdx
+      - £ amounts 100/102
+  best-hotels-sao-paulo-2026.mdx
+      - FAQ count 22/25
+  best-hotels-sarande-2026.mdx
+      - ENGLISH LEAK: four-star
+  best-hotels-seattle-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-hotels-seminyak-2026.mdx
+      - ENGLISH LEAK: design-led, five-star
+  best-hotels-siena-2026.mdx
+      - £ amounts 109/125
+  best-hotels-south-iceland-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-hotels-stavanger-2026.mdx
+      - £ amounts 102/94
+  best-hotels-stellenbosch-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-hotels-sydney-2026.mdx
+      - ENGLISH LEAK: design-led
+  best-hotels-tallinn-2026.mdx
+      - FAQ count 28/27
+  best-hotels-taormina-2026.mdx
+      - FAQ count 26/25
+  best-hotels-tashkent-2026.mdx
+      - £ amounts 121/123
+  best-hotels-toledo-2026.mdx
+      - £ amounts 143/141
+  best-hotels-tulum-2026.mdx
+      - FAQ count 34/33
+      - £ amounts 152/149
+  best-hotels-tunis-2026.mdx
+      - £ amounts 111/112
+      - ENGLISH LEAK: self-catering
+  best-hotels-varanasi-2026.mdx
+      - FAQ count 31/30
+      - £ amounts 128/125
+  best-hotels-venice-2026.mdx
+      - FAQ count 27/26
+      - £ amounts 123/144
+  best-hotels-warsaw-2026.mdx
+      - £ amounts 113/110
+  best-hotels-yerevan-2026.mdx
+      - ENGLISH LEAK: self-catering
+  best-hotels-zermatt-2026.mdx
+      - £ amounts 89/103
+  cheap-flights-from-uk.mdx
+      - ENGLISH LEAK: four-star
+  cheapest-uk-destinations-2026.mdx
+      - £ amounts 90/117
+  egypt-travel-guide-2026.mdx
+      - £ amounts 0/15
+  family-holidays-spain.mdx
+      - ENGLISH LEAK: design-led
+  flights-to-copenhagen-from-uk-2026.mdx
+      - ENGLISH LEAK: live page
+  flights-to-milan-from-uk-2026.mdx
+      - £ amounts 41/42
+  flights-to-munich-from-uk-2026.mdx
+      - ENGLISH LEAK: genuinely
+  interrail-vs-flying-students-2026.mdx
+      - £ amounts 179/182
+  lakshadweep-anti-maldives-travel-guide-2026.mdx
+      - ENGLISH LEAK: genuinely
+  rishikesh-yoga-sabbatical-2026.mdx
+      - £ amounts 72/76
+  save-on-kids-holiday-activities-2026.mdx
+      - ENGLISH LEAK: self-catering
+  surviving-school-holidays-2026.mdx
+      - £ amounts 100/98
+      - ENGLISH LEAK: self-catering
+  umrah-from-uk-2026-cost-visa-guide.mdx
+      - £ amounts 118/116
+
+RESULT: FAIL — 165 blocker(s)
