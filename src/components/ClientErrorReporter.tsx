@@ -20,6 +20,37 @@ import { useEffect } from 'react';
  * trace is enough to triage — and it costs nothing to add the official
  * SDK later if we outgrow this.
  */
+// Matches the ChunkLoadError / dynamic-import failures that fire when a
+// browser tab held open across a new Vercel deploy tries to fetch a JS/CSS
+// chunk from a deployment that's been superseded — the chunk URL is
+// versioned by dpl_ id and no longer resolves. Not a logic bug; the fix is
+// to get the tab onto the new deployment's assets via a single reload.
+const CHUNK_ERROR_PATTERN =
+  /ChunkLoadError|Loading chunk [\w.-]+ failed|Failed to load chunk|Importing a module script failed|error loading dynamically imported module/i;
+
+const CHUNK_RELOAD_KEY = 'jma-chunk-reload';
+
+/**
+ * If `message` looks like a stale-chunk error, reload once to pick up the
+ * new deployment's assets. Guarded by sessionStorage so a genuinely broken
+ * deployment (reload doesn't fix it) falls through to normal reporting
+ * instead of reload-looping the tab.
+ *
+ * Returns true if a reload was triggered (caller should skip reporting).
+ */
+function recoverFromChunkError(message: string): boolean {
+  if (!CHUNK_ERROR_PATTERN.test(message)) return false;
+  try {
+    if (window.sessionStorage.getItem(CHUNK_RELOAD_KEY)) return false;
+    window.sessionStorage.setItem(CHUNK_RELOAD_KEY, String(Date.now()));
+    window.location.reload();
+    return true;
+  } catch {
+    // Private-browsing / storage disabled — fall through to reporting.
+    return false;
+  }
+}
+
 export default function ClientErrorReporter() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -66,12 +97,15 @@ export default function ClientErrorReporter() {
     };
 
     const onError = (e: ErrorEvent) => {
-      post({ message: e.message || 'window.onerror', stack: e.error?.stack });
+      const message = e.message || 'window.onerror';
+      if (recoverFromChunkError(message)) return;
+      post({ message, stack: e.error?.stack });
     };
     const onRejection = (e: PromiseRejectionEvent) => {
       const reason = e.reason;
       const message =
         reason instanceof Error ? reason.message : typeof reason === 'string' ? reason : 'unhandledrejection';
+      if (recoverFromChunkError(message)) return;
       const stack = reason instanceof Error ? reason.stack : undefined;
       post({ message: `[unhandledrejection] ${message}`, stack });
     };
