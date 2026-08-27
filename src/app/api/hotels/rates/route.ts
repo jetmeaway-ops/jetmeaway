@@ -72,6 +72,11 @@ type BoardOptionOut = {
    *  /hotels/rates, whole-booking on multi-room quotes. Null when the
    *  supplier omitted it. Authoritative (unlike the catalogue's ceiling). */
   maxOccupancy?: number | null;
+  /** Multi-room bundles: the name of EACH room in the quote, in occupancy
+   *  order. The bundle's own title names only one of its rooms — this list
+   *  is what the customer is actually booking. Null on single-room quotes
+   *  or when any room's name is missing. */
+  roomBreakdown?: string[] | null;
   /** LiteAPI commission — our merchant margin on the booking, in the offer's
    *  currency. LiteAPI only reports a single commission figure per hotel,
    *  not per-boardOption, so every row in this array carries the same value
@@ -172,7 +177,9 @@ export async function GET(req: NextRequest) {
   // under-stating the tax for multi-room stays until they expired.
   // v6: offers now carry per-rate `maxOccupancy` (2026-08-24). v5 entries
   // lack the field, which would render bare "Sleeps" chips for their full TTL.
-  const cacheKey = `hotel-rates:v6:${hotelId}:${checkin}:${checkout}:${adults}:${children}:${childrenAgesRaw}:${rooms}:${occParam}:${currency}`;
+  // v7: offers carry `roomBreakdown` on multi-room bundles (2026-08-27) —
+  // v6 entries lack it and would hide the per-room list for their full TTL.
+  const cacheKey = `hotel-rates:v7:${hotelId}:${checkin}:${checkout}:${adults}:${children}:${childrenAgesRaw}:${rooms}:${occParam}:${currency}`;
 
   try {
     const cached = await kv.get<CacheShape | { offers: BoardOptionOut[] }>(cacheKey);
@@ -261,6 +268,7 @@ async function fetchAndCacheRates(args: FetchArgs): Promise<BoardOptionOut[]> {
         cancelDeadline: o.cancelDeadline ?? null,
         paymentTypes: o.paymentTypes ?? null,
         maxOccupancy: o.maxOccupancy ?? null,
+        roomBreakdown: o.roomBreakdown ?? null,
         commission: scaledCommission(o.totalPrice),
       }))
     : [{
@@ -278,6 +286,7 @@ async function fetchAndCacheRates(args: FetchArgs): Promise<BoardOptionOut[]> {
         paymentTypes: null,
         // Synthesised single-rate fallback has no per-rate data to read from.
         maxOccupancy: null,
+        roomBreakdown: null,
         commission: baseCommission,
       }];
 
