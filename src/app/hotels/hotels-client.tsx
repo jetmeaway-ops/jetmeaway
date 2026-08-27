@@ -137,12 +137,12 @@ const DESTINATIONS = [
   'Antigua', 'Aruba', 'Trinidad',
   // Americas
   'New York', 'Los Angeles', 'Orlando', 'Cancun', 'Mexico City', 'Toronto',
-  'Buenos Aires', 'Lima', 'Bogota', 'Havana', 'Miami', 'Las Vegas',
+  'Buenos Aires', 'Lima', 'Bogota', 'Miami', 'Las Vegas',
   'San Francisco', 'Chicago', 'Boston', 'Washington DC', 'Vancouver',
   'Montreal', 'Rio de Janeiro', 'Sao Paulo', 'Cartagena', 'Panama City',
   'Playa del Carmen',
   // Caucasus & Central Asia
-  'Baku', 'Yerevan', 'Tbilisi', 'Ashgabat', 'Tashkent',
+  'Baku', 'Yerevan', 'Tbilisi', 'Tashkent',
   'Almaty', 'Astana', 'Bishkek', 'Dushanbe',
 ];
 
