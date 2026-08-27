@@ -2826,18 +2826,24 @@ function HotelsContent() {
         return;
       }
 
-      // Auto-split a large party that NO single room in this location can hold.
-      // Trigger: the one-room search came back EMPTY. Hotels that DO sell a
-      // single room for the whole party (family / interconnecting rates) appear
-      // in `data.hotels` above, so we only ever reach this when there is
-      // genuinely no one-room option anywhere — we never override a hotel that
-      // accepts everyone in one room, and never misguide the customer. Each of
-      // the two rooms keeps an adult, so we need at least two adults; a party
-      // of four commonly fits one room, so we only bother from five up. Kept
-      // fully client-side so the server route and its KV caching are untouched.
+      // Auto-split a large party that almost no single room in this location
+      // can hold. Trigger: the one-room search came back EMPTY or THIN (≤3
+      // hotels). Originally empty-only, but a family of five searching
+      // Chambéry saw exactly ONE hotel — the only property selling a
+      // 5-sleeper room — while a dozen hotels would happily host them across
+      // two rooms (owner report 2026-08-27). "One lonely château" reads as a
+      // broken site just as much as zero does. The split result is adopted
+      // ONLY when it finds strictly MORE hotels than the one-room search: a
+      // property with a genuine 5-person room almost always also sells two
+      // smaller rooms, so the split set is in practice a superset — and the
+      // guard means we never trade down. Each of the two rooms keeps an
+      // adult, so we need at least two adults; a party of four commonly fits
+      // one room, so we only bother from five up. Kept fully client-side so
+      // the server route and its KV caching are untouched.
       const partyTotal = adults + childCount;
+      const oneRoomCount = data.hotels?.length ?? 0;
       if (
-        (data.hotels?.length ?? 0) === 0 &&
+        oneRoomCount <= 3 &&
         roomsArr.length === 1 &&
         adults >= 2 &&
         partyTotal >= 5
@@ -2852,7 +2858,7 @@ function HotelsContent() {
           const rRes = await fetch(`/api/hotels?${sp}`);
           const rData = await rRes.json();
           if (mySeq !== loadMoreSeqRef.current) return; // superseded
-          if (!rData.error && (rData.hotels?.length ?? 0) > 0) {
+          if (!rData.error && (rData.hotels?.length ?? 0) > oneRoomCount) {
             data = rData;
             searchParams = sp;
             // Bring the whole page into 2-room mode so the cards, the detail
