@@ -685,7 +685,12 @@ const LITEAPI_DEBUG = !!process.env.LITEAPI_DEBUG;
 // v3 (2026-08-27) — a city-name lookup is now widened by a second pass around
 // the city's own centre, so a cached entry holds MORE hotels than before. v2
 // entries carry the short list for their full 24h TTL.
-const DIR_CACHE_VERSION = 'v3';
+// v4 (2026-08-27) — the widen now also applies to cities whose name search
+// already filled the fetch limit (Nice, Verona), which v3 skipped. This cache
+// is keyed on the QUERY, not the dates, so a v3 entry would keep serving the
+// un-widened list for a full 24h no matter which dates were searched — the
+// third time today a stale cache has hidden a shipped fix.
+const DIR_CACHE_VERSION = 'v4';
 
 /** How far around a city's own centre the name search is widened. 15 km keeps
  *  the extra properties genuinely "in" the city — the suburb and lakeside
