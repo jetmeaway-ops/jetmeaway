@@ -1551,7 +1551,9 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     // was being sorted by an under-stated cost as well as quoted one. Sum the
     // real per-room figures when the bundle gives us all of them; fall back to
     // the multiply when it doesn't.
-    const extraTaxes = bundleExcludedTax(bestRoomType, occupancy.length)
+    // `let` not `const`: the FX block below converts it in place, exactly as
+    // it does the price fields.
+    let extraTaxes = bundleExcludedTax(bestRoomType, occupancy.length)
       ?? (perRoomExcluded * roomCount);
     const commissionArr = Array.isArray(bestRate.commission) ? bestRate.commission : [];
     const commission = commissionArr.length > 0 ? commissionArr.reduce((s, c) => s + (c.amount || 0), 0) : null;
@@ -1634,6 +1636,20 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
         marketRaw = marketRaw * fx;
         if (negotiatedRaw != null) negotiatedRaw = negotiatedRaw * fx;
         finalPrice = finalPrice * fx;
+        // Taxes were being left in the SUPPLIER's currency and then added to
+        // an already-converted GBP price, so a Marrakech hotel quoting MAD
+        // showed its raw dirham tax behind a £ sign — roughly a 12x
+        // over-statement — and the same figure fed the all-in number the
+        // results list now ranks on. Convert every money field here, not just
+        // the headline, or the offer is internally inconsistent.
+        extraTaxes = extraTaxes * fx;
+        for (const opt of allOptions) {
+          opt.totalPrice = Math.round(opt.totalPrice * fx * 100) / 100;
+          opt.pricePerNight = Math.round(opt.pricePerNight * fx * 100) / 100;
+          if (opt.marketPrice != null) opt.marketPrice = Math.round(opt.marketPrice * fx * 100) / 100;
+          if (opt.negotiatedPrice != null) opt.negotiatedPrice = Math.round(opt.negotiatedPrice * fx * 100) / 100;
+          if (opt.excludedTaxes != null) opt.excludedTaxes = Math.round(opt.excludedTaxes * fx * 100) / 100;
+        }
         finalCurrency = 'GBP';
         fxConverted = true;
         if (LITEAPI_DEBUG) console.log(`[liteapi:fx] hotel=${entry.hotelId} ${before.toFixed(2)} → £${finalPrice.toFixed(2)} (rate=${fx})`);

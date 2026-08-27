@@ -102,7 +102,12 @@ export async function GET() {
   const HOT_DESTINATIONS = getRotatedDestinations();
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
   const cycle = Math.floor(dayOfYear / 2);
-  const KV_KEY = `hotel_deals:v5:cycle${cycle}`;
+  // v6 — DealHotel gained `localFees` (tax payable at the property) and stopped
+  // rounding prices to whole pounds (2026-08-27). Both are stored-value changes,
+  // and the 6-hour TTL meant v5 entries kept serving deals with no tax field and
+  // integer prices long after the fix shipped — the upgraded monkey caught
+  // exactly that on the first run against prod.
+  const KV_KEY = `hotel_deals:v6:cycle${cycle}`;
 
   try {
     // Check cache first

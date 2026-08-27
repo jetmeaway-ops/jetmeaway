@@ -3014,7 +3014,27 @@ function HotelsContent() {
           const rRes = await fetch(`/api/hotels?${sp}`);
           const rData = await rRes.json();
           if (mySeq !== loadMoreSeqRef.current) return; // superseded
-          if (!rData.error && (rData.hotels?.length ?? 0) > oneRoomCount) {
+          // Adopt the split only when it is more choice AND not more money.
+          // Measured at Milano Malpensa (2026-08-27): the one-room search
+          // returned a single hotel, Villa Giovanna at £260.85, which sleeps
+          // all five — while the two-room split returned 12 hotels whose
+          // cheapest was £359.52. "More hotels" alone would have replaced the
+          // best-value room in the airport with a dozen dearer pairs and
+          // hidden the winner entirely. Chambéry, the case this rescue was
+          // built for, passes both tests: 1 hotel at £524.92 becomes 7 from
+          // £88.62. When the one-room search found nothing at all there is no
+          // price to protect, so the count test stands alone.
+          const cheapestOf = (rows: HotelResult[]): number => rows.reduce(
+            (min: number, r: HotelResult) => {
+              const p = r?.totalPrice ?? r?.pricePerNight ?? Infinity;
+              return p > 0 && p < min ? p : min;
+            },
+            Infinity,
+          );
+          const splitRows: HotelResult[] = rData.hotels ?? [];
+          const notDearer =
+            oneRoomCount === 0 || cheapestOf(splitRows) <= cheapestOf(data.hotels ?? []);
+          if (!rData.error && splitRows.length > oneRoomCount && notDearer) {
             data = rData;
             searchParams = sp;
             // Bring the whole page into 2-room mode so the cards, the detail
