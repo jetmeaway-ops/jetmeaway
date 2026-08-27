@@ -1031,6 +1031,7 @@
     },
     "tryAgain": "Riprova",
     "roomsAutoSplit": "Nessun hotel qui ha una camera per {guests} ospiti, quindi mostriamo opzioni su 2 camere.",
+    "mapZoomInToSearch": "Ingrandisci per cercare in questa zona",
     "partyTrimmedRoomCap": "Abbiamo cercato per {searched} ospiti, non i {asked} richiesti: una camera ospita al massimo {maxAdults} adulti e {maxChildren} bambini.",
     "partyTrimmedTotalCap": "Abbiamo cercato per {searched} ospiti, non i {asked} richiesti: una ricerca copre fino a {maxGuests} ospiti in {maxRooms} camere.",
     "partyTrimmedAddRoom": "Aggiungi un’altra camera in Ospiti e camere per includere più persone del tuo gruppo."

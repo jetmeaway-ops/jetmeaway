@@ -1031,6 +1031,7 @@
     },
     "tryAgain": "Jaribu Tena",
     "roomsAutoSplit": "Hakuna hoteli hapa yenye chumba kimoja kwa wageni {guests}, kwa hivyo tumepata chaguo za vyumba 2.",
+    "mapZoomInToSearch": "Kuza ndani ili kutafuta eneo hili",
     "partyTrimmedRoomCap": "Tumetafuta kwa wageni {searched}, si {asked} ulioomba — chumba kimoja huchukua watu wazima {maxAdults} na watoto {maxChildren} kwa juu.",
     "partyTrimmedTotalCap": "Tumetafuta kwa wageni {searched}, si {asked} ulioomba — utafutaji mmoja hufikia wageni {maxGuests} katika vyumba {maxRooms}.",
     "partyTrimmedAddRoom": "Ongeza chumba kingine chini ya Wageni na Vyumba ili kujumuisha wengi zaidi wa kundi lako."

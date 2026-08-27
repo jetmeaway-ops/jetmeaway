@@ -1045,6 +1045,7 @@
     },
     "tryAgain": "Try Again",
     "roomsAutoSplit": "No hotel here has one room for {guests} guests, so we’ve found options across 2 rooms.",
+    "mapZoomInToSearch": "Zoom in to search this area",
     "partyTrimmedRoomCap": "We searched for {searched} guests, not the {asked} you asked for — one room takes at most {maxAdults} adults and {maxChildren} children.",
     "partyTrimmedTotalCap": "We searched for {searched} guests, not the {asked} you asked for — one search covers up to {maxGuests} guests across {maxRooms} rooms.",
     "partyTrimmedAddRoom": "Add another room under Guests & Rooms to include more of your party."

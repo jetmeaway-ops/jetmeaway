@@ -1031,6 +1031,7 @@
     },
     "tryAgain": "حاول مرة أخرى",
     "roomsAutoSplit": "لا يوجد فندق هنا بغرفة واحدة لـ {guests} ضيوف، لذلك وجدنا خيارات في غرفتين.",
+    "mapZoomInToSearch": "كبّر لعرض فنادق هذه المنطقة",
     "partyTrimmedRoomCap": "بحثنا عن {searched} ضيوف بدلاً من {asked} — الغرفة الواحدة تتسع لـ {maxAdults} بالغين و{maxChildren} أطفال كحد أقصى.",
     "partyTrimmedTotalCap": "بحثنا عن {searched} ضيوف بدلاً من {asked} — البحث الواحد يغطي حتى {maxGuests} ضيفًا في {maxRooms} غرف.",
     "partyTrimmedAddRoom": "أضف غرفة أخرى من قسم الضيوف والغرف لتشمل عددًا أكبر من مجموعتك."

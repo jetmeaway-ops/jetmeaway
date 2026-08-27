@@ -1031,6 +1031,7 @@
     },
     "tryAgain": "もう一度試す",
     "roomsAutoSplit": "ここには {guests} 名で 1 部屋のホテルがないため、2 部屋での選択肢をご用意しました。",
+    "mapZoomInToSearch": "このエリアを検索するにはズームインしてください",
     "partyTrimmedRoomCap": "ご指定の{asked}名ではなく{searched}名で検索しました。1室あたり大人{maxAdults}名、子供{maxChildren}名までです。",
     "partyTrimmedTotalCap": "ご指定の{asked}名ではなく{searched}名で検索しました。1回の検索は{maxRooms}室・最大{maxGuests}名までです。",
     "partyTrimmedAddRoom": "「人数・部屋数」でもう1室追加すると、より多くの同行者を含められます。"
