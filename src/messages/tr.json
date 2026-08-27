@@ -1329,6 +1329,7 @@
     "sleeps": "{n} kişilik",
     "fitsYourParty": "{n} misafir için fiyat",
     "seeRoomDetails": "Oda ayrıntılarını ve fotoğraflarını gör",
+    "scoreFromRecentReviews": "En son {count} yorumun ortalaması",
     "breakfastIncluded": "Kahvaltı dahil",
     "allMealsDrinks": "Tüm yemekler ve içecekler dahil",
     "roomOnlyMeals": "Sadece oda — yemekler dahil değil",

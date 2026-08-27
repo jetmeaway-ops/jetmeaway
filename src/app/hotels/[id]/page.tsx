@@ -188,11 +188,40 @@ function resolveAmenityIcon(name: string): string {
   return 'fa-circle-check';
 }
 
+/** An OFFICIAL star rating, or null. Never a guess.
+ *
+ *  LiteAPI's `starRating` is always a whole number 1–5. But `/data/hotel`
+ *  (the only feed this page reads) OMITS the field entirely for properties
+ *  that hold no star classification, and the details parser falls through to
+ *  `rating` — which is the 0–10 GUEST SCORE, a different scale measuring a
+ *  different thing. That is how "hu Roma Camping In Town" (starRating absent,
+ *  guest score 8.5) and The RomeHello (9.8) came to wear five gold stars on
+ *  this page while the search cards, which read the list feed's separate
+ *  `stars` field, correctly showed none.
+ *
+ *  Measured live 2026-08-27 over 1,400 LiteAPI rows (Marrakech, Rome,
+ *  Barcelona, London): 30 hotels had no star rating and would therefore
+ *  inherit their guest score, and NOT ONE genuine guest score landed inside
+ *  1–5 — every score at or below 5 was exactly 0. So "whole number, 1 to 5"
+ *  separates the two populations with no false rejections. Anything else is a
+ *  guest score wearing a star rating's clothes: return null, and every call
+ *  site (badge, JSON-LD, booking payload, favourite) renders/sends nothing
+ *  rather than a number we invented. */
+function officialStars(raw: number | null | undefined): number | null {
+  if (typeof raw !== 'number' || !Number.isFinite(raw)) return null;
+  if (!Number.isInteger(raw) || raw < 1 || raw > 5) return null;
+  return raw;
+}
+
 function Stars({ count }: { count: number | null }) {
-  if (!count || count < 1) return null;
+  // Guard INSIDE the component, not at the call site: this is the only star
+  // renderer on the page, so filtering here means no future caller can hand it
+  // a review score by accident.
+  const stars = officialStars(count);
+  if (stars === null) return null;
   return (
     <span className="inline-flex items-center gap-0.5">
-      {Array.from({ length: Math.min(5, Math.round(count)) }).map((_, i) => (
+      {Array.from({ length: stars }).map((_, i) => (
         <i key={i} className="fa-solid fa-star text-amber-400 text-[.8rem]" />
       ))}
     </span>
@@ -655,7 +684,14 @@ export default function HotelDetailPage() {
                 Math.min(adultsN, MAX_ADULTS_PER_ROOM * (roomsN - 1)),
                 ages, roomsN - 1)}>−</button>
             <span className="w-5 text-center font-black text-[#1A1D2B]">{roomsN}</span>
-            <button type="button" aria-label={t('moreRooms')} className={stepBtn} disabled={roomsN >= MAX_ROOMS}
+            {/* Also stop at one room per adult. Every room must hold at least
+                one adult — clampRooms enforces it, and LiteAPI rejects an
+                adult-less room outright — so a stepper that let 1 adult ask for
+                2 rooms was offering a party the pricing layer would then
+                quietly cut back to 1. Better to not offer it than to offer it
+                and take it away. */}
+            <button type="button" aria-label={t('moreRooms')} className={stepBtn}
+              disabled={roomsN >= MAX_ROOMS || roomsN >= adultsN}
               onClick={() => updateOccupancy(adultsN, ages, roomsN + 1)}>+</button>
           </div>
         </div>
@@ -712,6 +748,45 @@ export default function HotelDetailPage() {
     [hotel?.rooms],
   );
 
+  /* The guest score, and — critically — WHICH POPULATION IT DESCRIBES.
+     `/data/reviews` returns a `total` (2,719 for InterContinental Barcelona)
+     plus the handful of most-recent reviews we asked for (8). It carries no
+     aggregate of its own, so the details layer falls back to the mean of
+     those 8 — and this page then printed that mean beside the 2,719. Measured
+     2026-08-27: InterContinental's last 8 scores are [7,9,10,10,10,10,1,9],
+     mean 8.3, sold as the verdict of 2,719 guests; the supplier's real
+     aggregate is 9.0. Acta Laumon read 8.9 against a real 8.4 — wrong in both
+     directions, so it is a sampling error, not rounding.
+
+     We cannot mint the true aggregate here (it lives on a supplier field the
+     details layer discards — see the report), but we can stop misattributing
+     the one we have. Detection: if the score we were handed IS the mean of
+     the reviews in `list`, and `list` is smaller than `count`, then it speaks
+     for the sample only. This is deliberately forward-compatible — the day
+     the details layer starts sending the real aggregate it will differ from
+     the sample mean, `sampleOnly` goes false on its own, and the full count
+     and the Google aggregateRating come back with no change here. */
+  const reviewSummary = useMemo(() => {
+    const rv = hotel?.reviews;
+    if (!rv || typeof rv.averageScore !== 'number' || !Number.isFinite(rv.averageScore)) return null;
+    // `|| []` because KV can still serve a pre-B2 cached details entry whose
+    // reviews object has no list — this memo runs before the section that
+    // guards for it, and a throw here would blank the whole page.
+    const scored = (rv.list || [])
+      .map((r) => r.score)
+      .filter((s): s is number => typeof s === 'number' && Number.isFinite(s));
+    const sampleMean = scored.length > 0
+      ? Math.round((scored.reduce((a, b) => a + b, 0) / scored.length) * 10) / 10
+      : null;
+    // Epsilon, not equality: the value arrives already rounded to 1dp, so
+    // compare at that precision rather than trusting float identity.
+    const sampleOnly =
+      sampleMean !== null &&
+      Math.abs(sampleMean - rv.averageScore) < 0.05 &&
+      rv.count > scored.length;
+    return { score: rv.averageScore, total: rv.count, sampleSize: scored.length, sampleOnly };
+  }, [hotel?.reviews]);
+
   /* Row Reserve click — delegate to the existing handleBook using the
      selected rate's offerId/price/board so the checkout sees the exact
      row the user clicked, not the URL-param offer. */
@@ -734,7 +809,14 @@ export default function HotelDetailPage() {
           offerId: rate.offerId,
           hotelName: hotel.name,
           hotelId: hotel.id,
-          stars: hotel.stars || 0,
+          // Omitted, never zeroed or converted, when the property carries no
+          // official classification. `hotel.stars` can be a 0–10 guest score
+          // (see officialStars); sending it wrote a five-star claim into the
+          // permanent booking record — start-booking clamps to 0–5, so 8.5
+          // became "5 stars" on the customer's confirmation. The route's own
+          // default for a missing field is 0, which is its established "no
+          // star rating" sentinel (checkout's StarRow renders nothing below 1).
+          ...(officialStars(hotel.stars) !== null ? { stars: officialStars(hotel.stars) } : {}),
           thumbnail: hotel.mainPhoto,
           city: city || hotel.city || '',
           checkIn: checkin,
@@ -802,7 +884,9 @@ export default function HotelDetailPage() {
           offerId,
           hotelName: hotel.name,
           hotelId: hotel.id,
-          stars: hotel.stars || 0,
+          // Same rule as the row-reserve path above: omit rather than send a
+          // guest score dressed as stars into the booking record.
+          ...(officialStars(hotel.stars) !== null ? { stars: officialStars(hotel.stars) } : {}),
           thumbnail: hotel.mainPhoto,
           city: city || hotel.city || '',
           checkIn: checkin,
@@ -910,7 +994,14 @@ export default function HotelDetailPage() {
       url: pageUrl,
       ...(hotel.description ? { description: hotel.description.slice(0, 500) } : {}),
       ...(hotel.mainPhoto ? { image: [hotel.mainPhoto, ...hotel.photos.slice(0, 5)] } : {}),
-      ...(hotel.stars ? { starRating: { '@type': 'Rating', ratingValue: hotel.stars, bestRating: 5 } } : {}),
+      // Only a real classification is declared to Google. The old `hotel.stars`
+      // truthy check emitted `ratingValue: 8.5, bestRating: 5` for unrated
+      // properties — a value off the top of its own declared scale, told to
+      // Google as fact. A hotel with no star rating now simply has no
+      // starRating node.
+      ...(officialStars(hotel.stars) !== null
+        ? { starRating: { '@type': 'Rating', ratingValue: officialStars(hotel.stars), bestRating: 5 } }
+        : {}),
       ...(hotel.address || hotel.city || hotel.country
         ? {
             address: {
@@ -951,12 +1042,20 @@ export default function HotelDetailPage() {
       // review-snippet policy treats third-party review arrays as spam risk.
       // Aggregate score + count is still Google-compliant and drives the
       // star-rating rich snippet.
-      ...(hotel.reviews && hotel.reviews.count > 0 && hotel.reviews.averageScore
+      //
+      // An AggregateRating is a claim that `ratingValue` is the verdict of
+      // `reviewCount` reviewers. When the score we hold is only the mean of
+      // the handful of reviews we fetched, that claim is false — we were
+      // sending Google 8.3 over 2,719 when the 8.3 came from 8 people — so the
+      // node is withheld entirely rather than published with a count it does
+      // not describe. Restores itself the moment a true aggregate arrives
+      // (reviewSummary.sampleOnly goes false).
+      ...(reviewSummary && reviewSummary.total > 0 && !reviewSummary.sampleOnly
         ? {
             aggregateRating: {
               '@type': 'AggregateRating',
-              ratingValue: hotel.reviews.averageScore,
-              reviewCount: hotel.reviews.count,
+              ratingValue: reviewSummary.score,
+              reviewCount: reviewSummary.total,
               bestRating: 10,
               worstRating: 1,
             },
@@ -1104,7 +1203,10 @@ export default function HotelDetailPage() {
                   name: hotel?.name || '',
                   city,
                   thumbnail: hotel?.photos?.[0],
-                  stars: hotel?.stars ?? undefined,
+                  // Saved list draws its own star row — feed it the same
+                  // vetted value, so a guest score never rides along into the
+                  // favourite record and out onto the saved page.
+                  stars: officialStars(hotel?.stars) ?? undefined,
                   savedPricePence: price ? Math.round(parseFloat(price) * 100) : undefined,
                   currency,
                   url: `/hotels/${encodeURIComponent(id)}${typeof window !== 'undefined' ? window.location.search : ''}`,
@@ -1573,11 +1675,11 @@ export default function HotelDetailPage() {
                     {t('reviewsBody')}
                   </p>
                 </div>
-                {hotel.reviews && typeof hotel.reviews.averageScore === 'number' && hotel.reviews.count > 0 ? (
+                {reviewSummary && reviewSummary.total > 0 ? (
                   <div className="flex items-center gap-3">
                     <div className="rounded-xl bg-emerald-50 ring-1 ring-emerald-200 px-3 py-2 text-center min-w-[68px]">
                       <div className="font-[var(--font-playfair)] font-black text-[1.4rem] text-emerald-700 leading-none">
-                        {hotel.reviews.averageScore.toFixed(1)}
+                        {reviewSummary.score.toFixed(1)}
                       </div>
                       <div className="text-[.58rem] font-black uppercase tracking-wider text-emerald-700 mt-1">
                         {t('outOf10')}
@@ -1585,17 +1687,30 @@ export default function HotelDetailPage() {
                     </div>
                     <div className="text-[.75rem]">
                       <div className="font-poppins font-black text-[.92rem] text-[#0a1628] leading-tight">
-                        {t('score.' + scoreLabel(hotel.reviews.averageScore))}
+                        {t('score.' + scoreLabel(reviewSummary.score))}
                       </div>
                       {/* User request 2026-04-21: label "Reviews" on top, total
                           count directly underneath — two-line stack so the
-                          number reads as the dominant datum. */}
-                      <div className="text-[#8E95A9] font-semibold text-[.66rem] uppercase tracking-[.8px] mt-1">
-                        {t('navReviews')}
-                      </div>
-                      <div className="text-[#0a1628] font-poppins font-black text-[1.05rem] leading-tight">
-                        {hotel.reviews.count.toLocaleString()}
-                      </div>
+                          number reads as the dominant datum. That stack is only
+                          honest while the score actually covers that total; when
+                          it is a sample mean the count is replaced by a caption
+                          naming the population it does cover. The total is still
+                          shown twice below (nav pill, verified-reviews chip),
+                          where it stands alone as a plain fact. */}
+                      {reviewSummary.sampleOnly ? (
+                        <div className="text-[#8E95A9] font-semibold text-[.66rem] leading-snug mt-1 max-w-[150px]">
+                          {t('scoreFromRecentReviews', { count: reviewSummary.sampleSize })}
+                        </div>
+                      ) : (
+                        <>
+                          <div className="text-[#8E95A9] font-semibold text-[.66rem] uppercase tracking-[.8px] mt-1">
+                            {t('navReviews')}
+                          </div>
+                          <div className="text-[#0a1628] font-poppins font-black text-[1.05rem] leading-tight">
+                            {reviewSummary.total.toLocaleString()}
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 ) : null}
@@ -1692,10 +1807,18 @@ export default function HotelDetailPage() {
                     <span className="font-black">{hotel.reviews!.count.toLocaleString()}</span>{' '}
                     {t('verifiedGuestReview', { count: hotel.reviews!.count })}
                   </p>
-                  {typeof hotel.reviews.averageScore === 'number' && (
+                  {reviewSummary && (
                     <p className="text-[.72rem] text-[#5C6378] font-semibold">
                       <i className="fa-solid fa-shield-check text-emerald-600 mr-1.5" />
-                      {t('score.' + scoreLabel(hotel.reviews.averageScore))} · {hotel.reviews.averageScore.toFixed(1)}{t('outOf10Average')}
+                      {t('score.' + scoreLabel(reviewSummary.score))} · {reviewSummary.score.toFixed(1)}{t('outOf10Average')}
+                      {/* Sits directly under "Showing 5 of 2,719 verified guest
+                          reviews", so without this line the average reads as
+                          the average OF that 2,719. */}
+                      {reviewSummary.sampleOnly && (
+                        <span className="block text-[.66rem] text-[#8E95A9] font-semibold mt-0.5">
+                          {t('scoreFromRecentReviews', { count: reviewSummary.sampleSize })}
+                        </span>
+                      )}
                     </p>
                   )}
                 </div>
@@ -2106,7 +2229,12 @@ export default function HotelDetailPage() {
                       {/* Details */}
                       <div className="p-4">
                         <div className="flex items-center gap-1 mb-1">
-                          {sh.stars > 0 && Array.from({ length: Math.min(5, sh.stars) }).map((_, i) => (
+                          {/* Same vetting as the header badge. The search feed
+                              these rows come from is already clean (it reads a
+                              `stars` field kept separate from the guest score),
+                              so this changes nothing today — it just means one
+                              rule governs every star on the page. */}
+                          {Array.from({ length: officialStars(sh.stars) ?? 0 }).map((_, i) => (
                             <i key={i} className="fa-solid fa-star text-amber-400 text-[.6rem]" />
                           ))}
                         </div>

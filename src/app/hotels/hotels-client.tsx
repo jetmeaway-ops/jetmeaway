@@ -816,6 +816,19 @@ function allInTotal(h: HotelResult, nights: number): number {
   return base + (h.excludedTaxes ?? 0);
 }
 
+/**
+ * Same figure for a hot-deal offer. DealHotel always carries an absolute
+ * `totalPrice` for the fixed deal window, so no nights argument is needed —
+ * but the tax lives under `localFees` rather than `excludedTaxes`, which is why
+ * this can't just call `allInTotal`. Measured on the live /api/hotels/deals
+ * payload 2026-08-27: 21 of 27 deal offers owe a non-zero property tax, e.g.
+ * Amsterdam Leonardo Royal £415.43 + £127.68 = £543.11 (the card advertised
+ * "from £104/night" and said nothing about the other 31%).
+ */
+function dealAllIn(h: DealHotel): number {
+  return h.totalPrice + (h.localFees ?? 0);
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    COMPONENTS
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -4227,6 +4240,13 @@ function HotelsContent() {
                           {t('viewArrow')}
                         </span>
                       </div>
+                      {/* The other 31%. `cheapestPrice` above is the nightly rate
+                          only; the deal click already forwards `localFees` to
+                          start-booking, so the customer met the property tax for
+                          the first time at checkout. Same component as the search
+                          cards so the two paths read identically, and silent when
+                          the offer owes nothing. */}
+                      {hotel && <PropertyTaxLine amount={hotel.localFees} allIn={dealAllIn(hotel)} />}
                     </div>
                   </a>
                 );
@@ -4253,6 +4273,10 @@ function HotelsContent() {
                   <p className="text-[.82rem] text-[#5C6378] font-semibold">
                     {h.name} {h.stars > 0 && `· ${'★'.repeat(h.stars)}`} {h.boardType && `· ${h.boardType}`} — {t('fromWord')} <strong className="text-orange-600">£{Math.round(h.pricePerNight)}{t('perNight')}</strong> {t('forNNights', { count: 4 })}
                   </p>
+                  {/* Second surface showing a deal price — it hid the property
+                      tax exactly like the grid card above, and the cheapest deal
+                      is the one most likely to carry one. */}
+                  <PropertyTaxLine amount={h.localFees} allIn={dealAllIn(h)} />
                 </div>
                 <a
                   href={h.id

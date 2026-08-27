@@ -42,7 +42,13 @@ export async function GET(
   // (LiteAPI nests them under `location`, the parser read top level), so
   // "Show on map" died on all deep links. v7 entries carry null coords for
   // up to 24h and must not be served.
-  const kvKey = `hotel-details:v8:${hotelId}`;
+  // v9 — bumped 2026-08-27: two stored fields changed meaning. `stars` no
+  // longer falls back to the 0-10 guest score (v8 entries hold 8.5 and 9.8 as
+  // "star ratings", which the page rendered as five gold stars and sent to
+  // Google), and `reviews.averageScore`/`count` now carry LiteAPI's real
+  // aggregate instead of the mean of the eight reviews we happen to fetch.
+  // v8 entries hold both wrong values for up to 24h.
+  const kvKey = `hotel-details:v9:${hotelId}`;
 
   try {
     const cached = await kv.get(kvKey);

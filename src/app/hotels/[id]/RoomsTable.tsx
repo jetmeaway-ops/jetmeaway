@@ -233,6 +233,92 @@ function truncate(s: string, n: number): string {
   return s.length <= n ? s : `${s.slice(0, n - 1).trimEnd()}…`;
 }
 
+/* ─────────────────── The bed text, printed once ───────────────────
+   Upstream splits the sleeping arrangement off the supplier's room name into
+   `bedInfo`, but most suppliers ALSO leave a copy inside the name, so the row
+   rendered "Standard Bungalow(2 Twin Beds and 1 Twin Sofa Bed)" with
+   "2 Twin Beds and 1 Twin Sofa Bed" repeated on the bed line directly beneath.
+   Measured on prod 2026-08-27 across 20 Rome + Milan hotels (640 rate rows):
+   178 rows carried a bedInfo and 140 of those (78.7%, or 21.9% of every row on
+   the page) repeated it in the title — all 140 as a trailing bracket. Replaying
+   the same 640 rows through this helper leaves 0 duplicates, 140 shortened
+   titles, and no row without a title or without its bed line.
+
+   The two copies differ cosmetically ("(2 Twin Beds and 1 Twin Sofa Bed)" vs
+   "2 twin beds & 1 twin sofa bed"), so only a case- and punctuation-blind
+   comparison catches them, and "&" has to read as "and" because suppliers use
+   both spellings for the same room.
+
+   The duplicate is cut from the TITLE rather than from the bed line: the bed
+   line is the fact a family looks for first and it carries the bed icon, so
+   dropping it would push that fact back inside a long Playfair title — exactly
+   what this card was rebuilt to stop doing. Only when the supplier names a room
+   by its beds and nothing else ("1 Double Bed") do we keep the title and drop
+   the bed line, because a row with no title at all is worse.
+
+   Deliberately fixed here and not in the upstream split: src/lib/liteapi.ts
+   owns `bedInfo`, and rows whose name was keyed differently never got split
+   there at all — the row is the one place that sees both strings. */
+
+/** Case- and punctuation-blind normalisation, plus a per-character index back
+ *  into the ORIGINAL string so a match can be cut out of the original text. */
+function normaliseBedText(s: string): { norm: string; map: number[] } {
+  const chars: string[] = [];
+  const map: number[] = [];
+  let gap = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i].toLowerCase();
+    const token = /[a-z0-9]/.test(c) ? c : c === '&' ? 'and' : '';
+    if (!token) {
+      if (chars.length > 0) gap = true;
+      continue;
+    }
+    if (gap) { chars.push(' '); map.push(i); gap = false; }
+    for (const ch of token) { chars.push(ch); map.push(i); }
+    // "&" expanded to a whole word — force a separator after it so it can't
+    // fuse with the next token ("A&B" must normalise to "a and b").
+    if (token.length > 1) gap = true;
+  }
+  return { norm: chars.join(''), map };
+}
+
+/** The row title with any repeated bed description removed, and the bed line
+ *  to render (null when the title has to keep it). */
+function splitBedFromTitle(
+  title: string,
+  beds: string | null,
+): { title: string; bedLine: string | null } {
+  if (!beds) return { title, bedLine: null };
+  const t = normaliseBedText(title);
+  const b = normaliseBedText(beds).norm;
+  if (!b || !t.norm) return { title, bedLine: beds };
+
+  // Whole-word match only, so "1 double bed" is never cut out of the middle of
+  // "…1 double bedroom suite…".
+  let at = -1;
+  for (let i = t.norm.indexOf(b); i !== -1; i = t.norm.indexOf(b, i + 1)) {
+    const startsWord = i === 0 || t.norm[i - 1] === ' ';
+    const endsWord = i + b.length === t.norm.length || t.norm[i + b.length] === ' ';
+    if (startsWord && endsWord) { at = i; break; }
+  }
+  if (at === -1) return { title, bedLine: beds }; // no duplication — nothing to do
+
+  const cleaned = (title.slice(0, t.map[at]) + title.slice(t.map[at + b.length - 1] + 1))
+    // Whatever carried the bed text — "Bungalow(…)", "Room [ … ]" — is empty now.
+    .replace(/\(\s*\)|\[\s*\]|\{\s*\}/g, '')
+    .replace(/\s{2,}/g, ' ')
+    // A cut from the MIDDLE of a name leaves its two separators touching:
+    // "Junior Suite - 1 King Bed - Sea View" → "Junior Suite - - Sea View".
+    .replace(/([,;:·•|\/–—-])\s*(?:[,;:·•|\/–—-]\s*)+/g, '$1 ')
+    .replace(/\s+([,;:])/g, '$1')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/^[\s,;:\/|·•–—-]+|[\s,;:\/|·•–—-]+$/g, '')
+    .trim();
+
+  if (!cleaned) return { title, bedLine: null };
+  return { title: cleaned, bedLine: beds };
+}
+
 function Choice({ tone, children }: { tone: 'positive' | 'neutral'; children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2 leading-tight">
@@ -298,8 +384,14 @@ function RateRow({
      2. roomName prop  — table-level fallback for single-room hotels
      3. board.label    — graceful Phase-1 fallback ("All Inclusive" in Playfair
                          reads like a boutique title — happy coincidence)   */
-  const title = rate.roomName || roomName || (board.key === 'other' ? board.label : t('board.' + board.key));
+  const suppliedTitle = rate.roomName || roomName || (board.key === 'other' ? board.label : t('board.' + board.key));
   const showBoardSubtitle = Boolean(rate.roomName || roomName);
+
+  /* The rate's own bed string beats the catalogue's: it belongs to THIS rate,
+     while roomMeta is attached by fuzzy name match and can describe a
+     different room. Whichever we end up with, it is printed once — see
+     splitBedFromTitle above. */
+  const { title, bedLine } = splitBedFromTitle(suppliedTitle, rate.bedInfo || roomMeta?.beds || null);
 
   // Phase-4: derive the top-3 in-room amenity highlights once per render.
   const roomHighlights = roomMeta ? pickRoomHighlights(roomMeta.amenities) : [];
@@ -393,7 +485,6 @@ function RateRow({
               Showing the rate figure as "Sleeps N" badged a Standard Double as
               sleeping 3 and a 4-person Family Room as sleeping 2. */}
           {(() => {
-            const beds = rate.bedInfo || roomMeta?.beds || null;
             const pricedFor = rate.maxOccupancy ?? null;
             // The catalogue is only trusted about capacity while it is not
             // contradicted by the booking itself. It is joined to the rate by
@@ -415,10 +506,10 @@ function RateRow({
                 ? t('fitsYourParty', { n: pricedFor })
                 : null;
 
-            if (!(beds || capacityLabel || unitLabel || roomMeta?.sizeSqm)) return null;
+            if (!(bedLine || capacityLabel || unitLabel || roomMeta?.sizeSqm)) return null;
             return (
               <>
-                {beds && <BedLine text={truncate(beds, 72)} />}
+                {bedLine && <BedLine text={truncate(bedLine, 72)} />}
                 {capacityLabel && capacityN && (
                   <div className="flex items-center gap-2 mt-1.5">
                     <GuestIcons n={capacityN} />
@@ -619,6 +710,17 @@ export default function RoomsTable({
   const t = useTranslations('hotelDetail');
   const sorted = useMemo(() => [...offers].sort((a, b) => a.totalPrice - b.totalPrice), [offers]);
 
+  /* How many rooms the prices below actually cover. The server's `party` echo
+     wins over the `rooms` prop: the echo is derived from the occupancy handed
+     to LiteAPI, after `occ=` has overridden the flat params and after the
+     site-wide caps (5 rooms / 9 guests, src/lib/occupancy.ts) have trimmed it,
+     whereas the prop is read straight off the URL by the page. A URL asking
+     for more rooms than we sell is now clamped at /api/hotels/rates, so the
+     prop can name a room count that was never priced — and every label built
+     from it ("TOTAL FOR 8 ROOMS", the per-room breakdown's length check) would
+     contradict the price sitting next to it. */
+  const pricedRooms = party?.rooms ?? rooms;
+
   if (!sorted || sorted.length === 0) return null;
 
   return (
@@ -642,7 +744,7 @@ export default function RoomsTable({
               key={rate.offerId}
               rate={rate}
               nights={nights}
-              rooms={rooms}
+              rooms={pricedRooms}
               roomName={roomName || ''}
               roomMeta={meta}
               fallbackPhoto={fallbackPhoto ?? null}

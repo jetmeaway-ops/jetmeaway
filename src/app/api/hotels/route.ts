@@ -2101,6 +2101,27 @@ export async function GET(req: NextRequest) {
     ? `:@${autocompleteCentre.lat.toFixed(3)},${autocompleteCentre.lng.toFixed(3)}`
     : '';
   const geoCacheSuffix = explicitRadiusKm ? `:r${explicitRadiusKm}` : '';
+  // The legacy flat path (`children=` + `childrenAges=`) had NO representation
+  // in the key at all — only the child COUNT — so every family with the same
+  // number of kids shared one entry. Measured 2026-08-27 against prod: 364 of
+  // 364 Rome rows came back byte-identical for a 3-year-old and for a
+  // 17-year-old, when the genuine prices differ by up to +109% — most properties
+  // price a 17-year-old as an adult and a 3-year-old free. Re-verified straight
+  // against LiteAPI the same minute: of 25 Rome hotels priced for both ages, 17
+  // came back at DIFFERENT totals (top delta £1,932.59 → £3,101.03, +60%).
+  // Today's picker
+  // always sends `occ=`, which the suffix above already keys, so the collision
+  // is latent — but production really does still serve the flat path (affiliate
+  // deep-links, blog CTAs, sticky-search URLs, and the detail page's "similar
+  // hotels" rail all build flat query strings), and a single one of those links
+  // could hand a visitor another family's entire priced result set. Ages are
+  // what LiteAPI actually prices on, so they belong in the key.
+  // The distinct `:ages=` prefix keeps the two paths in separate namespaces —
+  // an `occ=` key and a flat key can never render to the same string. And
+  // decodeLegacy pads any missing age to 8, so childAges is non-empty whenever
+  // childrenNum > 0: a search with children can never fall into an unaged slot.
+  const agesCacheSuffix =
+    !occCacheSuffix && childAges.length > 0 ? `:ages=${childAges.join('-')}` : '';
   // v32 — `excludedTaxes` on each row is now scaled by the ROOM COUNT (it was
   // multiplied by the number of rate plans on the room type, an unrelated
   // number). Stored-value meaning change, so it needs its own namespace: v31
@@ -2112,7 +2133,13 @@ export async function GET(req: NextRequest) {
   // £124.66 where £104.41 was due. This field is half of the all-in figure the
   // results list now ranks on (allInTotal in hotels-client), so a v32 entry
   // would keep both mis-stating the desk bill and mis-ordering families.
-  const kvKey = `hotels:v33:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}${occCacheSuffix}${ctrCacheSuffix}${geoCacheSuffix}`;
+  // v34 — the key now carries the flat path's child AGES (see agesCacheSuffix
+  // above). Every v33 entry was written under a key that could not tell a
+  // 3-year-old from a 17-year-old, so the prices stored in it are not
+  // necessarily the prices for the occupancy that reads it. A new namespace
+  // retires them outright instead of letting a wrong-age result set keep
+  // serving for the rest of its 30-minute TTL.
+  const kvKey = `hotels:v34:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}${occCacheSuffix}${agesCacheSuffix}${ctrCacheSuffix}${geoCacheSuffix}`;
 
   // Group occupancy bypass: large groups (>4 guests) always get fresh prices
   // because cached availability/room blocks may not hold for that many people.

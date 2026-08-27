@@ -1349,6 +1349,7 @@
     "entireVilla": "Entire villa",
     "entireHome": "Entire home",
     "seeRoomDetails": "See room details & photos",
+    "scoreFromRecentReviews": "{count, plural, one {Average of the most recent review} other {Average of the {count} most recent reviews}}",
     "breakfastIncluded": "Breakfast included",
     "allMealsDrinks": "All meals & drinks included",
     "roomOnlyMeals": "Room only — meals not included",
