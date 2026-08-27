@@ -1,0 +1,9 @@
+[
+  {
+    "name": "Indigo base",
+    "carrier": "6E",
+    "route": "BLR-HYD",
+    "ok": false,
+    "error": "no offers (route may be empty in sandbox)"
+  }
+]
