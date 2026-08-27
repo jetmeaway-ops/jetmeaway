@@ -1,0 +1,55 @@
+# Full Coverage Audit — every town, city, country, landmark, attraction and
+# airport the site claims to cover, tested live. Ordered by the owner
+# 2026-08-27 ("don't leave a single place") after MXP returned 0 while he
+# stood at the airport.
+#
+# ~600-700 unique places from the repo's own promise-surface (dropdown,
+# curated destinations, landmarks, every airport name variant, every blog
+# city). Failures are grouped by CLASS and filed into the bug inbox — one bug
+# per disease — where auto-triage picks them up.
+#
+# Weekly (Sun 05:00 UTC) + on demand:
+#   gh workflow run coverage-audit.yml
+name: coverage-audit
+
+on:
+  schedule:
+    - cron: '0 5 * * 0'
+  workflow_dispatch:
+    inputs:
+      only:
+        description: 'Limit to one source (dropdown|curated|landmark|airport|blog)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run the full coverage audit
+        env:
+          BASE: https://jetmeaway.co.uk
+          ONLY: ${{ github.event.inputs.only || '' }}
+          BUG_MONITOR_SECRET: ${{ secrets.BUG_MONITOR_SECRET }}
+        run: node scripts/audit-coverage.mjs
+      - name: Upload full results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-results
+          path: audit-results.json
+          retention-days: 30
+      - name: Kick auto-triage on failures
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run auto-triage.yml --repo "$GITHUB_REPOSITORY"
