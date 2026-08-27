@@ -75,6 +75,12 @@ export type DealHotel = {
   boardType: string | null;
   refundable: boolean;
   district: string | null;
+  /** Taxes the guest pays AT THE PROPERTY (LiteAPI `included: false`). Null
+   *  when the rate has none. Deal cards used to drop this field entirely, so a
+   *  Santorini deal charged £720.11 and never mentioned the £153.31 due at the
+   *  desk — 21% more — while the same hotel booked through search DID disclose
+   *  it. Two paths to the same room must not tell different truths. */
+  localFees: number | null;
 };
 
 export type DealDestination = {
@@ -167,17 +173,27 @@ export async function GET() {
           // Sort by price
           const sorted = [...bookable].sort((a, b) => a.price - b.price);
 
+          // Whole-pound rounding destroyed the pence, and checkout then compared
+          // the rounded card price against the supplier's exact re-quote and
+          // cried "the hotel has updated their rate" over a difference WE
+          // invented: £720 vs £720.11 with priceDifferencePercent 0, and Dubai
+          // £127 vs £126.83 rendered GREEN as if the hotel had discounted it.
+          // 3 of 3 deal cards tripped it. Keep 2dp so the advertised number is
+          // the number the supplier will actually quote back.
+          const round2 = (n: number) => Math.round(n * 100) / 100;
+
           const mapHotel = (h: typeof sorted[0]): DealHotel => ({
             id: h.hotelId,
             offerId: h.offerId || null,
             name: h.hotelName,
             stars: h.stars || 0,
-            pricePerNight: Math.round(h.pricePerNight || h.price / 4),
-            totalPrice: Math.round(h.price),
+            pricePerNight: round2(h.pricePerNight || h.price / 4),
+            totalPrice: round2(h.price),
             thumbnail: h.thumbnail || null,
             boardType: h.boardType || null,
             refundable: h.refundable,
             district: h.city || null,
+            localFees: h.excludedTaxes ?? null,
           });
 
           // Budget = cheapest

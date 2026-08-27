@@ -108,6 +108,15 @@ function StarRow({ count }: { count: number }) {
 
 type Step = 'locking' | 'price-warning' | 'guest' | 'saving' | 'payment' | 'done' | 'error';
 
+/** Did the rate ACTUALLY move between the price we advertised and the price
+ *  LiteAPI locked? Anything at or under a penny is arithmetic noise — supplier
+ *  rounding, FX, or (before 2026-08-27) our own whole-pound rounding of deal
+ *  cards. Only a real change should be allowed to interrupt someone at the Pay
+ *  button. Used by every price comparison on this page so they can never
+ *  disagree with each other. */
+const priceMoved = (locked: number, advertised: number) =>
+  Math.abs(locked - advertised) > 0.01;
+
 export default function HotelCheckoutPage() {
   const params = useParams<{ ref: string }>();
   const ref = params?.ref || '';
@@ -216,8 +225,16 @@ export default function HotelCheckoutPage() {
         if (data.boardChanged) warnings.push(t('boardChanged'));
         setPrebookWarnings(warnings);
 
-        // Show price-change warning if price differs, otherwise go to guest form
-        if (data.price != null && data.price !== booking.totalPrice) {
+        // Show price-change warning if price differs, otherwise go to guest form.
+        // Compared with a one-penny tolerance, not `!==`: a difference smaller
+        // than a penny is arithmetic noise (rounding, FX), never a hotel
+        // repricing a room. An exact compare made us shout "the hotel has
+        // updated their rate" at our OWN rounding — £720 vs £720.11 with the
+        // supplier reporting priceDifferencePercent 0. Crying wolf here is
+        // expensive: this is the one screen before payment that has to stay
+        // believable. Real drift is untouched — the server still warns at
+        // 0.85% and blocks above its 5% / £5 ceiling.
+        if (data.price != null && priceMoved(data.price, booking.totalPrice)) {
           setStep('price-warning');
         } else if (data.price == null) {
           // Prebook returned no price — rate may not be locked, warn user
@@ -567,7 +584,7 @@ export default function HotelCheckoutPage() {
           {step === 'guest' && (
             <>
               <h2 className="font-poppins font-black text-[1.05rem] sm:text-[1.1rem] text-[#1A1D2B] mb-1">{t('leadGuestDetails')}</h2>
-              {prebookResult?.price && prebookResult.price !== booking.totalPrice && (
+              {prebookResult?.price && priceMoved(prebookResult.price, booking.totalPrice) && (
                 <p className="text-[.75rem] font-semibold text-amber-700 mb-3">
                   <i className="fa-solid fa-circle-info mr-1" />
                   {t('confirmedRate', { price: fmtPrice(prebookResult.price) })}
@@ -939,7 +956,7 @@ export default function HotelCheckoutPage() {
                 </span>
               </div>
             )}
-            {prebookResult?.price && prebookResult.price !== booking.totalPrice && (
+            {prebookResult?.price && priceMoved(prebookResult.price, booking.totalPrice) && (
               <div className="flex items-center justify-between text-[.72rem] text-amber-700 font-semibold">
                 <span>{t('priceUpdatedFrom', { price: fmtPrice(booking.totalPrice) })}</span>
               </div>

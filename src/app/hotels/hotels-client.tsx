@@ -675,6 +675,10 @@ type DealHotel = {
   boardType: string | null;
   refundable: boolean;
   district: string | null;
+  /** Taxes payable at the property. Mirrors DealHotel in
+   *  src/app/api/hotels/deals/route.ts — keep the two in step. Optional here
+   *  because a cached deal payload written before 2026-08-27 has no such field. */
+  localFees?: number | null;
 };
 
 type DealDestination = {
@@ -2455,6 +2459,15 @@ function HotelsContent() {
           nights,
           thumbnail: hotel.thumbnail || null,
           refundable: hotel.refundable,
+          // Taxes due at the property. Without this a deal booking recorded
+          // localFees 0 while LiteAPI flagged £153.31 payable at the desk, and
+          // the checkout total — the number sitting under a "no surprise line
+          // items" promise — was 21% short. Sent only when the deal payload
+          // actually carries it: an older cached deal has no such field, and a
+          // guessed number would be worse than none.
+          ...(typeof hotel.localFees === 'number' && hotel.localFees > 0
+            ? { localFees: hotel.localFees }
+            : {}),
         }),
       });
       const data = await res.json();
