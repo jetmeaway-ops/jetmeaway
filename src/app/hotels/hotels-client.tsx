@@ -735,6 +735,9 @@ type DealHotel = {
    *  src/app/api/hotels/deals/route.ts — keep the two in step. Optional here
    *  because a cached deal payload written before 2026-08-27 has no such field. */
   localFees?: number | null;
+  /** Free-cancellation deadline, so a refundable deal booking can actually be
+   *  cancelled. Optional for the same cached-payload reason. */
+  cancellationDeadline?: string | null;
 };
 
 type DealDestination = {
@@ -2342,7 +2345,25 @@ function CompareModal({ hotels, nights, priceView, adults, childCount, buildDeta
                     <h3 className="font-[var(--font-playfair)] font-black text-[1rem] text-[#0a1628] leading-tight">{h.name}</h3>
                     {h.district && <p className="text-[.7rem] text-[#8E95A9] font-semibold">📍 {h.district}</p>}
                     <dl className="mt-1 space-y-1.5 text-[.72rem]">
-                      <Row label={t('rowPrice')} value={<><span className="font-black text-[.95rem] text-[#0a1628]">{pc.main}</span><span className="block text-[.65rem] text-[#8E95A9] font-semibold">{pc.sub}</span></>} />
+                      {/* The badge next to this cell is decided on the all-in
+                          cost, so the cell has to show it. Without the tax line
+                          the modal contradicted itself in plain sight — among
+                          the 60 cheapest London hotels, 215 pairs rank one way
+                          on the sticker and the other way once the desk bill is
+                          counted, and the badge sat on the row with the higher
+                          sticker with nothing to explain why. */}
+                      <Row label={t('rowPrice')} value={<>
+                        <span className="font-black text-[.95rem] text-[#0a1628]">{pc.main}</span>
+                        <span className="block text-[.65rem] text-[#8E95A9] font-semibold">{pc.sub}</span>
+                        {h.excludedTaxes != null && h.excludedTaxes > 0 && (
+                          <span className="block text-[.65rem] text-[#5C6378] font-semibold mt-0.5">
+                            + £{Math.round(h.excludedTaxes * 100) / 100} {t('taxAtProperty')}
+                            <span className="block text-[#0a1628] font-bold">
+                              £{Math.round(allInTotal(h, nights) * 100) / 100} {t('allInTotal')}
+                            </span>
+                          </span>
+                        )}
+                      </>} />
                       <Row label={t('rowPerNight')} value={<span className="font-bold text-[#1A1D2B]">£{Math.round(h.pricePerNight)}</span>} />
                       <Row label={t('rowBoard')} value={<span className="text-[#1A1D2B] font-semibold">{h.boardType || '—'}</span>} />
                       <Row label={t('rowCancellation')} value={
@@ -2572,6 +2593,13 @@ function HotelsContent() {
           // guessed number would be worse than none.
           ...(typeof hotel.localFees === 'number' && hotel.localFees > 0
             ? { localFees: hotel.localFees }
+            : {}),
+          // Without this a refundable deal booking stored no deadline and our
+          // own cancel route answered "this rate is non-refundable" to someone
+          // entitled to a free refund. PR#160 closed that on the rate-row path;
+          // the deal path had no deadline to send until now.
+          ...(hotel.cancellationDeadline
+            ? { cancellationDeadline: hotel.cancellationDeadline }
             : {}),
         }),
       });
