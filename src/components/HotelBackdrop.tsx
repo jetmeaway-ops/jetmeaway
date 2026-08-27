@@ -51,6 +51,7 @@ export default function HotelBackdrop({ photos }: { photos: (string | null | und
   return (
     <div
       aria-hidden
+      data-decor-backdrop
       className="fixed inset-0 pointer-events-none animate-[hbFade_0.9s_ease-out]"
       style={{ zIndex: -1 }}
     >

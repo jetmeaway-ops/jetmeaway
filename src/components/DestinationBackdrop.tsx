@@ -86,6 +86,7 @@ export default function DestinationBackdrop({
     <div
       key={img}
       aria-hidden
+      data-decor-backdrop
       className="fixed inset-0 pointer-events-none animate-[backdropFade_0.7s_ease-out]"
       style={{
         zIndex: -10,
