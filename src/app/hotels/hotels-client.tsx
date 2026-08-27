@@ -735,9 +735,46 @@ type HotelResult = {
   facilityIds?: number[];
 };
 
+/**
+ * What the stay ACTUALLY costs: the rate plus every tax LiteAPI marks payable
+ * at the property.
+ *
+ * 🔴 This is the ONLY figure allowed to rank, badge or compare hotels. We
+ * receive `excludedTaxes` on every card and used to read it in exactly one
+ * place — writing it into the detail URL — while the list rendered, sorted and
+ * badged on the sticker price alone. Measured 2026-08-27, Rome 10-12 Sep:
+ * Aparthotel Colombo £262.18 ranked ABOVE Hotel Aurelius £263.99, but Colombo
+ * owes £49.33 at the property and Aurelius £20.57 — real cost £310.97 vs
+ * £283.24, so the "cheaper" hotel was £27.73 DEARER. 310 of 389 Rome rows and
+ * 201 of 485 London cards carry such a tax (up to £402), producing 59-111
+ * ranking inversions inside the cheapest 40 cards alone.
+ *
+ * Kept as one shared helper precisely so the price shown, the sort order and
+ * the "cheapest" badge can never drift apart again.
+ */
+function allInTotal(h: HotelResult, nights: number): number {
+  const base = h.totalPrice ?? h.pricePerNight * Math.max(1, nights);
+  return base + (h.excludedTaxes ?? 0);
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    COMPONENTS
    ═══════════════════════════════════════════════════════════════════════════ */
+
+/** The tax the guest hands over at the hotel desk, stated on the card rather
+ *  than discovered at checkout — and with it the true all-in figure the list
+ *  is now sorted by. Silent when there is nothing to pay: a "+ £0.00" line
+ *  would be noise on the majority of cards. */
+function PropertyTaxLine({ amount, allIn }: { amount?: number | null; allIn: number }) {
+  const t = useTranslations('hotels');
+  if (amount == null || amount <= 0) return null;
+  return (
+    <div className="text-[.66rem] font-semibold text-[#5C6378] mt-0.5 leading-snug">
+      + £{Math.round(amount * 100) / 100} {t('taxAtProperty')}
+      <span className="text-[#8E95A9]"> · £{Math.round(allIn * 100) / 100} {t('allInTotal')}</span>
+    </div>
+  );
+}
 
 type PlaceResult = {
   id: string;
@@ -1925,6 +1962,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
                       {nights > 0 && (
                         <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">£{displayTotal} {t('total')} · {t('nightsCount', { count: nights })} · {t('guestsCount', { count: guests })}</div>
                       )}
+                      <PropertyTaxLine amount={h.excludedTaxes} allIn={allInTotal(h, nights)} />
                     </>
                   );
                 })()}
@@ -1938,6 +1976,7 @@ function HotelCardWrapper({ hotel, index, isCheapest, nights, adults, children, 
                 {nights > 0 && (
                   <div className="text-[.68rem] text-[#8E95A9] font-semibold mt-0.5">£{displayTotal} {t('totalFor')} {t('nightsCount', { count: nights })}</div>
                 )}
+                <PropertyTaxLine amount={h.excludedTaxes} allIn={allInTotal(h, nights)} />
               </>
             )}
             {/* Wholesale-rate signal — always visible (both per-night
@@ -2182,8 +2221,11 @@ function CompareModal({ hotels, nights, priceView, adults, childCount, buildDeta
     const sub = priceView === 'total' ? t('subTotal', { nights: nights || 1, guests }) : t('subPerPerson', { nights: nights || 1 });
     return { main, sub };
   };
+  // "Cheapest total" has to mean cheapest TOTAL. Judged on the all-in figure:
+  // a London compare badged St George's Wembley (£121.70 + tax) cheapest over
+  // Kip Hotel (£138.85, tax already included) when Kip was the cheaper stay.
   const cheapestTotal = hotels.reduce((min, h) => {
-    const t = h.totalPrice ?? h.pricePerNight * Math.max(1, nights);
+    const t = allInTotal(h, nights);
     return t < min ? t : min;
   }, Infinity);
 
@@ -2207,8 +2249,7 @@ function CompareModal({ hotels, nights, priceView, adults, childCount, buildDeta
         <div className="p-5 overflow-x-auto">
           <div className="grid gap-4 min-w-[640px]" style={{ gridTemplateColumns: `repeat(${hotels.length}, minmax(0, 1fr))` }}>
             {hotels.map(h => {
-              const total = h.totalPrice ?? h.pricePerNight * Math.max(1, nights);
-              const isCheapest = total === cheapestTotal;
+              const isCheapest = allInTotal(h, nights) === cheapestTotal;
               const pc = priceCell(h);
               const photo = h.thumbnail || '';
               return (
@@ -3252,6 +3293,11 @@ function HotelsContent() {
     return true;
   }) : null;
 
+  // Declared before the sort because the price sorts now rank on the all-in
+  // cost, which needs the stay length. `getNights` is a hoisted function
+  // declaration, so moving its call up here is safe.
+  const nights = getNights();
+
   // 'Recommended' score — quality-weighted value, not raw server order.
   // Server order surfaced whatever LiteAPI returned first, which for
   // Barcelona was a 2★ non-refundable hostal wearing the Scout Pick badge
@@ -3275,9 +3321,12 @@ function HotelsContent() {
     return quality + value;
   };
 
+  // Price sorts rank on the ALL-IN cost (see allInTotal) — the cheapest STAY,
+  // not the cheapest sticker. Nights is constant across the list, so ordering
+  // by all-in total is the same ordering as all-in per night.
   const sortedHotels = filteredHotels ? [...filteredHotels].sort((a, b) => {
-    if (sortBy === 'price-asc') return a.pricePerNight - b.pricePerNight;
-    if (sortBy === 'price-desc') return b.pricePerNight - a.pricePerNight;
+    if (sortBy === 'price-asc') return allInTotal(a, nights) - allInTotal(b, nights);
+    if (sortBy === 'price-desc') return allInTotal(b, nights) - allInTotal(a, nights);
     if (sortBy === 'distance' && cityCentre) {
       const da = a.lat != null && a.lng != null ? distanceKm(a.lat, a.lng, cityCentre.lat, cityCentre.lng) : Infinity;
       const db = b.lat != null && b.lng != null ? distanceKm(b.lat, b.lng, cityCentre.lat, cityCentre.lng) : Infinity;
@@ -3287,8 +3336,14 @@ function HotelsContent() {
     return recommendedScore(b) - recommendedScore(a);
   }) : null;
 
+  // "N hotels found from £X" is a promise that you can stay for £X, so it must
+  // name the cheapest ALL-IN stay — a sticker-cheapest hotel carrying £49 of
+  // city tax cannot honestly headline the page.
   const cheapest = sortedHotels && sortedHotels.length > 0
-    ? [...sortedHotels].sort((a, b) => a.pricePerNight - b.pricePerNight)[0]
+    ? [...sortedHotels].sort((a, b) => allInTotal(a, nights) - allInTotal(b, nights))[0]
+    : null;
+  const cheapestFromPerNight = cheapest
+    ? Math.round((allInTotal(cheapest, nights) / Math.max(1, nights)) * 100) / 100
     : null;
 
   // Scout Pick — the badge is an endorsement, so it has a quality bar:
@@ -3304,7 +3359,6 @@ function HotelsContent() {
     );
     return pick ? pick.id : null;
   })();
-  const nights = getNights();
 
   // ── Results left-filter sidebar: facet data + reusable panel ──────────────
   // Facets are computed over every direct-bookable row (not the currently
@@ -4143,7 +4197,7 @@ function HotelsContent() {
                 <div className="flex items-center gap-1.5 sm:gap-3">
                   <span className="text-[.8rem] sm:text-xl">🏷</span>
                   <span className="font-poppins font-black text-[.78rem] sm:text-[1rem] text-[#1A1D2B] leading-tight sm:leading-snug">
-                    {t('hotelsFound', { count: hotels!.length, dest: searchedDest })} {t('fromWord')} <span className="text-orange-600">£{cheapest.pricePerNight}{t('perNight')}</span>
+                    {t('hotelsFound', { count: hotels!.length, dest: searchedDest })} {t('fromWord')} <span className="text-orange-600">£{cheapestFromPerNight}{t('perNight')}</span>
                   </span>
                 </div>
                 <p className="text-[.56rem] sm:text-[.7rem] text-[#8E95A9] font-semibold leading-tight sm:leading-snug">{t('pricesRecentSearches')}</p>
