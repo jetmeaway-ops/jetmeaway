@@ -198,13 +198,58 @@ function ClusteredPins({
   return null;
 }
 
-/** Keeps the map viewport fit to whatever hotels are currently in the list. */
+/**
+ * Keeps the map viewport fit to whatever hotels are currently in the list.
+ *
+ * 🔴 The fit MUST be recomputed whenever the container's size changes, not
+ * only when the hotel list does. Leaflet derives zoom from the pixel size it
+ * can see at the moment `fitBounds` runs, and this map lives inside a view
+ * that is toggled on (and, on desktop, a `display:none` sibling that has no
+ * size at all). Measured on the owner's phone 2026-08-27, Chambéry: seven
+ * hotels all within a couple of miles rendered as ONE cluster bubble over a
+ * 150 km span from Geneva to Grenoble — the bounds were right, the container
+ * size Leaflet measured was not, so it chose a zoom about five levels too far
+ * out and every pin merged into a single disc. Nothing was broken in the
+ * data; the map was simply measured before it existed at full size.
+ *
+ * `invalidateSize()` makes Leaflet re-measure, and a ResizeObserver re-runs
+ * both whenever the box actually changes — covering the toggle, an orientation
+ * change, and the browser chrome collapsing on scroll.
+ */
 function FitBounds({ hotels }: { hotels: HotelMapItem[] }) {
   const map = useMap();
   useEffect(() => {
     if (!hotels.length) return;
     const bounds = L.latLngBounds(hotels.map((h) => [h.lat, h.lng]));
-    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+    const apply = () => {
+      map.invalidateSize({ animate: false });
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+    };
+
+    // Once now, and once after the browser has painted a frame — the mount
+    // pass frequently runs while the container is still 0-height.
+    apply();
+    const raf = requestAnimationFrame(apply);
+
+    const el = map.getContainer();
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      let last = `${el.clientWidth}x${el.clientHeight}`;
+      ro = new ResizeObserver(() => {
+        const next = `${el.clientWidth}x${el.clientHeight}`;
+        // Only refit on a REAL size change. Firing on every observer tick
+        // would fight the user's own panning and zooming.
+        if (next === last || el.clientWidth === 0 || el.clientHeight === 0) return;
+        last = next;
+        apply();
+      });
+      ro.observe(el);
+    }
+
+    return () => {
+      cancelAnimationFrame(raf);
+      ro?.disconnect();
+    };
   }, [hotels, map]);
   return null;
 }
