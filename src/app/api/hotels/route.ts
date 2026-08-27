@@ -129,7 +129,7 @@ const AIRPORT_COORDS_RAW: Array<{ keys: string[]; lat: number; lng: number; radi
   { keys: ['newcastle airport', 'ncl'], lat: 55.0375, lng: -1.6917, radiusKm: 10 },
   // EU
   { keys: ['cdg', 'paris cdg', 'charles de gaulle', 'paris charles de gaulle', 'roissy'], lat: 49.0097, lng: 2.5479, radiusKm: 12 },
-  { keys: ['orly', 'paris orly', 'ory'], lat: 48.7233, lng: 2.3794, radiusKm: 10 },
+  { keys: ['orly', 'orly airport', 'paris orly', 'ory'], lat: 48.7233, lng: 2.3794, radiusKm: 10 },
   // Italian airports carry their NATIVE names in Google autocomplete
   // ("Milano Malpensa Airport (MXP)", "Roma Fiumicino") — the owner hit 0
   // results at MXP itself (2026-08-27) because only the English "milan
@@ -220,6 +220,48 @@ const AIRPORT_COORDS_RAW: Array<{ keys: string[]; lat: number; lng: number; radi
   { keys: ['lanzarote'], lat: 29.0469, lng: -13.5899, radiusKm: 35 },
   { keys: ['fuerteventura'], lat: 28.3587, lng: -14.0537, radiusKm: 50 },
   { keys: ['gran canaria'], lat: 27.9202, lng: -15.5474, radiusKm: 45 },
+  // ── Full coverage-audit batch (2026-08-27, 826 places tested) ──────────
+  // Same disease across all of these: LiteAPI's cityName index either has no
+  // entry for the term (islands, regions, countries-as-destinations) or files
+  // it under a different official name (Palma→"Palma de Mallorca",
+  // Fez→"Fès", Chamonix→"Chamonix-Mont-Blanc", Havana→"La Habana",
+  // Washington DC→"Washington"). A centroid entry forces the coordinate
+  // search upstream and sidesteps the supplier's naming entirely — the exact
+  // mechanism proven by Malta, the Canaries and Newcastle.
+  { keys: ['palma', 'palma de mallorca'], lat: 39.5696, lng: 2.6502, radiusKm: 25 },
+  { keys: ['mallorca', 'majorca'], lat: 39.6100, lng: 2.9000, radiusKm: 60 },
+  { keys: ['monaco', 'monte carlo', 'monte-carlo'], lat: 43.7384, lng: 7.4246, radiusKm: 10 },
+  { keys: ['st moritz', 'st. moritz', 'sankt moritz'], lat: 46.4908, lng: 9.8355, radiusKm: 20 },
+  { keys: ['sardinia', 'sardegna'], lat: 40.9236, lng: 9.4989, radiusKm: 80 }, // Olbia/Costa Smeralda hub — LiteAPI radius degrades past ~80km (probed: mid-island r150 → 18 rows, Olbia r80 → 300)
+  { keys: ['sicily', 'sicilia'], lat: 38.1157, lng: 13.3615, radiusKm: 60 }, // Palermo hub (mid-island r150 → 20 rows, Palermo r60 → 300)
+  { keys: ['lake como', 'como lake'], lat: 45.9850, lng: 9.2570, radiusKm: 30 },
+  { keys: ['crete', 'kriti'], lat: 35.3387, lng: 25.1442, radiusKm: 80 }, // Heraklion hub — same LiteAPI radius-degradation pattern
+  { keys: ['azores'], lat: 37.7412, lng: -25.6756, radiusKm: 80 },
+  { keys: ['cappadocia', 'goreme'], lat: 38.6431, lng: 34.8289, radiusKm: 50 },
+  { keys: ['gozo'], lat: 36.0443, lng: 14.2512, radiusKm: 12 },
+  { keys: ['fez', 'fes'], lat: 34.0181, lng: -5.0078, radiusKm: 15 },
+  { keys: ['maldives'], lat: 4.1755, lng: 73.5093, radiusKm: 200 },
+  { keys: ['mauritius'], lat: -20.2759, lng: 57.5522, radiusKm: 60 },
+  { keys: ['seychelles'], lat: -4.6796, lng: 55.4920, radiusKm: 80 },
+  { keys: ['zanzibar'], lat: -6.1357, lng: 39.3621, radiusKm: 60 },
+  { keys: ['madagascar'], lat: -18.8792, lng: 47.5079, radiusKm: 60 }, // Antananarivo hub
+  { keys: ['kerala', 'kochi', 'cochin'], lat: 9.9312, lng: 76.2673, radiusKm: 80 }, // Kochi hub
+  { keys: ['bahrain', 'manama'], lat: 26.2235, lng: 50.5876, radiusKm: 40 },
+  { keys: ['bali'], lat: -8.4095, lng: 115.1889, radiusKm: 80 },
+  { keys: ['fiji', 'nadi'], lat: -17.7765, lng: 177.4356, radiusKm: 80 }, // Nadi/Denarau hub
+  { keys: ['barbados', 'bridgetown'], lat: 13.1939, lng: -59.5432, radiusKm: 30 },
+  { keys: ['jamaica'], lat: 18.4762, lng: -77.8939, radiusKm: 80 }, // Montego Bay hub (mid-island r120 → 6 rows, MoBay r60 → 300)
+  { keys: ['st lucia', 'saint lucia'], lat: 13.9094, lng: -60.9789, radiusKm: 30 },
+  { keys: ['turks and caicos', 'providenciales'], lat: 21.7940, lng: -72.1750, radiusKm: 40 },
+  { keys: ['antigua'], lat: 17.0747, lng: -61.8175, radiusKm: 25 },
+  { keys: ['aruba'], lat: 12.5211, lng: -69.9683, radiusKm: 25 },
+  { keys: ['trinidad', 'trinidad and tobago'], lat: 10.6549, lng: -61.5019, radiusKm: 40 },
+  { keys: ['havana', 'la habana'], lat: 23.1136, lng: -82.3666, radiusKm: 25 },
+  { keys: ['washington dc', 'washington d.c.'], lat: 38.9072, lng: -77.0369, radiusKm: 20 },
+  { keys: ['ashgabat'], lat: 37.9601, lng: 58.3261, radiusKm: 25 },
+  { keys: ['chamonix', 'chamonix-mont-blanc', 'chamonix mont blanc'], lat: 45.9237, lng: 6.8694, radiusKm: 20 },
+  { keys: ['dilijan'], lat: 40.7405, lng: 44.8628, radiusKm: 20 },
+  { keys: ['kazbegi', 'stepantsminda'], lat: 42.6569, lng: 44.6423, radiusKm: 20 },
 ];
 
 const AIRPORT_COORDS: Record<string, { lat: number; lng: number; radiusKm?: number }> = {};
@@ -460,6 +502,9 @@ const AIRPORT_TO_CITY: Record<string, string> = {
   // city-name searches.
   'heraklion': 'crete', 'iraklio': 'crete', 'iraklion': 'crete',
   'herakleion': 'crete', 'heraclion': 'crete',
+  // Coverage-audit (2026-08-27): the bare IATA 'her' had coords but no city
+  // alias, so country resolution ran Nominatim on the string "her" → junk.
+  'her': 'crete',
 };
 
 /** City → ISO-3166 alpha-2 country code for LiteAPI lookups */
@@ -476,6 +521,33 @@ const CITY_COUNTRY: Record<string, string> = {
   // LiteAPI then searched AU while the UK geo-filter rejected every result.
   // 121 GB hotels exist under cityName=Newcastle. Same class as Dijon.
   'newcastle': 'GB', 'newcastle upon tyne': 'GB',
+  // ── Coverage-audit batch (2026-08-27) — every key added to the centroid
+  // map gets its country pinned too, so resolution never falls to Nominatim
+  // for these (a wrong guess caches for 30 days — the Newcastle→AU class).
+  'monaco': 'MC', 'monte carlo': 'MC', 'monte-carlo': 'MC',
+  'st moritz': 'CH', 'st. moritz': 'CH', 'sankt moritz': 'CH',
+  'sardinia': 'IT', 'sardegna': 'IT', 'sicily': 'IT', 'sicilia': 'IT',
+  'lake como': 'IT', 'como lake': 'IT',
+  'kriti': 'GR',
+  'azores': 'PT',
+  'cappadocia': 'TR',
+  'gozo': 'MT',
+  'fez': 'MA', 'fes': 'MA',
+  'kerala': 'IN', 'cochin': 'IN',
+  'bahrain': 'BH', 'manama': 'BH',
+  'fiji': 'FJ',
+  'madagascar': 'MG',
+  'barbados': 'BB', 'bridgetown': 'BB',
+  'jamaica': 'JM',
+  'st lucia': 'LC', 'saint lucia': 'LC',
+  'turks and caicos': 'TC', 'providenciales': 'TC',
+  'antigua': 'AG', 'aruba': 'AW',
+  'trinidad': 'TT', 'trinidad and tobago': 'TT',
+  'la habana': 'CU',
+  'washington d.c.': 'US',
+  'dilijan': 'AM', 'kazbegi': 'GE', 'stepantsminda': 'GE',
+  'mallorca': 'ES', 'majorca': 'ES', 'palma de mallorca': 'ES',
+  'chamonix-mont-blanc': 'FR', 'chamonix mont blanc': 'FR',
   'belfast': 'GB', 'cardiff': 'GB', 'dublin': 'IE',
   'horley': 'GB', 'crawley': 'GB', 'luton': 'GB',
   // France — pin the cities we can name so country resolution never depends on
@@ -1321,6 +1393,35 @@ const CITY_RADIUS_KM: Record<string, number> = {
   'lanzarote': 35,
   'fuerteventura': 50,
   'gran canaria': 45,
+  // ── Coverage-audit batch (2026-08-27): post-filter radii matching the
+  // upstream centroids, so the wide fetch isn't stripped back to 10 km.
+  'palma': 25, 'palma de mallorca': 25, 'mallorca': 60, 'majorca': 60,
+  'monaco': 10, 'monte carlo': 10, 'monte-carlo': 10,
+  'st moritz': 20, 'st. moritz': 20, 'sankt moritz': 20,
+  'sardinia': 150, 'sardegna': 150, 'sicily': 150, 'sicilia': 150,
+  'lake como': 30, 'como lake': 30,
+  'crete': 120, 'kriti': 120,
+  'azores': 80,
+  'cappadocia': 50, 'goreme': 50,
+  'gozo': 12,
+  'fez': 15, 'fes': 15,
+  'maldives': 200, 'mauritius': 60, 'seychelles': 80, 'zanzibar': 60,
+  'madagascar': 150,
+  'kerala': 150, 'kochi': 150, 'cochin': 150,
+  'bahrain': 40, 'manama': 40,
+  'bali': 80,
+  'fiji': 120, 'nadi': 120,
+  'barbados': 30, 'bridgetown': 30,
+  'jamaica': 120,
+  'st lucia': 30, 'saint lucia': 30,
+  'turks and caicos': 40, 'providenciales': 40,
+  'antigua': 25, 'aruba': 25,
+  'trinidad': 40, 'trinidad and tobago': 40,
+  'havana': 25, 'la habana': 25,
+  'washington dc': 20, 'washington d.c.': 20,
+  'ashgabat': 25,
+  'chamonix': 20, 'chamonix-mont-blanc': 20, 'chamonix mont blanc': 20,
+  'dilijan': 20, 'kazbegi': 20, 'stepantsminda': 20,
   // London boroughs — strict so a "Croydon" search doesn't return Hammersmith
   'croydon': 10,
   'wembley': 10,
