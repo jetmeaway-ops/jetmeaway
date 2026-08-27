@@ -179,7 +179,9 @@ export async function GET(req: NextRequest) {
   // lack the field, which would render bare "Sleeps" chips for their full TTL.
   // v7: offers carry `roomBreakdown` on multi-room bundles (2026-08-27) —
   // v6 entries lack it and would hide the per-room list for their full TTL.
-  const cacheKey = `hotel-rates:v7:${hotelId}:${checkin}:${checkout}:${adults}:${children}:${childrenAgesRaw}:${rooms}:${occParam}:${currency}`;
+  // v8: cosmetic room-name variants now collapse to one row, kept by grand
+  // total (2026-08-27) — v7 entries still hold the duplicate rows.
+  const cacheKey = `hotel-rates:v8:${hotelId}:${checkin}:${checkout}:${adults}:${children}:${childrenAgesRaw}:${rooms}:${occParam}:${currency}`;
 
   try {
     const cached = await kv.get<CacheShape | { offers: BoardOptionOut[] }>(cacheKey);

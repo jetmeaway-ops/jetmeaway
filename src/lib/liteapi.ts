@@ -1202,7 +1202,18 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
 
         // Key by (roomName, boardType) — different rooms get different rows,
         // identical combos collapse to the cheapest rate.
-        const roomKey = (roomName || '__none__').toLowerCase();
+        //
+        // Suppliers list the SAME physical room with cosmetic name variants —
+        // "Break Room for 3 travelers maximum - #ontheroad basics" vs
+        // "Break Room For 3 Travelers Maximum-#Ontheroad Basics" (case + dash
+        // spacing). A raw-lowercase key kept both, so one room rendered 2-4
+        // times at slightly different prices (owner report 2026-08-27,
+        // hotelF1 Chambéry). Strip everything but letters/digits (any script)
+        // so cosmetic variants share a key and collapse.
+        const roomKey = (roomName || '__none__')
+          .toLowerCase()
+          .replace(/[^\p{L}\p{N}]+/gu, ' ')
+          .trim() || '__none__';
         const boardKey = board.toLowerCase();
         const mapKey = `${roomKey}|${boardKey}`;
         const existing = optionsByKey.get(mapKey);
@@ -1259,7 +1270,16 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
             : rtMaxOcc,
           roomBreakdown: rtRoomNames,
         };
-        if (!existing || effectivePrice < existing.totalPrice) {
+        // Collapse by GRAND total (rate + property-payable taxes), not the
+        // sticker price: one supplier sells the room at £104.78 all-in while
+        // another lists £106.36 + £4.36 at the desk — keeping the lower
+        // sticker regardless of tax treatment could keep the row that costs
+        // MORE to actually stay.
+        const nextGrand = effectivePrice + rateExcludedTaxes;
+        const existingGrand = existing
+          ? existing.totalPrice + (existing.excludedTaxes ?? 0)
+          : Infinity;
+        if (!existing || nextGrand < existingGrand) {
           optionsByKey.set(mapKey, nextRow);
         }
 
