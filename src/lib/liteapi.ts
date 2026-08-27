@@ -983,6 +983,68 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     return { name: head, beds: inner };
   }
 
+  /**
+   * Property-payable tax on ONE rate — the `taxesAndFees` entries LiteAPI marks
+   * `included: false` (city tax, tourist tax, some VAT regimes), which the guest
+   * settles at the desk rather than through us.
+   *
+   * Returns `null`, NOT 0, when the rate carries no breakdown at all (v3.0 flat
+   * `retailRate` is a bare number and has nowhere to put taxes). "We don't know"
+   * and "there is none" are different answers, and the multi-room sum below has
+   * to be able to tell them apart before it decides whether it can trust itself.
+   * A rate WITH the object but no excluded entries is a genuine zero.
+   *
+   * Clamped at 0: `taxesAndFees` has been observed carrying supplier refund
+   * deltas as negative entries, which would make the all-in total come out
+   * BELOW the sticker price.
+   */
+  function rateExcludedTax(r: RateObj): number | null {
+    if (typeof r.retailRate !== 'object' || !r.retailRate) return null;
+    const tf = (r.retailRate as { taxesAndFees?: Array<{ amount: number; included?: boolean }> }).taxesAndFees;
+    if (!Array.isArray(tf)) return null;
+    const sum = tf
+      .filter((t) => t.included === false)
+      .reduce((s, t) => s + (t.amount || 0), 0);
+    return Math.max(0, sum);
+  }
+
+  /**
+   * Property-payable tax for the WHOLE quote, keyed off one roomType.
+   *
+   * A multi-room quote is priced as a bundle: the roomType's `offerRetailRate`
+   * covers every room, and its rates carry ONE entry per requested room tagged
+   * with `occupancyNumber`. `taxesAndFees`, though, is per-RATE — i.e. per room.
+   *
+   * We used to read ONE rate's figure and multiply it by the room count. That is
+   * only right when the rooms are identical. Measured live 2026-08-27 on Meliá
+   * Milano (lp2f87f, 20→22 Sep, 1 adult + 3 adults): room 1 owed £33.10, room 2
+   * owed £53.35 — the old rule advertised £66.20 against a real £86.45, so the
+   * guest met a £20.25 surprise at the desk. 92 of 200 bundles on that one
+   * hotel/date had mismatched rooms; symmetric bundles were exact, which is why
+   * this only ever bit MIXED-occupancy parties — the family case.
+   *
+   * Returns `null` when ANY requested room is missing a figure. Same discipline
+   * as rtMaxOcc / rtRoomNames below: a partial sum silently UNDER-states what
+   * the guest owes, and under-stating money is the one direction we refuse to
+   * be wrong in — the caller falls back to the old multiply instead.
+   */
+  function bundleExcludedTax(rt: RoomType, roomsRequested: number): number | null {
+    if (roomsRequested <= 1) return null;
+    const byRoom = new Map<number, number>();
+    for (const r of rt.rates || []) {
+      const t = rateExcludedTax(r);
+      if (t == null) continue;
+      const n = r.occupancyNumber ?? 1;
+      // Verified live on 2 hotels × 2-room quotes (lp2f87f Milan 200/200
+      // roomTypes, lp8d674 Chambéry 160/160): a multi-room roomType carries
+      // EXACTLY one rate per requested room. `Math.max` is belt-and-braces for
+      // a supplier that ever sends more — never quote the desk short.
+      byRoom.set(n, Math.max(byRoom.get(n) ?? 0, t));
+    }
+    if (byRoom.size !== roomsRequested) return null;
+    return [...byRoom.values()].reduce((s, v) => s + v, 0);
+  }
+
   /** Safely extract a numeric amount whether the field is a single object or an array */
   function extractAmount(v: AmountObj | AmountObj[] | undefined | null): number | undefined {
     if (!v) return undefined;
@@ -1146,6 +1208,16 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       bedInfo?: string | null;
     };
     const optionsByKey = new Map<string, OptionRow>();
+    // familyKey → the row keys that belong to it (at most two: the locked rate
+    // and its free-cancellation twin). The 50-row budget is spent a whole
+    // family at a time so a flexible row can never be starved by cheap
+    // non-refundable noise — see the admission loop below.
+    const familyMembers = new Map<string, Set<string>>();
+    // Bed text belongs to the ROOM, so it is shared across the family. The
+    // refundable twin is often the one listed WITHOUT the "(2 Twin Beds)"
+    // suffix; before refundability split the key, the twins collapsed and the
+    // merge below carried the text over. Keep carrying it, family-wide.
+    const familyBedInfo = new Map<string, string>();
 
     for (const rt of entry.roomTypes || []) {
       // Prefer the roomType-level name, fall back to the first rate's name.
@@ -1189,6 +1261,11 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
             .map(([, v]) => v);
         }
       }
+      // Whole-booking property-payable tax for a MULTI-room bundle: one figure
+      // per requested room, added up (see bundleExcludedTax). Null on single-room
+      // quotes and whenever a room is missing its figure — the rate loop then
+      // falls back to the old one-room × room-count multiply.
+      const rtExcludedTax = bundleExcludedTax(rt, occupancy.length);
       // offerId can be on roomType (old) or rate (v3.0) — we check both below
       for (const r of rt.rates || []) {
         // Resolve offerId: rate-level (v3.0) takes priority, then roomType-level
@@ -1261,7 +1338,21 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
           .replace(/[^\p{L}\p{N}]+/gu, ' ')
           .trim() || '__none__';
         const boardKey = board.toLowerCase();
-        const mapKey = `${roomKey}|${boardKey}`;
+        // The FAMILY is the thing the guest is choosing between: one physical
+        // room on one board, sold twice — cheap and locked, or dearer and
+        // cancellable.
+        const familyKey = `${roomKey}|${boardKey}`;
+        // Refundability belongs IN the key, not in the price race. The flexible
+        // twin is dearer in every pair we have ever measured (28 of 28 on
+        // 2026-08-27; hotelF1 Chambéry lp8d674 "Tandem Room" £70.41 locked vs
+        // £82.84 with free cancellation, same room, same board), so under a
+        // cheapest-wins collapse it can NEVER survive: hotelF1 rendered 30 rows
+        // with 0 refundable while LiteAPI had 58 refundable rates in the same
+        // response, and Generator Barcelona 15 rows with 0 of 48. Free
+        // cancellation is not a tie-break on price — for anyone booking around
+        // an uncertain plan it is the whole product, and hiding it made the
+        // site look like it simply had none.
+        const mapKey = `${familyKey}|${isRefundable ? 'R' : 'N'}`;
         const existing = optionsByKey.get(mapKey);
         // Phase-3: per-row Scout Deal. negotiated only counts when strictly
         // cheaper than market — otherwise it's noise, not a deal.
@@ -1276,14 +1367,16 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
         // 3-room stay a third of it — so the figure went DOWN as the guest added
         // rooms, which is visibly wrong and under-states what they owe at the
         // desk. Measured on prod (la_lp42761, Milan 23->25 Aug, 2 adults):
-        // 1 room £41.62, 2 rooms £12.11, 3 rooms £8.08. Scale by the room count
-        // so the tax describes the same booking as the price next to it.
-        const perRoomRateTaxes = (typeof r.retailRate === 'object' && r.retailRate)
-          ? ((r.retailRate as { taxesAndFees?: Array<{ amount: number; included?: boolean }> }).taxesAndFees || [])
-              .filter((t) => t.included === false)
-              .reduce((sum, t) => sum + (t.amount || 0), 0)
-          : 0;
-        const rateExcludedTaxes = Math.max(0, perRoomRateTaxes) * Math.max(1, occupancy.length);
+        // 1 room £41.62, 2 rooms £12.11, 3 rooms £8.08.
+        //
+        // Scaling by the room count fixed the single-figure case but assumed
+        // every room is taxed the same, which is false the moment the rooms
+        // differ — exactly the family split. `rtExcludedTax` sums the real
+        // per-room figures; the multiply survives only as the fallback for
+        // bundles where a room has no figure to add (see bundleExcludedTax).
+        const perRoomRateTaxes = rateExcludedTax(r) ?? 0;
+        const rateExcludedTaxes = rtExcludedTax
+          ?? (perRoomRateTaxes * Math.max(1, occupancy.length));
         // v2-plan step-2: free-cancellation deadline. Prefer the v3.0 flat
         // `cancellationPolicy.deadline`; fall back to the old nested
         // `cancelPolicyInfos[0].cancelTime` so older supplier payloads still
@@ -1335,6 +1428,10 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
         } else if (mergedBedInfo && !existing.bedInfo) {
           existing.bedInfo = mergedBedInfo;
         }
+        let members = familyMembers.get(familyKey);
+        if (!members) { members = new Set<string>(); familyMembers.set(familyKey, members); }
+        members.add(mapKey);
+        if (rowBedInfo && !familyBedInfo.has(familyKey)) familyBedInfo.set(familyKey, rowBedInfo);
 
         if (effectivePrice < bestPrice) {
           bestPrice = effectivePrice;
@@ -1348,15 +1445,59 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     const bestOfferId = bestRate?.offerId || bestRoomType?.offerId;
     if (!bestRoomType || !bestRate || !bestOfferId) continue;
 
-    // Flatten the map, sort cheapest-first. Cap raised from 12 → 50 so
-    // the search-card "N room types available" chip can count distinct
-    // room names accurately. The old cap was producing "12 room types
-    // available" on every well-stocked hotel because 4 rooms × 3 boards
-    // = 12 (room×board) combos hit the slice (2026-04-28). The detail-
-    // page rates table still scrolls fine at 50 rows.
-    const allOptions = Array.from(optionsByKey.values())
-      .sort((a, b) => a.totalPrice - b.totalPrice)
-      .slice(0, 50);
+    // Spend the 50-row budget a WHOLE FAMILY at a time, cheapest family first.
+    //
+    // Cap raised from 12 → 50 so the search-card "N room types available" chip
+    // can count distinct room names accurately. The old cap was producing
+    // "12 room types available" on every well-stocked hotel because 4 rooms ×
+    // 3 boards = 12 (room×board) combos hit the slice (2026-04-28). The
+    // detail-page rates table still scrolls fine at 50 rows.
+    //
+    // Splitting refundability into its own row roughly doubles the row count,
+    // which puts real pressure on that cap for the first time: 37 of 60 Rome
+    // properties measured on 2026-08-27 now produce more than 50 rows. A plain
+    // cheapest-50 would then have re-created the very defect it was meant to
+    // cure — the flexible twin is always the dearer half of its pair, so it
+    // sits at the bottom of a price sort and gets sliced off wholesale
+    // (lp2f5c7, 20→22 Sep: 104 rows available, 36 of them refundable; a naive
+    // cheapest-50 keeps 11 of those 36).
+    //
+    // Admitting whole families instead makes the guarantee structural rather
+    // than statistical: if a room+board is shown at all, BOTH of its prices are
+    // shown, so the guest always sees what flexibility costs on the rooms they
+    // can actually see. Same hotel, family-whole: 18 refundable rows. Measured
+    // across four Rome properties, family-whole beat naive cheapest-50 on
+    // refundable coverage every time (18/11, 16/9, 19/14, 24/21).
+    //
+    // Families are ranked on GRAND total (rate + property-payable tax), the
+    // same all-in measure the collapse above uses — the cheapest STAY, not the
+    // cheapest sticker. We stop at the first family that will not fit rather
+    // than skipping ahead to a smaller one: letting a dearer family jump a
+    // cheaper one to fill the last slot would break cheapest-first for the sake
+    // of a single row. Families hold at most two rows, so at worst one slot of
+    // the fifty goes unused.
+    const grandOf = (o: OptionRow) => o.totalPrice + (o.excludedTaxes ?? 0);
+    const rankedFamilies = [...familyMembers.entries()]
+      .map(([familyKey, keys]) => {
+        const rows = [...keys]
+          .map((k) => optionsByKey.get(k))
+          .filter((o): o is OptionRow => !!o)
+          // A row that lost its bed text to the twin it no longer shares a key
+          // with gets it back here.
+          .map((o) => (o.bedInfo ? o : { ...o, bedInfo: familyBedInfo.get(familyKey) ?? null }));
+        return { rows, cheapest: Math.min(...rows.map(grandOf)) };
+      })
+      .filter((f) => f.rows.length > 0)
+      .sort((a, b) => a.cheapest - b.cheapest);
+
+    const allOptions: OptionRow[] = [];
+    for (const family of rankedFamilies) {
+      if (allOptions.length + family.rows.length > 50) break;
+      allOptions.push(...family.rows);
+    }
+    // Output order is unchanged: cheapest sticker first, exactly as the detail
+    // page has always rendered it. Only WHICH rows survive the cap changed.
+    allOptions.sort((a, b) => a.totalPrice - b.totalPrice);
 
     // ── PRICE: handle v3.0 flat numbers AND old nested objects ──
     let marketRaw: number;
@@ -1391,12 +1532,11 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       currency;
 
     // Sum only taxes that aren't already included in `total` (old format only).
-    // This is PER-ROOM excluded tax — multiply across all rooms in the roomType.
-    const perRoomExcluded = (typeof bestRate.retailRate === 'object' && bestRate.retailRate)
-      ? ((bestRate.retailRate as { taxesAndFees?: Array<{ amount: number; included?: boolean }> }).taxesAndFees || [])
-          .filter((t) => t.included === false)
-          .reduce((sum, t) => sum + (t.amount || 0), 0)
-      : 0;
+    // This is the PER-ROOM excluded tax on the cheapest rate.
+    // (Negative supplier-side adjustments are clamped inside rateExcludedTax —
+    //  the taxes-and-fees field has been observed carrying refund deltas, which
+    //  would otherwise make priceBeforeTax come out below priceTotal.)
+    const perRoomExcluded = rateExcludedTax(bestRate) ?? 0;
     // Number of ROOMS this quote covers — one `occupancy` entry per room, which
     // is also what the price above covers. Previously this read
     // `bestRoomType.rates.length`, i.e. the count of RATE PLANS on the room type
@@ -1405,10 +1545,14 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     // publish, so the property-payable tax was scaled by an arbitrary number
     // — sometimes 1, sometimes 20 — with no relation to what the guest owes.
     const roomCount = Math.max(1, occupancy.length);
-    // Clamp negative supplier-side adjustments — taxes-and-fees field has been
-    // observed to carry refund deltas as negative entries which would make
-    // priceBeforeTax less than priceTotal, confusing the UI.
-    const extraTaxes = Math.max(0, perRoomExcluded * roomCount);
+    // Same asymmetric-bundle bug as the rows above, and it matters more here:
+    // this figure is the card's "taxes & fees at property" line AND half of the
+    // all-in total the results list now ranks on, so a mixed-occupancy family
+    // was being sorted by an under-stated cost as well as quoted one. Sum the
+    // real per-room figures when the bundle gives us all of them; fall back to
+    // the multiply when it doesn't.
+    const extraTaxes = bundleExcludedTax(bestRoomType, occupancy.length)
+      ?? (perRoomExcluded * roomCount);
     const commissionArr = Array.isArray(bestRate.commission) ? bestRate.commission : [];
     const commission = commissionArr.length > 0 ? commissionArr.reduce((s, c) => s + (c.amount || 0), 0) : null;
 

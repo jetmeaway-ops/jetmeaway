@@ -761,6 +761,9 @@
     "estimatedTotalFrom": "Total estimado desde",
     "perPerson": "por persona",
     "partialEstimate": "Estimación parcial: los precios de {leg} no están disponibles para esta ruta. Consulta los proveedores para ofertas de paquetes completas.",
+    "pricedForRooms": "{count, plural, one {incluye # habitación} other {incluye # habitaciones}}",
+    "noHotelForParty": "Ningún hotel en {dest} apareció para tu grupo en estas fechas. Prueba la búsqueda de hoteles o menos huéspedes por habitación.",
+    "partyNotPriceable": "No podemos calcular el precio de un hotel para un grupo de este tamaño. Compara ofertas de grupo con los proveedores de paquetes de abajo.",
     "flightWord": "vuelo",
     "hotelWord": "hotel",
     "estimateInfo": "Esta es una estimación basada en reservar vuelos y hoteles por separado. Los proveedores de paquetes de abajo pueden ofrecer ofertas combinadas un 15–30 % más baratas. Compara siempre.",
@@ -1026,7 +1029,10 @@
       }
     },
     "tryAgain": "Inténtalo de nuevo",
-    "roomsAutoSplit": "Ningún hotel aquí tiene una habitación para {guests} huéspedes, así que mostramos opciones en 2 habitaciones."
+    "roomsAutoSplit": "Ningún hotel aquí tiene una habitación para {guests} huéspedes, así que mostramos opciones en 2 habitaciones.",
+    "partyTrimmedRoomCap": "Hemos buscado para {searched} huéspedes, no los {asked} que pediste: una habitación admite como máximo {maxAdults} adultos y {maxChildren} niños.",
+    "partyTrimmedTotalCap": "Hemos buscado para {searched} huéspedes, no los {asked} que pediste: una búsqueda cubre hasta {maxGuests} huéspedes en {maxRooms} habitaciones.",
+    "partyTrimmedAddRoom": "Añade otra habitación en Huéspedes y habitaciones para incluir a más personas de tu grupo."
   },
   "flights": {
     "heroBadge": "Comparación de vuelos",

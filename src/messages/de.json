@@ -761,6 +761,9 @@
     "estimatedTotalFrom": "Geschätzte Gesamtsumme ab",
     "perPerson": "pro Person",
     "partialEstimate": "Teilschätzung – {leg}-Preise für diese Strecke nicht verfügbar. Prüfen Sie die Anbieter für komplette Paketangebote.",
+    "pricedForRooms": "{count, plural, one {für # Zimmer} other {für # Zimmer}}",
+    "noHotelForParty": "Für Ihre Reisegruppe gab es an diesen Daten kein Hotel in {dest}. Versuchen Sie die Hotelsuche oder weniger Gäste pro Zimmer.",
+    "partyNotPriceable": "Für eine Gruppe dieser Größe können wir kein Hotel kalkulieren. Vergleichen Sie Gruppenangebote bei den Paketanbietern unten.",
     "flightWord": "Flug",
     "hotelWord": "Hotel",
     "estimateInfo": "Dies ist eine Schätzung auf Basis der getrennten Buchung von Flügen und Hotels. Die Pauschalreise-Anbieter unten bieten möglicherweise Paketangebote, die 15–30 % günstiger sind. Vergleichen Sie immer.",
@@ -1026,7 +1029,10 @@
       }
     },
     "tryAgain": "Erneut versuchen",
-    "roomsAutoSplit": "Kein Hotel hier hat ein Zimmer für {guests} Gäste, daher zeigen wir Optionen für 2 Zimmer."
+    "roomsAutoSplit": "Kein Hotel hier hat ein Zimmer für {guests} Gäste, daher zeigen wir Optionen für 2 Zimmer.",
+    "partyTrimmedRoomCap": "Wir haben nach {searched} Gästen gesucht, nicht nach {asked} — ein Zimmer fasst höchstens {maxAdults} Erwachsene und {maxChildren} Kinder.",
+    "partyTrimmedTotalCap": "Wir haben nach {searched} Gästen gesucht, nicht nach {asked} — eine Suche umfasst bis zu {maxGuests} Gäste in {maxRooms} Zimmern.",
+    "partyTrimmedAddRoom": "Fügen Sie unter Gäste & Zimmer ein weiteres Zimmer hinzu, um mehr Ihrer Reisegruppe unterzubringen."
   },
   "flights": {
     "heroBadge": "Flugvergleich",
