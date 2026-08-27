@@ -4714,7 +4714,11 @@ function HotelsContent() {
                       />
                     </div>
                   </div>
-                  {/* Mobile / tablet — full-width map (toggle back to list to see cards) */}
+                  {/* Mobile / tablet — full-width map (toggle back to list to see cards).
+                      Tall by default: at the old fixed 500px the map read as a
+                      thumbnail rather than a way to choose a hotel, and a short
+                      box also forces Leaflet to a lower zoom, which merges pins
+                      into cluster discs instead of showing their prices. */}
                   <div className="lg:hidden">
                     <HotelMap
                       centerLat={cityCentre.lat}
@@ -4724,6 +4728,7 @@ function HotelsContent() {
                       onPinClick={(id) => {
                         setActiveHotelId(id);
                       }}
+                      height="h-[calc(100vh-12rem)] min-h-[420px]"
                     />
                   </div>
                 </section>
