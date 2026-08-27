@@ -564,6 +564,11 @@ export interface HotelOffer {
      *  quotes so it always describes the WHOLE booking the price covers.
      *  Null when the supplier omitted it (chip falls back to the catalogue). */
     maxOccupancy?: number | null;
+    /** Multi-room bundles: the name of EACH room in the quote, in occupancy
+     *  order — the bundle title names only one of them, which read as "a room
+     *  for 3" priced for 2 rooms. Null on single-room quotes or when any
+     *  room's name is missing (no list beats a wrong list). */
+    roomBreakdown?: string[] | null;
   }>;
 }
 
@@ -1095,6 +1100,10 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       paymentTypes?: string[] | null;
       /** Whole-booking sleeping capacity (per-rate, authoritative). */
       maxOccupancy?: number | null;
+      /** Multi-room bundles: what each room actually is, in occupancy order
+       *  (["TRIPLE…", "DOUBLE…"]). Null on single-room quotes or when any
+       *  room's name is missing. */
+      roomBreakdown?: string[] | null;
     };
     const optionsByKey = new Map<string, OptionRow>();
 
@@ -1109,16 +1118,35 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       // it, which covers every room. Null when any room's group is missing —
       // no chip beats a wrong chip.
       let rtMaxOcc: number | null = null;
+      // Per-room composition of a MULTI-room bundle. LiteAPI titles the whole
+      // bundle by ONE room's name while the price covers every room, so a
+      // "TRIPLE — room for 3 people" bundle priced for 2 rooms can actually be
+      // one Triple + one Double (owner report 2026-08-27, hotelF1 Chambéry:
+      // "Side-Car for 2 travelers maximum" badged Sleeps 5). The per-rate
+      // `name` keyed by occupancyNumber recovers what each room really is.
+      // Same discipline as the capacity sum: emit only when every requested
+      // room has a name — a partial list would mislabel the missing room.
+      let rtRoomNames: string[] | null = null;
       if (occupancy.length > 1) {
         const byRoom = new Map<number, number>();
+        const nameByRoom = new Map<number, string>();
         for (const r of rt.rates || []) {
+          const n = r.occupancyNumber ?? 1;
           if (typeof r.maxOccupancy === 'number' && r.maxOccupancy > 0) {
-            const n = r.occupancyNumber ?? 1;
             byRoom.set(n, Math.max(byRoom.get(n) ?? 0, r.maxOccupancy));
+          }
+          if (!nameByRoom.has(n)) {
+            const nm = cleanRoomName(r.name);
+            if (nm) nameByRoom.set(n, nm);
           }
         }
         if (byRoom.size === occupancy.length) {
           rtMaxOcc = [...byRoom.values()].reduce((s, v) => s + v, 0);
+        }
+        if (nameByRoom.size === occupancy.length) {
+          rtRoomNames = [...nameByRoom.entries()]
+            .sort((a, b) => a[0] - b[0])
+            .map(([, v]) => v);
         }
       }
       // offerId can be on roomType (old) or rate (v3.0) — we check both below
@@ -1229,6 +1257,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
           maxOccupancy: occupancy.length === 1
             ? (typeof r.maxOccupancy === 'number' && r.maxOccupancy > 0 ? r.maxOccupancy : null)
             : rtMaxOcc,
+          roomBreakdown: rtRoomNames,
         };
         if (!existing || effectivePrice < existing.totalPrice) {
           optionsByKey.set(mapKey, nextRow);

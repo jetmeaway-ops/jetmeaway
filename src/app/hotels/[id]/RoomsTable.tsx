@@ -98,6 +98,11 @@ export type RoomRate = {
    *  chip renders even when the catalogue match misses (the owner's blank
    *  £451 apartment row) and never lies when it mismatches. */
   maxOccupancy?: number | null;
+  /** Multi-room bundles: the name of EACH room in the quote, in occupancy
+   *  order. LiteAPI titles a bundle by ONE of its rooms, so a "Room for 3
+   *  people" title priced "for 2 rooms" left the customer guessing what the
+   *  second room is (owner report 2026-08-27). Null/absent hides the list. */
+  roomBreakdown?: string[] | null;
   /** LiteAPI commission — our merchant margin for this row (scaled pro-rata
    *  from the hotel-level commission reported by LiteAPI). Not displayed in
    *  the UI; forwarded to /api/hotels/start-booking so the admin unified
@@ -303,6 +308,29 @@ function RateRow({
           {showBoardSubtitle && (
             <div className="text-[.68rem] font-semibold text-slate-500 uppercase tracking-[2px] mt-1">
               {board.key === 'other' ? board.label : t('board.' + board.key)}
+            </div>
+          )}
+
+          {/* Multi-room bundles: spell out what each room IS. The title above
+              names only one of the rooms (LiteAPI bundles are titled by their
+              first room), so "TRIPLE — for 3 people" over a 2-room price read
+              as a contradiction. Identical rooms collapse to one ×-count line;
+              mixed bundles list each room on its own line. */}
+          {rooms > 1 && rate.roomBreakdown && rate.roomBreakdown.length === rooms && (
+            <div className="mt-2 flex flex-col gap-1">
+              {rate.roomBreakdown.every((nm) => nm === rate.roomBreakdown![0]) ? (
+                <span className="inline-flex items-start gap-1.5 text-[.74rem] font-semibold text-slate-700">
+                  <i className="fa-solid fa-door-open text-[.66rem] text-[#8a6d00] mt-0.5" aria-hidden />
+                  {t('bundleSameRoom', { count: rooms })}
+                </span>
+              ) : (
+                rate.roomBreakdown.map((nm, i) => (
+                  <span key={i} className="inline-flex items-start gap-1.5 text-[.74rem] font-semibold text-slate-700">
+                    <i className="fa-solid fa-door-open text-[.66rem] text-[#8a6d00] mt-0.5" aria-hidden />
+                    <span>{t('bundleRoomN', { n: i + 1 })} {truncate(nm, 64)}</span>
+                  </span>
+                ))
+              )}
             </div>
           )}
 
