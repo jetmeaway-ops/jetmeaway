@@ -1329,6 +1329,7 @@
     "sleeps": "Capacidad: {n}",
     "fitsYourParty": "Precio para {n, plural, one {# huésped} other {# huéspedes}}",
     "seeRoomDetails": "Ver detalles y fotos de la habitación",
+    "scoreFromRecentReviews": "{count, plural, one {Media de la reseña más reciente} other {Media de las {count} reseñas más recientes}}",
     "breakfastIncluded": "Desayuno incluido",
     "allMealsDrinks": "Todas las comidas y bebidas incluidas",
     "roomOnlyMeals": "Solo alojamiento: comidas no incluidas",

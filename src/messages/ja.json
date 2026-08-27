@@ -1329,6 +1329,7 @@
     "sleeps": "{n}名収容",
     "fitsYourParty": "{n}名分の料金",
     "seeRoomDetails": "部屋の詳細と写真を見る",
+    "scoreFromRecentReviews": "最新{count}件のレビューの平均",
     "breakfastIncluded": "朝食込み",
     "allMealsDrinks": "すべての食事・飲み物込み",
     "roomOnlyMeals": "宿泊のみ — 食事は含まれません",

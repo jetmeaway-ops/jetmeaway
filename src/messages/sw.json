@@ -1328,6 +1328,7 @@
     "sleeps": "Inalaza watu {n}",
     "fitsYourParty": "Bei kwa {n, plural, one {mgeni #} other {wageni #}}",
     "seeRoomDetails": "Angalia maelezo ya chumba na picha",
+    "scoreFromRecentReviews": "{count, plural, one {Wastani wa hakiki ya hivi karibuni} other {Wastani wa hakiki {count} za hivi karibuni}}",
     "breakfastIncluded": "Kifungua kinywa kimejumuishwa",
     "allMealsDrinks": "Milo na vinywaji vyote vimejumuishwa",
     "roomOnlyMeals": "Chumba tu — milo haijajumuishwa",

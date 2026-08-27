@@ -9,10 +9,16 @@
                  in our own URLs; we strip it defensively)
      checkin   — YYYY-MM-DD
      checkout  — YYYY-MM-DD
+     occ       — per-room occupancy ("2-6/1-8"), wins over the flat params
      adults    — default 2
      children  — default 0
      childrenAges — comma-separated ages (optional)
      rooms     — default 1
+     Occupancy in EITHER form is clamped to the site-wide caps in
+     src/lib/occupancy.ts (5 rooms, 9 guests, 4 adults + 4 children per room)
+     before anything is priced, so a hand-made URL cannot obtain a quote the
+     search page and the booking flow would refuse. `party` in the response
+     reports the clamped result — read it, don't re-derive it from the URL.
      currency  — clamped to what we can actually price in (GBP today);
                  anything else falls back rather than being echoed back, since
                  getHotels() converts every supplier response to GBP anyway.
@@ -34,7 +40,7 @@ import { NextRequest, NextResponse, after } from 'next/server';
 import { kv } from '@vercel/kv';
 import { getHotels as liteapiGetHotels } from '@/lib/liteapi';
 import { normaliseDisplayCurrency } from '@/lib/pricing-currency';
-import { decodeOccupancy } from '@/lib/occupancy';
+import { decodeFromParams, encodeOccupancy, type Room } from '@/lib/occupancy';
 
 export const runtime = 'edge';
 
@@ -99,10 +105,6 @@ export async function GET(req: NextRequest) {
   const hotelId = rawHotelId.replace(/^la_/, '').trim();
   const checkin = sp.get('checkin') || '';
   const checkout = sp.get('checkout') || '';
-  const adults = Math.max(1, parseInt(sp.get('adults') || '2', 10) || 2);
-  const children = Math.max(0, parseInt(sp.get('children') || '0', 10) || 0);
-  const childrenAgesRaw = sp.get('childrenAges') || '';
-  const rooms = Math.max(1, parseInt(sp.get('rooms') || '1', 10) || 1);
   // Clamped, not echoed. `getHotels()` force-converts every supplier response
   // into GBP (see FX_TO_GBP in src/lib/liteapi.ts), so the offers below are
   // always sterling no matter what was asked for. Echoing the raw param would
@@ -117,53 +119,43 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const childrenAges = childrenAgesRaw
-    ? childrenAgesRaw.split(',').map((n) => parseInt(n, 10) || 0).filter((n) => n > 0 || n === 0)
-    : [];
-  // `children=N` with missing/short ages: pad with 8 exactly like the search
-  // route — otherwise the children were silently dropped from occupancy and
-  // the quote came back priced for adults only (too cheap, wrong room).
-  while (childrenAges.length < children) childrenAges.push(8);
-
-  // One `occupancy` entry per room. `adults`/`children` are the TOTAL party,
-  // split across rooms exactly like the search route (src/app/api/hotels/
-  // route.ts) — adults spread evenly with the remainder in the last room,
-  // children all in room 0 — so detail-page prices match the results page.
-  // (Was: full party repeated per room, which turned "4 adults, 2 rooms"
-  // into an 8-person search and returned zero offers. 2026-07-08)
-  // Exact per-room occupancy carried from the results page as `occ=` wins when
-  // present — it preserves the SAME room split the visitor saw (e.g. an
-  // auto-split family of five as [1 adult+2 kids][1 adult+1 kid]). Without it
-  // we fall back to the flat split below (adults spread evenly, children all in
-  // room 0), which can differ from the results split and dead-end a hotel that
-  // only had availability under the even split. See src/lib/occupancy.ts and
-  // the auto-split retry in hotels-client.tsx.
-  const occParam = sp.get('occ') || '';
-  const decodedRooms = decodeOccupancy(occParam);
-  let occupancy: Array<{ adults: number; children?: number[] }>;
-  if (decodedRooms && decodedRooms.length > 0) {
-    occupancy = decodedRooms.map((r) =>
-      r.childAges.length > 0 ? { adults: r.adults, children: r.childAges } : { adults: r.adults },
-    );
-  } else {
-    const adultsPerRoom: number[] = [];
-    let remainingAdults = adults;
-    for (let i = 0; i < rooms; i++) {
-      const a = i === rooms - 1 ? remainingAdults : Math.max(1, Math.floor(adults / rooms));
-      adultsPerRoom.push(Math.max(1, a));
-      remainingAdults -= a;
-    }
-    occupancy = adultsPerRoom.map((a, idx) =>
-      idx === 0 && childrenAges.length > 0 ? { adults: a, children: childrenAges } : { adults: a },
-    );
-  }
+  // One `occupancy` entry per room, decoded through the SAME helper the search
+  // route uses (`decodeFromParams`, src/app/api/hotels/route.ts): exact per-room
+  // `occ=` wins when present — it preserves the room split the visitor actually
+  // saw (e.g. an auto-split family of five as [1 adult+2 kids][1 adult+1 kid]) —
+  // and the flat adults/children/rooms/childrenAges params are the legacy
+  // fallback (adults spread evenly with the remainder in the last room, children
+  // all in room 0, missing child ages padded to 8).
+  //
+  // Both halves now end in `clampRooms`, which is the point of routing through
+  // the shared helper: MAX_ROOMS 5, MAX_GUESTS_TOTAL 9, MAX_ADULTS_PER_ROOM 4,
+  // MAX_CHILDREN_PER_ROOM 4, child ages 0-17. Until 2026-08-27 only the `occ=`
+  // half was clamped (decodeOccupancy does it internally) while the flat half
+  // took the raw query numbers, so a hand-made `?adults=40&rooms=8` was priced
+  // and quoted verbatim — a party the picker, the search route and the booking
+  // flow all refuse to sell. The old flat split also INFLATED small parties,
+  // because it gave every room a floor of 1 adult: `?adults=1&rooms=3` became
+  // three 1-adult rooms (the 2A/3R → 3A guesswork occupancy.ts exists to kill).
+  // `decodeLegacy` caps roomCount at the adult count instead.
+  const roomsArr: Room[] = decodeFromParams({
+    occ: sp.get('occ'),
+    adults: sp.get('adults'),
+    children: sp.get('children'),
+    rooms: sp.get('rooms'),
+    childrenAges: sp.get('childrenAges'),
+  });
+  const occupancy: Array<{ adults: number; children?: number[] }> = roomsArr.map((r) =>
+    r.childAges.length > 0 ? { adults: r.adults, children: r.childAges } : { adults: r.adults },
+  );
 
   // Echo of the occupancy this request was PRICED for — the client renders
   // "Price for X adults + Y children" from this, never from its own URL
   // params: `occ=` overrides them, missing child ages get padded, and rooms
   // get clamped, so the URL can disagree with what was actually priced (that
   // exact drift was the 2026-08-23 £194.86-for-a-couple bug). Derived from
-  // the request, deliberately NOT stored in KV.
+  // `occupancy` — the post-clamp array — so a request trimmed by the caps
+  // above is echoed as the party we trimmed it TO, never as the one asked for.
+  // Deliberately NOT stored in KV.
   const party = {
     adults: occupancy.reduce((s, r) => s + r.adults, 0),
     children: occupancy.reduce((s, r) => s + (r.children?.length || 0), 0),
@@ -203,7 +195,21 @@ export async function GET(req: NextRequest) {
   // bookable bed layout out of reach), and a row's bedInfo is only inherited
   // from its family when that family has ONE layout. v10 rows hold the
   // over-collapsed set and a possibly-borrowed bed line.
-  const cacheKey = `hotel-rates:v11:${hotelId}:${checkin}:${checkout}:${adults}:${children}:${childrenAgesRaw}:${rooms}:${occParam}:${currency}`;
+  // v12 (2026-08-27) — the occupancy slice of the key is now the CLAMPED
+  // per-room encoding rather than the raw query params. Two reasons it has to
+  // be a version bump and not a quiet edit:
+  //   1. A v11 entry keyed on `adults=40&rooms=8` holds offers priced for 40
+  //      guests. Under the caps the same URL now prices 9, so re-serving that
+  //      entry would hand back a quote for a party we no longer sell — the
+  //      stored rows would mean something different from the request that
+  //      reaches them.
+  //   2. Requests that clamp to the same party now SHARE one entry
+  //      (`adults=12` and `adults=9` both encode to the same 9-guest split),
+  //      which the old raw-param key could never collapse.
+  // Keying on `encodeOccupancy` also makes the key incapable of promising an
+  // occupancy the response wasn't priced for: it is built from the very array
+  // handed to LiteAPI.
+  const cacheKey = `hotel-rates:v12:${hotelId}:${checkin}:${checkout}:${encodeOccupancy(roomsArr)}:${currency}`;
 
   try {
     const cached = await kv.get<CacheShape | { offers: BoardOptionOut[] }>(cacheKey);

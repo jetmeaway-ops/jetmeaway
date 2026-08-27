@@ -1329,6 +1329,7 @@
     "sleeps": "Спальных мест: {n}",
     "fitsYourParty": "Цена за {n, plural, one {# гостя} few {# гостей} many {# гостей} other {# гостей}}",
     "seeRoomDetails": "Смотреть детали номера и фото",
+    "scoreFromRecentReviews": "{count, plural, one {Среднее по последнему отзыву} few {Среднее по {count} последним отзывам} many {Среднее по {count} последним отзывам} other {Среднее по {count} последним отзывам}}",
     "breakfastIncluded": "Завтрак включён",
     "allMealsDrinks": "Все блюда и напитки включены",
     "roomOnlyMeals": "Только номер — питание не включено",

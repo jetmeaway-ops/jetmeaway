@@ -678,7 +678,11 @@ const LITEAPI_DEBUG = !!process.env.LITEAPI_DEBUG;
 
 /** Bump on ANY change to the tuple order/meaning below — old entries are
  *  positional and would otherwise be read as the wrong fields. */
-const DIR_CACHE_VERSION = 'v1';
+// v2 (2026-08-27) — two slots changed meaning: the star slot no longer accepts
+// the guest score as a fallback, and the review-score slot now reads LiteAPI's
+// actual `rating` field. v1 entries hold an invented star rating and no guest
+// score at all, and they live for 24h, so they must not be read back.
+const DIR_CACHE_VERSION = 'v2';
 /** 3h. Which hotels exist near a place barely changes; this is long enough to
  *  cover a customer trying several date ranges (and coming back later) while
  *  still expiring on its own so the footprint can't creep. */
@@ -723,9 +727,23 @@ function encodeDirRow(h: HotelMeta): DirRow {
     h.address,
     h.city,
     h.country,
-    h.starRating ?? h.stars ?? h.rating,
+    // 🔴 `rating` is the 0-10 GUEST SCORE, never a star rating. Verified live
+    // 2026-08-27 on /data/hotels: rows carry `stars: 4` and `rating: 9.2` side
+    // by side, and `starRating`/`reviewScore` are absent entirely. Falling
+    // through to `rating` here handed a 9.2 to anything with no star
+    // classification — five gold stars on a campsite, on the page with the Pay
+    // button, and the same number sent to Google as "9.2 out of a best of 5".
+    h.starRating ?? h.stars,
     h.reviewCount ?? h.numReviews ?? h.reviewsCount,
-    h.reviewScore ?? h.averageRating ?? h.guestRating,
+    // …and the same confusion in reverse cost us the guest score altogether:
+    // none of these three aliases exist on /data/hotels, so every cached row
+    // stored `undefined` and the score simply vanished the moment the 24h
+    // directory cache went warm. Measured: Ostrava cold 45/45 hotels scored,
+    // five seconds later warm 0/51; Rome 0/412; Barcelona 0/441. That killed
+    // the score chip, the "Wonderful 9+ / Very good 8+" filter and part of the
+    // recommended ranking on every busy city — silently, because a missing
+    // score renders as nothing rather than as an error.
+    h.reviewScore ?? h.averageRating ?? h.guestRating ?? h.rating,
     h.main_photo || firstImage,
     h.latitude,
     h.longitude,
@@ -890,7 +908,11 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     retailRate?: number | {
       total?: Array<{ amount: number; currency: string }>;
       suggestedSellingPrice?: Array<{ amount: number; currency: string }>;
-      taxesAndFees?: Array<{ amount: number; currency: string; included?: boolean }>;
+      /** `description` names the tax ("City tax", "VAT", "Tax and Other Fee").
+       *  It is load-bearing, not cosmetic: it is half of the identity
+       *  rateExcludedTax() uses to tell a mirrored duplicate apart from a
+       *  second, genuinely different tax that costs the same. */
+      taxesAndFees?: Array<{ amount: number; currency: string; included?: boolean; description?: string }>;
     };
     /** v3.0: flat negotiated/Scout price (only present when a deal is active) */
     negotiatedRate?: number;
@@ -997,14 +1019,68 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
    * Clamped at 0: `taxesAndFees` has been observed carrying supplier refund
    * deltas as negative entries, which would make the all-in total come out
    * BELOW the sticker price.
+   *
+   * 🔴 THE SAME TAX CAN APPEAR TWICE IN ONE RATE — ONCE IN EACH BUCKET.
+   * Some suppliers emit a tax into BOTH halves of `taxesAndFees`: an
+   * `included: true` copy and, alongside it, a byte-identical `included: false`
+   * copy. The `included: true` copy is the supplier saying the money is already
+   * inside `total`, so charging the mirrored copy on top bills it twice.
+   * Measured 2026-08-27, Central Hotel London (lp4f865), 20→22 Sep, 2 adults,
+   * Standard Double Room, total £91.79:
+   *
+   *   {"included": true,  "description": "VAT",      "amount": 8.42}
+   *   {"included": true,  "description": "City tax", "amount": 31.30}
+   *   {"included": false, "description": "City tax", "amount": 31.30}
+   *   {"included": false, "description": "VAT",      "amount": 8.42}
+   *
+   * — a phantom £39.72 on a £91.79 room (+43%), which since the all-in sort
+   * shipped also demotes a competitive room below dearer ones. So cancel each
+   * excluded entry against an identical included one, one for one.
+   *
+   * The identity of ONE tax is description + amount + currency. Anything looser
+   * mis-fires on live data (474 London hotels, same day):
+   *  · amount alone would merge Comfort Inn Victoria's "TAX" £57.55 and "VAT"
+   *    £57.55 — two genuinely different taxes that happen to cost the same
+   *    (109 rates), and the guest would meet £57.55 at the desk unwarned.
+   *  · description alone would merge Novotel London West's "Tax and Other Fee"
+   *    £17.48 and £18.38 — that supplier emits ONE ENTRY PER NIGHT, so a
+   *    2-night stay would quote one night's tax (187 rates). Confirmed
+   *    per-night, not duplicated: entry count tracks the stay length exactly
+   *    (1 night → 1 entry, 3 nights → 3), and across all 474 hotels a
+   *    single-night search produced ZERO repeated tuples.
+   *
+   * One-for-one rather than "drop every excluded copy that has an included
+   * twin", so a supplier mixing a real per-night charge with a mirrored one
+   * still bills the remainder. Every one of the 157 mirrored rates measured
+   * had equal counts on both sides, so today this always cancels cleanly.
    */
   function rateExcludedTax(r: RateObj): number | null {
     if (typeof r.retailRate !== 'object' || !r.retailRate) return null;
-    const tf = (r.retailRate as { taxesAndFees?: Array<{ amount: number; included?: boolean }> }).taxesAndFees;
+    const tf = (r.retailRate as {
+      taxesAndFees?: Array<{ amount: number; currency: string; included?: boolean; description?: string }>;
+    }).taxesAndFees;
     if (!Array.isArray(tf)) return null;
-    const sum = tf
-      .filter((t) => t.included === false)
-      .reduce((s, t) => s + (t.amount || 0), 0);
+    // Amount is keyed in integer pence so 31.3 and 31.30 are one tax and float
+    // noise can never split a mirrored pair back apart.
+    const taxIdentity = (t: { amount?: number; description?: string; currency?: string }) =>
+      `${t.description ?? ''}|${Math.round((t.amount || 0) * 100)}|${t.currency ?? ''}`;
+    const alreadyInTotal = new Map<string, number>();
+    for (const t of tf) {
+      if (t.included !== true) continue;
+      const k = taxIdentity(t);
+      alreadyInTotal.set(k, (alreadyInTotal.get(k) ?? 0) + 1);
+    }
+    let sum = 0;
+    for (const t of tf) {
+      if (t.included !== false) continue;
+      const k = taxIdentity(t);
+      const mirrors = alreadyInTotal.get(k) ?? 0;
+      if (mirrors > 0) {
+        alreadyInTotal.set(k, mirrors - 1);
+        continue;
+      }
+      sum += t.amount || 0;
+    }
     return Math.max(0, sum);
   }
 
@@ -1527,11 +1603,61 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
       .filter((f) => f.rows.length > 0)
       .sort((a, b) => a.cheapest - b.cheapest);
 
-    const allOptions: OptionRow[] = [];
+    const admittedRows: OptionRow[] = [];
     for (const family of rankedFamilies) {
-      if (allOptions.length + family.rows.length > 50) break;
-      allOptions.push(...family.rows);
+      if (admittedRows.length + family.rows.length > 50) break;
+      admittedRows.push(...family.rows);
     }
+
+    // 🔴 ONE offerId IS ONE BOOKABLE THING — NEVER TWO ROWS.
+    // A multi-room bundle gives each of its rooms a different name, so the two
+    // rooms key to two different rows above; but prebook/book take an offerId
+    // and nothing else, so the guest cannot buy them separately. Rendering both
+    // told them "20 options" where 14 existed, and clicking one highlighted the
+    // other too — the detail page keys selection on offerId, and the duplicate
+    // simply IS the same selection.
+    //
+    // Measured 2026-08-27 across 94 Rome hotels, 20→22 Sep, 2 rooms (2 adults
+    // + one child, 2 adults): 216 of 1,764 rows (12.2%) were surplus, in 216
+    // groups of EXACTLY two. Every group agreed on price, board AND
+    // refundability to the penny and differed only in title — the signature of
+    // one offer listed twice, not of two offers colliding. Best Western Plus
+    // Hotel Universo (lp445b7) rendered "Junior Suite" £1374.77 and "Small
+    // Double French Bed" £1374.77 under one offerId: 50 rows → 42.
+    //
+    // Safe for the two things this must not undo:
+    //  · the free-cancellation twin — a refundable rate is a DIFFERENT offerId
+    //    (0 of the 216 groups mixed refundability), so family-whole still ships
+    //    both halves of every pair;
+    //  · the lone traveller — 19,736 single-room rows across 474 London hotels
+    //    produced ZERO offerId collisions, so this can never cost them a row.
+    //
+    // Deliberately AFTER the family-whole admission: the 50-row budget stays
+    // spent on whole room+board families (the guarantee that a shown room shows
+    // BOTH its prices), and this only ever drops rows nobody could book.
+    const byOfferId = new Map<string, OptionRow>();
+    for (const row of admittedRows) {
+      const held = byOfferId.get(row.offerId);
+      // Copy on first insert: the row objects are shared with optionsByKey and
+      // the merge below writes to the survivor.
+      if (!held) { byOfferId.set(row.offerId, { ...row }); continue; }
+      // Survivor = whichever row describes the whole bundle best. All 216
+      // measured groups carried `roomBreakdown` on BOTH rows, and the tie broke
+      // cleanly every time: exactly one of the two is titled with
+      // roomBreakdown[0], the bundle's first room. Preferring it makes the
+      // surviving title stable instead of a race between two room names.
+      const rowWins = (!!row.roomBreakdown && !held.roomBreakdown)
+        || (!!row.roomBreakdown && row.roomName === row.roomBreakdown[0]
+            && !(held.roomBreakdown && held.roomName === held.roomBreakdown[0]));
+      const winner = rowWins ? { ...row } : held;
+      const loser = rowWins ? held : row;
+      // The collapse must not cost the guest a fact the loser was carrying:
+      // bedInfo sat on only one of the two rows in 3 of the 216 groups.
+      winner.roomBreakdown = winner.roomBreakdown ?? loser.roomBreakdown ?? null;
+      winner.bedInfo = winner.bedInfo ?? loser.bedInfo ?? null;
+      byOfferId.set(row.offerId, winner);
+    }
+    const allOptions: OptionRow[] = [...byOfferId.values()];
     // Output order is unchanged: cheapest sticker first, exactly as the detail
     // page has always rendered it. Only WHICH rows survive the cap changed.
     allOptions.sort((a, b) => a.totalPrice - b.totalPrice);
@@ -1927,7 +2053,11 @@ export async function getHotelDetails(hotelId: string): Promise<HotelDetails | n
       country?: string;
       starRating?: number;
       stars?: number;
+      /** The 0-10 GUEST SCORE — never a star rating. Paired with reviewCount
+       *  below, this is the genuine aggregate for the whole property. */
       rating?: number;
+      /** How many reviews `rating` is the average of. */
+      reviewCount?: number;
       latitude?: number;
       longitude?: number;
       /** Where /data/hotel ACTUALLY puts the coordinates (verified live
@@ -2175,7 +2305,12 @@ export async function getHotelDetails(hotelId: string): Promise<HotelDetails | n
       address: h.address || null,
       city: h.city || null,
       country: h.country || null,
-      stars: h.starRating ?? h.stars ?? h.rating ?? null,
+      // 🔴 No `?? h.rating`: that field is the 0-10 guest score, and reading it
+      // as stars is what put five gold stars on an unclassified campsite
+      // (hu Roma Camping In Town, rating 8.5) and told Google "8.5 out of a
+      // best of 5". An unrated hotel now returns null and the page shows no
+      // stars at all — the honest rendering of "we don't know".
+      stars: h.starRating ?? h.stars ?? null,
       latitude: h.latitude ?? h.location?.latitude ?? null,
       longitude: h.longitude ?? h.location?.longitude ?? null,
       mainPhoto: h.main_photo || h.thumbnail || photos[0] || null,
@@ -2186,7 +2321,31 @@ export async function getHotelDetails(hotelId: string): Promise<HotelDetails | n
       hotelTypeId: typeof h.hotelTypeId === 'number' ? h.hotelTypeId : null,
       policies,
       rooms,
-      reviews,
+      // The score beside "2,719 verified guest reviews" used to be the mean of
+      // the EIGHT reviews we fetch for the list — InterContinental Barcelona
+      // printed 8.3 from [7,9,10,10,10,10,1,9] while the supplier's real
+      // aggregate was 9.0, and Acta Laumon printed 8.9 against a true 8.4. It
+      // was wrong in both directions, and the same pair went to Google as an
+      // AggregateRating claiming thousands of reviewers had said it.
+      //
+      // /data/hotel carries the genuine aggregate all along, in the same
+      // `rating` + `reviewCount` pair the directory row uses. Prefer it; the
+      // eight-review mean survives only as the fallback, where the count is
+      // then the number of reviews it actually describes.
+      reviews: (() => {
+        const agg = typeof h.rating === 'number' && Number.isFinite(h.rating) && h.rating > 0
+          ? h.rating
+          : null;
+        const aggCount = typeof h.reviewCount === 'number' && h.reviewCount > 0
+          ? h.reviewCount
+          : null;
+        if (agg == null) return reviews;
+        return {
+          ...reviews,
+          averageScore: agg,
+          count: aggCount ?? reviews.count,
+        };
+      })(),
     };
   } catch (err) {
     console.warn('[liteapi] getHotelDetails failed:', err instanceof Error ? err.message : err);

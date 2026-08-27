@@ -1329,6 +1329,7 @@
     "sleeps": "تتسع لـ {n}",
     "fitsYourParty": "{n, plural, one {السعر لضيف واحد} two {السعر لضيفين} few {السعر لـ # ضيوف} many {السعر لـ # ضيفًا} other {السعر لـ # ضيف}}",
     "seeRoomDetails": "شاهد تفاصيل الغرفة والصور",
+    "scoreFromRecentReviews": "{count, plural, one {متوسط أحدث مراجعة} two {متوسط أحدث مراجعتين} few {متوسط أحدث {count} مراجعات} many {متوسط أحدث {count} مراجعة} other {متوسط أحدث {count} مراجعة}}",
     "breakfastIncluded": "الإفطار مشمول",
     "allMealsDrinks": "جميع الوجبات والمشروبات مشمولة",
     "roomOnlyMeals": "غرفة فقط — الوجبات غير مشمولة",

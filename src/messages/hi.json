@@ -1329,6 +1329,7 @@
     "sleeps": "{n} के लिए",
     "fitsYourParty": "{n, plural, one {# मेहमान} other {# मेहमानों}} के लिए कीमत",
     "seeRoomDetails": "कमरे का विवरण और तस्वीरें देखें",
+    "scoreFromRecentReviews": "{count, plural, one {सबसे हालिया समीक्षा का औसत} other {{count} सबसे हालिया समीक्षाओं का औसत}}",
     "breakfastIncluded": "नाश्ता शामिल",
     "allMealsDrinks": "सभी भोजन और पेय शामिल",
     "roomOnlyMeals": "केवल कमरा — भोजन शामिल नहीं",

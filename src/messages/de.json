@@ -1329,6 +1329,7 @@
     "sleeps": "Platz für {n}",
     "fitsYourParty": "Preis für {n, plural, one {# Gast} other {# Gäste}}",
     "seeRoomDetails": "Zimmerdetails & Fotos ansehen",
+    "scoreFromRecentReviews": "{count, plural, one {Durchschnitt der neuesten Bewertung} other {Durchschnitt der {count} neuesten Bewertungen}}",
     "breakfastIncluded": "Frühstück inklusive",
     "allMealsDrinks": "Alle Mahlzeiten & Getränke inklusive",
     "roomOnlyMeals": "Nur Zimmer – Mahlzeiten nicht inklusive",
