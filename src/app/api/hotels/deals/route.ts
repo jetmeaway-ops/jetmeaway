@@ -81,6 +81,13 @@ export type DealHotel = {
    *  desk — 21% more — while the same hotel booked through search DID disclose
    *  it. Two paths to the same room must not tell different truths. */
   localFees: number | null;
+  /** When free cancellation expires, for a deal flagged `refundable`. Without
+   *  it the booking record stores null and our own cancel route answers "this
+   *  rate is non-refundable" to a customer who is owed a refund — the exact
+   *  harm fixed on the rate-row path in PR#160, still live on this path
+   *  because a deal never carried the field to send. Null when the rate has no
+   *  deadline. */
+  cancellationDeadline: string | null;
 };
 
 export type DealDestination = {
@@ -107,7 +114,9 @@ export async function GET() {
   // and the 6-hour TTL meant v5 entries kept serving deals with no tax field and
   // integer prices long after the fix shipped — the upgraded monkey caught
   // exactly that on the first run against prod.
-  const KV_KEY = `hotel_deals:v6:cycle${cycle}`;
+  // v7 — DealHotel also carries cancellationDeadline now, without which a
+  // refundable deal booking could not be cancelled at all.
+  const KV_KEY = `hotel_deals:v7:cycle${cycle}`;
 
   try {
     // Check cache first
@@ -199,6 +208,7 @@ export async function GET() {
             refundable: h.refundable,
             district: h.city || null,
             localFees: h.excludedTaxes ?? null,
+            cancellationDeadline: h.cancellationDeadline ?? null,
           });
 
           // Budget = cheapest

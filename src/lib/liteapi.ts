@@ -1352,7 +1352,21 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
         // cancellation is not a tie-break on price — for anyone booking around
         // an uncertain plan it is the whole product, and hiding it made the
         // site look like it simply had none.
-        const mapKey = `${familyKey}|${isRefundable ? 'R' : 'N'}`;
+        // 🔴 BED CONFIGURATION IS PART OF THE ROOM, NOT A COSMETIC VARIANT.
+        // The first version of this key stripped the bed suffix outright, which
+        // was right for the duplicate it was built for (La Maison Rouge sells
+        // "Family Cabin (Pets not allowed)" and "…(2 Twin Bunk Beds and 1
+        // Double Bed)" at the SAME price — one room, listed twice) and badly
+        // wrong everywhere else. Measured on lp41e71, 20-22 Sep, all at
+        // £225.60: "Superior Room", "Superior Room(1 Queen Bed)" and "Superior
+        // Room(2 Twin Beds)". Stripping collapsed three offers into one, so a
+        // couple who need TWIN beds could no longer see or book them, and the
+        // surviving row advertised whichever bed text won the race.
+        // So: the bed text stays in the key. The genuine duplicate — the SAME
+        // room with and without its bed suffix — is merged afterwards, and only
+        // when the prices match to the penny (see the bed-less merge below).
+        const bedKey = (rowBedInfo || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+        const mapKey = `${familyKey}|${isRefundable ? 'R' : 'N'}|${bedKey}`;
         const existing = optionsByKey.get(mapKey);
         // Phase-3: per-row Scout Deal. negotiated only counts when strictly
         // cheaper than market — otherwise it's noise, not a deal.
@@ -1479,13 +1493,36 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     const grandOf = (o: OptionRow) => o.totalPrice + (o.excludedTaxes ?? 0);
     const rankedFamilies = [...familyMembers.entries()]
       .map(([familyKey, keys]) => {
-        const rows = [...keys]
+        let rows = [...keys]
           .map((k) => optionsByKey.get(k))
-          .filter((o): o is OptionRow => !!o)
-          // A row that lost its bed text to the twin it no longer shares a key
-          // with gets it back here.
-          .map((o) => (o.bedInfo ? o : { ...o, bedInfo: familyBedInfo.get(familyKey) ?? null }));
-        return { rows, cheapest: Math.min(...rows.map(grandOf)) };
+          .filter((o): o is OptionRow => !!o);
+        // THE GENUINE DUPLICATE, and only it: the same room, board and
+        // refundability offered both WITHOUT a bed description and WITH one, at
+        // the same price to the penny. That is one room listed twice (La Maison
+        // Rouge: "Family Cabin (Pets not allowed)" and "…(2 Twin Bunk Beds and 1
+        // Double Bed)", both £107.31, repeated across every rate plan). Drop the
+        // description-less copy and keep the informative one.
+        //
+        // Crucially this does NOT touch two DIFFERENT bed descriptions at the
+        // same price — "Superior Room(1 Queen Bed)" and "Superior Room(2 Twin
+        // Beds)" are different rooms to anyone who has to sleep in them, and
+        // both stay on sale.
+        const described = rows.filter((o) => o.bedInfo);
+        if (described.length > 0) {
+          rows = rows.filter(
+            (o) => o.bedInfo || !described.some((d) => Math.abs(d.totalPrice - o.totalPrice) < 0.01
+              && d.refundable === o.refundable),
+          );
+        }
+        // A row with no bed text of its own still shows the family's, but only
+        // when the family speaks with ONE voice — if this room is sold in two
+        // different bed layouts we must not guess which one this row is.
+        const familyBeds = new Set(described.map((o) => o.bedInfo));
+        if (familyBeds.size === 1) {
+          const only = described[0].bedInfo ?? null;
+          rows = rows.map((o) => (o.bedInfo ? o : { ...o, bedInfo: only }));
+        }
+        return { rows, cheapest: rows.length ? Math.min(...rows.map(grandOf)) : Infinity };
       })
       .filter((f) => f.rows.length > 0)
       .sort((a, b) => a.cheapest - b.cheapest);

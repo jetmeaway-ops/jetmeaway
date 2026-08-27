@@ -394,8 +394,20 @@ function RateRow({
               sleeping 3 and a 4-person Family Room as sleeping 2. */}
           {(() => {
             const beds = rate.bedInfo || roomMeta?.beds || null;
-            const roomSleeps = roomMeta?.maxOccupancy ?? null;
             const pricedFor = rate.maxOccupancy ?? null;
+            // The catalogue is only trusted about capacity while it is not
+            // contradicted by the booking itself. It is joined to the rate by
+            // fuzzy NAME match, so it can attach the wrong room — measured on
+            // Trilussa Palace Rome, where a £1,948 "Suite (3 rooms, 6 pers)"
+            // priced for six was badged "Sleeps 2" off a matched 2-person spa
+            // room. If the supplier just sold this rate to more people than the
+            // catalogue's room holds, the match is wrong, and the honest thing
+            // to say is what the price actually covers.
+            const catalogueSleeps = roomMeta?.maxOccupancy ?? null;
+            const roomSleeps =
+              catalogueSleeps != null && (pricedFor == null || catalogueSleeps >= pricedFor)
+                ? catalogueSleeps
+                : null;
             const capacityN = roomSleeps ?? pricedFor;
             const capacityLabel = roomSleeps
               ? t('sleeps', { n: roomSleeps })

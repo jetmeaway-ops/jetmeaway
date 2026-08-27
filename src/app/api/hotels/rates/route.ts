@@ -198,7 +198,12 @@ export async function GET(req: NextRequest) {
   //      BOTH the locked and the free-cancellation price for the same room and
   //      board. v9 entries hold only the cheap locked half — they would render
   //      a hotel as having no flexible rates at all for their full TTL.
-  const cacheKey = `hotel-rates:v10:${hotelId}:${checkin}:${checkout}:${adults}:${children}:${childrenAgesRaw}:${rooms}:${occParam}:${currency}`;
+  // v11 — bed configuration is part of row identity again (v10 collapsed
+  // "Superior Room(1 Queen Bed)" and "(2 Twin Beds)" into one row and put a
+  // bookable bed layout out of reach), and a row's bedInfo is only inherited
+  // from its family when that family has ONE layout. v10 rows hold the
+  // over-collapsed set and a possibly-borrowed bed line.
+  const cacheKey = `hotel-rates:v11:${hotelId}:${checkin}:${checkout}:${adults}:${children}:${childrenAgesRaw}:${rooms}:${occParam}:${currency}`;
 
   try {
     const cached = await kv.get<CacheShape | { offers: BoardOptionOut[] }>(cacheKey);
