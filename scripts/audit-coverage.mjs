@@ -78,8 +78,10 @@ function airportEntries() {
   if (!block) return [];
   const out = [];
   for (const row of block[1].matchAll(/keys: \[([^\]]+)\]/g)) {
-    for (const k of row[1].matchAll(/'([^']+)'/g)) {
-      const key = k[1];
+    // Keys can be single- OR double-quoted ("o'hare") — the single-quote-only
+    // matcher shredded that row into garbage queries on the first full run.
+    for (const k of row[1].matchAll(/'([^']+)'|"([^"]+)"/g)) {
+      const key = k[1] ?? k[2];
       out.push({ source: 'airport', query: key });
       if (!/airport/.test(key) && key.length > 3) {
         out.push({ source: 'airport', query: `${key} airport` });
