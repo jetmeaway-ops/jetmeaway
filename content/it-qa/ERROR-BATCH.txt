@@ -17,7 +17,6 @@ best-hotels-lake-como-2026   # THIN 397/477 lines, 0.87 word ratio (imgs/links O
 best-hotels-matera-2026      # THIN 428/493 lines (87%), imgs/links OK — re-run fuller (agent word-count was a miscount)
 best-hotels-monterrey-2026   # THIN 373/503 lines (0.78 words), imgs/links OK — re-run fuller
 best-hotels-rabat-2026       # THIN 403/478 lines (0.84), ext 50/51 (dropped 1) — re-run fuller
-best-hotels-punta-cana-2026  # OVERSIZED: Haiku 32k output cap exceeded — split in 2 halves OR Sonnet; do NOT plain-Haiku re-run
 best-hotels-tallinn-2026     # EXT 50/51 (dropped 1 external link) — link-parity fix
 best-hotels-sousse-2026      # EXT 33/32 (one extra external link) — link-parity fix
 best-hotels-tromso-2026      # EXT 30/29 (one extra external link) — link-parity fix
