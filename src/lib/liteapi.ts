@@ -682,7 +682,28 @@ const LITEAPI_DEBUG = !!process.env.LITEAPI_DEBUG;
 // the guest score as a fallback, and the review-score slot now reads LiteAPI's
 // actual `rating` field. v1 entries hold an invented star rating and no guest
 // score at all, and they live for 24h, so they must not be read back.
-const DIR_CACHE_VERSION = 'v2';
+// v3 (2026-08-27) — a city-name lookup is now widened by a second pass around
+// the city's own centre, so a cached entry holds MORE hotels than before. v2
+// entries carry the short list for their full 24h TTL.
+// v4 (2026-08-27) — the widen now also applies to cities whose name search
+// already filled the fetch limit (Nice, Verona), which v3 skipped. This cache
+// is keyed on the QUERY, not the dates, so a v3 entry would keep serving the
+// un-widened list for a full 24h no matter which dates were searched — the
+// third time today a stale cache has hidden a shipped fix.
+const DIR_CACHE_VERSION = 'v4';
+
+/** How far around a city's own centre the name search is widened. 15 km keeps
+ *  the extra properties genuinely "in" the city — the suburb and lakeside
+ *  villages a visitor would accept — without drifting into the next city's
+ *  results, and it sits well inside the ~80 km band where LiteAPI's radius
+ *  search still behaves. */
+const CITY_WIDEN_KM = 15;
+
+/** How many extra properties the widen may add beyond the caller's own limit.
+ *  Every one is a hotel we then have to price, so this is real upstream load:
+ *  150 is roughly a 30% overshoot on a 500-hotel city, which bought Nice its
+ *  missing ~34 without a latency change worth measuring. */
+const CITY_WIDEN_EXTRA_MAX = 150;
 /** 3h. Which hotels exist near a place barely changes; this is long enough to
  *  cover a customer trying several date ranges (and coming back later) while
  *  still expiring on its own so the footprint can't creep. */
@@ -864,6 +885,74 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
         { method: 'GET' },
       );
       rows = (list.data || []).slice(0, limit);
+
+      /* ── The city-NAME blind spot ────────────────────────────────────────
+         Asking LiteAPI for "hotels in Chambéry" returns only properties whose
+         own `city` field says Chambéry. A hotel three miles away in Challes-
+         les-Eaux, La Féclaz or Voglans — somewhere any visitor would happily
+         stay, and which every rival shows — carries a different town name and
+         is invisible to us.
+
+         Measured 2026-08-27, 28-29 Sep, 2 adults, bookable hotels, name path
+         vs the same city searched by coordinates:
+           Chambéry 21 -> 43   Annecy 53 -> 76    Dijon    74 -> 100
+           Grenoble 39 -> 69   Nice  170 -> 204   Verona  139 -> 185
+           Salzburg 108 -> 138 Como   68 -> 82    Bath     68 -> 82
+           York     84 -> 92   Bruges 122 -> 127  Seville 232 -> 242
+         Twelve cities tested, twelve short — every city search on the site was
+         under-reporting its own inventory.
+
+         So a name search is widened by a second pass around the city's own
+         centre. The centre is the MEDIAN of the coordinates the name search
+         just returned — no hand-maintained table to drift, and it re-derives
+         itself for every city. Median rather than mean so one mis-geocoded
+         property in another country cannot drag the centre off the city
+         (the same-name-town trap that once sent Newcastle to Northern
+         Ireland).
+
+         Failure here is never fatal: the widen is best-effort and the name
+         results stand on their own if it throws. */
+      const usedNamePath = !destinationId && !hasLatLng && !!cityName;
+      if (usedNamePath && rows.length >= 3) {
+        try {
+          const lats = rows.map((h) => h.latitude).filter((n): n is number => typeof n === 'number').sort((a, b) => a - b);
+          const lngs = rows.map((h) => h.longitude).filter((n): n is number => typeof n === 'number').sort((a, b) => a - b);
+          if (lats.length >= 3 && lngs.length >= 3) {
+            const mid = (arr: number[]) => arr[Math.floor(arr.length / 2)];
+            const wideQuery = new URLSearchParams({
+              limit: String(limit),
+              latitude: String(mid(lats)),
+              longitude: String(mid(lngs)),
+              distance: String(CITY_WIDEN_KM),
+            });
+            if (countryCode) wideQuery.set('countryCode', countryCode);
+            if (starRatings && starRatings.length > 0) wideQuery.set('starRating', starRatings.join(','));
+            const wide = await liteFetch<{ data: HotelMeta[] }>(
+              `/data/hotels?${wideQuery.toString()}`,
+              { method: 'GET' },
+            );
+            // A big city's name search FILLS `limit` on its own, and an
+            // earlier cut skipped the widen in exactly that case — so Nice
+            // gained nothing (170 -> 170) while Chambéry doubled. The
+            // surrounding towns a large city hides are the ones no amount of
+            // paging reaches, because every page repeats the same cityName
+            // query. So the merged list is allowed a bounded overshoot rather
+            // than being capped at the name result's own ceiling.
+            const ceiling = Math.max(limit, rows.length) + CITY_WIDEN_EXTRA_MAX;
+            const seenId = new Set(rows.map((h) => h.id));
+            for (const h of wide.data || []) {
+              if (rows.length >= ceiling) break;
+              if (h?.id && !seenId.has(h.id)) {
+                seenId.add(h.id);
+                rows.push(h);
+              }
+            }
+          }
+        } catch {
+          /* widen is a bonus, never a dependency — keep the name results */
+        }
+      }
+
       if (dirKey && rows.length > 0) {
         const encoded = rows.map(encodeDirRow);
         // Guard against a pathological destination bloating KV. Upstash also
