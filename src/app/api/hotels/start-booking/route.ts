@@ -62,6 +62,12 @@ export interface PendingBooking {
   refundable?: boolean;
   /** ISO timestamp by which the user must cancel to get a refund */
   cancellationDeadline?: string | null;
+  /** What was actually booked, as the supplier words it — the room ("Double or
+   *  Twin COMFORT") and the meal plan ("Breakfast Included"). The confirmation
+   *  named only the hotel, so the one document the customer shows at reception
+   *  could not answer "which room, and is breakfast in this?". */
+  roomName?: string | null;
+  boardName?: string | null;
   /** Property check-in window (earliest time rooms are ready), e.g. "14:00" */
   checkInTime?: string | null;
   /** Property check-out cutoff, e.g. "10:00" */
@@ -149,6 +155,8 @@ export async function POST(req: NextRequest) {
       hotelAddress,
       hotelCity,
       hotelCountry,
+      roomName,
+      boardName,
       localFees = 0,
       refundable,
       cancellationDeadline = null,
@@ -220,6 +228,8 @@ export async function POST(req: NextRequest) {
       ...(typeof hotelAddress === 'string' && hotelAddress.trim() ? { hotelAddress: hotelAddress.trim().slice(0, 300) } : {}),
       ...(typeof hotelCity === 'string' && hotelCity.trim() ? { hotelCity: hotelCity.trim().slice(0, 120) } : {}),
       ...(typeof hotelCountry === 'string' && hotelCountry.trim() ? { hotelCountry: hotelCountry.trim().slice(0, 80) } : {}),
+      ...(typeof roomName === 'string' && roomName.trim() ? { roomName: roomName.trim().slice(0, 200) } : {}),
+      ...(typeof boardName === 'string' && boardName.trim() ? { boardName: boardName.trim().slice(0, 120) } : {}),
       ...(Number.isFinite(localFees) && localFees > 0 ? { localFees: Math.round(localFees * 100) / 100 } : {}),
       ...(typeof refundable === 'boolean' ? { refundable } : {}),
       ...(typeof cancellationDeadline === 'string' && cancellationDeadline ? { cancellationDeadline } : {}),
