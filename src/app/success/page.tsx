@@ -43,10 +43,29 @@ async function mirrorToAdminStore(
       customerName: guestName,
       customerEmail: record.guest?.email || '',
       customerPhone: record.guest?.phone || null,
-      destination: record.city || '',
+      // Prefer the property's REAL city. `record.city` is the search box text,
+      // so a Paris hotel was filed under "Eiffel Tower" — which the resend
+      // email then printed back to the customer as their destination.
+      destination: (record.hotelCity || '').trim() || record.city || '',
       checkIn: record.checkIn || null,
       checkOut: record.checkOut || null,
       guests: (record.adults || 0) + (record.children || 0),
+      // Carried so a RESEND can print the same detail as the original
+      // confirmation. Everything below is optional and omitted when absent.
+      ...(typeof record.adults === 'number' ? { adults: record.adults } : {}),
+      ...(typeof record.children === 'number' ? { children: record.children } : {}),
+      ...(Array.isArray(record.childAges) && record.childAges.length
+        ? { childAges: record.childAges }
+        : {}),
+      ...(record.hotelAddress ? { hotelAddress: record.hotelAddress } : {}),
+      ...(record.hotelCity ? { hotelCity: record.hotelCity } : {}),
+      ...(record.hotelCountry ? { hotelCountry: record.hotelCountry } : {}),
+      ...(typeof record.lat === 'number' ? { lat: record.lat } : {}),
+      ...(typeof record.lng === 'number' ? { lng: record.lng } : {}),
+      ...(record.roomName ? { roomName: record.roomName } : {}),
+      ...(record.boardName ? { boardName: record.boardName } : {}),
+      ...(record.checkInTime ? { checkInTime: record.checkInTime } : {}),
+      ...(record.checkOutTime ? { checkOutTime: record.checkOutTime } : {}),
       title: record.hotelName,
       totalPence,
       netPence,

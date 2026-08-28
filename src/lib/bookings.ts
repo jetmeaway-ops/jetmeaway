@@ -53,6 +53,31 @@ export type Booking = {
   guests: number;
   title: string;                 // Hotel name / flight route / package title
 
+  /* ── What the confirmation needs to be a usable document ──────────────────
+     ALL OPTIONAL and ALL ADDITIVE. Nothing that already reads this store is
+     affected; every consumer keeps working on records that lack them (and
+     every record written before 2026-08-28 does lack them).
+
+     They exist because `guests: 5` cannot say "2 adults + 3 children aged
+     10, 14 and 16", and `destination` holds the SEARCH BOX TEXT — a booking
+     for a hotel in Paris 75013 is stored as "Eiffel Tower". The resend email
+     had no way to print a true address, a room, or a real party. */
+  adults?: number;
+  children?: number;
+  childAges?: number[];
+  /** The property's OWN location, never the search text. */
+  hotelAddress?: string | null;
+  hotelCity?: string | null;
+  hotelCountry?: string | null;
+  lat?: number;
+  lng?: number;
+  /** What was booked, in the supplier's words. */
+  roomName?: string | null;
+  boardName?: string | null;
+  /** Property check-in / check-out windows, e.g. "15:00" / "12:00". */
+  checkInTime?: string | null;
+  checkOutTime?: string | null;
+
   // Money (all in GBP pence to avoid float issues)
   totalPence: number;            // What customer paid JetMeAway
   netPence: number;              // What we pay / owe the supplier
