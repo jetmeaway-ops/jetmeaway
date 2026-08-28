@@ -141,15 +141,59 @@ function buildScoutEmailSection(scout: ScoutData): string {
  *  read "Guests 2". The booking itself was correct at LiteAPI (adults 2,
  *  children 3, ages carried through); only the wording was wrong, which is
  *  its own kind of frightening when you are checking your family is on it. */
-function partyLine(b: { adults?: number | null; children?: number | null; nights?: number | null }): string {
+function partyLine(b: {
+  adults?: number | null;
+  children?: number | null;
+  childAges?: number[] | null;
+  nights?: number | null;
+}): string {
   const a = Math.max(0, b.adults || 0);
   const c = Math.max(0, b.children || 0);
   const n = b.nights || 0;
+  // Ages, because that is what a hotel checks a child booking against — and it
+  // is how the supplier's own voucher words it.
+  const ages = Array.isArray(b.childAges) && b.childAges.length
+    ? ` (${b.childAges.join(', ')})`
+    : '';
   const people = [
     `${a} adult${a === 1 ? '' : 's'}`,
-    ...(c > 0 ? [`${c} child${c === 1 ? '' : 'ren'}`] : []),
+    ...(c > 0 ? [`${c} child${c === 1 ? '' : 'ren'}${ages}`] : []),
   ].join(' + ');
   return `${people} · ${n} night${n !== 1 ? 's' : ''}`;
+}
+
+/** The hotel's real postal address, built from what LiteAPI gave us for THIS
+ *  property. Empty when we never stored one (bookings made before we started
+ *  sending it), in which case the email simply omits the block rather than
+ *  printing a half address. */
+function fullAddress(b: {
+  hotelAddress?: string | null;
+  hotelCity?: string | null;
+  hotelCountry?: string | null;
+}): string {
+  return [b.hotelAddress, b.hotelCity, b.hotelCountry]
+    .map((p) => (p || '').trim())
+    .filter(Boolean)
+    .join(', ');
+}
+
+/** A maps link the guest can tap for driving directions. Coordinates when we
+ *  have them — they are exact, and a hotel's postal address is often not the
+ *  entrance. Falls back to a search on name + address. */
+function directionsUrl(b: {
+  hotelName?: string;
+  lat?: number;
+  lng?: number;
+  hotelAddress?: string | null;
+  hotelCity?: string | null;
+  hotelCountry?: string | null;
+}): string | null {
+  if (typeof b.lat === 'number' && typeof b.lng === 'number') {
+    return `https://www.google.com/maps/dir/?api=1&destination=${b.lat},${b.lng}`;
+  }
+  const q = [b.hotelName, fullAddress(b)].filter(Boolean).join(', ').trim();
+  if (!q) return null;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
 }
 
 async function sendHotelConfirmationEmail(booking: StoredBooking) {
@@ -185,7 +229,22 @@ async function sendHotelConfirmationEmail(booking: StoredBooking) {
   // We do not store the hotel's real city, so rather than assert a wrong one we
   // only use the value when it reads like a place — otherwise say nothing.
   const looksLikeACity = !!booking.city && !/(tower|museum|stadium|airport|station|cathedral|palace|park|bridge)/i.test(booking.city);
-  const escapeCity = looksLikeACity ? booking.city : '';
+  // We now store the property's OWN city, so prefer it and name the true place.
+  const escapeCity = (booking.hotelCity || '').trim() || (looksLikeACity ? booking.city : '');
+
+  // The hotel's real address and a tap-through for driving directions. Both come
+  // from the property record, not the search box, and both are simply left out
+  // on older bookings that never stored a location.
+  const address = fullAddress(booking);
+  const directions = directionsUrl(booking);
+
+  /* THE NAME THE ROOM IS HELD UNDER. The confirmation greeted the booker by
+     first name and never stated it — but whoever pays is often not whoever
+     stands at the desk. The owner's own family trip was booked in his wife's
+     name, so the room is held under hers; had he arrived and given his own
+     name, reception would not have found it. The supplier's voucher prints
+     this ("Room 1: <name>") and ours did not. */
+  const heldUnder = `${booking.guest?.firstName || ''} ${booking.guest?.lastName || ''}`.trim();
 
   const html = `
 <!DOCTYPE html>
@@ -217,11 +276,16 @@ async function sendHotelConfirmationEmail(booking: StoredBooking) {
 
     <div style="background:#fff;border:1px solid #E8ECF4;border-radius:16px;padding:20px;margin-bottom:16px;">
       <p style="font-size:11px;font-weight:700;color:#8E95A9;text-transform:uppercase;letter-spacing:2px;margin:0 0 12px;">Hotel Details</p>
-      <p style="font-size:16px;font-weight:800;color:#1A1D2B;margin:0 0 8px;">${booking.hotelName}</p>
+      <p style="font-size:16px;font-weight:800;color:#1A1D2B;margin:0 0 4px;">${booking.hotelName}</p>
+      ${address ? `<p style="font-size:14px;line-height:1.5;color:#5C6378;margin:0 0 10px;">${address}</p>` : ''}
+      ${directions ? `<p style="margin:0 0 14px;"><a href="${directions}" style="display:inline-block;background:#F1F5FF;border:1px solid #D6E2FF;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:800;color:#0066FF;text-decoration:none;">📍 Get directions</a></p>` : ''}
       <table width="100%" cellpadding="0" cellspacing="0">
-        <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Check-in</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${booking.checkIn}</td></tr>
-        <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Check-out</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${booking.checkOut}</td></tr>
+        <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Check-in</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${booking.checkIn}${booking.checkInTime ? ` <span style="font-weight:400;color:#8E95A9;">from ${booking.checkInTime}</span>` : ''}</td></tr>
+        <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Check-out</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${booking.checkOut}${booking.checkOutTime ? ` <span style="font-weight:400;color:#8E95A9;">until ${booking.checkOutTime}</span>` : ''}</td></tr>
+        ${booking.roomName ? `<tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Room</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${booking.roomName}</td></tr>` : ''}
+        ${booking.boardName ? `<tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Meals</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${booking.boardName}</td></tr>` : ''}
         <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Guests</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${partyLine(booking)}</td></tr>
+        ${heldUnder ? `<tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Room held under</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${heldUnder}</td></tr><tr><td colspan="2" style="padding:2px 0 0;font-size:12px;color:#8E95A9;">Show this name at reception — it is the name the hotel holds the room under.</td></tr>` : ''}
         <tr><td colspan="2" style="border-top:2px solid #E8ECF4;padding:12px 0 0;"></td></tr>
         <tr><td style="font-size:16px;font-weight:800;color:#1A1D2B;">Total Paid</td><td style="font-size:20px;font-weight:800;color:#059669;text-align:right;">${currency}${booking.totalPrice.toFixed(2)}</td></tr>
         ${booking.localFees && booking.localFees > 0 ? `<tr><td style="padding:6px 0;font-size:13px;color:#5C6378;">Payable at the hotel</td><td style="padding:6px 0;font-size:13px;font-weight:700;color:#1A1D2B;text-align:right;">${currency}${booking.localFees.toFixed(2)}</td></tr><tr><td colspan="2" style="padding:2px 0 0;font-size:12px;color:#8E95A9;">City tax and local fees the property collects on arrival — not included above.</td></tr>` : ''}
@@ -759,18 +823,68 @@ export default async function SuccessPage({
               ) : null}
             </strong>
           </div>
+          {fullAddress(b) ? (
+            <div className="flex justify-between gap-4 text-[.85rem]">
+              <span className="text-[#5C6378] font-semibold shrink-0">Address</span>
+              <span className="text-[#1A1D2B] text-right">{fullAddress(b)}</span>
+            </div>
+          ) : null}
+          {directionsUrl(b) ? (
+            <div className="pt-1">
+              <a
+                href={directionsUrl(b)!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl border border-[#D6E2FF] bg-[#F1F5FF] px-4 py-2 text-[.8rem] font-extrabold text-[#0066FF]"
+              >
+                <i className="fa-solid fa-location-dot" aria-hidden="true" />
+                Get directions
+              </a>
+            </div>
+          ) : null}
           <div className="flex justify-between text-[.85rem]">
             <span className="text-[#5C6378] font-semibold">Check-in</span>
-            <strong className="text-[#1A1D2B]">{b.checkIn}</strong>
+            <strong className="text-[#1A1D2B]">
+              {b.checkIn}
+              {b.checkInTime ? <span className="font-normal text-[#8E95A9]"> from {b.checkInTime}</span> : null}
+            </strong>
           </div>
           <div className="flex justify-between text-[.85rem]">
             <span className="text-[#5C6378] font-semibold">Check-out</span>
-            <strong className="text-[#1A1D2B]">{b.checkOut}</strong>
+            <strong className="text-[#1A1D2B]">
+              {b.checkOut}
+              {b.checkOutTime ? <span className="font-normal text-[#8E95A9]"> until {b.checkOutTime}</span> : null}
+            </strong>
           </div>
+          {b.roomName ? (
+            <div className="flex justify-between gap-4 text-[.85rem]">
+              <span className="text-[#5C6378] font-semibold shrink-0">Room</span>
+              <strong className="text-[#1A1D2B] text-right">{b.roomName}</strong>
+            </div>
+          ) : null}
+          {b.boardName ? (
+            <div className="flex justify-between text-[.85rem]">
+              <span className="text-[#5C6378] font-semibold">Meals</span>
+              <strong className="text-[#1A1D2B]">{b.boardName}</strong>
+            </div>
+          ) : null}
           <div className="flex justify-between text-[.85rem]">
             <span className="text-[#5C6378] font-semibold">Guests</span>
             <strong className="text-[#1A1D2B]">{partyLine(b)}</strong>
           </div>
+          {`${b.guest?.firstName || ''} ${b.guest?.lastName || ''}`.trim() ? (
+            <div>
+              <div className="flex justify-between gap-4 text-[.85rem]">
+                <span className="text-[#5C6378] font-semibold shrink-0">Room held under</span>
+                <strong className="text-[#1A1D2B] text-right">
+                  {`${b.guest?.firstName || ''} ${b.guest?.lastName || ''}`.trim()}
+                </strong>
+              </div>
+              <p className="text-[.7rem] text-[#8E95A9] mt-0.5">
+                Show this name at reception — it is the name the hotel holds the room under.
+              </p>
+            </div>
+          ) : null}
           <div className="flex justify-between text-[.85rem] pt-2 border-t border-[#E8ECF4]">
             <span className="text-[#5C6378] font-semibold">Total paid</span>
             <strong className="text-[#1A1D2B]">

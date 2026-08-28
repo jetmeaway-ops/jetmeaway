@@ -851,6 +851,11 @@ export default function HotelDetailPage() {
           // tax-included — inherited £22.33 from the card's cheapest rate and
           // showed a total 17.4% too high. On a 2-room quote it doubled.
           localFees: rate.excludedTaxes ?? 0,
+          // WHAT was booked, in the supplier's own words. The confirmation named
+          // only the hotel, so the document a guest shows at reception could not
+          // answer "which room, and is breakfast included?".
+          ...(rate.roomName ? { roomName: rate.roomName } : {}),
+          ...(rate.boardType ? { boardName: rate.boardType } : {}),
           refundable: rate.refundable,
           // The free-cancellation deadline this row advertised. Without it the
           // booking record stored null, the Cancel button never rendered, and
@@ -923,6 +928,13 @@ export default function HotelDetailPage() {
           // case where it is still the best information we have — booking the
           // hotel-level offer without having picked a row at all.
           localFees: selectedRate ? (selectedRate.excludedTaxes ?? 0) : (localFees ?? 0),
+          // WHAT was booked, in the supplier's own words. Falls back to the room
+          // and board carried in the URL when the visitor arrived on a deep link
+          // and no rate row is selected.
+          ...(selectedRate?.roomName ? { roomName: selectedRate.roomName } : {}),
+          ...(selectedRate?.boardType || boardType
+            ? { boardName: selectedRate?.boardType || boardType }
+            : {}),
           ...(refundable !== null ? { refundable } : {}),
           ...(selectedRate?.cancelDeadline
             ? { cancellationDeadline: selectedRate.cancelDeadline }
