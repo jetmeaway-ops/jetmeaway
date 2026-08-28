@@ -122,8 +122,8 @@ function detailsTable(rows: Array<[string, string]>): string {
     .map(
       ([k, v]) => `
       <tr>
-        <td style="padding:8px 0;color:#8E95A9;font-size:13px;width:40%;">${k}</td>
-        <td style="padding:8px 0;color:#1A1D2B;font-size:14px;font-weight:600;">${v}</td>
+        <td style="padding:8px 0;color:#8E95A9;font-size:13px;width:40%;">${escapeHtml(k)}</td>
+        <td style="padding:8px 0;color:#1A1D2B;font-size:14px;font-weight:600;">${escapeHtml(v)}</td>
       </tr>`,
     )
     .join('')}
@@ -140,9 +140,43 @@ function confirmationHtml(booking: Booking): string {
     [isFlight ? 'Route' : 'Hotel', booking.title],
     [isFlight ? 'Destination' : 'City', booking.destination],
   ];
-  if (booking.checkIn) rows.push([isFlight ? 'Travel date' : 'Check-in', formatDate(booking.checkIn)]);
-  if (booking.checkOut && !isFlight) rows.push(['Check-out', formatDate(booking.checkOut)]);
-  if (booking.guests) rows.push([isFlight ? 'Passengers' : 'Guests', String(booking.guests)]);
+  // The hotel's real postal address, when the record carries one.
+  if (!isFlight) {
+    const addr = [booking.hotelAddress, booking.hotelCity, booking.hotelCountry]
+      .map((p) => (p || '').trim())
+      .filter(Boolean)
+      .join(', ');
+    if (addr) rows.push(['Address', addr]);
+  }
+  if (booking.checkIn) {
+    const t = !isFlight && booking.checkInTime ? ` from ${booking.checkInTime}` : '';
+    rows.push([isFlight ? 'Travel date' : 'Check-in', formatDate(booking.checkIn) + t]);
+  }
+  if (booking.checkOut && !isFlight) {
+    const t = booking.checkOutTime ? ` until ${booking.checkOutTime}` : '';
+    rows.push(['Check-out', formatDate(booking.checkOut) + t]);
+  }
+  if (!isFlight && booking.roomName) rows.push(['Room', booking.roomName]);
+  if (!isFlight && booking.boardName) rows.push(['Meals', booking.boardName]);
+  /* A SINGLE NUMBER CANNOT DESCRIBE A FAMILY. This row read "Guests 5" — and
+     on the other confirmation path, "Guests 2" for a family of five, which is
+     what the owner found on his own booking. Print the actual party, with the
+     children's ages, because that is what a hotel checks a child booking
+     against. Falls back to the bare count on records that carry no breakdown. */
+  if (!isFlight && (booking.adults || booking.children)) {
+    const a = Math.max(0, booking.adults || 0);
+    const c = Math.max(0, booking.children || 0);
+    const ages = booking.childAges?.length ? ` (${booking.childAges.join(', ')})` : '';
+    rows.push([
+      'Guests',
+      [`${a} adult${a === 1 ? '' : 's'}`, ...(c > 0 ? [`${c} child${c === 1 ? '' : 'ren'}${ages}`] : [])].join(' + '),
+    ]);
+  } else if (booking.guests) {
+    rows.push([isFlight ? 'Passengers' : 'Guests', String(booking.guests)]);
+  }
+  // The name the hotel holds the room under — often not the person reading
+  // this. The owner's family trip was booked in his wife's name.
+  if (!isFlight && booking.customerName) rows.push(['Room held under', booking.customerName]);
   rows.push(['Total paid', formatPrice(booking.totalPence)]);
 
   const supplierNote = isFlight
@@ -167,10 +201,23 @@ function confirmationHtml(booking: Booking): string {
     </div>`
       : '';
 
+  /* Driving directions, from the hotel's COORDINATES rather than its postal
+     address — a hotel's registered address is often not its entrance. Shown
+     only for hotels, and only when the record carries a position. */
+  const directionsBlock =
+    !isFlight && typeof booking.lat === 'number' && typeof booking.lng === 'number'
+      ? `
+    <p style="margin:14px 0 0 0;">
+      <a href="https://www.google.com/maps/dir/?api=1&amp;destination=${booking.lat},${booking.lng}"
+         style="display:inline-block;background:#F1F5FF;border:1px solid #D6E2FF;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:800;color:#0066FF;text-decoration:none;">📍 Get directions</a>
+    </p>`
+      : '';
+
   const body = `
     <p style="margin:0 0 12px 0;color:#1A1D2B;">Hi ${escapeHtml(booking.customerName || 'there')},</p>
     <p style="margin:0 0 16px 0;">We've confirmed your booking. Here are the details:</p>
     ${detailsTable(rows)}
+    ${directionsBlock}
     <p style="margin:16px 0 0 0;color:#5C6378;font-size:14px;">${supplierNote}</p>
     ${promoBlock}
   `;
