@@ -130,6 +130,30 @@ function detailsTable(rows: Array<[string, string]>): string {
 </table>`;
 }
 
+/** Postal address from the three parts we store, without repeating a part the
+ *  supplier already wrote into the street line. LiteAPI's address for the
+ *  owner's Paris hotel is "2-16, rue Theroigne de Mericourt, Paris, 75013", so
+ *  appending city and country naively produced "... Paris, 75013, Paris,
+ *  France". A doubled city on the document a guest shows at reception reads as
+ *  carelessness. */
+export function joinAddress(
+  street?: string | null,
+  city?: string | null,
+  country?: string | null,
+): string {
+  const s = (street || '').trim();
+  const parts = [s];
+  const seen = s.toLowerCase();
+  for (const extra of [city, country]) {
+    const e = (extra || '').trim();
+    if (!e) continue;
+    // Word-boundary match, so "Paris" is not swallowed by "Parisian Road".
+    const already = new RegExp(`(^|[\\s,])${e.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([\\s,]|$)`, 'i').test(seen);
+    if (!already) parts.push(e);
+  }
+  return parts.filter(Boolean).join(', ');
+}
+
 /* ------------------------- confirmation notification --------------------- */
 
 function confirmationHtml(booking: Booking): string {
@@ -142,10 +166,7 @@ function confirmationHtml(booking: Booking): string {
   ];
   // The hotel's real postal address, when the record carries one.
   if (!isFlight) {
-    const addr = [booking.hotelAddress, booking.hotelCity, booking.hotelCountry]
-      .map((p) => (p || '').trim())
-      .filter(Boolean)
-      .join(', ');
+    const addr = joinAddress(booking.hotelAddress, booking.hotelCity, booking.hotelCountry);
     if (addr) rows.push(['Address', addr]);
   }
   if (booking.checkIn) {
@@ -178,6 +199,11 @@ function confirmationHtml(booking: Booking): string {
   // this. The owner's family trip was booked in his wife's name.
   if (!isFlight && booking.customerName) rows.push(['Room held under', booking.customerName]);
   rows.push(['Total paid', formatPrice(booking.totalPence)]);
+  // Money the PROPERTY still collects. Printing a total under a no-surprises
+  // promise while the desk asks for more is the surprise.
+  if (!isFlight && booking.localFeesPence && booking.localFeesPence > 0) {
+    rows.push(['Payable at the hotel', `${formatPrice(booking.localFeesPence)} — city tax and local fees, collected on arrival`]);
+  }
 
   const supplierNote = isFlight
     ? `Your e-ticket will arrive directly from the airline within a few hours. If you haven't received it by tomorrow, check your spam folder or reply to this email.`

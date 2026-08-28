@@ -3,6 +3,7 @@ import { bookWithTransactionId, completeBooking } from '@/lib/liteapi';
 import { sendSms, hotelBookingMessage } from '@/lib/twilio';
 import { upsertBooking, type Booking } from '@/lib/bookings';
 import { scoutSalutation } from '@/lib/scout-greeting';
+import { joinAddress } from '@/lib/notifications';
 import type { PendingBooking } from '@/app/api/hotels/start-booking/route';
 import type { PendingGuest } from '@/app/api/hotels/pending/[ref]/guest/route';
 import ConversionPixel from '@/components/ConversionPixel';
@@ -66,6 +67,9 @@ async function mirrorToAdminStore(
       ...(record.boardName ? { boardName: record.boardName } : {}),
       ...(record.checkInTime ? { checkInTime: record.checkInTime } : {}),
       ...(record.checkOutTime ? { checkOutTime: record.checkOutTime } : {}),
+      ...(typeof record.localFees === 'number' && record.localFees > 0
+        ? { localFeesPence: Math.round(record.localFees * 100) }
+        : {}),
       title: record.hotelName,
       totalPence,
       netPence,
@@ -190,10 +194,7 @@ function fullAddress(b: {
   hotelCity?: string | null;
   hotelCountry?: string | null;
 }): string {
-  return [b.hotelAddress, b.hotelCity, b.hotelCountry]
-    .map((p) => (p || '').trim())
-    .filter(Boolean)
-    .join(', ');
+  return joinAddress(b.hotelAddress, b.hotelCity, b.hotelCountry);
 }
 
 /** A maps link the guest can tap for driving directions. Coordinates when we

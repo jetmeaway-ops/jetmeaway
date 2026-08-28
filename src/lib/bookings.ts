@@ -77,6 +77,12 @@ export type Booking = {
   /** Property check-in / check-out windows, e.g. "15:00" / "12:00". */
   checkInTime?: string | null;
   checkOutTime?: string | null;
+  /** Taxes and fees the PROPERTY collects on arrival — city tax, VAT, resort
+   *  fee — and which are NOT part of totalPence. Without this the confirmation
+   *  shows "Total paid" under a no-surprises promise while the guest is asked
+   *  for more at the desk: on the owner's own Paris booking, GBP 20.37 on top
+   *  of GBP 120.44, a 17% understatement. In pence, like every other amount. */
+  localFeesPence?: number;
 
   // Money (all in GBP pence to avoid float issues)
   totalPence: number;            // What customer paid JetMeAway
