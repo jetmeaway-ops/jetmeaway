@@ -1439,11 +1439,6 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     // family at a time so a flexible row can never be starved by cheap
     // non-refundable noise — see the admission loop below.
     const familyMembers = new Map<string, Set<string>>();
-    // Bed text belongs to the ROOM, so it is shared across the family. The
-    // refundable twin is often the one listed WITHOUT the "(2 Twin Beds)"
-    // suffix; before refundability split the key, the twins collapsed and the
-    // merge below carried the text over. Keep carrying it, family-wide.
-    const familyBedInfo = new Map<string, string>();
 
     for (const rt of entry.roomTypes || []) {
       // Prefer the roomType-level name, fall back to the first rate's name.
@@ -1671,7 +1666,6 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
         let members = familyMembers.get(familyKey);
         if (!members) { members = new Set<string>(); familyMembers.set(familyKey, members); }
         members.add(mapKey);
-        if (rowBedInfo && !familyBedInfo.has(familyKey)) familyBedInfo.set(familyKey, rowBedInfo);
 
         if (effectivePrice < bestPrice) {
           bestPrice = effectivePrice;
@@ -1718,7 +1712,7 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
     // the fifty goes unused.
     const grandOf = (o: OptionRow) => o.totalPrice + (o.excludedTaxes ?? 0);
     const rankedFamilies = [...familyMembers.entries()]
-      .map(([familyKey, keys]) => {
+      .map(([, keys]) => {
         let rows = [...keys]
           .map((k) => optionsByKey.get(k))
           .filter((o): o is OptionRow => !!o);
@@ -1740,14 +1734,38 @@ export async function getHotels(params: GetHotelsParams): Promise<HotelOffer[]> 
               && d.refundable === o.refundable),
           );
         }
-        // A row with no bed text of its own still shows the family's, but only
-        // when the family speaks with ONE voice — if this room is sold in two
-        // different bed layouts we must not guess which one this row is.
-        const familyBeds = new Set(described.map((o) => o.bedInfo));
-        if (familyBeds.size === 1) {
-          const only = described[0].bedInfo ?? null;
-          rows = rows.map((o) => (o.bedInfo ? o : { ...o, bedInfo: only }));
-        }
+        // 🔴 BED TEXT IS NEVER BORROWED FROM A SIBLING RATE.
+        // A row used to inherit its family's bed description whenever the
+        // family spoke with ONE voice. That reads as generous and is in fact
+        // the single defect that made two DIFFERENTLY PRICED rows render as
+        // the same row: the card prints `bedInfo` on its own line and cuts any
+        // repeat of it out of the title (RoomsTable.splitBedFromTitle), so
+        // "Double room (full double bed)" £331.50 and "Double Room" £349.56 —
+        // Hotel Cilicia lp470bb, 14→17 Oct, 2 adults — both came out as
+        // "Double room" + "full double bed" + Breakfast Included +
+        // non-refundable, and nothing on either card said why one cost £18 more.
+        // Measured on prod 2026-08-28 over 200 Rome hotels, 8,468 rate rows:
+        // 2,415 rows carried a bed line and 389 of them (16%) carried text the
+        // supplier never put on that rate's own name. 55 of those borrowings
+        // produced a pair of rows identical in EVERY rendered field (title
+        // after the card's bed-cut, bed line, board, refundability, cancel
+        // deadline, capacity, property tax, payment type, room breakdown, deal
+        // badge) and different only in price — 110 rows across 38 of the 200
+        // hotels. Dropping the inheritance takes that to 0.
+        //
+        // It also cost nothing real, because the case it was written for — the
+        // same room and board sold at the SAME price, described on one rate
+        // plan and not the other — never reaches here: the equal-price merge
+        // directly above already DROPS the description-less copy. 0 of the 389
+        // borrowings had a same-price described twin in their family.
+        //
+        // And the borrowing was not merely uninformative, it was capable of
+        // being wrong: Cilicia sells "Double or Twin Room" as well, so stamping
+        // "full double bed" on a rate the supplier declined to describe can put
+        // a couple in twin beds. When neither the rate name nor the room
+        // catalogue (the card's own next fallback, which is at least matched to
+        // this row's name) describes the beds, the honest row has no bed line.
+        // 290 of the 389 keep one from the catalogue; 99 lose it.
         return { rows, cheapest: rows.length ? Math.min(...rows.map(grandOf)) : Infinity };
       })
       .filter((f) => f.rows.length > 0)

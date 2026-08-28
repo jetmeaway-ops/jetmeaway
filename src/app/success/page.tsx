@@ -134,6 +134,24 @@ function buildScoutEmailSection(scout: ScoutData): string {
   return html;
 }
 
+/** The party as booked, for the confirmation screen and both emails.
+ *  🔴 All three used to print `adults` alone, so a family of five was told
+ *  "Guests 2" on the screen AND in the email they would show at the desk —
+ *  owner's own booking JMA-H-NBW7YP3K, 2 adults + 3 children aged 10/14/16,
+ *  read "Guests 2". The booking itself was correct at LiteAPI (adults 2,
+ *  children 3, ages carried through); only the wording was wrong, which is
+ *  its own kind of frightening when you are checking your family is on it. */
+function partyLine(b: { adults?: number | null; children?: number | null; nights?: number | null }): string {
+  const a = Math.max(0, b.adults || 0);
+  const c = Math.max(0, b.children || 0);
+  const n = b.nights || 0;
+  const people = [
+    `${a} adult${a === 1 ? '' : 's'}`,
+    ...(c > 0 ? [`${c} child${c === 1 ? '' : 'ren'}`] : []),
+  ].join(' + ');
+  return `${people} · ${n} night${n !== 1 ? 's' : ''}`;
+}
+
 async function sendHotelConfirmationEmail(booking: StoredBooking) {
   const RESEND_KEY = process.env.RESEND_API_KEY;
   if (!RESEND_KEY || !booking.guest?.email) return;
@@ -161,7 +179,13 @@ async function sendHotelConfirmationEmail(booking: StoredBooking) {
     if (isNaN(d.getTime())) return booking.checkIn;
     return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' });
   })();
-  const escapeCity = booking.city || 'next';
+  // `booking.city` is the SEARCH BOX TEXT, not where the hotel is. A landmark
+  // search stores "Eiffel Tower", so the confirmation email read "Your Eiffel
+  // Tower escape" for a hotel in Paris 75013 (owner's own booking, 2026-08-28).
+  // We do not store the hotel's real city, so rather than assert a wrong one we
+  // only use the value when it reads like a place — otherwise say nothing.
+  const looksLikeACity = !!booking.city && !/(tower|museum|stadium|airport|station|cathedral|palace|park|bridge)/i.test(booking.city);
+  const escapeCity = looksLikeACity ? booking.city : '';
 
   const html = `
 <!DOCTYPE html>
@@ -177,7 +201,7 @@ async function sendHotelConfirmationEmail(booking: StoredBooking) {
     <div style="background:#fff;border:1px solid #E8ECF4;border-radius:16px;padding:24px;margin-bottom:16px;">
       <p style="font-size:11px;font-weight:800;color:#0066FF;text-transform:uppercase;letter-spacing:2.5px;margin:0 0 12px;">From your Personal Scout</p>
       <h1 style="font-size:22px;font-weight:900;color:#0a1628;margin:0 0 12px;line-height:1.25;">${salutation}</h1>
-      <p style="font-size:15px;line-height:1.55;color:#374151;margin:0;">Your <strong>${escapeCity}</strong> escape is officially on the map. Your Personal Scout has secured the best rates at <strong>${booking.hotelName}</strong>. We're getting everything ready for your arrival${friendlyCheckIn ? ` on <strong>${friendlyCheckIn}</strong>` : ''}.</p>
+      <p style="font-size:15px;line-height:1.55;color:#374151;margin:0;">Your ${escapeCity ? `<strong>${escapeCity}</strong> ` : ''}escape is officially on the map. Your Personal Scout has secured the best rates at <strong>${booking.hotelName}</strong>. We're getting everything ready for your arrival${friendlyCheckIn ? ` on <strong>${friendlyCheckIn}</strong>` : ''}.</p>
     </div>
 
     <div style="background:linear-gradient(135deg,#059669,#10B981);border-radius:16px;padding:24px;text-align:center;margin-bottom:24px;">
@@ -197,9 +221,10 @@ async function sendHotelConfirmationEmail(booking: StoredBooking) {
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Check-in</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${booking.checkIn}</td></tr>
         <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Check-out</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${booking.checkOut}</td></tr>
-        <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Guests</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${booking.adults} · ${booking.nights} night${booking.nights !== 1 ? 's' : ''}</td></tr>
+        <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Guests</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${partyLine(booking)}</td></tr>
         <tr><td colspan="2" style="border-top:2px solid #E8ECF4;padding:12px 0 0;"></td></tr>
         <tr><td style="font-size:16px;font-weight:800;color:#1A1D2B;">Total Paid</td><td style="font-size:20px;font-weight:800;color:#059669;text-align:right;">${currency}${booking.totalPrice.toFixed(2)}</td></tr>
+        ${booking.localFees && booking.localFees > 0 ? `<tr><td style="padding:6px 0;font-size:13px;color:#5C6378;">Payable at the hotel</td><td style="padding:6px 0;font-size:13px;font-weight:700;color:#1A1D2B;text-align:right;">${currency}${booking.localFees.toFixed(2)}</td></tr><tr><td colspan="2" style="padding:2px 0 0;font-size:12px;color:#8E95A9;">City tax and local fees the property collects on arrival — not included above.</td></tr>` : ''}
       </table>
     </div>
 
@@ -249,7 +274,7 @@ async function sendOwnerSuccessEmail(booking: StoredBooking) {
       <tr><td style="padding:6px 0;">Email</td><td style="padding:6px 0;font-weight:700;color:#1A1D2B;text-align:right;">${booking.guest?.email || 'N/A'}</td></tr>
       <tr><td style="padding:6px 0;">Check-in</td><td style="padding:6px 0;font-weight:700;color:#1A1D2B;text-align:right;">${booking.checkIn}</td></tr>
       <tr><td style="padding:6px 0;">Check-out</td><td style="padding:6px 0;font-weight:700;color:#1A1D2B;text-align:right;">${booking.checkOut}</td></tr>
-      <tr><td style="padding:6px 0;">Guests</td><td style="padding:6px 0;font-weight:700;color:#1A1D2B;text-align:right;">${booking.adults} · ${booking.nights} night${booking.nights !== 1 ? 's' : ''}</td></tr>
+      <tr><td style="padding:6px 0;">Guests</td><td style="padding:6px 0;font-weight:700;color:#1A1D2B;text-align:right;">${partyLine(booking)}</td></tr>
       <tr><td colspan="2" style="border-top:2px solid #E8ECF4;padding:8px 0 0;"></td></tr>
       <tr><td style="font-size:16px;font-weight:800;color:#1A1D2B;">Total</td><td style="font-size:20px;font-weight:800;color:#059669;text-align:right;">${currency}${booking.totalPrice.toFixed(2)}</td></tr>
     </table>
@@ -744,7 +769,7 @@ export default async function SuccessPage({
           </div>
           <div className="flex justify-between text-[.85rem]">
             <span className="text-[#5C6378] font-semibold">Guests</span>
-            <strong className="text-[#1A1D2B]">{b.adults} · {b.nights} night{b.nights !== 1 ? 's' : ''}</strong>
+            <strong className="text-[#1A1D2B]">{partyLine(b)}</strong>
           </div>
           <div className="flex justify-between text-[.85rem] pt-2 border-t border-[#E8ECF4]">
             <span className="text-[#5C6378] font-semibold">Total paid</span>

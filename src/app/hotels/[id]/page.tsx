@@ -7,7 +7,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import DateRangePicker from '@/components/DateRangePicker';
 import { redirectUrl } from '@/lib/redirect';
-import RoomsTable, { type RoomRate } from './RoomsTable';
+import RoomsTable, { allInTotal, type RoomRate } from './RoomsTable';
 import RoomsSkeleton from './RoomsSkeleton';
 import RoomDetailModal from './RoomDetailModal';
 import HotelBackdrop from '@/components/HotelBackdrop';
@@ -591,7 +591,16 @@ export default function HotelDetailPage() {
           // Pre-select whichever row matches the offerId the user clicked
           // on the search results page — landing state already reflects
           // the card they came from.
-          const pre = list.find((r) => r.offerId === offerId) || list[0] || null;
+          // 🔴 `list` arrives sorted cheapest-STICKER-first from the API, but the
+          // table now ranks on the ALL-IN cost (rate + tax payable at the
+          // property). Taking list[0] would preselect a row that is no longer
+          // the one at the top of the table, so the sidebar total and the
+          // highlighted row would disagree with each other on any hotel where
+          // the two orderings differ — 6 of 15 Rome hotels measured.
+          const cheapestAllIn = list.length
+            ? [...list].sort((a, b) => allInTotal(a) - allInTotal(b))[0]
+            : null;
+          const pre = list.find((r) => r.offerId === offerId) || cheapestAllIn || null;
           setSelectedRate(pre);
         } else {
           setRates([]);
@@ -852,6 +861,17 @@ export default function HotelDetailPage() {
           ...(rate.cancelDeadline ? { cancellationDeadline: rate.cancelDeadline } : {}),
           checkInTime: hotel.checkInTime || null,
           checkOutTime: hotel.checkOutTime || null,
+          // The hotel's REAL location, so the confirmation can print a full
+          // address and a working "get directions" link, and so the
+          // neighbourhood guide (which needs coordinates) actually renders.
+          // Until now none of this was sent: the booking stored only the SEARCH
+          // BOX text as `city`, which is why a Paris booking was confirmed as
+          // an "Eiffel Tower escape" with no address and no guide.
+          ...(hotel.address ? { hotelAddress: hotel.address } : {}),
+          ...(hotel.city ? { hotelCity: hotel.city } : {}),
+          ...(hotel.country ? { hotelCountry: hotel.country } : {}),
+          ...(typeof hotel.latitude === 'number' ? { lat: hotel.latitude } : {}),
+          ...(typeof hotel.longitude === 'number' ? { lng: hotel.longitude } : {}),
           // LiteAPI commission (our merchant margin on this rate) — optional,
           // only set when the rate response included it. Drives the admin
           // "Margin" column on the unified bookings store.
@@ -909,6 +929,17 @@ export default function HotelDetailPage() {
             : {}),
           checkInTime: hotel.checkInTime || null,
           checkOutTime: hotel.checkOutTime || null,
+          // The hotel's REAL location, so the confirmation can print a full
+          // address and a working "get directions" link, and so the
+          // neighbourhood guide (which needs coordinates) actually renders.
+          // Until now none of this was sent: the booking stored only the SEARCH
+          // BOX text as `city`, which is why a Paris booking was confirmed as
+          // an "Eiffel Tower escape" with no address and no guide.
+          ...(hotel.address ? { hotelAddress: hotel.address } : {}),
+          ...(hotel.city ? { hotelCity: hotel.city } : {}),
+          ...(hotel.country ? { hotelCountry: hotel.country } : {}),
+          ...(typeof hotel.latitude === 'number' ? { lat: hotel.latitude } : {}),
+          ...(typeof hotel.longitude === 'number' ? { lng: hotel.longitude } : {}),
         }),
       });
       const data = await res.json();
@@ -981,10 +1012,14 @@ export default function HotelDetailPage() {
   // hotel pack listings and AI Overviews. Built client-side since the page is
   // a client component; crawlers still index it (Googlebot executes JS).
   const hotelJsonLd = (() => {
+    // Advertise the same "cheapest" the page itself shows. Reducing on the
+    // sticker price told Google GBP 156.97 while the page's own cheapest-first
+    // table opened at GBP 197.85 (Hotel Pineta Palace, 18-21 Nov) — a rich
+    // result that undercuts your own page is a complaint waiting to happen.
     const cheapestRate = rates.length > 0
-      ? rates.reduce((min, r) => (r.totalPrice < min.totalPrice ? r : min), rates[0])
+      ? rates.reduce((min, r) => (allInTotal(r) < allInTotal(min) ? r : min), rates[0])
       : null;
-    const priceNum = cheapestRate?.totalPrice ?? (price ? parseFloat(price) : null);
+    const priceNum = cheapestRate ? allInTotal(cheapestRate) : (price ? parseFloat(price) : null);
     const priceCcy = currency || 'GBP';
     const pageUrl = typeof window !== 'undefined' ? window.location.href : `https://jetmeaway.co.uk/hotels/${hotel.id}`;
     const schema: Record<string, unknown> = {

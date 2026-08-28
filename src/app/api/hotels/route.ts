@@ -891,6 +891,14 @@ async function fetchLiteApiHotels(
   // collapsed "3 expensive hotels" set for the full TTL. Optional — legacy
   // callers that don't care pass nothing.
   quality?: { degraded: boolean },
+  // True only when the REQUEST itself supplied lat+lng+radius — i.e. the map's
+  // area search asking about a place, not a city. Such a search must not be
+  // filtered to the searched city's country or it silently deletes everything
+  // over the border (Geneva, empty, from a Chambery map). Deliberately NOT
+  // inferred from `centroid.radiusKm`: our own curated airport and city
+  // centroids carry a radius too, and those searches still want the country
+  // guard that keeps "Newcastle" out of Northern Ireland.
+  crossBorder: boolean = false,
 ): Promise<HotelOffer[]> {
   const markDegraded = () => { if (quality) quality.degraded = true; };
   const markQuality = (q: { chunksTotal: number; chunksFailed: number }) => {
@@ -1050,12 +1058,26 @@ async function fetchLiteApiHotels(
     // placeId is handled by a SEPARATE third parallel call below — keeping
     // the primary/budget pair on the proven lat/lng path means we never
     // lose the broad inventory (Raffles / Corinthia for Big Ben etc.).
+    /* 🔴 A CO-ORDINATE SEARCH MUST NOT BE LOCKED TO THE CITY'S COUNTRY.
+       When the caller supplies an explicit radius they are asking about a
+       PLACE ON THE MAP, not about a city — that is exactly what the map's
+       area search does as you pan. Forcing the country derived from the
+       search box then silently deletes everything across the border:
+       measured 2026-08-28, the same coordinates over Geneva returned 110
+       hotels labelled `city=Geneva` and only 40 labelled `city=Chambery`.
+       Panning the map from Chambéry into Switzerland showed an empty
+       country with 238 bookable hotels sitting in it — and because the map
+       remembers each square it has searched, the blank never retried.
+       The coordinates are the truth here, so the country filter is dropped
+       for explicitly-bounded searches only. A plain city search keeps it:
+       that is what stops "Newcastle" wandering to Northern Ireland. */
+    const explicitGeo = crossBorder;
     const primaryDestClause = centroid
       ? {
           latitude: centroid.lat,
           longitude: centroid.lng,
           distanceKm: centroid.radiusKm ?? 15,
-          countryCode: resolvedCountry,
+          ...(explicitGeo ? {} : { countryCode: resolvedCountry }),
         }
       : { cityName: resolvedCity, countryCode: resolvedCountry };
 
@@ -2145,7 +2167,10 @@ export async function GET(req: NextRequest) {
   // entry would keep serving the short list for its full 30-minute TTL.
   // v36 — wrong-continent supplier records are filtered out, so a v35 entry
   // could still serve a bookable hotel 1,040 km from the searched city.
-  const kvKey = `hotels:v36:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}${occCacheSuffix}${agesCacheSuffix}${ctrCacheSuffix}${geoCacheSuffix}`;
+  // v37 — an explicitly-bounded (map area) search no longer filters to the
+  // searched city's country, so those entries can now hold hotels across a
+  // border. A v36 entry would keep serving the border-locked set.
+  const kvKey = `hotels:v37:${cacheCity}:${checkin}:${checkout}:${adultsNum}:${childrenNum}:${roomsNum}:${minStars}${occCacheSuffix}${agesCacheSuffix}${ctrCacheSuffix}${geoCacheSuffix}`;
 
   // Group occupancy bypass: large groups (>4 guests) always get fresh prices
   // because cached availability/room blocks may not hold for that many people.
@@ -2310,6 +2335,10 @@ export async function GET(req: NextRequest) {
     const pageOffers = await fetchLiteApiHotels(
       cityKey, checkin, checkout, adultsNum, childrenNum, roomsNum, childAges,
       liteApiTimeoutMs, placeId || undefined, liteApiCentroid, roomsArr, searchType, capped, pageQuality,
+      // Deeper pages of an explicitly-bounded search must drop the country
+      // filter for the same reason page 0 does, or paging a cross-border map
+      // area would quietly re-introduce the border halfway down the list.
+      !!explicitRadiusKm,
     );
     // Match page-0's star filter so a "4★+" search stays consistent across pages.
     const pageHotels = normaliseLiteApi(pageOffers).filter((h) => (h.stars ?? 0) >= minStars);
@@ -2334,7 +2363,7 @@ export async function GET(req: NextRequest) {
   // only briefly (KV_TTL_DEGRADED) so a transient upstream slowdown can't pin a
   // collapsed "3 expensive hotels" set for the full 30-min TTL.
   const searchQuality = { degraded: false };
-  const liteApiPromise = fetchLiteApiHotels(cityKey, checkin, checkout, adultsNum, childrenNum, roomsNum, childAges, liteApiTimeoutMs, placeId || undefined, liteApiCentroid, roomsArr, searchType, 0, searchQuality);
+  const liteApiPromise = fetchLiteApiHotels(cityKey, checkin, checkout, adultsNum, childrenNum, roomsNum, childAges, liteApiTimeoutMs, placeId || undefined, liteApiCentroid, roomsArr, searchType, 0, searchQuality, !!explicitRadiusKm);
   // RateHawk + DOTW rows are dropped from the response further down — the
   // details endpoint can only route `la_` ids, so clicking one returns
   // "Hotel not found". Fetching them therefore buys the customer nothing but
