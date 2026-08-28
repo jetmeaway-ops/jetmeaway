@@ -857,6 +857,11 @@ function normaliseHotelNameForDedupe(name: string): string {
 const SAME_BUILDING_M = 250;
 const METRES_PER_MILE = 1609.344;
 
+/** How stale the deal strip on screen may be before a Book click re-prices it.
+ *  Eight minutes sits under the ten the server keeps its quotes to, so a click
+ *  never rides an offer the route has already replaced. */
+const DEAL_OFFER_REFRESH_MS = 8 * 60 * 1000;
+
 /**
  * Append a freshly-loaded page to the on-screen list, dropping any property
  * that is already on it.
@@ -2703,12 +2708,27 @@ function HotelsContent() {
     });
   };
 
-  useEffect(() => {
-    fetch('/api/hotels/deals')
-      .then(r => r.json())
-      .then(d => { setDeals(d.deals || []); setDealsLoading(false); })
-      .catch(() => setDealsLoading(false));
+  /* When the deal payload on screen was fetched. A LiteAPI offerId lives
+     ~15-30 minutes, and the route now keeps its half fresh to 10 — but this
+     page is often left open far longer than that, and the offerId sits in
+     React state the whole time. Server freshness alone does not save a
+     customer who opens /hotels, makes a cup of tea, and then clicks Book. */
+  const dealsFetchedAt = useRef(0);
+
+  const loadDeals = useCallback(async () => {
+    const r = await fetch('/api/hotels/deals');
+    const d = await r.json();
+    const rows: DealDestination[] = d.deals || [];
+    dealsFetchedAt.current = Date.now();
+    setDeals(rows);
+    return rows;
   }, []);
+
+  useEffect(() => {
+    loadDeals()
+      .then(() => setDealsLoading(false))
+      .catch(() => setDealsLoading(false));
+  }, [loadDeals]);
 
   // Click a deal card → start booking and jump straight to checkout
   // (instead of opening the detail page). Falls back to detail-page
@@ -2724,6 +2744,28 @@ function HotelsContent() {
     if (dealBookingId) return;
     setDealBookingId(hotel.id);
     try {
+      /* Re-price a card that has been sitting on screen. The offerId in state
+         is exactly as old as this tab, so a long-open page would still walk
+         into "this rate just sold out" — the error this whole batch exists to
+         remove — on a hotel that is perfectly bookable. Below the threshold we
+         spend nothing; above it, one request buys a live offer. If the hotel
+         has dropped out of the refreshed strip we send the customer to its
+         page rather than book an offer we know is dead. */
+      let live = hotel;
+      if (Date.now() - dealsFetchedAt.current > DEAL_OFFER_REFRESH_MS) {
+        const fresh = await loadDeals().catch(() => null);
+        const dest = fresh?.find((d) => d.city === deal.city);
+        const match = dest
+          ? [dest.budgetHotel, dest.topHotel, dest.premiumHotel].find(
+              (h): h is DealHotel => !!h && h.id === hotel.id && !!h.offerId,
+            )
+          : undefined;
+        if (!match) {
+          window.location.assign(fallbackHref);
+          return;
+        }
+        live = match;
+      }
       const nights = Math.max(
         1,
         Math.round(
@@ -2735,33 +2777,33 @@ function HotelsContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          offerId: hotel.offerId,
-          hotelName: hotel.name,
-          stars: hotel.stars ?? 0,
-          totalPrice: hotel.totalPrice,
+          offerId: live.offerId,
+          hotelName: live.name,
+          stars: live.stars ?? 0,
+          totalPrice: live.totalPrice,
           currency: 'GBP',
           checkIn: deal.checkin,
           checkOut: deal.checkout,
           city: deal.city,
           adults: 2,
           nights,
-          thumbnail: hotel.thumbnail || null,
-          refundable: hotel.refundable,
+          thumbnail: live.thumbnail || null,
+          refundable: live.refundable,
           // Taxes due at the property. Without this a deal booking recorded
           // localFees 0 while LiteAPI flagged £153.31 payable at the desk, and
           // the checkout total — the number sitting under a "no surprise line
           // items" promise — was 21% short. Sent only when the deal payload
           // actually carries it: an older cached deal has no such field, and a
           // guessed number would be worse than none.
-          ...(typeof hotel.localFees === 'number' && hotel.localFees > 0
-            ? { localFees: hotel.localFees }
+          ...(typeof live.localFees === 'number' && live.localFees > 0
+            ? { localFees: live.localFees }
             : {}),
           // Without this a refundable deal booking stored no deadline and our
           // own cancel route answered "this rate is non-refundable" to someone
           // entitled to a free refund. PR#160 closed that on the rate-row path;
           // the deal path had no deadline to send until now.
-          ...(hotel.cancellationDeadline
-            ? { cancellationDeadline: hotel.cancellationDeadline }
+          ...(live.cancellationDeadline
+            ? { cancellationDeadline: live.cancellationDeadline }
             : {}),
         }),
       });
@@ -4929,9 +4971,29 @@ function HotelsContent() {
             // `mapFound` is deliberately merged only here: the list, its
             // filters, sort and paging stay exactly as the visitor left them.
             const seenPin = new Set(sortedHotels!.map((h) => String(h.id)));
+            /* Matching on id alone is not enough, and it is the last place the
+               customer can still see the same hotel twice. When the list merges
+               a duplicate it keeps ONE id, so the dropped id is no longer in
+               sortedHotels — pan the map and that very row comes back as a
+               second pin on the same building at the other price. Apply the
+               list's own test here: same normalised name within one building. */
+            const pinnedPlaces = sortedHotels!
+              .filter((h) => typeof h.lat === 'number' && typeof h.lng === 'number')
+              .map((h) => ({ key: normaliseHotelNameForDedupe(h.name || ''), lat: h.lat!, lng: h.lng! }));
+            const alreadyPinned = (h: HotelResult) => {
+              if (h.id != null && seenPin.has(String(h.id))) return true;
+              if (typeof h.lat !== 'number' || typeof h.lng !== 'number') return false;
+              const key = normaliseHotelNameForDedupe(h.name || '');
+              if (!key) return false;
+              return pinnedPlaces.some(
+                (p) =>
+                  p.key === key &&
+                  haversineMi(h.lat!, h.lng!, p.lat, p.lng) * METRES_PER_MILE <= SAME_BUILDING_M,
+              );
+            };
             const mapHotels = [
               ...sortedHotels!,
-              ...mapFound.filter((h) => h.id != null && !seenPin.has(String(h.id))),
+              ...mapFound.filter((h) => h.id != null && !alreadyPinned(h)),
             ]
               .filter((h) => typeof h.lat === 'number' && typeof h.lng === 'number')
               .map((h) => ({

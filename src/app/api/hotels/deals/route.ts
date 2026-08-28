@@ -68,16 +68,18 @@ function getRotatedDestinations() {
    hours the strip was handing out Book buttons backed by expired offers, and
    the longer an entry sat the more of them were dead.
 
-   The offerId does not get cheaper or dearer as it ages — prebook returns the
-   rate the offer was issued at, so the drift guard in /api/hotels/prebook never
+   An ageing offerId does not get cheaper or dearer — prebook returns the rate
+   the offer was issued at, so the drift guard in /api/hotels/prebook never
    fires on one. It simply DIES, and the card goes on advertising a price that
-   no longer exists anywhere. Measured on prod 2026-08-28, one payload (built
-   01:00, stay 11-15 Sep, 2 adults) prebooked at three ages:
-     age  3 min → 7 of a 9-slot sample held
-     age 43 min → 23 of 27 held; a re-quote in the SAME minutes held 24 of 27
-     age 55 min → 23 of 27 held, every one at exactly its card price
-   and the coverage audit, on a payload left to age further, found 8 of 27
-   failing and then 13 of 27 an hour later. The two clearest cases at 43 min:
+   no longer exists anywhere. Measured on prod 2026-08-28 against one payload
+   (built 01:00, stay 11-15 Sep, 2 adults), prebooking all 27 deal slots at
+   several ages, each paired with a re-quote-then-prebook run in the SAME
+   minutes so supplier weather could not explain the gap:
+     cached offerIds, age 43 min → 23 of 27 held   re-quoted → 24 of 27
+     cached offerIds, age 55 min → 23 of 27 held   (each at exactly its card price)
+     cached offerIds, age 1h50m  → 21 of 27 held   re-quoted → 27 of 27
+   and the coverage audit, on an entry left to age further still, found 8 of 27
+   failing and then 13 of 27 an hour after that. The two clearest single cases:
    Faro "Hotel Monaco" — cached offer dead, fresh offer took a hold at the
    IDENTICAL £449.50; and Lanzarote "Dreams Lanzarote Playa Dorada" — cached
    offer dead at £766.71, fresh offer held at £757.73. Neither hotel was sold
@@ -404,8 +406,19 @@ function assemble(
     };
   };
 
-  const budgetHotel = hydrate(shell.budget);
-  if (!budgetHotel) return emptyDestination(shell, checkin, checkout);
+  // The strip renders ONLY budgetHotel, so losing the budget pick's live quote
+  // used to blank the whole destination — even when top and premium were still
+  // priced and bookable in the very same quote map. That is the one place this
+  // change could hide real inventory rather than a dead offer. Fall back to the
+  // cheapest offer that IS still live; "budget" means cheapest on show, and the
+  // heal path will re-pick properly on its own schedule.
+  const live = [shell.budget, shell.top, shell.premium]
+    .map(hydrate)
+    .filter((h): h is NonNullable<typeof h> => !!h);
+  if (!live.length) return emptyDestination(shell, checkin, checkout);
+  const budgetHotel =
+    hydrate(shell.budget) ??
+    live.reduce((a, b) => (a.totalPrice <= b.totalPrice ? a : b));
 
   return {
     city: shell.city,
@@ -507,6 +520,9 @@ export async function GET() {
       return NextResponse.json({
         deals: HOT_DESTINATIONS.map((d) => emptyDestination(d, checkin, checkout)),
         cached: false,
+        // Every other exit reports this; the monkey and the coverage audit read
+        // it as a number. Nothing was quoted here, which is age zero, not absent.
+        quoteAgeSeconds: 0,
       });
     }
     shell = { builtAt: Date.now(), checkin, checkout, destinations };
