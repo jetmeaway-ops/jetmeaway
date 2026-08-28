@@ -125,7 +125,13 @@ export async function POST(req: NextRequest) {
         // wants. Customer about to abandon. Owner needs to know if this
         // happens repeatedly (could indicate FX flux, supplier reprice, or
         // stale cache).
-        reportBug('Hotel price drift > 5% rejected at prebook', {
+        //
+        // The two thresholds are independent (either can trigger the
+        // reject), so the report message must not hardcode ">5%" — a
+        // sub-5% drift can still reject on the >£5 absolute threshold
+        // alone, and a hardcoded ">5%" label on that report is just wrong.
+        const reason = driftPct > 0.05 ? '>5% relative' : '>£5 absolute';
+        reportBug(`Hotel price drift rejected at prebook (${reason})`, {
           ref,
           searchPrice,
           newPrice,
