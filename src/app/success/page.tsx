@@ -238,6 +238,14 @@ async function sendHotelConfirmationEmail(booking: StoredBooking) {
   const address = fullAddress(booking);
   const directions = directionsUrl(booking);
 
+  /* THE NAME THE ROOM IS HELD UNDER. The confirmation greeted the booker by
+     first name and never stated it — but whoever pays is often not whoever
+     stands at the desk. The owner's own family trip was booked in his wife's
+     name, so the room is held under hers; had he arrived and given his own
+     name, reception would not have found it. The supplier's voucher prints
+     this ("Room 1: <name>") and ours did not. */
+  const heldUnder = `${booking.guest?.firstName || ''} ${booking.guest?.lastName || ''}`.trim();
+
   const html = `
 <!DOCTYPE html>
 <html>
@@ -277,6 +285,7 @@ async function sendHotelConfirmationEmail(booking: StoredBooking) {
         ${booking.roomName ? `<tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Room</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${booking.roomName}</td></tr>` : ''}
         ${booking.boardName ? `<tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Meals</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${booking.boardName}</td></tr>` : ''}
         <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Guests</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${partyLine(booking)}</td></tr>
+        ${heldUnder ? `<tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Room held under</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${heldUnder}</td></tr><tr><td colspan="2" style="padding:2px 0 0;font-size:12px;color:#8E95A9;">Show this name at reception — it is the name the hotel holds the room under.</td></tr>` : ''}
         <tr><td colspan="2" style="border-top:2px solid #E8ECF4;padding:12px 0 0;"></td></tr>
         <tr><td style="font-size:16px;font-weight:800;color:#1A1D2B;">Total Paid</td><td style="font-size:20px;font-weight:800;color:#059669;text-align:right;">${currency}${booking.totalPrice.toFixed(2)}</td></tr>
         ${booking.localFees && booking.localFees > 0 ? `<tr><td style="padding:6px 0;font-size:13px;color:#5C6378;">Payable at the hotel</td><td style="padding:6px 0;font-size:13px;font-weight:700;color:#1A1D2B;text-align:right;">${currency}${booking.localFees.toFixed(2)}</td></tr><tr><td colspan="2" style="padding:2px 0 0;font-size:12px;color:#8E95A9;">City tax and local fees the property collects on arrival — not included above.</td></tr>` : ''}
@@ -863,6 +872,19 @@ export default async function SuccessPage({
             <span className="text-[#5C6378] font-semibold">Guests</span>
             <strong className="text-[#1A1D2B]">{partyLine(b)}</strong>
           </div>
+          {`${b.guest?.firstName || ''} ${b.guest?.lastName || ''}`.trim() ? (
+            <div>
+              <div className="flex justify-between gap-4 text-[.85rem]">
+                <span className="text-[#5C6378] font-semibold shrink-0">Room held under</span>
+                <strong className="text-[#1A1D2B] text-right">
+                  {`${b.guest?.firstName || ''} ${b.guest?.lastName || ''}`.trim()}
+                </strong>
+              </div>
+              <p className="text-[.7rem] text-[#8E95A9] mt-0.5">
+                Show this name at reception — it is the name the hotel holds the room under.
+              </p>
+            </div>
+          ) : null}
           <div className="flex justify-between text-[.85rem] pt-2 border-t border-[#E8ECF4]">
             <span className="text-[#5C6378] font-semibold">Total paid</span>
             <strong className="text-[#1A1D2B]">
