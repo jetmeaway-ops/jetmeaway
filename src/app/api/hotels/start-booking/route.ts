@@ -47,6 +47,15 @@ export interface PendingBooking {
   thumbnail: string | null;
   lat?: number;
   lng?: number;
+  /** The hotel's OWN address/city/country from LiteAPI — not the search box
+   *  text. `city` above is whatever the visitor typed ("Eiffel Tower"), which
+   *  is why a Paris booking was confirmed as an "Eiffel Tower escape" with no
+   *  address at all. These let the confirmation print a real address, a
+   *  working directions link, and the walking-distance neighbourhood guide
+   *  (which needs lat/lng and had been silently rendering nothing). */
+  hotelAddress?: string | null;
+  hotelCity?: string | null;
+  hotelCountry?: string | null;
   /** Taxes/fees NOT included in totalPrice — payable at property (e.g. city tax) */
   localFees?: number;
   /** Whether the rate is refundable (drives the Scout's Final Check badge on checkout) */
@@ -137,6 +146,9 @@ export async function POST(req: NextRequest) {
       thumbnail = null,
       lat,
       lng,
+      hotelAddress,
+      hotelCity,
+      hotelCountry,
       localFees = 0,
       refundable,
       cancellationDeadline = null,
@@ -205,6 +217,9 @@ export async function POST(req: NextRequest) {
       thumbnail,
       ...(Number.isFinite(lat) ? { lat } : {}),
       ...(Number.isFinite(lng) ? { lng } : {}),
+      ...(typeof hotelAddress === 'string' && hotelAddress.trim() ? { hotelAddress: hotelAddress.trim().slice(0, 300) } : {}),
+      ...(typeof hotelCity === 'string' && hotelCity.trim() ? { hotelCity: hotelCity.trim().slice(0, 120) } : {}),
+      ...(typeof hotelCountry === 'string' && hotelCountry.trim() ? { hotelCountry: hotelCountry.trim().slice(0, 80) } : {}),
       ...(Number.isFinite(localFees) && localFees > 0 ? { localFees: Math.round(localFees * 100) / 100 } : {}),
       ...(typeof refundable === 'boolean' ? { refundable } : {}),
       ...(typeof cancellationDeadline === 'string' && cancellationDeadline ? { cancellationDeadline } : {}),

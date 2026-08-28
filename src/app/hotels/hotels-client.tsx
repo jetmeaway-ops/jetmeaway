@@ -829,6 +829,143 @@ function dealAllIn(h: DealHotel): number {
   return h.totalPrice + (h.localFees ?? 0);
 }
 
+/**
+ * Normalised hotel name — deliberately byte-identical to `normaliseHotelName`
+ * in `src/lib/giata.ts`, which is the key page 0's server-side merge dedupes
+ * on. If the two ever drift, a property page 0 already collapsed comes back on
+ * page 3 under a key this side thinks is new, and the duplicate returns.
+ */
+function normaliseHotelNameForDedupe(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[-–—]/g, ' ')
+    .replace(/[^\w\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * How close two same-named pins have to be before we call them one building.
+ *
+ * Measured on live results 2026-08-28 (14-17 Oct, 2 adults): every genuine
+ * duplicate pair sat between 0 m and 180 m apart — Prague's NH Collection
+ * Prague, the worst of them, is 180 m. The nearest same-name pair that is
+ * genuinely TWO hotels is Nice's "Hotel Aston La Scala" at 1,585 m. 250 m
+ * leaves headroom over the measured duplicates while staying an order of
+ * magnitude below the nearest real pair.
+ */
+const SAME_BUILDING_M = 250;
+const METRES_PER_MILE = 1609.344;
+
+/**
+ * Append a freshly-loaded page to the on-screen list, dropping any property
+ * that is already on it.
+ *
+ * Page 0 is de-duplicated on the server (`mergeApis` in /api/hotels, keyed on
+ * `dedupeKey` → normalised name) but pages 1..6 take the lean paginated branch,
+ * which does no such merge, and the client only checked hotel id. LiteAPI
+ * routinely lists one building under two ids, so a few seconds after results
+ * settled the same hotel reappeared at a second price. Measured 2026-08-28,
+ * 14-17 Oct, 2 adults: Prague 10 such pairs in 708 rows (NH Collection Prague
+ * £462.06 and £549.28, pins 180 m apart — 19% apart on the same building;
+ * Maestro by Adrez £298.37 vs £503.29, 2 m apart), Nice 4 pairs in 273 rows.
+ *
+ * Name alone is NOT a safe key, and that is the whole difficulty here. Chains
+ * put genuinely different hotels behind one name and the same search returns
+ * both — Nice has two "Hotel Aston La Scala" rows 1,585 m apart at different
+ * prices, and "ibis budget Chambéry Centre" vs "…Nord" is the same trap one
+ * word later. So a row is a duplicate only when the normalised name matches
+ * AND the pins are within SAME_BUILDING_M. A row missing coordinates is never
+ * merged: we cannot judge it, and hiding real inventory is the worse failure.
+ *
+ * The survivor is the CHEAPER of the pair on the all-in figure (rate plus tax
+ * payable at the property), whichever page it arrived on — Prague's Hotel
+ * General Old Town is £312.35 on page 0 and £295.07 on page 6, so a blanket
+ * "drop the new one" would have cost the customer £17.28.
+ *
+ * Pure function of (prev, incoming): safe to call from inside a `setHotels`
+ * updater, including React's double-invoked StrictMode render.
+ */
+function appendPageWithoutDuplicates(
+  prev: HotelResult[],
+  incoming: HotelResult[],
+  nights: number,
+): HotelResult[] {
+  if (incoming.length === 0) return prev;
+  const out = [...prev];
+  const ids = new Set(out.map((h) => String(h.id)));
+  // name → indices into `out`. Prague reaches ~700 rows over six pages, so a
+  // per-row scan of the whole list would be ~500k comparisons; the bucket
+  // makes it one lookup and, in practice, one distance check.
+  const byName = new Map<string, number[]>();
+  const indexName = (h: HotelResult, i: number) => {
+    const k = normaliseHotelNameForDedupe(h.name || '');
+    if (!k) return;
+    const bucket = byName.get(k);
+    if (bucket) bucket.push(i);
+    else byName.set(k, [i]);
+  };
+  out.forEach(indexName);
+
+  let changed = false;
+  for (const h of incoming) {
+    if (h.id == null || ids.has(String(h.id))) continue;
+    const key = normaliseHotelNameForDedupe(h.name || '');
+    let twin = -1;
+    if (key && h.lat != null && h.lng != null) {
+      for (const i of byName.get(key) || []) {
+        const e = out[i];
+        if (e.lat == null || e.lng == null) continue;
+        if (haversineMi(h.lat, h.lng, e.lat, e.lng) * METRES_PER_MILE <= SAME_BUILDING_M) {
+          twin = i;
+          break;
+        }
+      }
+    }
+    if (twin >= 0) {
+      const kept = out[twin];
+      // 🔴 A CURATED row is a placeholder, not an offer: it is stamped at the
+      // city centroid with a hardcoded low `basePrice`, carries no offerId and
+      // is not bookable. Comparing it on price lets it evict a real, bookable
+      // hotel it merely shares a name and a centroid with. Never merge either
+      // way when one side is curated — they are not the same thing.
+      if (kept.source === 'curated' || h.source === 'curated') continue;
+      if (allInTotal(h, nights) < allInTotal(kept, nights)) {
+        // Swap in place rather than append — the position is meaningless (the
+        // sort memo re-orders anyway) and it keeps the list stable under the
+        // reader's scroll. `ids` is local to this page; the caller's own `seen`
+        // set still holds the discarded id, so the dearer copy can never come
+        // back on a later page.
+        ids.delete(String(kept.id));
+        ids.add(String(h.id));
+        // 🔴 Take the cheaper row's MONEY, but never let it downgrade what we
+        // know about the property. The two supplier records for one building
+        // rarely carry the same metadata, and stars / reviewScore / reviewCount
+        // drive the DEFAULT "recommended" ranking and the sidebar facets — a
+        // wholesale swap silently re-ranked and un-filterable hotels whose
+        // cheaper twin happened to have no review data.
+        out[twin] = {
+          ...h,
+          stars: h.stars || kept.stars,
+          reviewScore: h.reviewScore ?? kept.reviewScore,
+          reviewCount: h.reviewCount ?? kept.reviewCount,
+          chain: h.chain ?? kept.chain,
+          hotelTypeId: h.hotelTypeId ?? kept.hotelTypeId,
+          facilityIds: (h.facilityIds && h.facilityIds.length ? h.facilityIds : kept.facilityIds),
+          thumbnail: h.thumbnail || kept.thumbnail,
+        };
+        changed = true;
+      }
+      continue;
+    }
+    ids.add(String(h.id));
+    indexName(h, out.length);
+    out.push(h);
+    changed = true;
+  }
+  return changed ? out : prev;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    COMPONENTS
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -3254,6 +3391,10 @@ function HotelsContent() {
       if (data.hasMore !== false) {
         (async () => {
           setLoadingMore(true);
+          // Captured once for the whole loop: the stay length these pages were
+          // priced for, so the cheaper-wins test in the merge compares like
+          // with like even if the form's dates are edited mid-load.
+          const pageNights = getNights();
           const seen = new Set<string | number>((data.hotels || []).map((h: HotelResult) => h.id));
           for (let pg = 1; pg <= 6; pg++) {
             if (loadMoreSeqRef.current !== mySeq) return; // superseded by a newer search
@@ -3263,11 +3404,16 @@ function HotelsContent() {
               const pr = await fetch(`/api/hotels?${pParams}`);
               const pd = await pr.json();
               if (loadMoreSeqRef.current !== mySeq) return;
+              // Cheap pre-filter on id only. The real test — same building
+              // under a second supplier id — happens inside the merge, which
+              // needs the on-screen list to compare pins against.
               const fresh = (Array.isArray(pd.hotels) ? pd.hotels : []).filter(
                 (h: HotelResult) => h.id != null && !seen.has(h.id),
               );
               fresh.forEach((h: HotelResult) => seen.add(h.id));
-              if (fresh.length) setHotels((prev) => [...(prev || []), ...fresh]);
+              if (fresh.length) {
+                setHotels((prev) => appendPageWithoutDuplicates(prev || [], fresh, pageNights));
+              }
               if (!pd.hasMore) break;
             } catch { break; }
           }

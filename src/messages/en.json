@@ -1342,6 +1342,7 @@
     },
     "seePhotosOf": "See photos of {title}",
     "sleeps": "Sleeps {n}",
+    "allInTotal": "all-in",
     "fitsYourParty": "Priced for {n, plural, one {# guest} other {# guests}}",
     "bundleSameRoom": "You get {count} of this room",
     "bundleRoomN": "Room {n}:",

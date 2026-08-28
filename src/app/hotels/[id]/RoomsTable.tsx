@@ -156,6 +156,36 @@ const fmtGBP = (n: number) => {
   })}`;
 };
 
+/**
+ * What THIS RATE actually costs: the supplier total plus every tax LiteAPI
+ * marks payable at the property desk.
+ *
+ * 🔴 This is the ONLY figure allowed to rank or compare rows — the same rule
+ * `allInTotal` enforces on the results list (src/app/hotels/hotels-client.tsx).
+ * That fix stopped one hotel outranking another on its sticker price; it was
+ * never carried one page deeper, so the rooms table went on sorting rows by
+ * `totalPrice` alone under a header that promises "cheapest first".
+ *
+ * Measured on prod 2026-08-28, Hotel Philia Rome (la_lp5048d), 2 adults.
+ * 14-17 Oct, 49 rate rows: row 1 was DOUBLE STANDARD at £270.89 + £55.21 owed
+ * at the property = £326.10, while the genuinely cheapest stay — Standard Room
+ * at £288.35 with nothing owed — sat at row 5. £37.75 dearer at the top of a
+ * table that said cheapest first, with 46 of the 49 positions showing a dearer
+ * stay than this ordering gives (worst £40.29). Re-run on 4-7 Nov: row 1 owed
+ * £42.82 more than row 2, and all 5 hotels re-sampled were misordered, worst
+ * single position £74.71. Every one of 12 Rome hotels checked was affected.
+ * Rows carrying no `excludedTaxes` (LiteAPI omits the field entirely on rates
+ * with nothing payable at the desk) must read as 0, not as missing, or they
+ * sink below rates that genuinely owe money on arrival.
+ *
+ * Exported so the price shown, the sort order and anything that later needs
+ * "the cheapest rate here" (e.g. the JSON-LD `lowPrice` in page.tsx, which
+ * still reduces on `totalPrice`) can share one definition rather than drift.
+ */
+export function allInTotal(rate: RoomRate): number {
+  return rate.totalPrice + (rate.excludedTaxes ?? 0);
+}
+
 /* v2-plan step-2: format an ISO timestamp to a short human deadline.
    Returns null when the string isn't a real date or sits in the past.
    Example: "2026-05-28T23:59:00Z" → "28 May 2026". */
@@ -340,6 +370,7 @@ function Choice({ tone, children }: { tone: 'positive' | 'neutral'; children: Re
 
 function RateRow({
   rate,
+  siblingHasBedInfo = false,
   nights,
   rooms,
   roomName,
@@ -353,6 +384,10 @@ function RateRow({
   onShowDetails,
 }: {
   rate: RoomRate;
+  /** True when another row for the SAME room + board carries a rate-specific
+   *  bed string. Then this row must NOT borrow the catalogue's beds: doing so
+   *  is what made two differently-priced rows read identically. */
+  siblingHasBedInfo?: boolean;
   nights: number;
   /** Rooms in this quote — totalPrice covers ALL of them. >1 happens when a
    *  bigger party is split across rooms; without the label the doubled total
@@ -391,7 +426,15 @@ function RateRow({
      while roomMeta is attached by fuzzy name match and can describe a
      different room. Whichever we end up with, it is printed once — see
      splitBedFromTitle above. */
-  const { title, bedLine } = splitBedFromTitle(suppliedTitle, rate.bedInfo || roomMeta?.beds || null);
+  // 🔴 Borrow the catalogue's beds ONLY when no sibling row is describing its
+  // own. Two rows for the same room + board at different prices used to
+  // converge on identical words: the described row had its bed text cut out of
+  // its title, while the undescribed one filled the same words back in from
+  // roomMeta — leaving the customer two identical cards at GBP 308.79 and
+  // GBP 449.54 with nothing to tell them apart. A blank bed line is honest;
+  // a borrowed one is not.
+  const bedSource = rate.bedInfo || (siblingHasBedInfo ? null : roomMeta?.beds) || null;
+  const { title, bedLine } = splitBedFromTitle(suppliedTitle, bedSource);
 
   // Phase-4: derive the top-3 in-room amenity highlights once per render.
   const roomHighlights = roomMeta ? pickRoomHighlights(roomMeta.amenities) : [];
@@ -622,8 +665,17 @@ function RateRow({
             {fmtGBP(rate.pricePerNight)} {t('perNightSlash')}{rooms > 1 ? ` ${t('forNRooms', { rooms })}` : ''} · {rate.excludedTaxes && rate.excludedTaxes > 0 ? t('inclVat') : t('allTaxesIncluded')}
           </div>
           {rate.excludedTaxes != null && rate.excludedTaxes > 0 && (
+            /* The all-in figure has to be ON the row, not just behind the sort.
+               Now that rows rank on the all-in cost, a taxed row sits BELOW a
+               cheaper-LOOKING untaxed one — Hotel Philia 14-17 Oct now opens
+               £288.35 (nothing owed) with £278.48 (+£30.86) two rows under it
+               — and with only the sticker price on screen that reads as a
+               broken sort rather than an honest one. Same line the results
+               list prints under each card (PropertyTaxLine in hotels-client),
+               so the two pages state the number the same way. */
             <div className="text-[.66rem] font-medium text-slate-500 mt-0.5">
               + {fmtGBP(rate.excludedTaxes)} {t('cityTaxPayable')}
+              <span className="text-slate-400"> · {fmtGBP(allInTotal(rate))} {t('allInTotal')}</span>
             </div>
           )}
           {/* The one line that is ALWAYS available and always true: who this
@@ -708,7 +760,23 @@ export default function RoomsTable({
   onShowDetails?: (offerId: string) => void;
 }) {
   const t = useTranslations('hotelDetail');
-  const sorted = useMemo(() => [...offers].sort((a, b) => a.totalPrice - b.totalPrice), [offers]);
+  /* Ranked on the ALL-IN cost (see allInTotal) — the cheapest STAY, not the
+     cheapest sticker, exactly as the results list ranks its cards. The header
+     below promises "cheapest first", so this sort is what makes that copy
+     true. Array.prototype.sort is stable, so rows that genuinely cost the same
+     keep the supplier's order. */
+  const sorted = useMemo(() => [...offers].sort((a, b) => allInTotal(a) - allInTotal(b)), [offers]);
+  /* Which (room, board) groups have at least one row carrying its OWN bed
+     string. Rows in such a group must not fill a blank bed line from the room
+     catalogue, or they render word-for-word identical to the described row at
+     a different price. */
+  const bedDescribedGroups = useMemo(() => {
+    const set = new Set<string>();
+    for (const o of offers) {
+      if (o.bedInfo) set.add(`${(o.roomName || '').toLowerCase()}|${(o.boardType || '').toLowerCase()}`);
+    }
+    return set;
+  }, [offers]);
 
   /* How many rooms the prices below actually cover. The server's `party` echo
      wins over the `rooms` prop: the echo is derived from the occupancy handed
@@ -743,6 +811,7 @@ export default function RoomsTable({
             <RateRow
               key={rate.offerId}
               rate={rate}
+              siblingHasBedInfo={bedDescribedGroups.has(`${(rate.roomName || '').toLowerCase()}|${(rate.boardType || '').toLowerCase()}`)}
               nights={nights}
               rooms={pricedRooms}
               roomName={roomName || ''}

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
-import { getHotels as liteapiGetHotels } from '@/lib/liteapi';
+import { getHotels as liteapiGetHotels, type HotelOffer } from '@/lib/liteapi';
 
 export const runtime = 'edge';
 
@@ -58,7 +58,81 @@ function getRotatedDestinations() {
   return picked;
 }
 
-const KV_TTL = 21600; // 6 hours
+/* ═══════════════════════════════════════════════════════════════════════════
+   TWO CACHES, BECAUSE A DEAL CARD IS TWO THINGS WITH DIFFERENT SHELF LIVES
+   ───────────────────────────────────────────────────────────────────────────
+   Until 2026-08-28 the whole card — hotel, price AND offerId — was cached for
+   six hours in one blob. A LiteAPI offerId only lives ~15-30 minutes (the same
+   window /api/hotels/prebook documents when it maps LiteAPI code 2001 to "this
+   rate just sold out or expired"), so for the last five and a half of those six
+   hours the strip was handing out Book buttons backed by expired offers, and
+   the longer an entry sat the more of them were dead.
+
+   The offerId does not get cheaper or dearer as it ages — prebook returns the
+   rate the offer was issued at, so the drift guard in /api/hotels/prebook never
+   fires on one. It simply DIES, and the card goes on advertising a price that
+   no longer exists anywhere. Measured on prod 2026-08-28, one payload (built
+   01:00, stay 11-15 Sep, 2 adults) prebooked at three ages:
+     age  3 min → 7 of a 9-slot sample held
+     age 43 min → 23 of 27 held; a re-quote in the SAME minutes held 24 of 27
+     age 55 min → 23 of 27 held, every one at exactly its card price
+   and the coverage audit, on a payload left to age further, found 8 of 27
+   failing and then 13 of 27 an hour later. The two clearest cases at 43 min:
+   Faro "Hotel Monaco" — cached offer dead, fresh offer took a hold at the
+   IDENTICAL £449.50; and Lanzarote "Dreams Lanzarote Playa Dorada" — cached
+   offer dead at £766.71, fresh offer held at £757.73. Neither hotel was sold
+   out. Both cards were selling a rate that had stopped existing.
+
+   So the card is split down the middle:
+     • SHELL  (6h)  — WHICH hotels we picked and what they look like: id, name,
+                      stars, thumbnail, district, photo. None of it moves in
+                      six hours, and re-deriving it is the expensive half
+                      (10 × /data/hotels directory lookup + a 15-hotel pricing
+                      wave = 12.1s measured cold on prod).
+     • QUOTES (10m) — the perishable half: offerId, price, board, refundable,
+                      property tax, cancellation deadline. Refreshing it is ONE
+                      LiteAPI /hotels/rates call for the ~21 hotel ids the shell
+                      already named — 4.8s measured, no directory lookup at all.
+
+   Price and offerId are refreshed TOGETHER and never separately. An old price
+   with a fresh offerId is a different lie: /api/hotels/prebook rejects >5% or
+   >£5 drift between the card and the supplier re-quote, and the customer would
+   meet "the price has changed" instead of "sold out". Same wall, different
+   sign. So the two live in one record with one TTL.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/** 6h. Which hotels the strip shows. The cost this cache exists to avoid. */
+const SHELL_TTL = 21600;
+
+/** 10 minutes. Deliberately inside the LOWER bound of LiteAPI's ~15-30 minute
+ *  offer life, not at it: a served offer can already be 10 minutes old, and the
+ *  customer then spends a minute or two on the checkout page before prebook is
+ *  called. At a 15-minute TTL that click lands on the far side of the guarantee.
+ *
+ *  Cost of choosing 10 minutes over 6 hours, measured rather than assumed. A
+ *  refresh is ONE getHotels() call, which the lib splits into 3 parallel
+ *  /hotels/rates chunks for this cycle's 21 hotel ids: 4.8s wall clock, zero
+ *  /data/hotels lookups. It fires lazily — only when a visitor arrives after
+ *  the quote expired — so the CEILING is 144 refreshes/day = ~432 rates calls,
+ *  plus the 4 shell builds/day (10 directory lookups + ~20 rate chunks each =
+ *  ~120 calls) that were the whole bill before. ~550 calls/day against ~120:
+ *  4.6× on an endpoint LiteAPI does not charge per search for, with the
+ *  expensive directory half untouched, and real traffic nowhere near the
+ *  ceiling because an hour with no visitors costs nothing.
+ *
+ *  Dropping the single 6h TTL to 10 minutes instead would have cost the FULL
+ *  12.1s cold build 144 times a day — ~4,300 calls including 1,440 directory
+ *  lookups. That is the option this design exists to avoid. */
+const QUOTE_TTL = 600;
+
+/** A destination whose chosen hotels have all stopped pricing gets rebuilt from
+ *  a full city search, so the strip heals instead of slowly emptying over the
+ *  shell's six hours — but at most this many per request. A rebuild is the
+ *  expensive path (directory lookup + pricing wave; ten of them ran in 12.1s as
+ *  two parallel batches of five), and letting every lost destination rebuild at
+ *  once would put that cold-build latency back on a request that was supposed
+ *  to cost 4.8s. Two is one small parallel batch. */
+const MAX_REBUILDS_PER_REQUEST = 2;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    GET /api/hotels/deals — returns cached hot deals
@@ -105,10 +179,257 @@ export type DealDestination = {
   checkout: string;
 };
 
+/** The half of a deal card that does not perish: which hotel, and what it looks
+ *  like. Deliberately carries no price and no offerId — anything with a shelf
+ *  life shorter than six hours belongs in DealQuote, or it will be served
+ *  stale. */
+type ShellHotel = {
+  id: string;
+  name: string;
+  stars: number;
+  thumbnail: string | null;
+  district: string | null;
+};
+
+type ShellDestination = {
+  city: string;
+  country: string;
+  flag: string;
+  photo: string;
+  tag?: string;
+  hotelCount: number;
+  top: ShellHotel | null;
+  budget: ShellHotel | null;
+  /** Null when the premium pick IS the budget pick — the old single-blob code
+   *  suppressed the duplicate the same way, and the client relies on it. */
+  premium: ShellHotel | null;
+};
+
+type DealShell = {
+  builtAt: number;
+  /** The stay this shell picked hotels for. Recomputed every request; when it
+   *  has rolled forward (the deal window is "next-next Friday", so it moves) the
+   *  shell is thrown away rather than re-quoted for dates it never priced. */
+  checkin: string;
+  checkout: string;
+  destinations: ShellDestination[];
+};
+
+/** The perishable half: everything the supplier can change under us, keyed by
+ *  hotel id so one flat re-quote refreshes every card at once. */
+type DealQuote = {
+  offerId: string;
+  totalPrice: number;
+  pricePerNight: number;
+  boardType: string | null;
+  refundable: boolean;
+  localFees: number | null;
+  cancellationDeadline: string | null;
+};
+
+type QuoteCache = { quotedAt: number; quotes: Record<string, DealQuote> };
+
+/* Whole-pound rounding destroyed the pence, and checkout then compared the
+   rounded card price against the supplier's exact re-quote and cried "the hotel
+   has updated their rate" over a difference WE invented: £720 vs £720.11 with
+   priceDifferencePercent 0, and Dubai £127 vs £126.83 rendered GREEN as if the
+   hotel had discounted it. 3 of 3 deal cards tripped it. Keep 2dp so the
+   advertised number is the number the supplier will actually quote back. */
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
+const NIGHTS = 4; // the deal window is a fixed Friday→Tuesday stay
+
+function toShellHotel(h: HotelOffer): ShellHotel {
+  return {
+    id: h.hotelId,
+    name: h.hotelName,
+    stars: h.stars || 0,
+    thumbnail: h.thumbnail || null,
+    district: h.city || null,
+  };
+}
+
+function toQuote(h: HotelOffer): DealQuote {
+  return {
+    offerId: h.offerId,
+    totalPrice: round2(h.price),
+    pricePerNight: round2(h.pricePerNight || h.price / NIGHTS),
+    boardType: h.boardType || null,
+    refundable: h.refundable,
+    localFees: h.excludedTaxes ?? null,
+    cancellationDeadline: h.cancellationDeadline ?? null,
+  };
+}
+
+/** An empty destination — kept in the payload rather than dropped so the shape
+ *  the client filters on (`cheapestPrice !== null`) stays the one it has always
+ *  filtered on. */
+function emptyDestination(
+  dest: ShellDestination | (typeof ALL_DESTINATIONS)[number],
+  checkin: string,
+  checkout: string,
+): DealDestination {
+  return {
+    city: dest.city,
+    country: dest.country,
+    flag: dest.flag,
+    photo: dest.photo,
+    ...(dest.tag ? { tag: dest.tag } : {}),
+    cheapestPrice: null,
+    topHotel: null,
+    budgetHotel: null,
+    premiumHotel: null,
+    hotelCount: 0,
+    checkin,
+    checkout,
+  };
+}
+
+/**
+ * Price a destination from scratch: directory lookup + pricing wave, then pick
+ * the three roles. This is the expensive path — 12.1s for ten destinations,
+ * measured on prod — and the only one that can CHOOSE hotels.
+ */
+async function buildDestination(
+  dest: (typeof ALL_DESTINATIONS)[number],
+  checkin: string,
+  checkout: string,
+): Promise<{ shell: ShellDestination; quotes: Record<string, DealQuote> } | null> {
+  const hotels = await liteapiGetHotels({
+    cityName: dest.city,
+    countryCode: dest.country,
+    checkIn: checkin,
+    checkOut: checkout,
+    occupancy: [{ adults: 2 }],
+    currency: 'GBP',
+    guestNationality: 'GB',
+    limit: 15,
+  });
+
+  // Only include bookable hotels (with offerId for Book Direct)
+  const bookable = (hotels || []).filter((h) => h.offerId);
+  if (bookable.length === 0) return null;
+
+  const sorted = [...bookable].sort((a, b) => a.price - b.price);
+
+  // Budget = cheapest
+  const budget = sorted[0];
+  // Premium = highest star rating, or most expensive if equal
+  const premium = [...sorted].sort((a, b) => (b.stars || 0) - (a.stars || 0) || b.price - a.price)[0];
+  // Top rated = best value (high stars, low price)
+  const top = [...sorted].sort((a, b) => {
+    const scoreA = (a.stars || 3) / (a.price || 1);
+    const scoreB = (b.stars || 3) / (b.price || 1);
+    return scoreB - scoreA;
+  })[0];
+
+  const realPhoto = top.thumbnail || premium.thumbnail || budget.thumbnail || null;
+
+  const quotes: Record<string, DealQuote> = {};
+  for (const h of [top, budget, premium]) quotes[h.hotelId] = toQuote(h);
+
+  return {
+    shell: {
+      city: dest.city,
+      country: dest.country,
+      flag: dest.flag,
+      photo: realPhoto || dest.photo, // prefer real hotel photo over Unsplash
+      ...(dest.tag ? { tag: dest.tag } : {}),
+      hotelCount: bookable.length,
+      top: toShellHotel(top),
+      budget: toShellHotel(budget),
+      premium: premium.hotelId === budget.hotelId ? null : toShellHotel(premium),
+    },
+    quotes,
+  };
+}
+
+/**
+ * Re-price hotels we have already chosen. The trailing comma forces getHotels
+ * down its "caller supplied hotel ids" branch — no /data/hotels lookup, straight
+ * to /hotels/rates — which is why refreshing every card on the strip costs 4.8s
+ * against the 12.1s of choosing them.
+ *
+ * A hotel missing from the result is a hotel the supplier will not price for
+ * these dates any more. It is left out of the map on purpose: no quote, no
+ * offerId, no card. Inventing a price for it is what created the bug.
+ */
+async function requoteHotels(
+  hotelIds: string[],
+  checkin: string,
+  checkout: string,
+): Promise<Record<string, DealQuote>> {
+  if (hotelIds.length === 0) return {};
+  const offers = await liteapiGetHotels({
+    destinationId: `${hotelIds.join(',')},`,
+    checkIn: checkin,
+    checkOut: checkout,
+    occupancy: [{ adults: 2 }],
+    currency: 'GBP',
+    guestNationality: 'GB',
+    limit: hotelIds.length,
+  });
+  const quotes: Record<string, DealQuote> = {};
+  for (const h of offers || []) {
+    if (h.offerId) quotes[h.hotelId] = toQuote(h);
+  }
+  return quotes;
+}
+
+/** Marry the durable half to the live half. A role with no live quote is
+ *  rendered as absent rather than as a card the customer cannot book. */
+function assemble(
+  shell: ShellDestination,
+  quotes: Record<string, DealQuote>,
+  checkin: string,
+  checkout: string,
+): DealDestination {
+  const hydrate = (s: ShellHotel | null): DealHotel | null => {
+    if (!s) return null;
+    const q = quotes[s.id];
+    if (!q) return null;
+    return {
+      id: s.id,
+      offerId: q.offerId,
+      name: s.name,
+      stars: s.stars,
+      pricePerNight: q.pricePerNight,
+      totalPrice: q.totalPrice,
+      thumbnail: s.thumbnail,
+      boardType: q.boardType,
+      refundable: q.refundable,
+      district: s.district,
+      localFees: q.localFees,
+      cancellationDeadline: q.cancellationDeadline,
+    };
+  };
+
+  const budgetHotel = hydrate(shell.budget);
+  if (!budgetHotel) return emptyDestination(shell, checkin, checkout);
+
+  return {
+    city: shell.city,
+    country: shell.country,
+    flag: shell.flag,
+    photo: shell.photo,
+    ...(shell.tag ? { tag: shell.tag } : {}),
+    // Derived from the LIVE quote, never carried over from the build, so the
+    // "from £X a night" headline and the offer behind the Book button are
+    // always the same rate.
+    cheapestPrice: Math.round(budgetHotel.pricePerNight),
+    topHotel: hydrate(shell.top),
+    budgetHotel,
+    premiumHotel: hydrate(shell.premium),
+    hotelCount: shell.hotelCount,
+    checkin,
+    checkout,
+  };
+}
+
 export async function GET() {
-  const HOT_DESTINATIONS = getRotatedDestinations();
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
   const cycle = Math.floor(dayOfYear / 2);
+
   // v6 — DealHotel gained `localFees` (tax payable at the property) and stopped
   // rounding prices to whole pounds (2026-08-27). Both are stored-value changes,
   // and the 6-hour TTL meant v5 entries kept serving deals with no tax field and
@@ -116,15 +437,13 @@ export async function GET() {
   // exactly that on the first run against prod.
   // v7 — DealHotel also carries cancellationDeadline now, without which a
   // refundable deal booking could not be cancelled at all.
-  const KV_KEY = `hotel_deals:v7:cycle${cycle}`;
-
-  try {
-    // Check cache first
-    const cached = await kv.get<DealDestination[]>(KV_KEY);
-    if (cached && cached.length > 0) {
-      return NextResponse.json({ deals: cached, cached: true });
-    }
-  } catch { /* KV miss, fetch fresh */ }
+  // v8 (2026-08-28) — the single 6-hour blob is split into a 6-hour SHELL and a
+  // 10-minute QUOTE record, so a card can never advertise an offerId older than
+  // the ~15-30 minutes LiteAPI honours one for. A v7 entry is exactly the thing
+  // this change exists to stop serving — six hours of dead offerIds and prices
+  // the supplier will not match — so the key changes rather than being reused.
+  const KV_SHELL = `hotel_deals:v8:shell:cycle${cycle}`;
+  const KV_QUOTES = `hotel_deals:v8:quotes:cycle${cycle}`;
 
   // Build search dates: next Friday → next Tuesday (4 nights, common UK booking)
   const now = new Date();
@@ -132,136 +451,158 @@ export async function GET() {
   const checkinDate = new Date(now);
   checkinDate.setDate(now.getDate() + daysUntilFriday + 7); // next-next Friday
   const checkoutDate = new Date(checkinDate);
-  checkoutDate.setDate(checkinDate.getDate() + 4);
+  checkoutDate.setDate(checkinDate.getDate() + NIGHTS);
 
   const checkin = checkinDate.toISOString().split('T')[0];
   const checkout = checkoutDate.toISOString().split('T')[0];
 
-  const deals: DealDestination[] = [];
+  const HOT_DESTINATIONS = getRotatedDestinations();
 
-  // Fetch in batches of 5 to avoid overwhelming LiteAPI
-  for (let i = 0; i < HOT_DESTINATIONS.length; i += 5) {
-    const batch = HOT_DESTINATIONS.slice(i, i + 5);
-    const results = await Promise.allSettled(
-      batch.map(async (dest) => {
-        try {
-          const hotels = await liteapiGetHotels({
-            cityName: dest.city,
-            countryCode: dest.country,
-            checkIn: checkin,
-            checkOut: checkout,
-            occupancy: [{ adults: 2 }],
-            currency: 'GBP',
-            guestNationality: 'GB',
-            limit: 15,
-          });
+  /* ── 1. The durable half ─────────────────────────────────────────────── */
+  let shell: DealShell | null = null;
+  try {
+    const stored = await kv.get<DealShell>(KV_SHELL);
+    if (
+      stored?.destinations?.length &&
+      // The 6h intent is enforced here as well as by the KV TTL, because the
+      // partial-rebuild write below re-sets the key and would otherwise let a
+      // busy cycle keep one hotel selection alive indefinitely.
+      Date.now() - stored.builtAt < SHELL_TTL * 1000 &&
+      // A shell priced for a stay that has since rolled forward is useless: its
+      // hotels were chosen for dates nobody is being offered any more.
+      stored.checkin === checkin
+    ) {
+      shell = stored;
+    }
+  } catch { /* KV miss — build fresh */ }
 
-          if (!hotels || hotels.length === 0) {
-            return {
-              ...dest,
-              cheapestPrice: null,
-              topHotel: null,
-              budgetHotel: null,
-              premiumHotel: null,
-              hotelCount: 0,
-              checkin,
-              checkout,
-            };
-          }
+  let quotes: Record<string, DealQuote> = {};
+  let quoteAgeSeconds = 0;
+  /** Whether these offers came out of KV. It is the one case where we must NOT
+   *  write them back: re-stamping `quotedAt` would hand the SAME offerIds
+   *  another full 10 minutes and quietly re-create the "offer outlives the
+   *  supplier's guarantee" bug this change exists to remove. Kept as a flag
+   *  rather than inferred from `quoteAgeSeconds > 0`, which rounds to 0 for a
+   *  record read back within half a second of being written. */
+  let quotesFromCache = false;
+  let shellDirty = false;
 
-          // Only include bookable hotels (with offerId for Book Direct)
-          const bookable = hotels.filter((h) => h.offerId);
-          if (bookable.length === 0) {
-            return {
-              ...dest,
-              cheapestPrice: null,
-              topHotel: null,
-              budgetHotel: null,
-              premiumHotel: null,
-              hotelCount: 0,
-              checkin,
-              checkout,
-            };
-          }
-
-          // Sort by price
-          const sorted = [...bookable].sort((a, b) => a.price - b.price);
-
-          // Whole-pound rounding destroyed the pence, and checkout then compared
-          // the rounded card price against the supplier's exact re-quote and
-          // cried "the hotel has updated their rate" over a difference WE
-          // invented: £720 vs £720.11 with priceDifferencePercent 0, and Dubai
-          // £127 vs £126.83 rendered GREEN as if the hotel had discounted it.
-          // 3 of 3 deal cards tripped it. Keep 2dp so the advertised number is
-          // the number the supplier will actually quote back.
-          const round2 = (n: number) => Math.round(n * 100) / 100;
-
-          const mapHotel = (h: typeof sorted[0]): DealHotel => ({
-            id: h.hotelId,
-            offerId: h.offerId || null,
-            name: h.hotelName,
-            stars: h.stars || 0,
-            pricePerNight: round2(h.pricePerNight || h.price / 4),
-            totalPrice: round2(h.price),
-            thumbnail: h.thumbnail || null,
-            boardType: h.boardType || null,
-            refundable: h.refundable,
-            district: h.city || null,
-            localFees: h.excludedTaxes ?? null,
-            cancellationDeadline: h.cancellationDeadline ?? null,
-          });
-
-          // Budget = cheapest
-          const budgetHotel = sorted[0];
-          // Premium = highest star rating, or most expensive if equal
-          const premiumHotel = [...sorted].sort((a, b) => (b.stars || 0) - (a.stars || 0) || b.price - a.price)[0];
-          // Top rated = best value (high stars, low price)
-          const topHotel = [...sorted].sort((a, b) => {
-            const scoreA = (a.stars || 3) / (a.price || 1);
-            const scoreB = (b.stars || 3) / (b.price || 1);
-            return scoreB - scoreA;
-          })[0];
-
-          // Use real hotel photo from LiteAPI if available
-          const realPhoto = topHotel.thumbnail || premiumHotel.thumbnail || budgetHotel.thumbnail || null;
-
-          return {
-            ...dest,
-            photo: realPhoto || dest.photo, // prefer real hotel photo over Unsplash
-            cheapestPrice: Math.round(budgetHotel.pricePerNight || budgetHotel.price / 4),
-            topHotel: mapHotel(topHotel),
-            budgetHotel: mapHotel(budgetHotel),
-            premiumHotel: premiumHotel !== budgetHotel ? mapHotel(premiumHotel) : null,
-            hotelCount: bookable.length,
-            checkin,
-            checkout,
-          };
-        } catch {
-          return {
-            ...dest,
-            cheapestPrice: null,
-            topHotel: null,
-            budgetHotel: null,
-            premiumHotel: null,
-            hotelCount: 0,
-            checkin,
-            checkout,
-          };
+  if (!shell) {
+    // Cold build. Fetch in batches of 5 to avoid overwhelming LiteAPI.
+    const destinations: ShellDestination[] = [];
+    for (let i = 0; i < HOT_DESTINATIONS.length; i += 5) {
+      const batch = HOT_DESTINATIONS.slice(i, i + 5);
+      const results = await Promise.allSettled(batch.map((d) => buildDestination(d, checkin, checkout)));
+      for (const r of results) {
+        if (r.status === 'fulfilled' && r.value) {
+          destinations.push(r.value.shell);
+          Object.assign(quotes, r.value.quotes);
         }
-      })
-    );
+      }
+    }
+    if (destinations.length === 0) {
+      // Nothing priced at all — almost certainly LiteAPI being unavailable.
+      // Cache nothing, so the next visitor retries instead of inheriting an
+      // empty strip for six hours.
+      return NextResponse.json({
+        deals: HOT_DESTINATIONS.map((d) => emptyDestination(d, checkin, checkout)),
+        cached: false,
+      });
+    }
+    shell = { builtAt: Date.now(), checkin, checkout, destinations };
+    shellDirty = true;
+  } else {
+    /* ── 2. The perishable half ───────────────────────────────────────── */
+    let fresh: QuoteCache | null = null;
+    try {
+      fresh = await kv.get<QuoteCache>(KV_QUOTES);
+    } catch { /* KV miss — re-quote */ }
 
-    for (const r of results) {
-      if (r.status === 'fulfilled') deals.push(r.value as DealDestination);
+    if (fresh?.quotes && Object.keys(fresh.quotes).length > 0) {
+      quotes = fresh.quotes;
+      quotesFromCache = true;
+      quoteAgeSeconds = Math.max(0, Math.round((Date.now() - fresh.quotedAt) / 1000));
+    } else {
+      const ids: string[] = [];
+      for (const d of shell.destinations) {
+        for (const s of [d.top, d.budget, d.premium]) {
+          if (s && !ids.includes(s.id)) ids.push(s.id);
+        }
+      }
+      try {
+        quotes = await requoteHotels(ids, shell.checkin, shell.checkout);
+      } catch (e) {
+        // A failed re-quote means we have no live offers. Serving the previous
+        // ones is precisely the bug — an expired offerId and a price the
+        // supplier will not honour — so the strip goes quiet for this request
+        // and the next visitor retries.
+        console.warn('[hotels/deals] re-quote failed:', e instanceof Error ? e.message : 'unknown');
+        quotes = {};
+      }
     }
   }
 
-  // Cache results
+  const activeShell = shell;
+
+  /* ── 3. Heal destinations whose hotels have stopped pricing ──────────── */
+  // Gated on two things:
+  //  · `!quotesFromCache` — a destination missing from a CACHED quote map was
+  //    already missing when that map was built, so re-searching it on every
+  //    request inside the same 10-minute window cannot tell us anything new.
+  //    This is what stops a genuinely unpriceable city from costing two city
+  //    searches per page view.
+  //  · a non-empty map — if the re-quote returned nothing at all the supplier
+  //    is down, every destination looks dead, and rebuilding would be ten
+  //    pointless city searches.
+  if (!quotesFromCache && Object.keys(quotes).length > 0) {
+    const lost = activeShell.destinations.filter((d) => !d.budget || !quotes[d.budget.id]);
+    const toRebuild = lost.slice(0, MAX_REBUILDS_PER_REQUEST);
+    if (toRebuild.length > 0) {
+      const rebuilt = await Promise.allSettled(
+        toRebuild.map((d) => {
+          const seed = ALL_DESTINATIONS.find((x) => x.city === d.city && x.country === d.country);
+          return seed
+            ? buildDestination(seed, activeShell.checkin, activeShell.checkout)
+            : Promise.resolve(null);
+        }),
+      );
+      rebuilt.forEach((r, i) => {
+        if (r.status !== 'fulfilled' || !r.value) return;
+        const idx = activeShell.destinations.findIndex(
+          (x) => x.city === toRebuild[i].city && x.country === toRebuild[i].country,
+        );
+        if (idx >= 0) activeShell.destinations[idx] = r.value.shell;
+        Object.assign(quotes, r.value.quotes);
+        shellDirty = true;
+      });
+    }
+  }
+
+  const deals = activeShell.destinations.map((d) =>
+    assemble(d, quotes, activeShell.checkin, activeShell.checkout),
+  );
+
+  /* ── 4. Persist ──────────────────────────────────────────────────────── */
   try {
-    if (deals.length > 0) {
-      await kv.set(KV_KEY, deals, { ex: KV_TTL });
+    if (shellDirty) {
+      await kv.set(KV_SHELL, activeShell, { ex: SHELL_TTL });
+    }
+    // Never re-written when it came from KV: `quotedAt` is when the SUPPLIER
+    // issued these offers, and a second stamp would extend their advertised
+    // life past the point LiteAPI honours them.
+    if (!quotesFromCache && Object.keys(quotes).length > 0) {
+      await kv.set(KV_QUOTES, { quotedAt: Date.now(), quotes } satisfies QuoteCache, { ex: QUOTE_TTL });
     }
   } catch { /* cache write failure is ok */ }
 
-  return NextResponse.json({ deals, cached: false });
+  return NextResponse.json({
+    deals,
+    // True only when BOTH halves came from KV — a shell hit that had to re-quote
+    // did real supplier work and should not report itself as a cache hit.
+    cached: !shellDirty && quotesFromCache,
+    // How old the offerIds behind these Book buttons are, in seconds. Exposed so
+    // the monkey and the coverage audit can assert the thing that broke here
+    // (freshness) instead of re-deriving it from prices.
+    quoteAgeSeconds,
+  });
 }
