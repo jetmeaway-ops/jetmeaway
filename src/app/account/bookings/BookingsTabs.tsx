@@ -135,9 +135,12 @@ function BookingCard({ b }: { b: ClientBooking }) {
         </span>
       </div>
 
-      <h3 className="font-[var(--font-playfair)] font-black text-[1.25rem] text-[#0a1628] tracking-tight leading-tight">
-        {b.title}
-      </h3>
+      <a href={`/account/bookings/${encodeURIComponent(b.id)}`} className="group block">
+        <h3 className="font-[var(--font-playfair)] font-black text-[1.25rem] text-[#0a1628] tracking-tight leading-tight group-hover:text-[#0066FF] transition-colors">
+          {b.title}
+          <i className="fa-solid fa-chevron-right text-[.7rem] ml-2 text-[#B0B8CC] group-hover:text-[#0066FF]" />
+        </h3>
+      </a>
       {b.destination && (
         <p className="text-[.8rem] text-[#5C6378] font-semibold mt-0.5">
           <i className="fa-solid fa-location-dot text-[.72rem] text-[#287DFA] mr-1" />
@@ -189,6 +192,12 @@ function BookingCard({ b }: { b: ClientBooking }) {
           )}
         </div>
         <div className="flex items-center gap-3">
+          <a
+            href={`/account/bookings/${encodeURIComponent(b.id)}`}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#D6E2FF] bg-[#F1F5FF] text-[.76rem] font-bold text-[#0066FF]"
+          >
+            View details
+          </a>
           {b.canCancel ? (
             armed ? (
               <>
