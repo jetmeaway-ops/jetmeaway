@@ -39,10 +39,62 @@ function toE164(raw: string | null | undefined): string | null {
 }
 
 /**
+ * Who a message is for.
+ *
+ *   'customer' — an automatic send to a paying guest. OFF unless
+ *                SMS_TO_CUSTOMERS=1. This is the default, deliberately:
+ *                a new call site that forgets to declare an audience is
+ *                silent rather than expensive.
+ *   'owner'    — the owner's own phone, or a message the owner explicitly
+ *                pressed a button to send. Never gated.
+ */
+export type SmsAudience = 'customer' | 'owner';
+
+/**
+ * THE ONE SMS SWITCH.
+ *
+ * Owner directive 2026-08-29: "keep it to email only sms cost me". Customer
+ * notifications are EMAIL + APP PUSH. Every Twilio message is money out of a
+ * business that has made £0 in real revenue, and there are nine paths into
+ * this function — two of them (/api/book, /api/create-order) are dead routes
+ * that are still publicly POST-able, so gating per call site would leak.
+ *
+ * So the gate lives HERE, above everything, and it is opt-IN: customer SMS
+ * sends only when SMS_TO_CUSTOMERS=1 is present in the environment. Nothing
+ * is deleted. To turn customer SMS back on, set SMS_TO_CUSTOMERS=1 in the
+ * Vercel dashboard — no code change, no redeploy of logic.
+ *
+ * Deliberately NOT gated — these three pass audience:'owner':
+ *   - src/app/success/page.tsx — the BOOKING FAILED alert to the owner's own
+ *     number. A customer paid and got nothing; silence is far worse than the
+ *     cost of a rare text.
+ *   - src/app/api/admin/send-booking-sms — the owner pressing a button.
+ *   - src/app/api/admin/resend-notification — same, via notifications.ts.
+ */
+function customerSmsEnabled(): boolean {
+  return process.env.SMS_TO_CUSTOMERS === '1';
+}
+
+/**
  * Send a single SMS via Twilio. Never throws — returns { ok, error? } so the
  * calling booking flow cannot be blocked by SMS delivery issues.
+ *
+ * `opts.audience` defaults to 'customer', which is gated OFF (see
+ * customerSmsEnabled above). Every existing caller already treats a
+ * `{ ok: false }` return as a non-event, so nothing downstream breaks.
  */
-export async function sendSms(to: string, body: string): Promise<{ ok: boolean; error?: string }> {
+export async function sendSms(
+  to: string,
+  body: string,
+  opts?: { audience?: SmsAudience },
+): Promise<{ ok: boolean; error?: string }> {
+  const audience: SmsAudience = opts?.audience ?? 'customer';
+  if (audience === 'customer' && !customerSmsEnabled()) {
+    // Not an error — a deliberate, reversible business decision. No log:
+    // the recipient number must never reach the logs (Privacy Shield).
+    return { ok: false, error: 'sms_customer_disabled' };
+  }
+
   if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_FROM) {
     return { ok: false, error: 'twilio_not_configured' };
   }

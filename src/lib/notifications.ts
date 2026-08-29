@@ -14,8 +14,8 @@
  * twilio helper in src/lib/twilio.ts.
  */
 
-import { sendSms } from './twilio';
-import type { Booking } from './bookings';
+import { sendSms, type SmsAudience } from './twilio';
+import { fmtGbp, type Booking } from './bookings';
 import { sentryCapture } from './sentry-edge';
 
 const RESEND_KEY = process.env.RESEND_API_KEY || '';
@@ -63,11 +63,19 @@ async function sendEmail(opts: {
 
 /* ------------------------------ formatters ------------------------------- */
 
-function formatPrice(pence: number): string {
-  return `£${(pence / 100).toFixed(2)}`;
+/** Money for customer-facing copy.
+ *
+ *  The unified booking store has no currency field: every amount in it is GBP
+ *  pence by construction (PRICEABLE_CURRENCIES is {GBP} and lib/liteapi.ts
+ *  FX-converts every supplier price to GBP before we ever store it). So the
+ *  currency is declared ONCE, here, as an ISO code handed to Intl — never as a
+ *  bare '£' glyph scattered through the templates. If local-currency pricing
+ *  ever lands, this is the single place that has to learn about it. */
+export function formatPrice(pence: number): string {
+  return fmtGbp(pence);
 }
 
-function formatDate(iso: string | null): string {
+export function formatDate(iso: string | null): string {
   if (!iso) return '';
   try {
     return new Date(iso).toLocaleDateString('en-GB', {
@@ -154,6 +162,110 @@ export function joinAddress(
   return parts.filter(Boolean).join(', ');
 }
 
+/* ───────────────────── arrival facts — worded ONCE ────────────────────────
+   The three things the owner had to ask a chatbot for while standing outside
+   a Paris hotel at night with his family: whose name the room is under, how
+   much the property still wants at the desk, and where the property actually
+   is. They now appear in the confirmation email, the 24-hour reminder email
+   and the check-in push.
+
+   Every one of them is defined HERE and nowhere else. Three renderers wording
+   the same fact three different ways is how "GBP 20.37 payable at the
+   property" turns into a guest arguing with a receptionist. Each helper
+   returns null when the record cannot support the claim — an omitted line is
+   always better than a confident wrong one. Values come back RAW; each
+   renderer escapes them (detailsTable already does). */
+
+/** The name the hotel holds the room under — often NOT the person reading the
+ *  message. The owner's family trip was booked in his wife's name.
+ *  Returns null for the 'Guest' fallback that both mirror functions write when
+ *  no guest record exists: "Room held under: Guest" is visibly fake, and this
+ *  is the one fact that has to be trustworthy. */
+export function roomHeldUnder(booking: Booking): string | null {
+  const name = (booking.customerName || '').trim();
+  if (!name) return null;
+  if (name.toLowerCase() === 'guest') return null;
+  return name;
+}
+
+/** Money the PROPERTY still collects on arrival — city tax, VAT, resort fee —
+ *  which is NOT part of totalPence. Returns null when the record carries no
+ *  figure. Silence must stay silence: absence means "we were never told",
+ *  never "there is nothing more to pay". */
+export function localFeesLine(booking: Booking): string | null {
+  const pence = booking.localFeesPence;
+  if (typeof pence !== 'number' || !(pence > 0)) return null;
+  return `${formatPrice(pence)} — city tax and local fees, collected on arrival`;
+}
+
+/** "Fri 29 Aug 2026 from 03:00 PM". The time is the supplier's own string,
+ *  printed verbatim — LiteAPI sends "03:00 PM", there is no parser for it
+ *  anywhere in this repo, and inventing one would be how it becomes wrong. */
+export function checkInLine(booking: Booking): string | null {
+  if (!booking.checkIn) return null;
+  const t = booking.checkInTime ? ` from ${booking.checkInTime}` : '';
+  return formatDate(booking.checkIn) + t;
+}
+
+/** The property's real postal address. `destination` is the SEARCH BOX TEXT
+ *  ("Eiffel Tower") and is never an address. */
+/** LiteAPI returns an ISO-3166 alpha-2 country code, not a name — verified in
+ *  src/lib/liteapi.ts (getHotelDetail passes `h.country` straight through, and
+ *  the wrong-continent guard's own comment quotes a property "with country
+ *  'be'"). Printing it raw ends the address a guest shows at reception with a
+ *  bare ", FR". Expand the countries we actually sell into; for anything else
+ *  drop the code entirely — no country reads better than a cryptic one, and the
+ *  city is already there. */
+const COUNTRY_NAMES: Record<string, string> = {
+  GB: 'United Kingdom', FR: 'France', ES: 'Spain', IT: 'Italy', DE: 'Germany',
+  PT: 'Portugal', NL: 'Netherlands', BE: 'Belgium', CH: 'Switzerland', AT: 'Austria',
+  IE: 'Ireland', GR: 'Greece', HR: 'Croatia', CZ: 'Czechia', PL: 'Poland',
+  HU: 'Hungary', TR: 'Turkey', MA: 'Morocco', EG: 'Egypt', AE: 'United Arab Emirates',
+  US: 'United States', CA: 'Canada', MX: 'Mexico', TH: 'Thailand', JP: 'Japan',
+  NP: 'Nepal', IN: 'India', ID: 'Indonesia', VN: 'Vietnam', MY: 'Malaysia',
+  SG: 'Singapore', AU: 'Australia', NZ: 'New Zealand', ZA: 'South Africa',
+  DK: 'Denmark', SE: 'Sweden', NO: 'Norway', FI: 'Finland', IS: 'Iceland',
+  RO: 'Romania', BG: 'Bulgaria', SK: 'Slovakia', SI: 'Slovenia', EE: 'Estonia',
+  LV: 'Latvia', LT: 'Lithuania', CY: 'Cyprus', MT: 'Malta', LU: 'Luxembourg',
+  AL: 'Albania', RS: 'Serbia', BA: 'Bosnia and Herzegovina', ME: 'Montenegro',
+  GE: 'Georgia', AM: 'Armenia', AZ: 'Azerbaijan', QA: 'Qatar', SA: 'Saudi Arabia',
+  BR: 'Brazil', AR: 'Argentina', CL: 'Chile', PE: 'Peru', CO: 'Colombia',
+};
+
+export function countryName(raw?: string | null): string | null {
+  const c = (raw || '').trim();
+  if (!c) return null;
+  if (c.length !== 2) return c;                    // already a name
+  return COUNTRY_NAMES[c.toUpperCase()] ?? null;   // unknown code: say nothing
+}
+
+export function hotelAddressLine(booking: Booking): string | null {
+  const addr = joinAddress(booking.hotelAddress, booking.hotelCity, countryName(booking.hotelCountry));
+  return addr || null;
+}
+
+/**
+ * The arrival block, as label/value rows, in the order a guest standing at a
+ * reception desk needs them. Empty array for flights and for records that
+ * carry none of the fields (everything written before 2026-08-28).
+ *
+ * Renderers supply their own chrome; the WORDS come from here.
+ */
+export function arrivalDetailRows(booking: Booking): Array<[string, string]> {
+  if (booking.type !== 'hotel') return [];
+  const rows: Array<[string, string]> = [];
+  const addr = hotelAddressLine(booking);
+  if (addr) rows.push(['Address', addr]);
+  const ci = checkInLine(booking);
+  if (ci) rows.push(['Check-in', ci]);
+  if (booking.roomName) rows.push(['Room', booking.roomName]);
+  const held = roomHeldUnder(booking);
+  if (held) rows.push(['Room held under', held]);
+  const fees = localFeesLine(booking);
+  if (fees) rows.push(['Payable at the hotel', fees]);
+  return rows;
+}
+
 /* ------------------------- confirmation notification --------------------- */
 
 function confirmationHtml(booking: Booking): string {
@@ -166,12 +278,16 @@ function confirmationHtml(booking: Booking): string {
   ];
   // The hotel's real postal address, when the record carries one.
   if (!isFlight) {
-    const addr = joinAddress(booking.hotelAddress, booking.hotelCity, booking.hotelCountry);
+    const addr = hotelAddressLine(booking);
     if (addr) rows.push(['Address', addr]);
   }
   if (booking.checkIn) {
-    const t = !isFlight && booking.checkInTime ? ` from ${booking.checkInTime}` : '';
-    rows.push([isFlight ? 'Travel date' : 'Check-in', formatDate(booking.checkIn) + t]);
+    if (isFlight) {
+      rows.push(['Travel date', formatDate(booking.checkIn)]);
+    } else {
+      const ci = checkInLine(booking);
+      if (ci) rows.push(['Check-in', ci]);
+    }
   }
   if (booking.checkOut && !isFlight) {
     const t = booking.checkOutTime ? ` until ${booking.checkOutTime}` : '';
@@ -196,13 +312,18 @@ function confirmationHtml(booking: Booking): string {
     rows.push([isFlight ? 'Passengers' : 'Guests', String(booking.guests)]);
   }
   // The name the hotel holds the room under — often not the person reading
-  // this. The owner's family trip was booked in his wife's name.
-  if (!isFlight && booking.customerName) rows.push(['Room held under', booking.customerName]);
+  // this. The owner's family trip was booked in his wife's name. Suppressed
+  // for the 'Guest' fallback (see roomHeldUnder).
+  if (!isFlight) {
+    const held = roomHeldUnder(booking);
+    if (held) rows.push(['Room held under', held]);
+  }
   rows.push(['Total paid', formatPrice(booking.totalPence)]);
   // Money the PROPERTY still collects. Printing a total under a no-surprises
   // promise while the desk asks for more is the surprise.
-  if (!isFlight && booking.localFeesPence && booking.localFeesPence > 0) {
-    rows.push(['Payable at the hotel', `${formatPrice(booking.localFeesPence)} — city tax and local fees, collected on arrival`]);
+  if (!isFlight) {
+    const fees = localFeesLine(booking);
+    if (fees) rows.push(['Payable at the hotel', fees]);
   }
 
   const supplierNote = isFlight
@@ -265,7 +386,17 @@ function confirmationSms(booking: Booking): string {
   return `JetMeAway: Hotel booked ✅ Ref ${ref} — ${booking.title}${booking.checkIn ? `, ${formatDate(booking.checkIn)}` : ''}. Voucher by email. jetmeaway.co.uk`;
 }
 
-export async function notifyBookingConfirmed(booking: Booking): Promise<void> {
+/**
+ * `opts.smsAudience` exists for ONE caller: /api/admin/resend-notification,
+ * where the owner has deliberately pressed "Send SMS" / "Send both". It must
+ * bypass the automatic-customer-SMS gate in lib/twilio.ts, or the admin UI
+ * would render a green "✅ Confirmation SMS sent" over a silent no-op.
+ * Every automatic caller omits it and gets the gated 'customer' default.
+ */
+export async function notifyBookingConfirmed(
+  booking: Booking,
+  opts?: { smsAudience?: SmsAudience },
+): Promise<void> {
   const tasks: Promise<unknown>[] = [];
   if (booking.customerEmail) {
     tasks.push(
@@ -277,7 +408,10 @@ export async function notifyBookingConfirmed(booking: Booking): Promise<void> {
     );
   }
   if (booking.customerPhone) {
-    tasks.push(sendSms(booking.customerPhone, confirmationSms(booking)));
+    // allSettled below: a disabled/failed SMS can never affect the email.
+    tasks.push(sendSms(booking.customerPhone, confirmationSms(booking), {
+      audience: opts?.smsAudience ?? 'customer',
+    }));
   }
   try {
     await Promise.allSettled(tasks);
@@ -331,7 +465,11 @@ function declineSms(booking: Booking): string {
   return `JetMeAway: We couldn't complete your ${booking.type === 'flight' ? 'flight' : 'hotel'} booking ${booking.id}.${refundBit} Check your email for details — reply or email contact@jetmeaway.co.uk.`;
 }
 
-export async function notifyBookingDeclined(booking: Booking, reason: string): Promise<void> {
+export async function notifyBookingDeclined(
+  booking: Booking,
+  reason: string,
+  opts?: { smsAudience?: SmsAudience },
+): Promise<void> {
   const tasks: Promise<unknown>[] = [];
   if (booking.customerEmail) {
     tasks.push(
@@ -343,7 +481,9 @@ export async function notifyBookingDeclined(booking: Booking, reason: string): P
     );
   }
   if (booking.customerPhone) {
-    tasks.push(sendSms(booking.customerPhone, declineSms(booking)));
+    tasks.push(sendSms(booking.customerPhone, declineSms(booking), {
+      audience: opts?.smsAudience ?? 'customer',
+    }));
   }
   try {
     await Promise.allSettled(tasks);
@@ -354,7 +494,7 @@ export async function notifyBookingDeclined(booking: Booking, reason: string): P
 
 /* -------------------------------- utils ---------------------------------- */
 
-function escapeHtml(s: string): string {
+export function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')

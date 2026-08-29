@@ -1,15 +1,31 @@
 /**
- * GET /api/scout/reminders — 24-hour pre-check-in reminder cron.
+ * GET /api/scout/reminders — pre-arrival reminder cron.
  *
- * Triggered daily by Vercel Cron (see vercel.json). Walks the unified
- * `bookings:all` store, finds every booking whose check-in is exactly
- * tomorrow (calendar-day match), and fires a Scout-voice reminder via
- * email + SMS. Idempotent — once a reminder is sent for a given ref we
- * set a KV flag so a retry / duplicate run never double-sends.
+ * Two message kinds, selected by `?kind=` (see vercel.json):
+ *
+ *   check-in-24h  (default, 09:00 UTC) — EMAIL + push, the day before.
+ *                 The email is the guaranteed channel and now carries the
+ *                 three things a guest actually needs on arrival.
+ *   check-in-day  (07:00 UTC)          — PUSH only, on the morning of
+ *                 check-in. "this should pop up in app notification".
+ *
+ * HOTELS ONLY. Flight bookings store `checkIn` as their DEPARTURE date, so
+ * before this gate existed a flight customer was told "You check in tomorrow.
+ * Your room at LHR → CDG is ready and waiting."
  *
  * Active-Only Shield: every send is gated by `isBookingActive()` from
- * `lib/booking-status.ts` so cancelled / refunded / completed bookings
- * never get a "see you tomorrow" message.
+ * `lib/booking-status.ts` so cancelled / refunded / completed bookings never
+ * get a "see you tomorrow" message.
+ *
+ * Idempotent PER BOOKING PER KIND PER CHANNEL. One shared marker meant a push
+ * success masked an email failure and the email never retried. The pre-2026-
+ * 08-29 combined key is still read as a legacy "this kind is done" gate, so
+ * bookings that already had their 24-hour reminder can never be sent a second
+ * one by this change.
+ *
+ * Customer SMS is OFF (owner directive 2026-08-29 — "keep it to email only sms
+ * cost me"). The call site below is intact and un-deleted; the gate lives in
+ * lib/twilio.ts and flips back on with SMS_TO_CUSTOMERS=1.
  *
  * Vercel Cron sets a `User-Agent: vercel-cron/1.0` header. We accept that
  * OR a manual call carrying `?secret=<CRON_SECRET>` so the route can be
@@ -27,10 +43,15 @@ import {
 import { scoutSalutation } from '@/lib/scout-greeting';
 import { neighbourhoodIntel, genericIntel } from '@/lib/neighbourhood-intel';
 import { sendSms } from '@/lib/twilio';
+import { arrivalDetailRows, escapeHtml } from '@/lib/notifications';
+import { sendCheckInPush, type CheckInPushKind } from '@/lib/booking-push';
 
 export const runtime = 'edge';
 
 const SITE = 'https://jetmeaway.co.uk';
+/** 30 days — long enough to absorb any retry window, short enough that KV
+ *  doesn't grow forever. */
+const MARKER_TTL_SECONDS = 60 * 60 * 24 * 30;
 
 function authorised(req: NextRequest): boolean {
   const ua = req.headers.get('user-agent') || '';
@@ -40,6 +61,14 @@ function authorised(req: NextRequest): boolean {
   return Boolean(expected && provided === expected);
 }
 
+/** Default is the original 24-hour behaviour, so the existing cron entry —
+ *  which carries no query string — keeps doing exactly what it did. */
+function parseKind(req: NextRequest): CheckInPushKind {
+  return req.nextUrl.searchParams.get('kind') === 'check-in-day'
+    ? 'check-in-day'
+    : 'check-in-24h';
+}
+
 function fmtFriendlyDate(iso: string | null): string {
   if (!iso) return '';
   const d = new Date(iso);
@@ -47,9 +76,58 @@ function fmtFriendlyDate(iso: string | null): string {
   return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
+/** The property's own city, falling back to the search box text.
+ *  `destination` holds what was TYPED — a booking for a hotel in Paris 75013
+ *  is stored as "Eiffel Tower", which greets a Paris guest with "Hello"
+ *  instead of "Bonjour" and hands them generic neighbourhood intel. */
+function cityFor(booking: Booking): string {
+  return (booking.hotelCity || '').trim() || (booking.destination || '').trim();
+}
+
+/** The arrival block — Address, Check-in (with the property's own opening
+ *  time), Room, Room held under, Payable at the hotel. The WORDING comes from
+ *  lib/notifications.ts so this email, the confirmation email and the push can
+ *  never describe the same fact three different ways. Renders nothing at all
+ *  on a record that carries none of the fields. */
+function arrivalCardHtml(booking: Booking): string {
+  const rows = arrivalDetailRows(booking);
+  const hasCoords = typeof booking.lat === 'number' && typeof booking.lng === 'number';
+  if (rows.length === 0 && !hasCoords) return '';
+
+  const table = rows.length
+    ? `<table style="width:100%;border-collapse:collapse;margin:4px 0 0;">
+  ${rows
+    .map(
+      ([k, v]) => `
+      <tr>
+        <td style="padding:8px 0;color:#8E95A9;font-size:13px;width:40%;vertical-align:top;">${escapeHtml(k)}</td>
+        <td style="padding:8px 0;color:#1A1D2B;font-size:14px;font-weight:600;">${escapeHtml(v)}</td>
+      </tr>`,
+    )
+    .join('')}
+</table>`
+    : '';
+
+  /* Directions from the COORDINATES, not the postal address — a hotel's
+     registered address is often not its entrance. */
+  const directions = hasCoords
+    ? `<p style="margin:14px 0 0;">
+      <a href="https://www.google.com/maps/dir/?api=1&amp;destination=${booking.lat},${booking.lng}"
+         style="display:inline-block;background:#F1F5FF;border:1px solid #D6E2FF;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:800;color:#0066FF;text-decoration:none;">📍 Get directions</a>
+    </p>`
+    : '';
+
+  return `
+    <div style="background:#fff;border:1px solid #E8ECF4;border-radius:16px;padding:24px;margin-bottom:16px;">
+      <p style="font-size:11px;font-weight:800;color:#0066FF;text-transform:uppercase;letter-spacing:2.5px;margin:0 0 8px;">At the desk</p>
+      ${table}
+      ${directions}
+    </div>`;
+}
+
 function buildReminderEmail(booking: Booking): { subject: string; html: string } {
   const firstName = (booking.customerName || '').trim().split(/\s+/)[0] || '';
-  const city = booking.destination || '';
+  const city = cityFor(booking);
   const opener = scoutSalutation(city, firstName);
   const intel = neighbourhoodIntel(city) || genericIntel(city);
   const friendlyCheckIn = fmtFriendlyDate(booking.checkIn);
@@ -70,10 +148,10 @@ function buildReminderEmail(booking: Booking): { subject: string; html: string }
     <div style="background:#fff;border:1px solid #E8ECF4;border-radius:16px;padding:24px;margin-bottom:16px;">
       <p style="font-size:11px;font-weight:800;color:#0066FF;text-transform:uppercase;letter-spacing:2.5px;margin:0 0 12px;">Scout check-in · 24 hours to go</p>
       <h1 style="font-size:22px;font-weight:900;color:#0a1628;margin:0 0 14px;line-height:1.25;">${opener}</h1>
-      <p style="font-size:15px;line-height:1.55;color:#374151;margin:0 0 12px;">${friendlyCheckIn ? `You check in <strong>${friendlyCheckIn}</strong>.` : 'You check in tomorrow.'} ${booking.title ? `Your room at <strong>${booking.title}</strong> is ready and waiting.` : ''}</p>
+      <p style="font-size:15px;line-height:1.55;color:#374151;margin:0 0 12px;">${friendlyCheckIn ? `You check in <strong>${friendlyCheckIn}</strong>.` : 'You check in tomorrow.'} ${booking.title ? `Your room at <strong>${escapeHtml(booking.title)}</strong> is ready and waiting.` : ''}</p>
       <p style="font-size:15px;line-height:1.55;color:#374151;margin:0;">Don't forget: your neighbourhood intelligence report includes the best local morning rituals and fitness spots near the hotel. Check your original confirmation for the 'Scout Sidebar' link to access your deep-neighbourhood guide.</p>
     </div>
-
+${arrivalCardHtml(booking)}
     <div style="background:#FAF3E6;border:1px solid #E8D8A8;border-radius:16px;padding:20px;margin-bottom:16px;">
       <p style="font-size:11px;font-weight:800;color:#8a6d00;text-transform:uppercase;letter-spacing:2px;margin:0 0 12px;">Tomorrow's Scout brief</p>
       <p style="font-size:14px;line-height:1.55;color:#1A1D2B;margin:0 0 10px;"><strong>Morning ritual.</strong> ${intel.morningRitual}</p>
@@ -100,7 +178,7 @@ function buildReminderEmail(booking: Booking): { subject: string; html: string }
 
 function buildReminderSms(booking: Booking): string {
   const firstName = (booking.customerName || '').trim().split(/\s+/)[0] || '';
-  const city = booking.destination || 'your destination';
+  const city = cityFor(booking) || 'your destination';
   const opener = scoutSalutation(city, firstName);
   const bookingUrl = `${SITE}/account/bookings/${encodeURIComponent(booking.id)}`;
   return (
@@ -126,9 +204,17 @@ async function sendReminderEmail(booking: Booking): Promise<boolean> {
     });
     return true;
   } catch (err) {
-    console.error('[scout/reminders] email send failed', err);
+    // No booking data in the log line — an error object from a mailer can
+    // carry the recipient address (Privacy Shield).
+    console.error('[scout/reminders] email send failed', err instanceof Error ? err.message : 'unknown');
     return false;
   }
+}
+
+/** Read a marker without letting a KV blip look like "already sent". A throw
+ *  propagates to the per-booking catch, which skips that ONE booking. */
+async function alreadySent(key: string): Promise<boolean> {
+  return Boolean(await kv.get<string>(key));
 }
 
 export async function GET(req: NextRequest) {
@@ -137,63 +223,116 @@ export async function GET(req: NextRequest) {
   }
 
   const startedAt = Date.now();
+  // Both members of CheckInPushKind are also members of ReminderKind, so this
+  // is accepted by reminderSentKey() without a cast.
+  const kind: CheckInPushKind = parseKind(req);
+  const days = kind === 'check-in-day' ? 0 : 1;
+  /* Day-of is PUSH ONLY. The guest already had the full arrival email
+     yesterday; a second email every morning is volume the owner did not ask
+     for, and he asked specifically for an app notification. */
+  const wantEmail = kind === 'check-in-24h';
+
   const all = await listBookings();
   const now = new Date();
 
-  // Filter: active + check-in tomorrow + reminder not yet sent.
+  // Filter: active + check-in on the target day.
+  //
+  // 🔴 NOT gated on type here. The arrival facts and the check-in push are
+  // hotel-only, and each self-gates (arrivalDetailRows() and buildCheckInPush()
+  // both return empty for a flight). Filtering the whole loop to hotels would
+  // silently delete the flight 24-hour reminder — a live customer email — in a
+  // change whose purpose is hotel wording. The one exception is the check-in-DAY
+  // run, which is a hotel concept only.
   const candidates: Booking[] = [];
   for (const b of all) {
+    if (kind === 'check-in-day' && b.type !== 'hotel') continue;
     if (!isBookingActive(b, now)) continue;
-    if (!checkInIsInDays(b, 1, now)) continue;
+    if (!checkInIsInDays(b, days, now)) continue;
     candidates.push(b);
   }
 
   let emailsSent = 0;
   let smsSent = 0;
+  let pushesSent = 0;
+  let pushDevicesFound = 0;
   let skippedAlreadySent = 0;
+  let skippedNoDevices = 0;
+  let skippedUnsociableHour = 0;
   const failures: Array<{ ref: string; reason: string }> = [];
 
   for (const b of candidates) {
-    const idemp = reminderSentKey(b.id, 'check-in-24h');
     try {
-      const already = await kv.get<string>(idemp);
-      if (already) { skippedAlreadySent++; continue; }
+      /* Pre-2026-08-29 combined marker. When it exists this kind is finished
+         for this booking — treat BOTH channels as done so the switch to
+         per-channel keys can never re-send a reminder the guest already had. */
+      const legacyDone =
+        kind === 'check-in-24h' ? await alreadySent(reminderSentKey(b.id, kind)) : false;
 
-      // Best-effort: don't fail the whole batch if one channel errors.
-      let didEmail = false;
-      let didSms = false;
-      if (b.customerEmail) {
-        didEmail = await sendReminderEmail(b);
-        if (didEmail) emailsSent++;
+      const emailKey = reminderSentKey(b.id, kind, 'email');
+      const pushKey = reminderSentKey(b.id, kind, 'push');
+      const smsKey = reminderSentKey(b.id, kind, 'sms');
+
+      const emailDone = legacyDone || (wantEmail ? await alreadySent(emailKey) : true);
+      const pushDone = legacyDone || (await alreadySent(pushKey));
+
+      if (emailDone && pushDone) { skippedAlreadySent++; continue; }
+
+      // ── EMAIL — the guaranteed channel. Runs first and independently: a
+      //    push failure below can never stop it, and vice versa.
+      if (!emailDone && b.customerEmail) {
+        const ok = await sendReminderEmail(b);
+        if (ok) {
+          emailsSent++;
+          await kv.set(emailKey, new Date().toISOString(), { ex: MARKER_TTL_SECONDS });
+        } else {
+          failures.push({ ref: b.id, reason: 'email failed' });
+        }
       }
-      if (b.customerPhone) {
+
+      // ── PUSH — best effort. Most bookings resolve to zero devices (guest
+      //    checkout has no session, so no token is bound to the email); that
+      //    is a normal outcome, not a failure, and never touches the email.
+      if (!pushDone) {
+        const out = await sendCheckInPush(b, kind, now);
+        pushDevicesFound += out.tokens;
+        pushesSent += out.delivered;
+        if (out.skipped === 'no-tokens') skippedNoDevices++;
+        if (out.skipped === 'unsociable-hour') skippedUnsociableHour++;
+        if (out.delivered > 0) {
+          await kv.set(pushKey, new Date().toISOString(), { ex: MARKER_TTL_SECONDS });
+        }
+      }
+
+      // ── SMS — gated OFF at the Twilio layer (audience defaults to
+      //    'customer'; SMS_TO_CUSTOMERS is unset). Left intact so setting the
+      //    env var restores it with idempotency still holding. Only ever runs
+      //    for the 24-hour message.
+      if (wantEmail && b.customerPhone && !legacyDone && !(await alreadySent(smsKey))) {
         const sms = await sendSms(b.customerPhone, buildReminderSms(b));
-        didSms = sms.ok;
-        if (didSms) smsSent++;
-      }
-
-      // Mark sent only when at least one channel succeeded — otherwise we'd
-      // never retry on a transient Resend / Twilio outage.
-      if (didEmail || didSms) {
-        // Keep the marker for 30 days — long enough to absorb any retry
-        // window, short enough that KV doesn't grow forever.
-        await kv.set(idemp, new Date().toISOString(), { ex: 60 * 60 * 24 * 30 });
-      } else {
-        failures.push({ ref: b.id, reason: 'no channel succeeded' });
+        if (sms.ok) {
+          smsSent++;
+          await kv.set(smsKey, new Date().toISOString(), { ex: MARKER_TTL_SECONDS });
+        }
       }
     } catch (err) {
+      // One booking failing must never abort the run for the rest.
       failures.push({ ref: b.id, reason: err instanceof Error ? err.message : 'unknown' });
     }
   }
 
   return NextResponse.json({
     success: true,
+    kind,
     runAt: new Date().toISOString(),
     durationMs: Date.now() - startedAt,
     candidates: candidates.length,
     emailsSent,
+    pushesSent,
+    pushDevicesFound,
     smsSent,
     skippedAlreadySent,
+    skippedNoDevices,
+    skippedUnsociableHour,
     failures,
   });
 }

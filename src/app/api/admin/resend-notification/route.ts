@@ -77,15 +77,20 @@ export async function POST(req: NextRequest) {
         : 'declined'
       : kind;
 
+  // smsAudience:'owner' — automatic customer SMS is gated OFF in lib/twilio.ts
+  // (owner directive 2026-08-29: email + push only). This route is the owner
+  // pressing "Send SMS" / "Send both" on a specific booking, so it bypasses
+  // the gate. Without this the buttons would no-op while the UI still printed
+  // a green "✅ Confirmation SMS sent".
   try {
     if (resolvedKind === 'confirmed') {
-      await notifyBookingConfirmed(target);
+      await notifyBookingConfirmed(target, { smsAudience: 'owner' });
     } else {
       const reason =
         body.reason?.trim() ||
         booking.notes?.split('\n')[0]?.trim() ||
         'Booking could not be completed';
-      await notifyBookingDeclined(target, reason);
+      await notifyBookingDeclined(target, reason, { smsAudience: 'owner' });
     }
     return NextResponse.json({
       success: true,
