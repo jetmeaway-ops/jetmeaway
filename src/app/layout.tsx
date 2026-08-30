@@ -33,6 +33,7 @@ import ClientErrorReporter from '@/components/ClientErrorReporter';
 // the queue init, not the network or heavy lifting.
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import ZoomGuard from '@/components/ZoomGuard';
+import NativePushBinder from '@/components/NativePushBinder';
 
 const poppins = Poppins({
   // 2026-08-03: Poppins is now the SINGLE UI/body font (DM Sans dropped —
@@ -315,6 +316,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             other chrome (BackToTopButton, AndroidAppBanner) now mounts
             via DeferredWidgets at +6s. */}
         <ClientErrorReporter />
+        {/* App-only: hands the shell's push token to /api/push-token WITH the
+            session cookie, which is the only way token ever meets account.
+            Renders nothing in a normal browser. */}
+        <NativePushBinder />
         {/* Pinch-zoom crash guard — flags <html> with `is-zoomed` while the
             visual viewport is actually zoomed, so globals.css can hide the
             decorative fixed backdrops and pause backdrop-filter surfaces.

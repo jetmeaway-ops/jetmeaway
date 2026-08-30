@@ -68,6 +68,10 @@ export const INJECTED_BRIDGE = `
     // the session cookie lands in WKHTTPCookieStore directly. (Posting
     // from React Native instead would land the cookie in NSHTTPCookieStorage
     // and the WebView would still look signed-out on the next nav.)
+    // Push token for account binding. The web calls this and POSTs the token
+    // to /api/push-token FROM the WebView so the session cookie rides along —
+    // the only place the token and the signed-in email ever meet.
+    getPushToken: function () { return callNative('getPushToken'); },
     signInWithApple: function () { return callNative('signInWithApple'); },
     signInWithGoogle: function () { return callNative('signInWithGoogle'); },
     signOut: function () { return callNative('signOut'); },
@@ -86,6 +90,7 @@ true;
 `;
 
 export type NativeMessageType =
+  | 'getPushToken'
   | 'share'
   | 'saveBooking'
   | 'requestLocation'
@@ -101,6 +106,7 @@ export type NativeMessage = {
 };
 
 const VALID_TYPES: ReadonlySet<NativeMessageType> = new Set([
+  'getPushToken',
   'share',
   'saveBooking',
   'requestLocation',
