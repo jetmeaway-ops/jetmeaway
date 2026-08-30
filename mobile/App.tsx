@@ -20,7 +20,8 @@ import * as Haptics from 'expo-haptics';
 
 import { APP_USER_AGENT } from './src/constants/app';
 import { Colors } from './src/constants/colors';
-import { registerForPushNotifications, syncPushTokenToBackend } from './src/services/push';
+import { registerForPushNotifications, syncPushTokenToBackend, getStoredPushToken } from './src/services/push';
+import * as Notifications from 'expo-notifications';
 import { saveBooking, parseBookingMessage } from './src/services/offline-bookings';
 import { INJECTED_BRIDGE, parseMessage } from './src/services/webview-bridge';
 import { MyTripsModal } from './src/screens/MyTripsModal';
@@ -129,6 +130,42 @@ export default function App() {
       await syncPushTokenToBackend(token);
     })();
     return () => { cancelled = true; };
+  }, []);
+
+  // A tapped notification must OPEN what it is about. Until 1.3.6 no listener
+  // existed, so a tap just foregrounded the app wherever it last was — which
+  // is why every fact had to live in the push body. The push's data.url names
+  // a path on our site; anything else is ignored (a push is still input from
+  // outside — never navigate to a foreign origin because a payload asked).
+  useEffect(() => {
+    const openFromNotification = (data: unknown) => {
+      const raw = (data as { url?: unknown })?.url;
+      let path = '/account/bookings';
+      if (typeof raw === 'string' && raw) {
+        const fromUrl = pathFromInboundUrl(raw);
+        if (fromUrl) path = fromUrl;
+        else if (raw.startsWith('/') && !raw.startsWith('//')) path = raw;
+      }
+      setStackedUrl(null);
+      const safe = path.replace(/'/g, "\\'");
+      if (webviewRef.current) {
+        webviewRef.current.injectJavaScript(`window.location.href = 'https://${INTERNAL_HOST}${safe}'; true;`);
+      } else {
+        setInitialUrl(`https://${INTERNAL_HOST}${path}`);
+      }
+    };
+    // Cold start: the tap that LAUNCHED us fires no event — it is fetched.
+    (async () => {
+      try {
+        const last = await Notifications.getLastNotificationResponseAsync();
+        if (last) openFromNotification(last.notification.request.content.data);
+      } catch { /* no notification module on this platform build */ }
+    })();
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      openFromNotification(response.notification.request.content.data);
+    });
+    return () => sub.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Universal/app links — if the OS launched us with a jetmeaway.co.uk URL,
@@ -276,6 +313,14 @@ export default function App() {
     const reject = (reason: string) => rejectBridge(source, id, reason);
 
     try {
+      if (msg.type === 'getPushToken') {
+        // Stored token first; if the user only now grants permission, register
+        // on the spot so the very first ask can still succeed.
+        const token = (await getStoredPushToken()) ?? (await registerForPushNotifications());
+        resolve({ token, platform: Platform.OS });
+        return;
+      }
+
       if (msg.type === 'share') {
         const p = (msg.payload ?? {}) as { title?: string; text?: string; url?: string };
         await Share.share({

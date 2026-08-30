@@ -22,6 +22,6 @@
  * NUMBER (buildNumber/versionCode auto-increment) but the version STRING still
  * comes from app.json — which is why the local drift reached Apple.
  */
-export const APP_VERSION = '1.3.4';
+export const APP_VERSION = '1.3.6';
 
 export const APP_USER_AGENT = `JetMeAway/${APP_VERSION} Mobile`;

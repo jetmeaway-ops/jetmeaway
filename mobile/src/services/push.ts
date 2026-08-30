@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { APP_VERSION } from '../constants/app';
 
 /**
  * Push-notification service — first-launch opt-in, token capture, backend sync.
@@ -57,6 +58,17 @@ export async function registerForPushNotifications(): Promise<string | null> {
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#0066FF',
       });
+      // Booking-critical pushes get their OWN channel at HIGH importance.
+      // 'default' is named "Deal Alerts" and sits at DEFAULT importance — a
+      // check-in reminder sent there never pops as a heads-up, and a user who
+      // muted marketing has muted their booking too. The server targets this
+      // channel by id for anything a traveller must actually see.
+      await Notifications.setNotificationChannelAsync('bookings', {
+        name: 'Booking updates',
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#0066FF',
+      });
     } catch {
       // Channel exists already — fine.
     }
@@ -87,6 +99,20 @@ export async function registerForPushNotifications(): Promise<string | null> {
  * (token, platform). Local "synced" flag prevents repeated POSTs once
  * confirmed; we re-POST on next launch if the previous attempt failed.
  */
+/** The token captured at opt-in, if any — for the WebView bridge. The WEB
+ *  side re-registers it from INSIDE the WebView, where the session cookie
+ *  lives, which is what finally binds token → account on the server. Posting
+ *  from React Native never could: RN's fetch has no WKWebView cookies (the
+ *  same jar split social sign-in documents), so push:by-email was never
+ *  written and every account-targeted push went to nobody. */
+export async function getStoredPushToken(): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem(PUSH_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
 export async function syncPushTokenToBackend(token: string): Promise<boolean> {
   try {
     const synced = await AsyncStorage.getItem(PUSH_TOKEN_SYNCED_KEY);
@@ -98,7 +124,7 @@ export async function syncPushTokenToBackend(token: string): Promise<boolean> {
       body: JSON.stringify({
         token,
         platform: Platform.OS,
-        appVersion: '1.0.5',
+        appVersion: APP_VERSION,
       }),
     });
     if (!res.ok) return false;
