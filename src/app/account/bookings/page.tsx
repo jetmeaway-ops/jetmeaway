@@ -76,6 +76,13 @@ export default async function AccountBookingsPage() {
               <i className="fa-solid fa-heart text-[.7rem] text-rose-500" />
               Saved hotels
             </a>
+            <a
+              href="/account"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#E8ECF4] bg-white hover:bg-[#FCFAF5] text-[#0a1628] font-poppins font-bold text-[.78rem] transition-colors"
+            >
+              <i className="fa-solid fa-user text-[.7rem]" />
+              My account
+            </a>
             <form action="/api/account/signout" method="POST">
               <button
                 type="submit"
