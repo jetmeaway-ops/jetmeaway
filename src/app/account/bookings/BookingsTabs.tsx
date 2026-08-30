@@ -15,6 +15,84 @@ import type { ClientBooking } from './page';
 
 type Bucket = 'upcoming' | 'past' | 'cancelled';
 
+/* ── Trip grouping ─────────────────────────────────────────────────────────
+   The owner's reference screenshots (2026-08-30) show bookings grouped under
+   a trip heading — "Chambery and Rome / 25–29 Aug 2026" — because one journey
+   is often several bookings, and a flat list makes a two-hotel road trip read
+   as two unrelated purchases.
+
+   A "trip" here is a chain of stays whose dates touch: sort by check-in, and
+   a booking joins the current trip when it starts no later than a day after
+   the trip so far ends. No destination matching — his own Paris trip was one
+   night in Chambery THEN one in Paris, different cities, one journey. Rows
+   without dates cannot chain and stand alone. */
+type Trip = { heading: string; dates: string; rows: ClientBooking[] };
+
+const DAY = 86400000;
+
+function tripDates(startIso: string, endIso: string): string {
+  const s = new Date(startIso);
+  const e = new Date(endIso);
+  if (isNaN(s.getTime()) || isNaN(e.getTime())) return '';
+  const d = (x: Date) => x.getDate();
+  const m = (x: Date) => x.toLocaleDateString('en-GB', { month: 'short' });
+  const y = (x: Date) => x.getFullYear();
+  if (y(s) !== y(e)) return `${d(s)} ${m(s)} ${y(s)} – ${d(e)} ${m(e)} ${y(e)}`;
+  if (m(s) !== m(e)) return `${d(s)} ${m(s)} – ${d(e)} ${m(e)} ${y(e)}`;
+  if (d(s) !== d(e)) return `${d(s)}–${d(e)} ${m(e)} ${y(e)}`;
+  return `${d(e)} ${m(e)} ${y(e)}`;
+}
+
+function groupTrips(rows: ClientBooking[]): Trip[] {
+  const dated = rows.filter((r) => r.checkIn && r.checkOut);
+  const undated = rows.filter((r) => !r.checkIn || !r.checkOut);
+
+  const asc = [...dated].sort(
+    (a, b) => new Date(a.checkIn!).getTime() - new Date(b.checkIn!).getTime(),
+  );
+
+  const chains: ClientBooking[][] = [];
+  let current: ClientBooking[] = [];
+  let chainEnd = 0;
+  for (const r of asc) {
+    const start = new Date(r.checkIn!).getTime();
+    const end = new Date(r.checkOut!).getTime();
+    if (current.length && start <= chainEnd + DAY) {
+      current.push(r);
+      chainEnd = Math.max(chainEnd, end);
+    } else {
+      if (current.length) chains.push(current);
+      current = [r];
+      chainEnd = end;
+    }
+  }
+  if (current.length) chains.push(current);
+
+  const trips: Trip[] = chains.map((chain) => {
+    // Destinations in visit order, deduped, joined the way a person says it.
+    const seen = new Set<string>();
+    const places: string[] = [];
+    for (const r of chain) {
+      const d = (r.destination || '').trim();
+      if (d && !seen.has(d.toLowerCase())) { seen.add(d.toLowerCase()); places.push(d); }
+    }
+    const heading =
+      places.length <= 1 ? (places[0] || 'Trip')
+      : places.length === 2 ? `${places[0]} and ${places[1]}`
+      : `${places.slice(0, -1).join(', ')} and ${places[places.length - 1]}`;
+    const start = chain[0].checkIn!;
+    const end = chain.reduce((m, r) => (r.checkOut! > m ? r.checkOut! : m), chain[0].checkOut!);
+    return { heading, dates: tripDates(start, end), rows: chain };
+  });
+
+  // Newest trip first — the reference lists them that way.
+  trips.sort((a, b) => new Date(b.rows[0].checkIn!).getTime() - new Date(a.rows[0].checkIn!).getTime());
+
+  for (const r of undated) trips.push({ heading: r.destination || 'Trip', dates: '', rows: [r] });
+  return trips;
+}
+
+
 export default function BookingsTabs({
   counts,
   buckets,
@@ -74,9 +152,21 @@ export default function BookingsTabs({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {items.map((b) => (
-            <BookingCard key={b.id} b={b} />
+        <div className="space-y-8">
+          {groupTrips(items).map((trip, i) => (
+            <section key={`${trip.heading}-${trip.dates}-${i}`}>
+              <h2 className="font-[var(--font-playfair)] font-black text-[1.35rem] text-[#0a1628] tracking-tight leading-tight">
+                {trip.heading}
+              </h2>
+              {trip.dates && (
+                <p className="text-[.78rem] text-[#8E95A9] font-semibold mt-0.5 mb-3">{trip.dates}</p>
+              )}
+              <div className="grid grid-cols-1 gap-4 mt-3">
+                {trip.rows.map((b) => (
+                  <BookingCard key={b.id} b={b} />
+                ))}
+              </div>
+            </section>
           ))}
         </div>
       )}
