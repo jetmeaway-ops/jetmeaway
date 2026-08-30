@@ -177,6 +177,15 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
 
           {/* Actions */}
           <div className="mt-5 flex flex-wrap items-center gap-3">
+            {b.type === 'hotel' && (
+              <a
+                href={`/api/account/bookings/voucher?ref=${encodeURIComponent(b.id)}`}
+                className="inline-flex items-center gap-2 rounded-xl border border-[#D6E2FF] bg-[#F1F5FF] px-5 py-2.5 text-[.82rem] font-extrabold text-[#0066FF]"
+              >
+                <i className="fa-solid fa-file-arrow-down text-[.72rem]" />
+                Download voucher (PDF)
+              </a>
+            )}
             {rebookCity && (
               <Link
                 href={`/hotels?city=${encodeURIComponent(rebookCity)}`}
