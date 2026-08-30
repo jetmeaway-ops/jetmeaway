@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import { getHotels as liteapiGetHotels, type HotelOffer } from '@/lib/liteapi';
+import { ghostedAmong } from '@/lib/ghost';
 
 export const runtime = 'edge';
 
@@ -308,8 +309,12 @@ async function buildDestination(
     limit: 15,
   });
 
-  // Only include bookable hotels (with offerId for Book Direct)
-  const bookable = (hotels || []).filter((h) => h.offerId);
+  // Only include bookable hotels (with offerId for Book Direct) — and skip
+  // any hotel currently flagged as ghost inventory: a Book button that leads
+  // to "sold out" is worse than one fewer hotel on a fifteen-hotel strip.
+  const withOffer = (hotels || []).filter((h) => h.offerId);
+  const ghosts = await ghostedAmong(withOffer.map((h) => h.hotelId));
+  const bookable = withOffer.filter((h) => !ghosts.has(h.hotelId));
   if (bookable.length === 0) return null;
 
   const sorted = [...bookable].sort((a, b) => a.price - b.price);
@@ -385,6 +390,7 @@ function assemble(
   quotes: Record<string, DealQuote>,
   checkin: string,
   checkout: string,
+  servedGhosts: Set<string>,
 ): DealDestination {
   const hydrate = (s: ShellHotel | null): DealHotel | null => {
     if (!s) return null;
@@ -414,10 +420,16 @@ function assemble(
   // heal path will re-pick properly on its own schedule.
   const live = [shell.budget, shell.top, shell.premium]
     .map(hydrate)
-    .filter((h): h is NonNullable<typeof h> => !!h);
+    .filter((h): h is NonNullable<typeof h> => !!h)
+    // A pick can be flagged ghost AFTER the shell chose it (a customer's
+    // failed prebook mid-cycle). Serving it would hand out the exact dead
+    // Book button the flag exists to prevent; the budget fallback below and
+    // the heal path fill the gap.
+    .filter((h) => !servedGhosts.has(h.id));
   if (!live.length) return emptyDestination(shell, checkin, checkout);
+  const budgetPick = hydrate(shell.budget);
   const budgetHotel =
-    hydrate(shell.budget) ??
+    (budgetPick && !servedGhosts.has(budgetPick.id) ? budgetPick : null) ??
     live.reduce((a, b) => (a.totalPrice <= b.totalPrice ? a : b));
 
   return {
@@ -430,9 +442,9 @@ function assemble(
     // "from £X a night" headline and the offer behind the Book button are
     // always the same rate.
     cheapestPrice: Math.round(budgetHotel.pricePerNight),
-    topHotel: hydrate(shell.top),
+    topHotel: (() => { const h = hydrate(shell.top); return h && !servedGhosts.has(h.id) ? h : null; })(),
     budgetHotel,
-    premiumHotel: hydrate(shell.premium),
+    premiumHotel: (() => { const h = hydrate(shell.premium); return h && !servedGhosts.has(h.id) ? h : null; })(),
     hotelCount: shell.hotelCount,
     checkin,
     checkout,
@@ -594,8 +606,16 @@ export async function GET() {
     }
   }
 
+  // One lookup across every pick the shell might serve. A hotel flagged as
+  // ghost AFTER the shell chose it must not reach a Book button.
+  const servedGhosts = await ghostedAmong(
+    activeShell.destinations.flatMap((d) =>
+      [d.budget, d.top, d.premium].filter((x): x is NonNullable<typeof x> => !!x).map((x) => x.id),
+    ),
+  );
+
   const deals = activeShell.destinations.map((d) =>
-    assemble(d, quotes, activeShell.checkin, activeShell.checkout),
+    assemble(d, quotes, activeShell.checkin, activeShell.checkout, servedGhosts),
   );
 
   /* ── 4. Persist ──────────────────────────────────────────────────────── */
