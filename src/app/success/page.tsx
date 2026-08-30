@@ -99,7 +99,7 @@ export const dynamic = 'force-dynamic';
 type ScoutPlace = { name: string; type: string; distance_m: number; walk_min: number };
 type ScoutData = {
   quality: string;
-  categories: { wellness: ScoutPlace[]; family: ScoutPlace[]; food: ScoutPlace[]; daily: ScoutPlace[] };
+  categories: { attractions?: ScoutPlace[]; wellness: ScoutPlace[]; family: ScoutPlace[]; food: ScoutPlace[]; daily: ScoutPlace[] };
 };
 
 async function fetchScoutData(lat: number, lng: number): Promise<ScoutData | null> {
@@ -119,10 +119,12 @@ async function fetchScoutData(lat: number, lng: number): Promise<ScoutData | nul
 }
 
 function buildScoutEmailSection(scout: ScoutData): string {
+  // Order = what a traveller asks first. Sights lead; errands close.
   const catLabels: Record<string, { emoji: string; title: string }> = {
+    attractions: { emoji: '🏛️', title: 'Things to See' },
     food: { emoji: '🍽', title: 'Food & Coffee' },
-    wellness: { emoji: '💪', title: 'Wellness & Fitness' },
     family: { emoji: '👨‍👩‍👧‍👦', title: 'Family & Fun' },
+    wellness: { emoji: '💪', title: 'Wellness & Fitness' },
     daily: { emoji: '🏪', title: 'Daily Essentials' },
   };
 
