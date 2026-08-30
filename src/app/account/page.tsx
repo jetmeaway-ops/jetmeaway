@@ -1,19 +1,20 @@
 /**
- * /account — sign-in surface
+ * /account — sign-in surface, and the "My account" overview once signed in.
  *
- * If you're already signed in we redirect you to /account/bookings. Otherwise
- * you see a Scout-voiced email form: enter email → receive magic link → click
- * link → land on /account/bookings.
+ * Signed out: a Scout-voiced email form — enter email → magic link → session.
+ * Signed in: the account overview (trips, saved hotels, reviews, details,
+ * help, legal, sign out). The header's TRIPS pill deep-links straight to
+ * /account/bookings, so the everyday "show me my trips" tap is unchanged.
  *
  * Server component so we can read the cookie on the initial render and skip
  * the form entirely for returning visitors.
  */
-import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { readSessionEmailFromCookies } from '@/lib/session';
 import SignInForm from './SignInForm';
+import AccountOverview from './AccountOverview';
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
@@ -26,7 +27,13 @@ export default async function AccountPage({ searchParams }: Props) {
   const cookieStore = await cookies();
   const email = await readSessionEmailFromCookies(cookieStore);
   if (email) {
-    redirect('/account/bookings');
+    return (
+      <>
+        <Header />
+        <AccountOverview email={email} />
+        <Footer />
+      </>
+    );
   }
 
   const { error, sent } = await searchParams;

@@ -277,10 +277,11 @@ export default function Header() {
               {t('nav.saved')}
               <SavedCount />
             </Link>
-            {/* My Trips — always visible; /account redirects to the bookings
-                list when signed in, otherwise shows the sign-in form. */}
+            {/* My Trips — deep-links to the bookings list (signed-out visitors
+                are bounced to the sign-in form by that page). /account itself is
+                now the "My account" overview. */}
             <Link
-              href="/account"
+              href="/account/bookings"
               className={`hidden md:inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl font-bold text-[.76rem] transition-all ${
                 isActive('/account')
                   ? 'bg-[#FAF3E6] border border-[#E8D8A8] text-[#8a6d00]'
