@@ -28,8 +28,9 @@ type ScoutData = {
   hotel: { lat: number; lng: number };
   radius: number;
   quality: 'rich' | 'moderate' | 'thin' | 'empty';
-  summary: { total: number; wellness: number; family: number; food: number; daily: number };
+  summary: { total: number; attractions?: number; wellness: number; family: number; food: number; daily: number };
   categories: {
+    attractions?: ScoutPlace[];
     wellness: ScoutPlace[];
     family: ScoutPlace[];
     food: ScoutPlace[];
@@ -51,7 +52,7 @@ type Props = {
    * has at least one POI. If omitted or its category is empty, the sidebar
    * falls back to the first non-empty tab as before.
    */
-  defaultTab?: 'wellness' | 'family' | 'food' | 'daily';
+  defaultTab?: 'attractions' | 'wellness' | 'family' | 'food' | 'daily';
   /**
    * Embedded (inline) mode — renders the Scout content as a flow-layout card
    * instead of a fixed overlay. Used on the hotel detail page where Scout
@@ -81,6 +82,12 @@ const TYPE_ICONS: Record<string, LucideIcon> = {
   cinema: Film,
   library: Landmark,
   museum: Landmark,
+  attraction: Landmark,
+  viewpoint: MapPin,
+  gallery: Landmark,
+  monument: Landmark,
+  castle: Landmark,
+  climbing: Dumbbell,
   ice_cream: IceCreamCone,
   cafe: Coffee,
   restaurant: UtensilsCrossed,
@@ -139,6 +146,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
+  attractions: 'bg-violet-500',
   wellness: 'bg-emerald-500',
   family: 'bg-amber-500',
   food: 'bg-red-500',
@@ -146,6 +154,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const TABS = [
+  { key: 'attractions' as const, label: 'See & Do', Icon: Landmark },
   { key: 'wellness' as const, label: 'Wellness', Icon: Heart },
   { key: 'family' as const, label: 'Family', Icon: Baby },
   { key: 'food' as const, label: 'Food', Icon: Coffee },
@@ -153,6 +162,7 @@ const TABS = [
 ];
 
 const EMPTY_CATEGORY_MESSAGES: Record<string, string> = {
+  attractions: 'No sights mapped in walking distance. Ask reception — every neighbourhood keeps a secret or two.',
   wellness: "No fitness or wellness spots found nearby — but that doesn't mean they aren't there. Check locally on arrival.",
   family: 'No family-specific activities found nearby. The local area may still have plenty to discover with kids.',
   food: "No cafes or restaurants mapped nearby — unusual! There's almost certainly somewhere great around the corner.",
@@ -259,7 +269,7 @@ function PlaceItem({
 export default function ScoutSidebar({ hotelName, latitude, longitude, onClose, defaultTab, embedded = false }: Props) {
   const [data, setData] = useState<ScoutData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'wellness' | 'family' | 'food' | 'daily'>(defaultTab ?? 'food');
+  const [activeTab, setActiveTab] = useState<'attractions' | 'wellness' | 'family' | 'food' | 'daily'>(defaultTab ?? 'attractions');
   const sidebarRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [sheetExpanded, setSheetExpanded] = useState(false);
@@ -289,9 +299,9 @@ export default function ScoutSidebar({ hotelName, latitude, longitude, onClose, 
       // Silent Scout: prefer the caller-supplied default if it has data,
       // otherwise fall back to the first non-empty tab in priority order.
       if (json.categories) {
-        const priority: Array<'wellness' | 'family' | 'food' | 'daily'> = defaultTab
-          ? [defaultTab, ...(['food', 'daily', 'family', 'wellness'] as const).filter(t => t !== defaultTab)]
-          : ['food', 'daily', 'family', 'wellness'];
+        const priority: Array<'attractions' | 'wellness' | 'family' | 'food' | 'daily'> = defaultTab
+          ? [defaultTab, ...(['attractions', 'food', 'daily', 'family', 'wellness'] as const).filter(t => t !== defaultTab)]
+          : ['attractions', 'food', 'daily', 'family', 'wellness'];
         for (const tab of priority) {
           if (json.categories[tab]?.length > 0) {
             setActiveTab(tab);
@@ -433,6 +443,7 @@ export default function ScoutSidebar({ hotelName, latitude, longitude, onClose, 
     }
 
     const mapPlaces = {
+      attractions: (data.categories.attractions ?? []).map(p => ({ lat: p.lat, lng: p.lng, name: p.name })),
       wellness: data.categories.wellness.map(p => ({ lat: p.lat, lng: p.lng, name: p.name })),
       family: data.categories.family.map(p => ({ lat: p.lat, lng: p.lng, name: p.name })),
       food: data.categories.food.map(p => ({ lat: p.lat, lng: p.lng, name: p.name })),
@@ -474,7 +485,7 @@ export default function ScoutSidebar({ hotelName, latitude, longitude, onClose, 
     }
 
     // Rich / moderate — tabbed view
-    const activeItems = data.categories[activeTab];
+    const activeItems = (data.categories[activeTab]) ?? [];
     const activePinBg = CATEGORY_COLORS[activeTab];
 
     return (

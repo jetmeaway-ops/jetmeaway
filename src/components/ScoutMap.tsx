@@ -5,13 +5,13 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 type Place = { lat: number; lng: number; name: string };
-type Category = 'wellness' | 'family' | 'food' | 'daily';
+type Category = 'attractions' | 'wellness' | 'family' | 'food' | 'daily';
 
 type Props = {
   hotelName: string;
   lat: number;
   lng: number;
-  places: { wellness: Place[]; family: Place[]; food: Place[]; daily: Place[] };
+  places: { attractions?: Place[]; wellness: Place[]; family: Place[]; food: Place[]; daily: Place[] };
   height: number;
   /**
    * Active Scout tab — pins in this category are rendered full-opacity with
@@ -25,6 +25,7 @@ type Props = {
 };
 
 const CAT_COLORS: Record<string, string> = {
+  attractions: '#8b5cf6',
   wellness: '#10b981',
   family: '#f59e0b',
   food: '#ef4444',
@@ -85,13 +86,13 @@ export default function ScoutMap({ hotelName, lat, lng, places, height, activeTa
       .addTo(map);
 
     // Amenity markers — render non-active first so active pins layer on top
-    const categories: Category[] = ['wellness', 'family', 'food', 'daily'];
+    const categories: Category[] = ['attractions', 'wellness', 'family', 'food', 'daily'];
     const renderOrder = activeTab
       ? [...categories.filter(c => c !== activeTab), activeTab]
       : categories;
 
     for (const cat of renderOrder) {
-      const items = places[cat];
+      const items = places[cat] ?? [];
       const color = CAT_COLORS[cat] || '#6b7280';
       const isActive = activeTab === cat;
 

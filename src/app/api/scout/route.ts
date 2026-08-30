@@ -17,18 +17,26 @@ const FSQ_CATEGORY_MAP: Record<string, { category: string; type: string }> = {
   '16028': { category: 'family', type: 'playground' },
   '10027': { category: 'family', type: 'zoo' },
   '10024': { category: 'family', type: 'aquarium' },
-  '10025': { category: 'family', type: 'museum' },
   '10039': { category: 'family', type: 'cinema' },
   '16000': { category: 'family', type: 'theme_park' },
-  '12072': { category: 'family', type: 'library' },
-  // food
+  // attractions — the reason a traveller is IN this city. The owner's own
+  // Paris stay surfaced three libraries under "family" and no sights at all;
+  // a guide with no sights is a shopping list. (2026-08-30)
+  '10025': { category: 'attractions', type: 'museum' },
+  '10004': { category: 'attractions', type: 'gallery' },
+  // wellness (18025 = Climbing Gym — without it, a climbing venue fell
+  // through its own category list to the in-house cafe and was filed "cafe")
+  '18025': { category: 'wellness', type: 'climbing' },
+  // food — places you EAT. Supermarkets moved to "daily": sorting by
+  // distance put Chen Market above every restaurant in the 13th.
   '13032': { category: 'food', type: 'cafe' },
   '13065': { category: 'food', type: 'restaurant' },
-  '17069': { category: 'food', type: 'supermarket' },
   '13002': { category: 'food', type: 'bakery' },
   '13003': { category: 'food', type: 'pub' },
-  '17062': { category: 'food', type: 'convenience' },
   // daily
+  '17069': { category: 'daily', type: 'supermarket' },
+  '17062': { category: 'daily', type: 'convenience' },
+  '12072': { category: 'daily', type: 'library' },
   '17028': { category: 'daily', type: 'pharmacy' },
   '11045': { category: 'daily', type: 'bank' },
   '11044': { category: 'daily', type: 'atm' },
@@ -54,18 +62,22 @@ const GOOGLE_TYPE_MAP: Record<string, { category: string; type: string }> = {
   playground: { category: 'family', type: 'playground' },
   zoo: { category: 'family', type: 'zoo' },
   aquarium: { category: 'family', type: 'aquarium' },
-  museum: { category: 'family', type: 'museum' },
   movie_theater: { category: 'family', type: 'cinema' },
   amusement_park: { category: 'family', type: 'theme_park' },
-  library: { category: 'family', type: 'library' },
-  // food
+  // attractions
+  tourist_attraction: { category: 'attractions', type: 'attraction' },
+  museum: { category: 'attractions', type: 'museum' },
+  art_gallery: { category: 'attractions', type: 'gallery' },
+  historical_landmark: { category: 'attractions', type: 'monument' },
+  // food — places you EAT (supermarkets live under "daily")
   cafe: { category: 'food', type: 'cafe' },
   restaurant: { category: 'food', type: 'restaurant' },
-  supermarket: { category: 'food', type: 'supermarket' },
   bakery: { category: 'food', type: 'bakery' },
   pub: { category: 'food', type: 'pub' },
-  convenience_store: { category: 'food', type: 'convenience' },
   // daily
+  supermarket: { category: 'daily', type: 'supermarket' },
+  convenience_store: { category: 'daily', type: 'convenience' },
+  library: { category: 'daily', type: 'library' },
   pharmacy: { category: 'daily', type: 'pharmacy' },
   bank: { category: 'daily', type: 'bank' },
   atm: { category: 'daily', type: 'atm' },
@@ -95,15 +107,22 @@ const TAG_CATEGORIES: Record<string, { category: string; type: string }> = {
   'tourism=theme_park': { category: 'family', type: 'theme_park' },
   'amenity=cinema': { category: 'family', type: 'cinema' },
   'leisure=water_park': { category: 'family', type: 'water_park' },
-  'amenity=library': { category: 'family', type: 'library' },
-  'tourism=museum': { category: 'family', type: 'museum' },
   'amenity=ice_cream': { category: 'family', type: 'ice_cream' },
+  'tourism=attraction': { category: 'attractions', type: 'attraction' },
+  'tourism=viewpoint': { category: 'attractions', type: 'viewpoint' },
+  'tourism=gallery': { category: 'attractions', type: 'gallery' },
+  'tourism=museum': { category: 'attractions', type: 'museum' },
+  'historic=monument': { category: 'attractions', type: 'monument' },
+  'historic=memorial': { category: 'attractions', type: 'monument' },
+  'historic=castle': { category: 'attractions', type: 'castle' },
+  'sport=climbing': { category: 'wellness', type: 'climbing' },
   'amenity=cafe': { category: 'food', type: 'cafe' },
   'amenity=restaurant': { category: 'food', type: 'restaurant' },
-  'shop=supermarket': { category: 'food', type: 'supermarket' },
+  'shop=supermarket': { category: 'daily', type: 'supermarket' },
   'shop=bakery': { category: 'food', type: 'bakery' },
   'amenity=pub': { category: 'food', type: 'pub' },
-  'shop=convenience': { category: 'food', type: 'convenience' },
+  'shop=convenience': { category: 'daily', type: 'convenience' },
+  'amenity=library': { category: 'daily', type: 'library' },
   'amenity=pharmacy': { category: 'daily', type: 'pharmacy' },
   'amenity=bank': { category: 'daily', type: 'bank' },
   'amenity=atm': { category: 'daily', type: 'atm' },
@@ -141,8 +160,9 @@ type ScoutResponse = {
   hotel: { lat: number; lng: number };
   radius: number;
   quality: 'rich' | 'moderate' | 'thin' | 'empty';
-  summary: { total: number; wellness: number; family: number; food: number; daily: number };
+  summary: { total: number; attractions: number; wellness: number; family: number; food: number; daily: number };
   categories: {
+    attractions: ScoutPlace[];
     wellness: ScoutPlace[];
     family: ScoutPlace[];
     food: ScoutPlace[];
@@ -197,20 +217,29 @@ async function fetchFoursquare(lat: number, lng: number, radius: number): Promis
       const pLng = place.geocodes?.main?.longitude;
       if (!isFinite(pLat) || !isFinite(pLng)) continue;
 
-      // Find matching category
+      // Find matching category — EXACT ids across the whole list first, so a
+      // venue's primary identity beats its in-house sideline (a climbing gym
+      // also carries its cafe's category; taking the first hit filed it as
+      // "cafe"). Prefix matching runs second, and a name-keyword rescue
+      // catches sights whose ids we do not map.
       let info: { category: string; type: string } | null = null;
-      for (const cat of (place.categories || [])) {
-        const catId = String(cat.id);
-        // Check exact match first, then prefix match (Foursquare uses hierarchical IDs)
-        if (FSQ_CATEGORY_MAP[catId]) {
-          info = FSQ_CATEGORY_MAP[catId];
-          break;
+      const cats = (place.categories || []) as Array<{ id?: unknown; name?: unknown }>;
+      for (const cat of cats) {
+        const exact = FSQ_CATEGORY_MAP[String(cat.id)];
+        if (exact) { info = exact; break; }
+      }
+      if (!info) {
+        for (const cat of cats) {
+          const byPrefix = FSQ_CATEGORY_MAP[String(cat.id).slice(0, 5)];
+          if (byPrefix) { info = byPrefix; break; }
         }
-        // Check first 5 digits as parent category
-        const prefix = catId.slice(0, 5);
-        if (FSQ_CATEGORY_MAP[prefix]) {
-          info = FSQ_CATEGORY_MAP[prefix];
-          break;
+      }
+      if (!info) {
+        const catNames = cats.map((c) => String(c.name || '')).join(' ');
+        if (/landmark|monument|historic|castle|palace|cathedral|scenic|gallery/i.test(catNames)) {
+          info = { category: 'attractions', type: 'attraction' };
+        } else if (/climb/i.test(catNames)) {
+          info = { category: 'wellness', type: 'climbing' };
         }
       }
       if (!info) continue;
@@ -337,7 +366,7 @@ async function fetchOverpass(lat: number, lng: number, radius: number): Promise<
 
 // ── Bucket, sort, limit ───────────────────────────────────────────────────────
 function bucketPlaces(places: ScoutPlace[]): Record<string, ScoutPlace[]> {
-  const buckets: Record<string, ScoutPlace[]> = { wellness: [], family: [], food: [], daily: [] };
+  const buckets: Record<string, ScoutPlace[]> = { attractions: [], wellness: [], family: [], food: [], daily: [] };
   const seen = new Set<string>();
 
   // Build a reverse lookup: type → category
@@ -380,7 +409,9 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Step 1: Check KV cache ──
-    const cacheKey = `scout:${lat.toFixed(3)}:${lng.toFixed(3)}`;
+    // v2 (2026-08-30): attractions category added, supermarkets moved out of
+    // food — a v1 entry would render a guide with no sights for a day.
+    const cacheKey = `scout:v2:${lat.toFixed(3)}:${lng.toFixed(3)}`;
     try {
       const cached = await kv.get<ScoutResponse>(cacheKey);
       if (cached) {
@@ -435,8 +466,8 @@ export async function POST(req: NextRequest) {
           hotel: { lat, lng },
           radius,
           quality: 'empty' as const,
-          summary: { total: 0, wellness: 0, family: 0, food: 0, daily: 0 },
-          categories: { wellness: [], family: [], food: [], daily: [] },
+          summary: { total: 0, attractions: 0, wellness: 0, family: 0, food: 0, daily: 0 },
+          categories: { attractions: [], wellness: [], family: [], food: [], daily: [] },
           cached: false,
           fallback: true,
           source,
@@ -450,7 +481,8 @@ export async function POST(req: NextRequest) {
     const buckets = bucketPlaces(places);
 
     const summary = {
-      total: buckets.wellness.length + buckets.family.length + buckets.food.length + buckets.daily.length,
+      total: buckets.attractions.length + buckets.wellness.length + buckets.family.length + buckets.food.length + buckets.daily.length,
+      attractions: buckets.attractions.length,
       wellness: buckets.wellness.length,
       family: buckets.family.length,
       food: buckets.food.length,
@@ -468,6 +500,7 @@ export async function POST(req: NextRequest) {
       quality,
       summary,
       categories: {
+        attractions: buckets.attractions,
         wellness: buckets.wellness,
         family: buckets.family,
         food: buckets.food,
@@ -492,8 +525,8 @@ export async function POST(req: NextRequest) {
         hotel: { lat: 0, lng: 0 },
         radius: 1000,
         quality: 'empty' as const,
-        summary: { total: 0, wellness: 0, family: 0, food: 0, daily: 0 },
-        categories: { wellness: [], family: [], food: [], daily: [] },
+        summary: { total: 0, attractions: 0, wellness: 0, family: 0, food: 0, daily: 0 },
+        categories: { attractions: [], wellness: [], family: [], food: [], daily: [] },
         cached: false,
         fallback: true,
         message: 'Neighbourhood data is temporarily unavailable. Please try again shortly.',
