@@ -30,6 +30,10 @@ export const runtime = 'edge';
 export interface PendingBooking {
   ref: string;
   offerId: string;
+  /** LiteAPI hotel id (e.g. "lp883a4"). Optional and additive (2026-08-30):
+   *  lets prebook flag GHOST INVENTORY — a hotel whose offers fail to honour
+   *  — against the hotel rather than the offer. Absent on older records. */
+  hotelId?: string;
   hotelName: string;
   stars: number;
   totalPrice: number;
@@ -137,6 +141,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const {
       offerId,
+      hotelId,
       hotelName,
       stars = 0,
       totalPrice,
@@ -225,6 +230,7 @@ export async function POST(req: NextRequest) {
       thumbnail,
       ...(Number.isFinite(lat) ? { lat } : {}),
       ...(Number.isFinite(lng) ? { lng } : {}),
+      ...(typeof hotelId === 'string' && hotelId.trim() ? { hotelId: hotelId.trim().slice(0, 40) } : {}),
       ...(typeof hotelAddress === 'string' && hotelAddress.trim() ? { hotelAddress: hotelAddress.trim().slice(0, 300) } : {}),
       ...(typeof hotelCity === 'string' && hotelCity.trim() ? { hotelCity: hotelCity.trim().slice(0, 120) } : {}),
       ...(typeof hotelCountry === 'string' && hotelCountry.trim() ? { hotelCountry: hotelCountry.trim().slice(0, 80) } : {}),

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { markGhostHotel } from '@/lib/ghost';
 import { kv } from '@vercel/kv';
 import { prebookWithPaymentSdk } from '@/lib/liteapi';
 import { reportBug } from '@/lib/report-bug';
@@ -42,8 +43,11 @@ export async function POST(req: NextRequest) {
   }
   const { ref } = parsed.data;
 
+  // Hoisted so the catch block can name the HOTEL when the supplier refuses
+  // the offer — the ghost flag hangs off the hotel id, not the dead offer.
+  let record: PendingBooking | null = null;
   try {
-    const record = await kv.get<PendingBooking>(`pending-booking:${ref}`);
+    record = await kv.get<PendingBooking>(`pending-booking:${ref}`);
     if (!record) {
       return NextResponse.json(
         { success: false, error: 'Booking not found or expired' },
@@ -182,6 +186,11 @@ export async function POST(req: NextRequest) {
       message.includes('"code":5000') ||
       /\bLiteAPI 4\d\d\b/.test(message)
     ) {
+      // Remember the HOTEL, not just the offer. A genuinely-sold-out room is
+      // a one-off; a ghost property (B&B HOTEL Paris 17 Batignolles failed
+      // like this on a 6-minute-old offer, for days) fails every time, and
+      // the deals strip must stop advertising it. 24h flag; fire-and-forget.
+      void markGhostHotel(record?.hotelId);
       return NextResponse.json(
         {
           success: false,

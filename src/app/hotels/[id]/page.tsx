@@ -816,8 +816,8 @@ export default function HotelDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           offerId: rate.offerId,
-          hotelName: hotel.name,
           hotelId: hotel.id,
+          hotelName: hotel.name,
           // Omitted, never zeroed or converted, when the property carries no
           // official classification. `hotel.stars` can be a 0–10 guest score
           // (see officialStars); sending it wrote a five-star claim into the

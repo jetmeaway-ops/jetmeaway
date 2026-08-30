@@ -2778,6 +2778,7 @@ function HotelsContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           offerId: live.offerId,
+          hotelId: live.id,
           hotelName: live.name,
           stars: live.stars ?? 0,
           totalPrice: live.totalPrice,
