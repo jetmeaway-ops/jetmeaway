@@ -127,7 +127,7 @@ function BookingCard({ b }: { b: ClientBooking }) {
             <i className={`fa-solid ${b.typeIcon} text-[.82rem]`} />
           </span>
           <span className="text-[.62rem] font-black uppercase tracking-[1.8px] text-[#8a6d00]">
-            {b.type} · {b.supplierLabel}
+            {b.type}
           </span>
         </div>
         <span className={`inline-block px-2.5 py-1 rounded-full text-[.64rem] font-black uppercase tracking-[1.2px] border ${b.statusColor}`}>
@@ -185,7 +185,7 @@ function BookingCard({ b }: { b: ClientBooking }) {
         <div className="text-[.7rem] text-[#8E95A9] font-medium">
           Booking ref <strong className="font-bold text-[#0a1628]">{b.id}</strong>
           {b.supplierRef && (
-            <span className="ml-2 text-[.68rem]">Supplier <strong className="font-bold text-[#0a1628]">{b.supplierRef}</strong></span>
+            <span className="ml-2 text-[.68rem]">Hotel reference <strong className="font-bold text-[#0a1628]">{b.supplierRef}</strong></span>
           )}
         </div>
         <div className="flex items-center gap-3">

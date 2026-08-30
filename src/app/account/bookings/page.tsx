@@ -16,7 +16,7 @@ import { redirect } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { readSessionEmailFromCookies } from '@/lib/session';
-import { listBookings, fmtGbp, fmtDate, statusColor, typeIcon, supplierLabel, type Booking } from '@/lib/bookings';
+import { listBookings, fmtGbp, fmtDate, statusColor, typeIcon, type Booking } from '@/lib/bookings';
 import BookingsTabs from './BookingsTabs';
 
 export const runtime = 'nodejs';
@@ -167,7 +167,6 @@ function serialise(b: Booking) {
     checkOutFormatted: fmtDate(b.checkOut),
     statusColor: statusColor(b.status),
     typeIcon: typeIcon(b.type),
-    supplierLabel: supplierLabel(b.supplier),
     canCancel,
     cancellationDeadlineFormatted: deadlineValid
       ? deadline!.toLocaleDateString('en-GB', {
