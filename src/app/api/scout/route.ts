@@ -285,7 +285,7 @@ async function fetchGoogle(lat: number, lng: number, radius: number): Promise<Sc
     // type. Google files Climb Up's in-house cafe before any sport type, so
     // the climbing gym rendered as "cafe" in the guide (verified live at the
     // owner's Paris hotel, 2026-08-30). The name says what the place is.
-    if (info?.category === 'food' && /climb/i.test(p.name || '')) {
+    if (info?.category === 'food' && /climb/i.test(p.name || '')) {
       info = { category: 'wellness', type: 'climbing' };
     }
     if (!info) continue;
@@ -416,9 +416,11 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Step 1: Check KV cache ──
-    // v3 (2026-08-30): Google climb-name rescue; v2 added attractions and moved supermarkets out of
+    // v4 (2026-08-30): v3's climb regex contained a literal BACKSPACE byte (a
+    // python 'backslash-b' escape leaked into the pattern) and could never match, so v3
+    // entries hold the wrong row; v2 added attractions and moved supermarkets out of
     // food — a v1 entry would render a guide with no sights for a day.
-    const cacheKey = `scout:v3:${lat.toFixed(3)}:${lng.toFixed(3)}`;
+    const cacheKey = `scout:v4:${lat.toFixed(3)}:${lng.toFixed(3)}`;
     try {
       const cached = await kv.get<ScoutResponse>(cacheKey);
       if (cached) {
