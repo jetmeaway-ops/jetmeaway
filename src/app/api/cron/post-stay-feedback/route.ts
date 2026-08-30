@@ -1,10 +1,11 @@
 /**
- * GET /api/cron/post-stay-feedback — the morning-after email.
+ * GET /api/cron/post-stay-feedback — the two-hours-after-checkout email.
  *
- * Runs daily (Vercel Cron, see vercel.json). Finds every hotel booking whose
- * check-out was YESTERDAY and asks the guest two questions: how was the hotel,
- * and how did JetMeAway do. The morning after a stay is when people tell the
- * truth — a week later they tell you nothing.
+ * Runs HOURLY (Vercel Cron, see vercel.json). Finds every hotel booking whose
+ * check-out moment passed ~2h ago in the property's local time and asks the
+ * guest two questions: how was the hotel, and how did JetMeAway do. Two hours
+ * after walking out is when people tell the truth — a day later they tell you
+ * nothing.
  *
  * Owner's ask (2026-08-30, from Paris, the morning he checked out of his own
  * booking): "email after checkout ... asking the Customer experience with us
@@ -13,11 +14,13 @@
  * Deliberate choices:
  *  - EMAIL ONLY. Customer SMS is switched off account-wide (it costs money);
  *    this route never touches Twilio at all.
- *  - "Yesterday" is a UTC calendar-day match on the stored check-out date.
- *    Check-out happens by noon local everywhere, so by 10:00 UTC the next day
- *    every guest on the planet has actually left — the westernmost timezone's
- *    check-out day ends at 10:00 UTC. No timezone maths, no guest emailed
- *    while still packing.
+ *  - Sent ~2 HOURS AFTER CHECK-OUT, not the next day. Owner (2026-08-30):
+ *    "rating email should come after 2 hours of checkout — if we send email
+ *    before checkout that will get no attention." A day later the stay is
+ *    stale; before checkout it is noise. The cron runs HOURLY and each
+ *    booking fires when its own check-out moment + 2h has passed in the
+ *    property's local time, approximated from the hotel's longitude at
+ *    15°/hour — within ±1h anywhere, which is plenty for an email.
  *  - ONE-TAP rating buttons, not "please reply" — modelled on the OTA email
  *    the owner received after his own Rome stay. Each button carries a private
  *    per-booking token; /api/feedback/rate validates it and registers the
@@ -59,10 +62,46 @@ function authorised(req: NextRequest): boolean {
   return Boolean(expected && provided === expected);
 }
 
-/** YYYY-MM-DD for "yesterday" in UTC — the shape checkOut is stored in. */
-function yesterdayUtc(now: Date): string {
-  const d = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  return d.toISOString().slice(0, 10);
+const HOUR = 3600 * 1000;
+/** Send no earlier than this after check-out… */
+const SEND_AFTER_MS = 2 * HOUR;
+/** …and give up this long after it. The idempotency flag normally stops a
+ *  resend; this backstop stops a FIRST send arriving absurdly late (e.g. the
+ *  feature deploying over a weeks-old booking, or a long cron outage). */
+const SEND_WINDOW_MS = 48 * HOUR;
+
+/** "12:00 PM" / "11:30 AM" / "23:00" → minutes since local midnight.
+ *  LiteAPI writes 12-hour strings; older records may have nothing — default
+ *  11:00, the most common check-out cutoff. Never throws. */
+function checkOutMinutes(raw: string | null | undefined): number {
+  const m = /(\d{1,2}):(\d{2})\s*(AM|PM)?/i.exec(raw || '');
+  if (!m) return 11 * 60;
+  let h = parseInt(m[1], 10);
+  const min = parseInt(m[2], 10);
+  const ap = (m[3] || '').toUpperCase();
+  if (ap === 'PM' && h !== 12) h += 12;
+  if (ap === 'AM' && h === 12) h = 0;
+  if (h > 23 || min > 59) return 11 * 60;
+  return h * 60 + min;
+}
+
+/** True when this booking's check-out happened at least 2h ago — and no more
+ *  than 48h ago — in the PROPERTY's local time, approximated from longitude
+ *  (15° per hour). No coordinates → treat as UTC: for a UK/EU-heavy book
+ *  that errs an hour or two LATE, never early, which is the safe side of the
+ *  owner's rule. */
+function dueForFeedback(
+  b: { checkOut?: string | null; checkOutTime?: string | null; lng?: number },
+  now: Date,
+): boolean {
+  const day = (b.checkOut || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return false;
+  const offsetH = typeof b.lng === 'number' ? Math.round(b.lng / 15) : 0;
+  // Wall-clock arithmetic: express both moments as if local time were UTC.
+  const checkoutWall = Date.parse(`${day}T00:00:00Z`) + checkOutMinutes(b.checkOutTime) * 60 * 1000;
+  const nowWall = now.getTime() + offsetH * HOUR;
+  const since = nowWall - checkoutWall;
+  return since >= SEND_AFTER_MS && since <= SEND_WINDOW_MS;
 }
 
 /** A stay that actually happened. 'completed' when something marked it so,
@@ -196,7 +235,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 
-  const target = yesterdayUtc(new Date());
+  const now = new Date();
   const all = await listBookings();
 
   let sent = 0;
@@ -208,7 +247,7 @@ export async function GET(req: NextRequest) {
     try {
       if (b.type !== 'hotel') continue;
       if (!stayHappened(b)) continue;
-      if ((b.checkOut || '').slice(0, 10) !== target) continue;
+      if (!dueForFeedback(b, now)) continue;
       if (!b.customerEmail || !b.customerEmail.includes('@')) {
         skippedNoEmail++;
         continue;
@@ -243,7 +282,6 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     success: true,
-    checkOutDay: target,
     sent,
     skippedAlreadySent,
     skippedNoEmail,
