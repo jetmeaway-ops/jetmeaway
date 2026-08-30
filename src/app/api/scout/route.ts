@@ -281,6 +281,13 @@ async function fetchGoogle(lat: number, lng: number, radius: number): Promise<Sc
     for (const t of p.types) {
       if (GOOGLE_TYPE_MAP[t]) { info = GOOGLE_TYPE_MAP[t]; break; }
     }
+    // Same trap as Foursquare: a venue's SIDELINE can be its first mapped
+    // type. Google files Climb Up's in-house cafe before any sport type, so
+    // the climbing gym rendered as "cafe" in the guide (verified live at the
+    // owner's Paris hotel, 2026-08-30). The name says what the place is.
+    if (info?.category === 'food' && /climb/i.test(p.name || '')) {
+      info = { category: 'wellness', type: 'climbing' };
+    }
     if (!info) continue;
 
     const dist = haversine(lat, lng, p.lat, p.lng);
@@ -409,9 +416,9 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Step 1: Check KV cache ──
-    // v2 (2026-08-30): attractions category added, supermarkets moved out of
+    // v3 (2026-08-30): Google climb-name rescue; v2 added attractions and moved supermarkets out of
     // food — a v1 entry would render a guide with no sights for a day.
-    const cacheKey = `scout:v2:${lat.toFixed(3)}:${lng.toFixed(3)}`;
+    const cacheKey = `scout:v3:${lat.toFixed(3)}:${lng.toFixed(3)}`;
     try {
       const cached = await kv.get<ScoutResponse>(cacheKey);
       if (cached) {
