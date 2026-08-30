@@ -46,13 +46,17 @@ export async function POST(req: NextRequest) {
     catch { return d; }
   };
 
+  // audience:'owner' — the recipient is the customer, but the TRIGGER is the
+  // owner deliberately pressing send on a specific booking. It must bypass the
+  // automatic-customer-SMS gate in lib/twilio.ts, otherwise this route would
+  // silently no-op while still returning success:true.
   const result = await sendSms(record.guest.phone, hotelBookingMessage({
     bookingRef: record.ref || '',
     hotelName: record.hotelName || '',
     checkIn: fmtDate(record.checkIn),
     checkOut: fmtDate(record.checkOut),
     city: record.city || '',
-  }));
+  }), { audience: 'owner' });
 
   return NextResponse.json({ success: result.ok, error: result.error });
 }

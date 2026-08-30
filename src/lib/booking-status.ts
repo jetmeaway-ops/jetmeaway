@@ -63,10 +63,38 @@ export function checkInIsInDays(booking: Booking, days: number, now: Date = new 
 }
 
 /**
+ * The scheduled messages a booking can receive. One member per distinct
+ * message — NEVER reuse a member for a new message: the marker for
+ * 'check-in-24h' is written on day D-1 with a 30-day TTL and is still alive
+ * on day D, so a day-of send that reused it would be suppressed for 100% of
+ * guests, silently, showing up only as `skippedAlreadySent` in the cron JSON.
+ */
+export type ReminderKind = 'check-in-24h' | 'check-in-day' | 'post-stay';
+
+/** The delivery channels a reminder kind can go out on. 'sms' is retained so
+ *  idempotency still holds the day SMS_TO_CUSTOMERS=1 turns customer SMS back
+ *  on (see lib/twilio.ts). */
+export type ReminderChannel = 'email' | 'push' | 'sms';
+
+/**
  * KV idempotency key for a one-shot reminder. Once we send a reminder of a
  * given kind for a given booking ref, we set this key so we never send the
  * same reminder twice (even if the cron retries or runs more than once a day).
+ *
+ * `channel` scopes the key per delivery channel. Without it, one shared marker
+ * means a push success masks an email failure (or the reverse) and the failed
+ * channel never retries — the guest silently gets nothing on the channel that
+ * mattered. Omitting `channel` returns the ORIGINAL combined key shape, which
+ * still exists in production KV for every 24-hour reminder sent before
+ * 2026-08-29; the reminder cron reads it as a legacy "this kind is already
+ * done" gate so the new per-channel keys can never cause a double-send.
  */
-export function reminderSentKey(ref: string, kind: 'check-in-24h' | 'post-stay'): string {
-  return `scout-reminder:${kind}:${ref}`;
+export function reminderSentKey(
+  ref: string,
+  kind: ReminderKind,
+  channel?: ReminderChannel,
+): string {
+  return channel
+    ? `scout-reminder:${kind}:${channel}:${ref}`
+    : `scout-reminder:${kind}:${ref}`;
 }

@@ -3,7 +3,7 @@ import { bookWithTransactionId, completeBooking } from '@/lib/liteapi';
 import { sendSms, hotelBookingMessage } from '@/lib/twilio';
 import { upsertBooking, type Booking } from '@/lib/bookings';
 import { scoutSalutation } from '@/lib/scout-greeting';
-import { joinAddress } from '@/lib/notifications';
+import { joinAddress, formatDate, countryName } from '@/lib/notifications';
 import type { PendingBooking } from '@/app/api/hotels/start-booking/route';
 import type { PendingGuest } from '@/app/api/hotels/pending/[ref]/guest/route';
 import ConversionPixel from '@/components/ConversionPixel';
@@ -194,7 +194,7 @@ function fullAddress(b: {
   hotelCity?: string | null;
   hotelCountry?: string | null;
 }): string {
-  return joinAddress(b.hotelAddress, b.hotelCity, b.hotelCountry);
+  return joinAddress(b.hotelAddress, b.hotelCity, countryName(b.hotelCountry));
 }
 
 /** A maps link the guest can tap for driving directions. Coordinates when we
@@ -300,8 +300,8 @@ async function sendHotelConfirmationEmail(booking: StoredBooking) {
       ${address ? `<p style="font-size:14px;line-height:1.5;color:#5C6378;margin:0 0 10px;">${address}</p>` : ''}
       ${directions ? `<p style="margin:0 0 14px;"><a href="${directions}" style="display:inline-block;background:#F1F5FF;border:1px solid #D6E2FF;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:800;color:#0066FF;text-decoration:none;">📍 Get directions</a></p>` : ''}
       <table width="100%" cellpadding="0" cellspacing="0">
-        <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Check-in</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${booking.checkIn}${booking.checkInTime ? ` <span style="font-weight:400;color:#8E95A9;">from ${booking.checkInTime}</span>` : ''}</td></tr>
-        <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Check-out</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${booking.checkOut}${booking.checkOutTime ? ` <span style="font-weight:400;color:#8E95A9;">until ${booking.checkOutTime}</span>` : ''}</td></tr>
+        <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Check-in</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${formatDate(booking.checkIn) || booking.checkIn}${booking.checkInTime ? ` <span style="font-weight:400;color:#8E95A9;">from ${booking.checkInTime}</span>` : ''}</td></tr>
+        <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Check-out</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${formatDate(booking.checkOut) || booking.checkOut}${booking.checkOutTime ? ` <span style="font-weight:400;color:#8E95A9;">until ${booking.checkOutTime}</span>` : ''}</td></tr>
         ${booking.roomName ? `<tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Room</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${booking.roomName}</td></tr>` : ''}
         ${booking.boardName ? `<tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Meals</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${booking.boardName}</td></tr>` : ''}
         <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">Guests</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${partyLine(booking)}</td></tr>
@@ -589,9 +589,12 @@ async function finalisePaymentSdk(
     notes: `LiteAPI book failed: ${lastError}`,
   });
 
-  // Alert owner via SMS
+  // Alert owner via SMS. audience:'owner' — this is the owner's OWN number and
+  // it is the only real-time signal that a customer paid and got nothing. It
+  // fires at most once per failed booking (the state==='failed' early return
+  // above stops a reload re-firing it). Never gate this.
   try {
-    await sendSms('+447508350581', `⚠️ BOOKING FAILED — Ref: ${ref}, Hotel: ${record.hotelName || 'N/A'}, Guest: ${record.guest.firstName} ${record.guest.lastName}, Error: ${lastError.slice(0, 120)} — jetmeaway.co.uk`);
+    await sendSms('+447508350581', `⚠️ BOOKING FAILED — Ref: ${ref}, Hotel: ${record.hotelName || 'N/A'}, Guest: ${record.guest.firstName} ${record.guest.lastName}, Error: ${lastError.slice(0, 120)} — jetmeaway.co.uk`, { audience: 'owner' });
   } catch (e) { console.error('[/success] owner SMS alert error:', e); }
 
   return { ok: false, error: lastError, booking: updated };
