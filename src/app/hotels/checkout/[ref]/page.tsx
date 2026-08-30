@@ -135,6 +135,18 @@ export default function HotelCheckoutPage() {
      extra pillows, quiet room). Trimmed + capped at 500 chars on send. */
   const [specialRequests, setSpecialRequests] = useState('');
 
+  /* Who is signed in, if anyone — used ONLY to prefill the email and to show
+     a one-line nudge. The owner's ask (2026-08-30): the app never tells a
+     returning customer they could sign in. 🔴 The nudge is NEUTRAL and shown
+     to every signed-out visitor: we never check whether the typed email has
+     an account, because answering that would let anyone probe who our
+     customers are. Sign-in opens in a NEW TAB — nothing may navigate a
+     customer away from a money page — and a focus listener notices when they
+     come back signed in. Guest checkout is untouched either way. */
+  const [sessionEmail, setSessionEmail] = useState<string | null>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
+
+
   const [step, setStep] = useState<Step>('locking');
   const [stepError, setStepError] = useState<string | null>(null);
 
@@ -165,6 +177,31 @@ export default function HotelCheckoutPage() {
   const isDotw = booking?.supplier === 'dotw';
 
   // Load booking summary
+  useEffect(() => {
+    let stop = false;
+    const check = () => {
+      fetch('/api/account/me')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (stop) return;
+          setSessionChecked(true);
+          if (d?.success && d?.email) {
+            setSessionEmail(d.email);
+            // Prefill only an EMPTY field — never overwrite what a customer
+            // typed (they may be booking for someone else).
+            setEmail((prev) => prev || d.email);
+          }
+        })
+        .catch(() => { if (!stop) setSessionChecked(true); });
+    };
+    check();
+    // They may sign in from the nudge's new tab and come back.
+    const onFocus = () => { if (!sessionEmail) check(); };
+    window.addEventListener('focus', onFocus);
+    return () => { stop = true; window.removeEventListener('focus', onFocus); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -629,6 +666,22 @@ export default function HotelCheckoutPage() {
                     placeholder="you@example.com"
                     className="w-full mt-1 px-3 py-3 sm:py-2.5 rounded-lg border border-[#E8ECF4] bg-white text-[16px] sm:text-[.88rem] font-semibold text-[#1A1D2B] outline-none focus:border-[#0066FF] placeholder:text-[#B0B8CC] placeholder:font-normal" />
                 </label>
+                {sessionEmail ? (
+                  <p className="sm:col-span-2 -mt-2 text-[.74rem] font-semibold text-emerald-700">
+                    <i className="fa-solid fa-circle-check text-[.7rem] mr-1.5" />
+                    {t('signedInNote')}
+                  </p>
+                ) : sessionChecked ? (
+                  <p className="sm:col-span-2 -mt-2 text-[.74rem] text-[#8E95A9]">
+                    {t.rich('signInPrompt', {
+                      link: (chunks) => (
+                        <a href="/account" target="_blank" rel="noopener noreferrer" className="font-bold text-[#0066FF] underline">
+                          {chunks}
+                        </a>
+                      ),
+                    })}
+                  </p>
+                ) : null}
                 <label className="block sm:col-span-2">
                   <span className="text-[.7rem] font-bold text-[#5C6378] uppercase tracking-wide">{t('fieldPhone')}</span>
                   <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}

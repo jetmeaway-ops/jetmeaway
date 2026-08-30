@@ -1482,7 +1482,9 @@
     "appPromo": "App promo · 2nd booking",
     "cashback": "cashback",
     "sendCashback": "We'll send £5 to your card within 7 working days.",
-    "tcsApply": "T&Cs apply"
+    "tcsApply": "T&Cs apply",
+    "signedInNote": "Signed in — this booking will show in your account automatically.",
+    "signInPrompt": "Have a JetMeAway account? <link>Sign in</link> and every trip stays in one place. Booking as a guest works too."
   },
   "favourites": {
     "add": "Add to favourites",
