@@ -35,6 +35,7 @@ export default function RelatedPosts({
     en: 'Read next',
     de: 'Das könnte Sie auch interessieren',
     es: 'Lee a continuación',
+    it: 'Leggi anche',
   };
   const heading = HEADINGS[locale] ?? HEADINGS.en;
 

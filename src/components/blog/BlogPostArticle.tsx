@@ -41,6 +41,7 @@ const IN_LANGUAGE: Record<PostLocale, string> = {
   en: 'en-GB',
   de: 'de-DE',
   es: 'es',
+  it: 'it-IT',
 };
 
 /** Visible chrome around the article body, per locale. */
@@ -88,6 +89,19 @@ const STRINGS: Record<PostLocale, {
     ctaBody:
       'Usa el JetMeAway Scout para comparar precios en vivo de más de 15 proveedores de confianza. Sin comisiones de reserva.',
     ctaButton: 'Empieza a buscar',
+  },
+  // Italian uses informal "tu" throughout, matching src/messages/it.json and
+  // the translated corpus. German above is formal Sie — do not copy that here.
+  it: {
+    backToBlog: 'Torna al blog',
+    liveAlert: 'Avviso in tempo reale · Aggiornato',
+    by: 'Di',
+    breadcrumbHome: 'Home',
+    breadcrumbBlog: 'Blog',
+    ctaHeading: 'Pianifica ora il tuo viaggio del 2026',
+    ctaBody:
+      'Usa lo JetMeAway Scout per confrontare i prezzi in tempo reale di oltre 15 fornitori affidabili. Nessuna commissione di prenotazione.',
+    ctaButton: 'Inizia a cercare',
   },
 };
 
