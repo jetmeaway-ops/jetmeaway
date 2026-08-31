@@ -9,7 +9,12 @@
 # Runs entirely on GitHub + Vercel — the owner's laptop can be off.
 #
 # GATES (all must hold, or the PR stays a draft for the owner's eyes):
-#   1. Branch is auto-fix/* (auto-triage's namespace — nothing else).
+#   1. Branch is auto-fix/* (auto-triage's namespace) or fix/* (ad-hoc robot
+#      fixes from Claude sessions — added 2026-08-31 after PR #154, a correct
+#      one-file fix on a fix/* branch, sat unreviewed for four days while its
+#      watcher reported "no changes"; the same bug then hit a real visitor and
+#      the fix was rebuilt by hand. claude/* stays manual: that namespace
+#      carries large feature work that deserves human eyes).
 #   2. Every PR check passes (typecheck-build, Vercel deploy, the 20-search
 #      monkey that already runs on auto-fix PRs).
 #   3. The diff is small (≤ 400 changed lines) — big fixes need a human.
@@ -28,7 +33,7 @@ permissions:
 
 jobs:
   gate-and-merge:
-    if: startsWith(github.head_ref, 'auto-fix/')
+    if: startsWith(github.head_ref, 'auto-fix/') || startsWith(github.head_ref, 'fix/')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -41,7 +46,10 @@ jobs:
         run: |
           FILES=$(gh pr view "$PR" --json files -q '.files[].path')
           echo "$FILES"
-          BLOCKED='api/hotels/book|api/hotels/prebook|api/hotels/start-booking|api/hotels/pending|api/liteapi/book|checkout|stripe|payment'
+          # Expanded 2026-08-31: success/page finalises bookings, lib/bookings
+          # is the store every money read hangs off, lib/liteapi is the
+          # supplier rail, and workflow files must never rewrite themselves.
+          BLOCKED='api/hotels/book|api/hotels/prebook|api/hotels/start-booking|api/hotels/pending|api/liteapi/book|checkout|stripe|payment|success/page|lib/bookings|lib/liteapi|\.github/workflows'
           if echo "$FILES" | grep -Ei "$BLOCKED"; then
             echo "::warning::Auto-fix touches the booking/payment path — leaving as draft for the owner."
             exit 1
