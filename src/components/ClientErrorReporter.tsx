@@ -65,7 +65,32 @@ export default function ClientErrorReporter() {
       });
     };
 
+    /* ── Stale-deployment self-heal ─────────────────────────────────────
+       A tab left open across a deploy asks for chunks by their old hashed
+       names on its next navigation, gets a ChunkLoadError, and is broken
+       until the human thinks to refresh (Sentry 9530752e, 2026-08-31, a
+       real visitor at midnight after a 12-deploy day). The honest fix is
+       the refresh itself: reload ONCE so the browser picks up the current
+       build. A sessionStorage guard (10-min window) stops a reload loop if
+       the reload cannot cure it — e.g. an adblocker eating chunks — in
+       which case the error reports as normal instead. */
+    const CHUNK_RELOAD_KEY = 'jma:chunkReloadAt';
+    const isChunkError = (msg: string | undefined | null) =>
+      !!msg && (/ChunkLoadError/i.test(msg) || /Loading chunk .* failed/i.test(msg) || /Failed to load chunk/i.test(msg));
+    const healChunkError = (): boolean => {
+      try {
+        const last = Number(sessionStorage.getItem(CHUNK_RELOAD_KEY) || 0);
+        if (Date.now() - last < 10 * 60 * 1000) return false; // already tried
+        sessionStorage.setItem(CHUNK_RELOAD_KEY, String(Date.now()));
+      } catch {
+        return false; // no storage (private mode edge cases): report, don't loop
+      }
+      window.location.reload();
+      return true;
+    };
+
     const onError = (e: ErrorEvent) => {
+      if (isChunkError(e.message) && healChunkError()) return;
       post({ message: e.message || 'window.onerror', stack: e.error?.stack });
     };
     const onRejection = (e: PromiseRejectionEvent) => {
@@ -73,6 +98,7 @@ export default function ClientErrorReporter() {
       const message =
         reason instanceof Error ? reason.message : typeof reason === 'string' ? reason : 'unhandledrejection';
       const stack = reason instanceof Error ? reason.stack : undefined;
+      if (isChunkError(message) && healChunkError()) return;
       post({ message: `[unhandledrejection] ${message}`, stack });
     };
 
