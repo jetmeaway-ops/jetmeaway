@@ -71,10 +71,10 @@ const POSTS_DIR = path.join(process.cwd(), 'content', 'posts');
  * locale subdirectories are skipped automatically and the English blog
  * is unaffected by translations landing on disk.
  */
-export type PostLocale = 'en' | 'de' | 'es';
+export type PostLocale = 'en' | 'de' | 'es' | 'it';
 
 /** Locales offered as translated alternates (excludes the 'en' source). */
-export const TRANSLATED_LOCALES: readonly Exclude<PostLocale, 'en'>[] = ['de', 'es'];
+export const TRANSLATED_LOCALES: readonly Exclude<PostLocale, 'en'>[] = ['de', 'es', 'it'];
 
 function postsDir(locale: PostLocale): string {
   return locale === 'en' ? POSTS_DIR : path.join(POSTS_DIR, locale);
@@ -195,6 +195,7 @@ const DATE_LOCALE: Record<PostLocale, string> = {
   // Neutral Spanish rather than es-ES: the corpus is written to read in
   // both Spain and Latin America, and es-419 would exclude Spain.
   es: 'es',
+  it: 'it-IT',
 };
 
 const SITE_URL = 'https://jetmeaway.co.uk';
