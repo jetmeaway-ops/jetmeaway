@@ -1,0 +1,34 @@
+# ERROR BATCH — re-run these at the END (owner rule 2026-08-26)
+# A post lands here if it hard-errors OR fails QA (truncated / thin / image mismatch / over-generated).
+# Re-run each with the standard Haiku prompt, then re-QA. Remove once it passes.
+
+best-hotels-amsterdam-2026   # IMG 59 vs EN 49 (+10 over-generated) + EXT 63/53 — re-run
+best-hotels-agadir-2026      # THIN 355/433 lines, 0.87 word ratio, EXT 47/48 — re-run
+
+# --- NOT re-runs; handled by end-of-run corpus scripts (tracked in WAVE-LOG.md) ---
+# Link-parity (fix-link-parity): best-all-inclusive-hotels-alanya-2026 (50/51),
+#   best-hotels-alexandria-2026 (50/51), best-hotels-amman-2026 (50/51)
+# Adjective leaks (find/replace four-star->quattro stelle etc.): majorca, lanzarote, marbella,
+#   salou, benidorm, gran-canaria, side, lloret, marmaris, fethiye, san-sebastian, tenerife, kusadasi,
+#   alexandria(self-catering x38), algiers(1)
+best-hotels-atlanta-2026     # IMG 65 vs EN 57 (+8 over-generated) + EXT 66/58 — re-run
+best-hotels-cancun-2026      # THIN 346/478 lines, 0.79 word ratio (imgs/links OK) — re-run fuller
+best-hotels-lake-como-2026   # THIN 397/477 lines, 0.87 word ratio (imgs/links OK) — re-run fuller
+best-hotels-matera-2026      # THIN 428/493 lines (87%), imgs/links OK — re-run fuller (agent word-count was a miscount)
+best-hotels-monterrey-2026   # THIN 373/503 lines (0.78 words), imgs/links OK — re-run fuller
+best-hotels-rabat-2026       # THIN 403/478 lines (0.84), ext 50/51 (dropped 1) — re-run fuller
+best-hotels-tallinn-2026     # EXT 50/51 (dropped 1 external link) — link-parity fix
+best-hotels-sousse-2026      # EXT 33/32 (one extra external link) — link-parity fix
+best-hotels-tromso-2026      # EXT 30/29 (one extra external link) — link-parity fix
+best-hotels-venice-2026      # THIN 402/494 lines (0.81), imgs/links OK — re-run fuller (Italian city: keep Italian proper names)
+best-hotels-warsaw-2026      # EXT 49/51 (dropped 2 external links) — link-parity fix
+best-hotels-zagreb-2026      # EXT 52/51 (one extra external link) — link-parity fix
+best-hotels-zermatt-2026     # THIN 384/461 lines (0.83), imgs/links OK — re-run fuller
+best-hotels-zakopane-2026    # EXT 52/51 (one extra external link) — link-parity fix
+strait-of-hormuz-2026-rainbow-island-safety  # EXT 1/2 (dropped 1 external link) — link-parity fix
+
+# --- FIXED 2026-08-27 during oversized-split run (no action needed) ---
+# 'reviews' left untranslated in IT prose/link text — corpus swept, 43 instances in 5 posts
+#   fixed to 'recensioni': york(40), marmaris(1), caserta(1), suzhou(1), french-alps("molto reviews"->"molto recensito")
+# 'recensionato' (not an Italian word) -> 'recensito' and 'bene recensito' -> 'ben recensito':
+#   corpus swept 2026-08-27, 33 + 21-file fix, 0 remaining

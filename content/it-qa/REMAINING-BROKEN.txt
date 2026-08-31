@@ -1,0 +1,21 @@
+# REMAINING BROKEN (Italian corpus) — as of pause 2026-08-27
+# These need Sonnet re-translation (big files exceed Haiku 32k / verbose Sonnet 64k output caps).
+# Everything else in content/posts/it/ passed: YAML ok, images match, body FAQ present.
+# Fixes already applied this session: URL/hotel-link typo repair (positional), 6 YAML frontmatter surgical fixes, ~25 re-translations landed.
+
+best-hotels-abu-dhabi-2026 [STUB0.13,IMG1/49,FAQ0/26]
+best-hotels-agadir-2026 [FAQ2/28]
+best-hotels-amsterdam-2026 [IMG59/49]
+best-hotels-bogota-2026 [STUB0.00,IMG0/49,FAQ0/31]
+best-hotels-buenos-aires-2026 [STUB0.02,IMG0/49,FAQ0/30]
+best-hotels-cancun-2026 [FAQ0/32]
+best-hotels-helsinki-2026 [FAQ1/27]
+best-hotels-ibiza-2026 [FAQ7/27]
+best-hotels-lake-como-2026 [STUB0.03,IMG0/49,FAQ0/27]
+best-hotels-lecce-2026 [FAQ4/26]
+best-hotels-matera-2026 [STUB0.25,IMG0/49,FAQ0/26]
+best-hotels-monterrey-2026 [FAQ1/34]
+best-hotels-punta-cana-2026 [MISSING]
+best-hotels-siena-2026 [FAQ0/26]
+best-hotels-zakopane-2026 [STUB0.03,IMG0/49,FAQ0/26]
+flights-to-copenhagen-from-uk-2026 [MISSING]
