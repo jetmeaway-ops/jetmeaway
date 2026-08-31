@@ -116,12 +116,20 @@ export default async function AdminDashboard() {
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
           <h2 className="font-bold text-lg">Recent bookings</h2>
-          <Link
-            href="/admin/bookings"
-            className="text-sm text-[#0066FF] hover:underline"
-          >
-            View all →
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/admin/reviews"
+              className="text-sm text-[#0066FF] hover:underline"
+            >
+              Guest reviews →
+            </Link>
+            <Link
+              href="/admin/bookings"
+              className="text-sm text-[#0066FF] hover:underline"
+            >
+              View all →
+            </Link>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
