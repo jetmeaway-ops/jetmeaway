@@ -8,7 +8,10 @@ export const runtime = 'edge';
 // short-lived in practice — Google serves them via lh*.googleusercontent.com
 // with multi-day cacheability. Re-fetch daily anyway so we pick up new
 // reviews / photos as the hotel adds them.
-const KV_TTL = 60 * 60 * 24;
+// 90 days, was 24 HOURS — ratings/reviews don't change enough to justify
+// re-buying a Details(Pro) + 6 Photo Media pull for every hotel every day.
+// Part of the August 2026 Places-bill fix (target <= £20/month).
+const KV_TTL = 60 * 60 * 24 * 90;
 
 /**
  * GET /api/hotels/google-info?hotelId=...&name=...&lat=...&lng=...
@@ -67,7 +70,7 @@ export async function GET(req: NextRequest) {
     };
     // Cache the negative result for a shorter window so we don't repeatedly
     // burn Text Search quota on hotels Google doesn't index.
-    try { await kv.set(kvKey, empty, { ex: 60 * 60 * 6 }); } catch {}
+    try { await kv.set(kvKey, empty, { ex: 60 * 60 * 24 }); } catch {}
     return NextResponse.json({ success: true, data: empty });
   }
 
