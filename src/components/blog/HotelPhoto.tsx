@@ -1,29 +1,31 @@
 /**
  * HotelPhoto — async server component used inside MDX blog posts.
  *
- * Renders a single Google Places hero photo for a named hotel. The photo
- * URL is resolved via Text Search → Photo Media (one combined Text Search
- * call returns the first photo `name`, then a Photo Media call resolves
- * the CDN URL). KV-cached for 30 days positive / 30 minutes negative so
- * blog posts only burn Google quota on the first cold render after a
- * deploy.
+ * Renders a hero photo for a named hotel, resolved through LiteAPI's free
+ * hotel catalogue (liteHotelHeroPhoto in src/lib/liteapi.ts: name+country
+ * search, brand-validated, main_photo/hotelImages). KV-cached for a year
+ * positive / a week negative.
+ *
+ * 2026-09-01: this used to buy the photo from Google Places (Text Search →
+ * Photo Media, ~$0.04 per cold render) with a 30-DAY cache — so the whole
+ * blog re-purchased its photos every month, multiplied by four language
+ * trees and ~80% crawler traffic. That was most of the £73 August Places
+ * bill. LiteAPI already carries a photo for these hotels at no charge.
  *
  * Wired into `mdxComponents` in src/app/blog/[slug]/page.tsx so authors
  * can drop `<HotelPhoto hotelName="…" city="…" />` straight into MDX.
  *
- * SEO + UX: always emits an `<img>` tag. If Google Places returns nothing
+ * SEO + UX: always emits an `<img>` tag. If LiteAPI has no match
  * the component falls back to a deterministic hash-rotated pick from a
  * pool of generic luxury-hotel Unsplash photos. Different hotels on the
  * same page get different fallback images so the page doesn't render
  * 10 copies of the same city skyline (the bug the 2026-06-04 evening
  * survey caught — 106 fallback firings across 13 posts).
  *
- * Cost is roughly $0.04 per cold hotel render on Google's Places API
- * (New) SKU pricing as of 2026-05.
  */
 
 import { kv } from '@vercel/kv';
-import { googleHotelFirstPhoto } from '@/lib/google-places';
+import { liteHotelHeroPhoto } from '@/lib/liteapi';
 
 interface Props {
   hotelName: string;
@@ -34,12 +36,15 @@ interface Props {
   className?: string;
 }
 
-const POSITIVE_TTL = 60 * 60 * 24 * 30; // 30 days
-// Negative TTL was 6h, which was too punishing — when Google's first
-// response timed out during the original render the post then served
-// the same fallback for 6h afterwards. Dropped to 30 min so the next
-// visitor after a transient Google blip pulls fresh.
-const NEGATIVE_TTL = 60 * 30;
+// LiteAPI photo URLs are stable CDN links (unlike Google's expiring
+// lh3.googleusercontent URIs, the reason v2→v3 existed), so a hit can
+// live for a year. The 30-day TTL was the engine of the August 2026
+// Places bill: the whole blog re-BOUGHT its photos every month.
+const POSITIVE_TTL = 60 * 60 * 24 * 365; // 1 year
+// A miss retried every 30 min × crawler traffic was a steady paid drip
+// under Google. LiteAPI is free, but its catalogue doesn't change hourly
+// either — retry weekly, the Unsplash fallback covers the gap.
+const NEGATIVE_TTL = 60 * 60 * 24 * 7;
 
 type CachedPhoto = { url: string } | { miss: true };
 
@@ -51,14 +56,20 @@ type CachedPhoto = { url: string } | { miss: true };
 // expired lh3.googleusercontent.com URLs (broken imgs on Milan/Dublin/
 // Edinburgh/Dubai posts) plus misses seeded while the prod Google key
 // was dead (June outage + key-rotation incident). Working key restored.
+// v4 bump (2026-09-01): source switched Google → LiteAPI. v3 entries
+// hold expiring Google URLs; every key re-resolves once, free, and then
+// sits for a year.
 function cacheKey(hotelName: string, city: string) {
   const slug = `${hotelName}::${city}`.toLowerCase().replace(/[^a-z0-9: ]+/g, '').trim();
-  return `blog-hotel-photo:v3:${slug}`;
+  // A fully non-Latin name strips to nothing and every such hotel would
+  // share one key (and one photo). Salt short slugs with a hash of the raw.
+  const salt = slug.length < 3 ? `:${hashIndex(`${hotelName}::${city}`, 1_000_000)}` : '';
+  return `blog-hotel-photo:v4:${slug}${salt}`;
 }
 
 /**
  * Pool of generic luxury-hotel Unsplash photos used as the fallback
- * when Google Places returns nothing. We hash the hotel name and pick
+ * when LiteAPI returns nothing. We hash the hotel name and pick
  * deterministically so:
  *   1. The same hotel always shows the same fallback image (stable URL
  *      for browser caches + reproducible audit results).
@@ -112,7 +123,7 @@ export default async function HotelPhoto({ hotelName, city, alt, className }: Pr
     'w-full h-[260px] md:h-[320px] object-cover rounded-2xl shadow-[0_12px_40px_-12px_rgba(0,102,255,0.18)] my-6';
   const altText = alt ?? `${hotelName || 'Hotel'}${city ? `, ${city}` : ''}`;
 
-  // No data to query Google with — pick a deterministic pool photo.
+  // No data to search LiteAPI with — pick a deterministic pool photo.
   if (!hotelName || !city) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
@@ -141,15 +152,10 @@ export default async function HotelPhoto({ hotelName, city, alt, className }: Pr
     }
   } catch { /* KV unreachable — continue to live fetch */ }
 
-  // Only call Google if we have no cached result at all (positive or negative).
+  // Only hit LiteAPI if we have no cached result at all (positive or negative).
   if (!url && !cachedMiss) {
-    // googleHotelFirstPhoto now self-manages its per-attempt timeout, retry
-    // and a process-wide concurrency cap (see src/lib/google-places.ts). The
-    // old 8s wrapper here would abort those retries mid-flight during a static
-    // build — the exact reason big posts (e.g. Athens, 46 hotels) burst-failed
-    // and froze generic stock photos into the page — so it's gone.
     try {
-      url = await googleHotelFirstPhoto(`${hotelName} ${city}`);
+      url = await liteHotelHeroPhoto(hotelName, city);
     } catch {
       url = null;
     }
@@ -163,7 +169,7 @@ export default async function HotelPhoto({ hotelName, city, alt, className }: Pr
     } catch { /* KV write fail — still return result for this render */ }
   }
 
-  // Always emit an <img>. If Google had nothing, the fallback is a
+  // Always emit an <img>. If LiteAPI had nothing, the fallback is a
   // hash-rotated pick from the luxury-hotel pool — each hotel on the
   // page gets a different image, not 10 copies of the city skyline.
   const finalUrl = url ?? fallbackUrlFor(hotelName, city);

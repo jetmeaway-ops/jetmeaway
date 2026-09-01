@@ -522,7 +522,9 @@ export async function POST(req: NextRequest) {
 
     // ── Step 4: Store in KV ──
     try {
-      await kv.set(cacheKey, response, { ex: 86400 });
+      // 7 days, was 24h: a city's attractions don't churn daily, and every
+      // cold fill can spend paid Google Nearby calls (August 2026 bill fix).
+      await kv.set(cacheKey, response, { ex: 7 * 86400 });
     } catch {
       // KV unavailable — continue without caching
     }

@@ -33,6 +33,43 @@ export type GoogleNearbyPlace = {
 const AUTOCOMPLETE_ENDPOINT = 'https://places.googleapis.com/v1/places:autocomplete';
 const NEARBY_ENDPOINT = 'https://places.googleapis.com/v1/places:searchNearby';
 
+// ── Daily spend gate ────────────────────────────────────────────────────────
+// August 2026's bill (£73/30d, £217 forecast) was this file with no ceiling:
+// crawler traffic re-buying the same photos every cache expiry. Every paid
+// call now charges an approximate cost (tenths of a penny, Places API (New)
+// SKU prices × USD→GBP) against a per-day KV counter. Once the day's budget
+// is spent, paid helpers return their empty value and callers fall back —
+// degraded enrichment, never a broken page. The meter FAILS OPEN on KV
+// errors: a KV blip must not take out destination search to save 2p.
+// 55p/day ≈ £16.50/month ceiling, under the owner's £20/month target.
+import { kv } from '@vercel/kv';
+
+const DAILY_BUDGET_TENTHS = Math.round(
+  Number(process.env.GOOGLE_PLACES_DAILY_BUDGET_PENCE || '55') * 10,
+);
+
+const COST_TENTHS = {
+  autocomplete: 3, // $2.83/1k ≈ 0.22p
+  details: 14,     // Pro fieldmask ≈ 1.4p
+  textSearch: 26,  // ≈ 2.6p
+  photo: 6,        // $7/1k ≈ 0.55p
+  nearby: 26,      // ≈ 2.6p
+} as const;
+
+async function chargeBudget(tenths: number): Promise<boolean> {
+  try {
+    const key = `google-places:spend:${new Date().toISOString().slice(0, 10)}`;
+    const total = await kv.incrby(key, tenths);
+    // First charge of the day sets the expiry; 50h covers timezone skew.
+    if (total === tenths) {
+      try { await kv.expire(key, 60 * 60 * 50); } catch { /* best-effort */ }
+    }
+    return total <= DAILY_BUDGET_TENTHS;
+  } catch {
+    return true;
+  }
+}
+
 /**
  * Fetch city-level autocomplete suggestions from Google.
  * Returns [] on any error / missing key — never throws, so callers
@@ -45,6 +82,7 @@ export async function googlePlacesAutocomplete(
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
   if (!apiKey) return [];
   if (!query || query.trim().length < 2) return [];
+  if (!(await chargeBudget(COST_TENTHS.autocomplete))) return [];
 
   try {
     const res = await fetch(AUTOCOMPLETE_ENDPOINT, {
@@ -123,6 +161,7 @@ export async function googlePlaceDetails(
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
   if (!apiKey) return null;
   if (!placeId) return null;
+  if (!(await chargeBudget(COST_TENTHS.details))) return null;
 
   try {
     const res = await fetch(`${DETAILS_ENDPOINT}/${encodeURIComponent(placeId)}`, {
@@ -212,6 +251,7 @@ export async function googleHotelPlaceId(
 ): Promise<string | null> {
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
   if (!apiKey || !name) return null;
+  if (!(await chargeBudget(COST_TENTHS.textSearch))) return null;
 
   const body: Record<string, unknown> = {
     textQuery: name,
@@ -360,6 +400,8 @@ export async function googleHotelFirstPhoto(
 ): Promise<string | null> {
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
   if (!apiKey || !query) return null;
+  // Text Search + Photo Media pair — the SKU combination behind the August bill.
+  if (!(await chargeBudget(COST_TENTHS.textSearch + COST_TENTHS.photo))) return null;
 
   await acquirePhotoSlot();
   try {
@@ -408,6 +450,8 @@ export async function googleHotelEnrichment(
 ): Promise<Omit<GoogleHotelEnrichment, 'placeId'> | null> {
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
   if (!apiKey || !placeId) return null;
+  // Details (Pro fieldmask) + up to 6 Photo Media resolutions.
+  if (!(await chargeBudget(COST_TENTHS.details + 6 * COST_TENTHS.photo))) return null;
 
   type PlaceDetails = {
     rating?: number;
@@ -531,6 +575,7 @@ export async function googlePlacesNearby(
   if (!apiKey) return [];
   if (!isFinite(lat) || !isFinite(lng)) return [];
   if (includedTypes.length === 0) return [];
+  if (!(await chargeBudget(COST_TENTHS.nearby))) return [];
 
   try {
     const res = await fetch(NEARBY_ENDPOINT, {

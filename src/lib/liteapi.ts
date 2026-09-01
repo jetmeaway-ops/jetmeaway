@@ -251,6 +251,100 @@ export async function searchHotelByNameInCountry(
   }
 }
 
+/** Every city a blog `<HotelPhoto>` tag names, mapped to its country so the
+ *  name search can use the documented-good path (bare name + countryCode —
+ *  appending the city to the name is known to return 0 hits). 40 cities
+ *  cover ALL 2,276 tags as of 2026-09; a new city missing here falls back
+ *  to the generic detect map, then to the Unsplash pool — never to a paid call. */
+const BLOG_CITY_TO_CC: Record<string, string> = {
+  'vancouver': 'CA', 'toronto': 'CA',
+  'valencia': 'ES', 'granada': 'ES', 'seville': 'ES', 'barcelona': 'ES',
+  'athens': 'GR', 'dubai': 'AE', 'rome': 'IT', 'milan': 'IT',
+  'boston': 'US', 'miami': 'US', 'dallas': 'US', 'san francisco': 'US',
+  'las vegas': 'US', 'new york': 'US', 'san jose': 'US', 'jersey city': 'US',
+  'half moon bay': 'US', 'brooklyn': 'US',
+  'mexico city': 'MX', 'lisbon': 'PT', 'budapest': 'HU',
+  'agra': 'IN', 'udaipur': 'IN', 'kerala': 'IN', 'jaipur': 'IN', 'goa': 'IN',
+  'edinburgh': 'GB', 'vienna': 'AT', 'prague': 'CZ', 'munich': 'DE', 'berlin': 'DE',
+  'istanbul': 'TR', 'cannes': 'FR', 'bordeaux': 'FR', 'bangkok': 'TH',
+  'marrakech': 'MA', 'maldives': 'MV', 'bali': 'ID',
+};
+
+/**
+ * Hero photo for a NAMED hotel — the free replacement for the Google
+ * Text Search + Photo Media pair the blog used to buy (~$0.04 per cold
+ * render, re-bought on every cache expiry; the engine of the August 2026
+ * Places bill). LiteAPI's /data/hotels rows carry `main_photo` /
+ * `hotelImages` at no charge, and the URLs are stable CDN links already
+ * used across the hotel pages — so a hit here can be cached for a year.
+ *
+ * Brand-validates the match with nameTokensMatch so "Novotel next door"
+ * can't stand in for the hotel the post names. Returns null on any miss —
+ * the caller's Unsplash pool takes over, same as a Google miss did.
+ */
+export async function liteHotelHeroPhoto(
+  hotelName: string,
+  city: string,
+): Promise<string | null> {
+  type PhotoRow = HotelByName & {
+    main_photo?: string;
+    hotelImages?: Array<{ url?: string } | string>;
+  };
+
+  const cc =
+    BLOG_CITY_TO_CC[city.trim().toLowerCase()] ||
+    detectCountryCodeFromQuery(city) ||
+    detectCountryCodeFromQuery(hotelName);
+  if (!cc) return null; // /data/hotels requires a scope — no country, no search
+
+  const fetchRows = async (params: string): Promise<PhotoRow[]> => {
+    try {
+      const data = await liteFetch<{ data: PhotoRow[] }>(
+        `/data/hotels?${params}&countryCode=${cc}`,
+        { method: 'GET' },
+        6_000,
+      );
+      return data.data || [];
+    } catch {
+      return [];
+    }
+  };
+
+  const photoOf = (rows: PhotoRow[]): string | null => {
+    for (const r of rows) {
+      if (!nameTokensMatch(hotelName, r.name || '')) continue;
+      const firstImage =
+        Array.isArray(r.hotelImages) && r.hotelImages.length
+          ? typeof r.hotelImages[0] === 'string'
+            ? r.hotelImages[0]
+            : r.hotelImages[0]?.url
+          : undefined;
+      const url = r.main_photo || firstImage;
+      if (url && /^https?:\/\//i.test(url)) return url;
+    }
+    return null;
+  };
+
+  // Pass 1: exact-ish. `hotelName=` is a proper name match (verified live
+  // 2026-09-01: "Fairmont Hotel Vancouver" → 1 hit, the Fairmont), unlike
+  // `name=` which ranks fuzzily ("Electra Palace" → Sofitel Athens Airport).
+  let url = photoOf(await fetchRows(`hotelName=${encodeURIComponent(hotelName)}&limit=3`));
+  if (url) return url;
+
+  // Pass 2: catalogue names carry punctuation/diacritics the posts don't
+  // ("Mandarin Oriental, Bangkok"). Search by the brand's first distinctive
+  // token scoped to the city; nameTokensMatch still guards the pick.
+  const brand = nameTokens(hotelName)[0];
+  if (brand && city) {
+    url = photoOf(
+      await fetchRows(
+        `hotelName=${encodeURIComponent(brand)}&cityName=${encodeURIComponent(city)}&limit=5`,
+      ),
+    );
+  }
+  return url;
+}
+
 /** Reduce a hotel/chain name to its identifying tokens — strip generic
  *  words like "hotel"/"the"/"and"/"by", drop short tokens (<= 2 chars),
  *  lowercase + alphanumeric. Used to fuzzy-match an expected name
