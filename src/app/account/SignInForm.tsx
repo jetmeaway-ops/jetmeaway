@@ -72,7 +72,19 @@ export default function SignInForm() {
 
       if (!res.ok) {
         if (res.error === 'cancelled') { setSocialBusy(null); return; }
-        setLocalError(res.error || 'Sign-in failed. Please try again.');
+        // ASAuthorizationError.unknown (code 1000) surfaces as "The
+        // authorization attempt failed for an unknown reason" — in practice
+        // it means the DEVICE can't do Sign in with Apple right now, almost
+        // always because no Apple Account is signed in (App Review's iPads
+        // included: the 1.3.6 rejection screenshot showed exactly this raw
+        // string). Users can't act on the raw message — point them at the
+        // device setting and the two other ways in.
+        const raw = res.error || '';
+        const friendly =
+          provider === 'apple' && /unknown reason|authorization attempt failed|not available/i.test(raw)
+            ? 'Sign in with Apple needs an Apple Account signed in on this device (Settings → sign in to your iPhone or iPad). Or use Google or the email link below — they work without one.'
+            : raw || 'Sign-in failed. Please try again.';
+        setLocalError(friendly);
         return;
       }
 
