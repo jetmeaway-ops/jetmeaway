@@ -18,6 +18,7 @@ import Footer from '@/components/Footer';
 import { readSessionEmailFromCookies } from '@/lib/session';
 import { listBookings, fmtGbp, fmtDate, statusColor, typeIcon, type Booking } from '@/lib/bookings';
 import BookingsTabs from './BookingsTabs';
+import SignOutButton from '@/components/SignOutButton';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -45,6 +46,39 @@ function partition(all: Booking[]): { upcoming: Booking[]; past: Booking[]; canc
   };
 }
 
+/**
+ * Some early bookings were stored with the LiteAPI hotelId AS the title
+ * ("lp6558ac6f" — visible on the owner's cancelled Glasgow card in the
+ * 2026-09-02 video). The store row is left alone (KV law: no silent shape
+ * or value rewrites); instead the real hotel name is resolved at render
+ * from LiteAPI's free data endpoint and cached in KV for a year, so each
+ * bad title costs one lookup ever. Any failure just keeps the raw id.
+ */
+async function rescueRawIdTitles(bookings: Booking[]): Promise<void> {
+  const bad = bookings.filter((b) => /^lp[0-9a-f]{4,}$/i.test((b.title || '').trim())).slice(0, 8);
+  if (bad.length === 0) return;
+  const { kv } = await import('@vercel/kv');
+  const { getHotelDetails } = await import('@/lib/liteapi');
+  await Promise.all(
+    bad.map(async (b) => {
+      const id = b.title.trim();
+      const key = `hotel-name:${id.toLowerCase()}`;
+      try {
+        const cached = await kv.get<string>(key);
+        if (cached) {
+          b.title = cached;
+          return;
+        }
+        const details = await getHotelDetails(id);
+        if (details?.name) {
+          b.title = details.name;
+          try { await kv.set(key, details.name, { ex: 60 * 60 * 24 * 365 }); } catch { /* cache only */ }
+        }
+      } catch { /* leave the raw id — worst case is today's status quo */ }
+    }),
+  );
+}
+
 export default async function AccountBookingsPage() {
   const cookieStore = await cookies();
   const email = await readSessionEmailFromCookies(cookieStore);
@@ -54,19 +88,26 @@ export default async function AccountBookingsPage() {
 
   const all = await listBookings();
   const mine = all.filter((b) => (b.customerEmail || '').toLowerCase() === email);
+  await rescueRawIdTitles(mine);
   const buckets = partition(mine);
 
   return (
     <>
       <Header />
-      <main className="max-w-[960px] mx-auto px-5 pt-28 pb-16">
-        {/* Header strip — email + sign-out */}
+      {/* pt-36 on mobile: the fixed header + sticky category bar stack is
+          taller than pt-28 inside the app WebView, which clipped the heading
+          (owner's 2026-09-02 video). Desktop has no category bar — pt-28. */}
+      <main className="max-w-[960px] mx-auto px-5 pt-36 md:pt-28 pb-16">
+        {/* Header strip — title + email + sign-out. The email is a caption,
+            not the H1: a long address at 2.2rem Playfair ran off the screen
+            edge on iPhone (same video). */}
         <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
           <div>
             <p className="text-[.72rem] font-black uppercase tracking-[1.8px] text-[#8a6d00]">Signed in as</p>
             <h1 className="font-[var(--font-playfair)] font-black text-[1.8rem] md:text-[2.2rem] text-[#0a1628] tracking-tight leading-tight mt-1">
-              {email}
+              Your bookings
             </h1>
+            <p className="text-[.8rem] font-semibold text-[#5C6378] break-all mt-1">{email}</p>
           </div>
           <div className="flex items-center gap-2">
             <a
@@ -83,15 +124,7 @@ export default async function AccountBookingsPage() {
               <i className="fa-solid fa-user text-[.7rem]" />
               My account
             </a>
-            <form action="/api/account/signout" method="POST">
-              <button
-                type="submit"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#E8ECF4] bg-white hover:bg-[#FCFAF5] text-[#0a1628] font-poppins font-bold text-[.78rem] transition-colors"
-              >
-                <i className="fa-solid fa-arrow-right-from-bracket text-[.7rem]" />
-                Sign out
-              </button>
-            </form>
+            <SignOutButton />
           </div>
         </div>
 

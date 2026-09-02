@@ -41,7 +41,7 @@ export default async function AccountPage({ searchParams }: Props) {
   return (
     <>
       <Header />
-      <main className="min-h-[70vh] max-w-[560px] mx-auto px-5 pt-28 pb-16">
+      <main className="min-h-[70vh] max-w-[560px] mx-auto px-5 pt-36 md:pt-28 pb-16">
         <div className="text-center mb-8">
           <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FAF3E6] border border-[#E8D8A8] text-[#8a6d00] text-[.7rem] font-bold">
             <i className="fa-solid fa-user-shield text-[.62rem]" />
