@@ -26,7 +26,7 @@ export default async function FavouritesPage() {
   return (
     <>
       <Header />
-      <main className="max-w-[960px] mx-auto px-5 pt-28 pb-16 min-h-[60vh]">
+      <main className="max-w-[960px] mx-auto px-5 pt-36 md:pt-28 pb-16 min-h-[60vh]">
         <div className="mb-6">
           <p className="text-[.72rem] font-black uppercase tracking-[1.8px] text-[#8a6d00]">JetMeAway</p>
           <h1 className="font-[var(--font-playfair)] font-black text-[1.8rem] md:text-[2.2rem] text-[#0a1628] tracking-tight leading-tight mt-1">

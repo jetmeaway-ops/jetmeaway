@@ -10,6 +10,7 @@
  * page says that plainly instead of dressing up empty sections.
  */
 import Link from 'next/link';
+import SignOutButton from '@/components/SignOutButton';
 import { kv } from '@vercel/kv';
 import { listBookings, fmtDate, type Booking } from '@/lib/bookings';
 import { feedbackEntryKey, type FeedbackEntry, type FeedbackScore } from '@/lib/feedback';
@@ -79,7 +80,7 @@ export default async function AccountOverview({ email }: { email: string }) {
     : '';
 
   return (
-    <main className="min-h-[70vh] max-w-[640px] mx-auto px-5 pt-28 pb-16">
+    <main className="min-h-[70vh] max-w-[640px] mx-auto px-5 pt-36 md:pt-28 pb-16">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="font-[var(--font-playfair)] font-black text-[1.9rem] text-[#0a1628] tracking-tight leading-tight">
@@ -87,15 +88,7 @@ export default async function AccountOverview({ email }: { email: string }) {
           </h1>
           <p className="text-[.85rem] text-[#5C6378] font-medium mt-1 break-all">{email}</p>
         </div>
-        <form action="/api/account/signout" method="POST">
-          <button
-            type="submit"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#E8ECF4] bg-white hover:bg-[#FCFAF5] text-[#0a1628] font-bold text-[.78rem] transition-colors shrink-0"
-          >
-            <i className="fa-solid fa-arrow-right-from-bracket text-[.7rem]" />
-            Sign out
-          </button>
-        </form>
+        <SignOutButton />
       </div>
 
       <Section title="Travel activity">
