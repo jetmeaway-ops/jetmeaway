@@ -15,6 +15,7 @@ import FaqSection, {
 } from '@/components/blog/FaqSection';
 import CityBlogBackdrop from '@/components/CityBlogBackdrop';
 import { formatPostDate, type BlogPost, type PostLocale } from '@/lib/blog';
+import { RTL_LOCALES } from '@/i18n/config';
 
 /**
  * Shared article renderer for every locale of a blog post.
@@ -42,6 +43,7 @@ const IN_LANGUAGE: Record<PostLocale, string> = {
   de: 'de-DE',
   es: 'es',
   it: 'it-IT',
+  ar: 'ar',
 };
 
 /** Visible chrome around the article body, per locale. */
@@ -103,6 +105,21 @@ const STRINGS: Record<PostLocale, {
       'Usa lo JetMeAway Scout per confrontare i prezzi in tempo reale di oltre 15 fornitori affidabili. Nessuna commissione di prenotazione.',
     ctaButton: 'Inizia a cercare',
   },
+  // Arabic — Modern Standard Arabic, matching src/messages/ar.json and the
+  // translated corpus. This is the first RTL locale; the article sets
+  // dir="rtl" below and the MDX components use logical (start/end) spacing so
+  // lists, quotes and tables flow correctly right-to-left.
+  ar: {
+    backToBlog: 'العودة إلى المدونة',
+    liveAlert: 'تنبيه مباشر · تم التحديث',
+    by: 'بواسطة',
+    breadcrumbHome: 'الرئيسية',
+    breadcrumbBlog: 'المدونة',
+    ctaHeading: 'خطّط لرحلتك في 2026 الآن',
+    ctaBody:
+      'استخدم JetMeAway Scout لمقارنة الأسعار المباشرة عبر أكثر من 15 مزوّدًا موثوقًا. بدون رسوم حجز.',
+    ctaButton: 'ابدأ البحث',
+  },
 };
 
 /**
@@ -143,10 +160,10 @@ const mdxComponents = {
     <p className="text-[1rem] md:text-[1.05rem] text-[#374151] leading-[1.75] mb-5 font-medium" {...props} />
   ),
   ul: (props: any) => (
-    <ul className="list-disc pl-6 mb-6 space-y-2 text-[1rem] md:text-[1.05rem] text-[#374151] font-medium" {...props} />
+    <ul className="list-disc ps-6 mb-6 space-y-2 text-[1rem] md:text-[1.05rem] text-[#374151] font-medium" {...props} />
   ),
   ol: (props: any) => (
-    <ol className="list-decimal pl-6 mb-6 space-y-2 text-[1rem] md:text-[1.05rem] text-[#374151] font-medium" {...props} />
+    <ol className="list-decimal ps-6 mb-6 space-y-2 text-[1rem] md:text-[1.05rem] text-[#374151] font-medium" {...props} />
   ),
   li: (props: any) => <li className="leading-[1.7]" {...props} />,
   strong: (props: any) => <strong className="font-bold text-[#1A1D2B]" {...props} />,
@@ -156,7 +173,7 @@ const mdxComponents = {
   ),
   blockquote: (props: any) => (
     <blockquote
-      className="border-l-4 border-[#0066FF] pl-5 py-2 my-8 bg-blue-50/50 rounded-r-lg italic text-[#5C6378] font-semibold"
+      className="border-s-4 border-[#0066FF] ps-5 py-2 my-8 bg-blue-50/50 rounded-e-lg italic text-[#5C6378] font-semibold"
       {...props}
     />
   ),
@@ -166,7 +183,7 @@ const mdxComponents = {
   // mobile so wide tables never break the layout.
   table: (props: any) => (
     <div className="my-8 overflow-x-auto rounded-2xl border border-[#E8ECF4] shadow-[0_12px_40px_-12px_rgba(0,102,255,0.10)]">
-      <table className="w-full border-collapse text-left text-[0.92rem] md:text-[0.98rem]" {...props} />
+      <table className="w-full border-collapse text-start text-[0.92rem] md:text-[0.98rem]" {...props} />
     </div>
   ),
   thead: (props: any) => <thead className="bg-[#F1F5FF]" {...props} />,
@@ -221,6 +238,11 @@ export default async function BlogPostArticle({
   const t = STRINGS[locale] ?? STRINGS.en;
   const basePath = blogBasePath(locale);
   const postUrl = `${BASE_URL}${basePath}/${post.slug}`;
+  // First RTL locale (Arabic). dir flows the whole article right-to-left;
+  // the directional back/forward arrows below are mirrored to match.
+  const isRtl = RTL_LOCALES.has(locale);
+  const backArrow = isRtl ? 'fa-arrow-right' : 'fa-arrow-left';
+  const fwdArrow = isRtl ? 'fa-arrow-left' : 'fa-arrow-right';
 
   // Compile the MDX body in two halves so we can drop the in-body CTA
   // between them. If the post has <2 H2 headings, splitMdxAtMiddleH2
@@ -353,7 +375,7 @@ export default async function BlogPostArticle({
         />
       )}
 
-      <article className="pt-32 pb-16 px-4 sm:px-5">
+      <article dir={isRtl ? 'rtl' : undefined} className="pt-32 pb-16 px-4 sm:px-5">
         {/* White "paper" sheet so the long-form text stays fully readable while
             the clear city slideshow shows boldly in the margins around it. */}
         <div className="relative z-[1] mx-auto max-w-[900px] bg-white rounded-[28px] shadow-[0_40px_90px_-35px_rgba(0,0,0,0.55)] pt-10 sm:pt-12 pb-14">
@@ -363,7 +385,7 @@ export default async function BlogPostArticle({
             href={basePath}
             className="inline-flex items-center gap-1 text-[.72rem] font-bold text-[#8E95A9] hover:text-[#0066FF] uppercase tracking-[1.5px] mb-6 transition-colors"
           >
-            <i className="fa-solid fa-arrow-left text-[.65rem]" /> {t.backToBlog}
+            <i className={`fa-solid ${backArrow} text-[.65rem]`} /> {t.backToBlog}
           </Link>
           <div className="flex items-center justify-center flex-wrap gap-2 mb-4">
             <span className="inline-block bg-blue-50 text-[#0066FF] text-[.65rem] font-black uppercase tracking-[2.5px] px-3.5 py-1.5 rounded-full">
@@ -443,7 +465,7 @@ export default async function BlogPostArticle({
               href="/hotels"
               className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-gradient-to-r from-[#0066FF] to-[#0052CC] text-white font-poppins font-black text-[.9rem] shadow-[0_8px_24px_rgba(0,102,255,0.28)] hover:shadow-[0_12px_32px_rgba(0,102,255,0.35)] hover:-translate-y-0.5 active:translate-y-0 transition-all"
             >
-              {t.ctaButton} <i className="fa-solid fa-arrow-right text-[.8rem]" />
+              {t.ctaButton} <i className={`fa-solid ${fwdArrow} text-[.8rem]`} />
             </Link>
           </div>
         </div>

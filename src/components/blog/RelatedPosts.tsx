@@ -36,6 +36,7 @@ export default function RelatedPosts({
     de: 'Das könnte Sie auch interessieren',
     es: 'Lee a continuación',
     it: 'Leggi anche',
+    ar: 'اقرأ التالي',
   };
   const heading = HEADINGS[locale] ?? HEADINGS.en;
 
@@ -58,7 +59,7 @@ export default function RelatedPosts({
                 loading="lazy"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
-              <span className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm text-[#0066FF] text-[.55rem] font-black uppercase tracking-[1.5px] px-2.5 py-1 rounded-full shadow-sm">
+              <span className="absolute top-3 start-3 bg-white/95 backdrop-blur-sm text-[#0066FF] text-[.55rem] font-black uppercase tracking-[1.5px] px-2.5 py-1 rounded-full shadow-sm">
                 {post.category}
               </span>
             </div>

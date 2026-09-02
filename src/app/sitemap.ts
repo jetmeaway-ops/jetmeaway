@@ -32,6 +32,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/de/blog`,     lastModified: now, changeFrequency: 'weekly',  priority: 0.7 },
     { url: `${BASE}/es/blog`,     lastModified: now, changeFrequency: 'weekly',  priority: 0.7 },
     { url: `${BASE}/it/blog`,     lastModified: now, changeFrequency: 'weekly',  priority: 0.7 },
+    { url: `${BASE}/ar/blog`,     lastModified: now, changeFrequency: 'weekly',  priority: 0.7 },
     { url: `${BASE}/destinations`, lastModified: now, changeFrequency: 'weekly',  priority: 0.85 },
     { url: `${BASE}/travel-data`, lastModified: now, changeFrequency: 'weekly',  priority: 0.7 },
     // Seasonal campaign — the 2026 World Cup host-city hub. Listed while the
