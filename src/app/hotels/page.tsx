@@ -4,6 +4,7 @@ import TrustBar from '@/components/TrustBar';
 import { LazyHotelsContent } from './hotels-lazy';
 import { PageSchema } from '@/lib/page-schema';
 import { HOTELS_FAQS } from '@/lib/page-faqs';
+import PageSeoContent from '@/components/PageSeoContent';
 import { getTranslations } from 'next-intl/server';
 
 export const runtime = 'edge';
@@ -64,6 +65,26 @@ export default async function HotelsPage() {
             they decide whether to type a destination. */}
         <TrustBar />
       </section>
+
+      <PageSeoContent
+        heading="Compare hotel prices the honest way"
+        intro={[
+          "JetMeAway compares live hotel rates from our direct partners — LiteAPI, RateHawk and Webbeds — alongside Expedia, Trip.com, Hotels.com, Agoda and Trivago, so you see the cheapest room for your dates side by side. Prices are the total including taxes and fees, with no JetMeAway mark-up and no booking fees.",
+          "Search any city worldwide, filter by budget, board type and free cancellation, then book refundable rooms direct. Whether it's a UK city break, a family holiday or a long-haul trip, you compare the real price before you decide.",
+        ]}
+        linksHeading="Popular right now"
+        links={[
+          { href: '/flights', label: 'Compare flights' },
+          { href: '/packages', label: 'Holiday packages' },
+          { href: '/cars', label: 'Car hire' },
+          { href: '/destinations', label: 'Destination guides' },
+          { href: '/blog/best-hotels-munich-2026', label: 'Munich hotels' },
+          { href: '/blog/best-hotels-prague-2026', label: 'Prague hotels' },
+          { href: '/blog/best-hotels-dubai-2026', label: 'Dubai hotels' },
+          { href: '/blog/best-hotels-las-vegas-2026', label: 'Las Vegas hotels' },
+        ]}
+        faqs={HOTELS_FAQS}
+      />
       </main>
 
       <Footer />

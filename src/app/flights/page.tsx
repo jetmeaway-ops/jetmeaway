@@ -4,6 +4,7 @@ import TrustBar from '@/components/TrustBar';
 import { LazyFlightsContent } from './flights-lazy';
 import { PageSchema } from '@/lib/page-schema';
 import { FLIGHTS_FAQS } from '@/lib/page-faqs';
+import PageSeoContent from '@/components/PageSeoContent';
 import { getTranslations } from 'next-intl/server';
 
 export const runtime = 'edge';
@@ -56,6 +57,24 @@ export default async function FlightsPage() {
             they decide whether to enter origin and destination. */}
         <TrustBar />
       </section>
+
+      <PageSeoContent
+        heading="Compare cheap flights from the UK"
+        intro={[
+          "Compare live flight prices from Aviasales, Trip.com and Expedia across 250+ airports, departing every major UK airport — London (Heathrow, Gatwick, Stansted, Luton), Manchester, Birmingham, Edinburgh, Glasgow, Bristol and Belfast. Results appear in seconds, with no booking fees and no JetMeAway mark-up.",
+          "Search one-way or return, filter by stops, airline and cabin, and see the true total before you book. For selected routes you can book directly with JetMeAway; for the rest we hand you to the airline or partner to finish.",
+        ]}
+        linksHeading="Plan your trip"
+        links={[
+          { href: '/hotels', label: 'Compare hotels' },
+          { href: '/packages', label: 'Flight + hotel packages' },
+          { href: '/cars', label: 'Car hire' },
+          { href: '/esim', label: 'Travel eSIM' },
+          { href: '/blog/cheap-flights-from-uk-students-2026', label: 'Cheap UK flights guide' },
+          { href: '/blog/book-flight-hotel-separately-vs-package', label: 'Package vs separate' },
+        ]}
+        faqs={FLIGHTS_FAQS}
+      />
       </main>
 
       <Footer />
