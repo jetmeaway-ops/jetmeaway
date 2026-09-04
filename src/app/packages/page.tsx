@@ -3,6 +3,7 @@ import Footer from '@/components/Footer';
 import { LazyPackagesContent } from './packages-lazy';
 import { PageSchema } from '@/lib/page-schema';
 import { PACKAGES_FAQS } from '@/lib/page-faqs';
+import PageSeoContent from '@/components/PageSeoContent';
 import { getTranslations } from 'next-intl/server';
 
 export const runtime = 'edge';
@@ -38,6 +39,24 @@ export default async function PackagesPage() {
 
         <LazyPackagesContent />
       </section>
+
+      <PageSeoContent
+        heading="Compare holiday packages and save"
+        intro={[
+          "Compare flight-and-hotel holiday packages from ATOL-licensed partners including Expedia (ATOL 5788) and Trip.com (ATOL 11572). Bundling cabin and room together typically saves 10–25% versus booking each part separately.",
+          "Pick your destination and dates, mix and match your outbound flight, return flight, hotel and room, and watch the bundle re-price as you swap. Your ATOL certificate is issued by the fulfilling partner at checkout.",
+        ]}
+        linksHeading="Explore more"
+        links={[
+          { href: '/flights', label: 'Compare flights' },
+          { href: '/hotels', label: 'Compare hotels' },
+          { href: '/cars', label: 'Car hire' },
+          { href: '/insurance', label: 'Travel insurance' },
+          { href: '/blog/book-flight-hotel-separately-vs-package', label: 'Package vs separate' },
+          { href: '/blog/best-all-inclusive-hotels-turkey-2026', label: 'All-inclusive Turkey' },
+        ]}
+        faqs={PACKAGES_FAQS}
+      />
       </main>
 
       <Footer />

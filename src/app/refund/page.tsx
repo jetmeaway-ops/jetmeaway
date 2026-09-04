@@ -4,6 +4,9 @@ import Footer from '@/components/Footer';
 export const metadata = {
   title: 'Refund Policy | JetMeAway',
   description: 'JetMeAway refund policy for flights, hotels, and eSIMs. Understand your rights and how refunds are processed.',
+  alternates: {
+    canonical: 'https://jetmeaway.co.uk/refund',
+  },
 };
 
 export default function RefundPolicy() {

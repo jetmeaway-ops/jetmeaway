@@ -18,6 +18,11 @@ import SignInForm from './SignInForm';
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
+// Auth surface — no organic-search value; keep it out of the index (follow links).
+export const metadata = {
+  robots: 'noindex, follow',
+};
+
 type Props = {
   searchParams: Promise<{ error?: string; sent?: string }>;
 };
