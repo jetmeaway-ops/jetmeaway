@@ -2,6 +2,11 @@
 
 import dynamic from 'next/dynamic';
 
+// Warm the heavy flights-client chunk ahead of the tap — see the matching
+// note in hotels-lazy.tsx. Same import() specifier as the lazy loader, so
+// webpack dedupes to one chunk. Fired on idle from the homepage.
+export const prewarmFlightsContent = () => import('./flights-client');
+
 export const LazyFlightsContent = dynamic(() => import('./flights-client'), {
   ssr: false,
   loading: () => (
