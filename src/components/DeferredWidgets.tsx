@@ -62,14 +62,28 @@ export default function DeferredWidgets() {
   const [phase, setPhase] = useState(0);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase(1), 6000);
-    const t2 = setTimeout(() => setPhase(2), 8000);
-    const t3 = setTimeout(() => setPhase(3), 10000);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
+    // Idle-gate each phase (2026-09-09): the base delays below still schedule
+    // the pile, but we only actually MOUNT a phase once the main thread is
+    // idle — so GA/Clarity/Scout never hydrate in the same tick the user is
+    // waiting on a category route to load (the cold first-tap freeze). The
+    // requestIdleCallback timeout guarantees the phase still mounts on a
+    // persistently busy page, so no tracker is ever dropped. Browsers without
+    // requestIdleCallback (older iOS WKWebView) keep the exact prior behaviour
+    // — mount at the base delay. Math.max guards against idle callbacks
+    // resolving out of order (a late phase-1 must never unmount phase 3).
+    type IdleWindow = Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
     };
+    const w = window as IdleWindow;
+    const ric = typeof w.requestIdleCallback === 'function' ? w.requestIdleCallback.bind(w) : null;
+    const advance = (n: number) => setPhase((p) => Math.max(p, n));
+    const schedule = (n: number, delay: number) =>
+      setTimeout(() => {
+        if (ric) ric(() => advance(n), { timeout: 4000 });
+        else advance(n);
+      }, delay);
+    const timers = [schedule(1, 6000), schedule(2, 8000), schedule(3, 10000)];
+    return () => timers.forEach(clearTimeout);
   }, []);
 
   if (phase === 0) return null;

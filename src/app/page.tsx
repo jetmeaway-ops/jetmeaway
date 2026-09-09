@@ -4,6 +4,7 @@ import RotatingReviews from '@/components/RotatingReviews';
 import AppStoreBadges from '@/components/AppStoreBadges';
 import LondonHeroBackdrop from '@/components/LondonHeroBackdrop';
 import { LazyFlightSearch, LazyPopularDestinations, LazyTestimonials } from './homepage-client';
+import RoutePrewarmer from '@/components/RoutePrewarmer';
 import { getTranslations } from 'next-intl/server';
 
 // Homepage canonical. Declared here (not the root layout) so it doesn't
@@ -481,6 +482,9 @@ export default async function Home() {
       <CtaSection />
       </main>
       <Footer />
+      {/* Warms /hotels + /flights client chunks on idle so the first category
+          tap isn't a cold 10-14s download on mobile. Renders nothing. */}
+      <RoutePrewarmer />
       {/* JSON-LD moved to end of body — crawlers parse it the same, but the
           ~3kB script no longer sits in the HTML stream above the LCP element. */}
       {jsonLd.map((ld, i) => (
