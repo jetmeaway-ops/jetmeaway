@@ -71,6 +71,10 @@ async function mirrorToAdminStore(
         ? { localFeesPence: Math.round(record.localFees * 100) }
         : {}),
       title: record.hotelName,
+      // How & where they booked — captured at start-booking, carried through
+      // so the admin sees app-vs-website + country without opening Clarity.
+      ...(record.channel ? { channel: record.channel } : {}),
+      ...(record.country ? { country: record.country } : {}),
       totalPence,
       netPence,
       marginPence,

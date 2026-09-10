@@ -10,6 +10,7 @@ import {
   supplierLabel,
   typeIcon,
 } from '@/lib/bookings';
+import { countryName } from '@/lib/notifications';
 import CancelButton from './CancelButton';
 import NotificationButtons from './NotificationButtons';
 import RefundButton from './RefundButton';
@@ -121,6 +122,8 @@ export default async function BookingDetail({
           <div className="space-y-2 text-sm">
             <DetailRow label="Source" value={supplierLabel(b.supplier)} />
             <DetailRow label="Supplier ref" value={b.supplierRef || '—'} mono />
+            <DetailRow label="Booked via" value={channelLabel(b.channel)} />
+            <DetailRow label="Booked from" value={countryName(b.country) || b.country || '—'} />
             <DetailRow label="Created" value={fmtDateTime(b.createdAt)} />
             <DetailRow label="Updated" value={fmtDateTime(b.updatedAt)} />
           </div>
@@ -159,6 +162,15 @@ export default async function BookingDetail({
       </p>
     </div>
   );
+}
+
+/** Human label for the booking channel. Older bookings (pre-2026-09-10) have
+ *  no channel captured — show an honest em dash rather than guessing. */
+function channelLabel(channel?: string): string {
+  if (channel === 'ios') return '📱 iOS app';
+  if (channel === 'android') return '📱 Android app';
+  if (channel === 'web') return '🖥️ Website';
+  return '—';
 }
 
 function DetailRow({

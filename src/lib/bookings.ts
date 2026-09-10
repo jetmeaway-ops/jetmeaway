@@ -109,6 +109,13 @@ export type Booking = {
   // time. Optional on older records that pre-date the field.
   channel?: 'ios' | 'android' | 'web';
 
+  // ── Booking origin country (added 2026-09-10) — ADDITIVE, optional ────
+  // Visitor's country when they booked (ISO-3166 alpha-2, e.g. "GB"/"ES"),
+  // from Vercel's free x-vercel-ip-country header at start-booking. Distinct
+  // from the guest's nationality on the supplier record. Absent on older
+  // records and when the edge couldn't resolve one (e.g. local dev).
+  country?: string;
+
   // ── £5-off-2nd-booking-via-app promo (added 2026-05-10) ───────────────
   // v1 ships LiteAPI-only with a manual cashback payout. The eligibility
   // engine lives at src/lib/promo.ts; the checkout flow flags the booking
