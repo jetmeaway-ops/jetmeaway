@@ -19,7 +19,7 @@
  */
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { fmtGbp, fmtDate, type Booking } from './bookings';
-import { stringsFor, isSupportedLocale, translateBoard, type BookingStrings } from './booking-i18n';
+import { stringsFor, isSupportedLocale, translateBoard, translateRoom, type BookingStrings } from './booking-i18n';
 
 const BLUE = rgb(0, 0.4, 1);
 const INK = rgb(0.04, 0.086, 0.157);
@@ -42,7 +42,7 @@ function party(b: Booking, S: BookingStrings): string | null {
   const a = Math.max(0, b.adults || 0);
   const c = Math.max(0, b.children || 0);
   if (!a && !c) return b.guests ? `${b.guests} ${b.guests === 1 ? S.guest : S.guestsWord}` : null;
-  const ages = Array.isArray(b.childAges) && b.childAges.length ? ` (${b.childAges.join(', ')})` : '';
+  const ages = Array.isArray(b.childAges) && b.childAges.length ? ` (${b.childAges.join(', ')}${S.years ? ' ' + S.years : ''})` : '';
   return [
     `${a} ${a === 1 ? S.adult : S.adults}`,
     ...(c > 0 ? [`${c} ${c === 1 ? S.child : S.children}${ages}`] : []),
@@ -91,7 +91,7 @@ export function buildVoucherModel(b: Booking, locale: string = 'en'): VoucherMod
   if (b.checkOut) stay.push([S.checkOut, `${df(b.checkOut)}${b.checkOutTime ? `, ${S.until} ${b.checkOutTime}` : ''}`]);
   const n = nights(b);
   if (n) stay.push([S.nights, String(n)]);
-  if (b.roomName) stay.push([S.room, b.roomName]);
+  if (b.roomName) stay.push([S.room, translateRoom(b.roomName, locale)]);
   if (b.boardName) stay.push([S.meals, translateBoard(b.boardName, locale)]);
 
   const guests: Array<[string, string]> = [];

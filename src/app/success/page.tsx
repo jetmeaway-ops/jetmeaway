@@ -5,7 +5,7 @@ import { upsertBooking, getBooking, type Booking } from '@/lib/bookings';
 import { scoutSalutation } from '@/lib/scout-greeting';
 import { joinAddress, formatDate, countryName } from '@/lib/notifications';
 import { buildVoucherPdf } from '@/lib/voucher';
-import { stringsFor, isSupportedLocale, translateBoard } from '@/lib/booking-i18n';
+import { stringsFor, isSupportedLocale, translateBoard, translateRoom } from '@/lib/booking-i18n';
 import type { PendingBooking } from '@/app/api/hotels/start-booking/route';
 import type { PendingGuest } from '@/app/api/hotels/pending/[ref]/guest/route';
 import ConversionPixel from '@/components/ConversionPixel';
@@ -407,7 +407,7 @@ async function sendLocalizedConfirmationEmail(booking: StoredBooking) {
   const friendlyCheckIn = dfL(booking.checkIn);
   const a = Math.max(0, booking.adults || 0);
   const c = Math.max(0, booking.children || 0);
-  const ages = Array.isArray(booking.childAges) && booking.childAges.length ? ` (${booking.childAges.join(', ')})` : '';
+  const ages = Array.isArray(booking.childAges) && booking.childAges.length ? ` (${booking.childAges.join(', ')}${S.years ? ' ' + S.years : ''})` : '';
   const partyStr = (a || c)
     ? [`${a} ${a === 1 ? S.adult : S.adults}`, ...(c > 0 ? [`${c} ${c === 1 ? S.child : S.children}${ages}`] : [])].join(' + ')
     : '';
@@ -441,7 +441,7 @@ async function sendLocalizedConfirmationEmail(booking: StoredBooking) {
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">${esc(S.checkIn)}</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${esc(dfL(booking.checkIn))}${booking.checkInTime ? ` <span style="font-weight:400;color:#8E95A9;">${esc(S.from)} ${esc(booking.checkInTime)}</span>` : ''}</td></tr>
         <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">${esc(S.checkOut)}</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${esc(dfL(booking.checkOut))}${booking.checkOutTime ? ` <span style="font-weight:400;color:#8E95A9;">${esc(S.until)} ${esc(booking.checkOutTime)}</span>` : ''}</td></tr>
-        ${booking.roomName ? `<tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">${esc(S.room)}</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${esc(booking.roomName)}</td></tr>` : ''}
+        ${booking.roomName ? `<tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">${esc(S.room)}</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${esc(translateRoom(booking.roomName, locale))}</td></tr>` : ''}
         ${booking.boardName ? `<tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">${esc(S.meals)}</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${esc(translateBoard(booking.boardName, locale))}</td></tr>` : ''}
         ${partyStr ? `<tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">${esc(S.guests)}</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${esc(partyStr)}</td></tr>` : ''}
         ${heldUnder ? `<tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">${esc(S.heldUnder)}</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${esc(heldUnder)}</td></tr><tr><td colspan="2" style="padding:2px 0 0;font-size:12px;color:#8E95A9;">${esc(S.heldUnderHint)}</td></tr>` : ''}
