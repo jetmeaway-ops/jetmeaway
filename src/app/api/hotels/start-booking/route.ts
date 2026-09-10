@@ -118,6 +118,13 @@ export interface PendingBooking {
   // geo-lookup: the header is injected by Vercel's edge at no cost.
   country?: string;
 
+  // ── Booking language (added 2026-09-10) ───────────────────────────────
+  // The locale the site rendered in for this customer, from the resolved
+  // `x-jma-locale` header (proxy.ts: cookie → Accept-Language → 'en'). Drives
+  // the second, localized confirmation email + voucher (src/lib/booking-i18n.ts).
+  // Captures a Spanish/Dutch browser even when the switcher was never clicked.
+  locale?: string;
+
   // ── £5-off-2nd-booking-via-app promo (added 2026-05-10) ───────────────
   // Eligibility is evaluated once at start-booking using the user's
   // session email + channel + supplier + totalPrice. The result is
@@ -277,6 +284,11 @@ export async function POST(req: NextRequest) {
     {
       const cc = (req.headers.get('x-vercel-ip-country') || '').trim().toUpperCase();
       if (/^[A-Z]{2}$/.test(cc)) record.country = cc;
+      // Booking language — the locale proxy.ts resolved for this request
+      // (cookie → Accept-Language → 'en'), falling back to the raw cookie.
+      const loc = (req.headers.get('x-jma-locale') || req.cookies.get('jma_locale')?.value || '')
+        .trim().toLowerCase();
+      if (/^[a-z]{2}$/.test(loc)) record.locale = loc;
     }
     try {
       const sessionEmail = await readSessionEmail(req.headers.get('cookie'));

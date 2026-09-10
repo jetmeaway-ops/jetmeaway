@@ -19,6 +19,7 @@
  */
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { fmtGbp, fmtDate, type Booking } from './bookings';
+import { stringsFor, isSupportedLocale, type BookingStrings } from './booking-i18n';
 
 const BLUE = rgb(0, 0.4, 1);
 const INK = rgb(0.04, 0.086, 0.157);
@@ -37,14 +38,14 @@ export type VoucherModel = {
   footer: string;
 };
 
-function party(b: Booking): string | null {
+function party(b: Booking, S: BookingStrings): string | null {
   const a = Math.max(0, b.adults || 0);
   const c = Math.max(0, b.children || 0);
-  if (!a && !c) return b.guests ? `${b.guests} guest${b.guests === 1 ? '' : 's'}` : null;
+  if (!a && !c) return b.guests ? `${b.guests} ${b.guests === 1 ? S.guest : S.guestsWord}` : null;
   const ages = Array.isArray(b.childAges) && b.childAges.length ? ` (${b.childAges.join(', ')})` : '';
   return [
-    `${a} adult${a === 1 ? '' : 's'}`,
-    ...(c > 0 ? [`${c} child${c === 1 ? '' : 'ren'}${ages}`] : []),
+    `${a} ${a === 1 ? S.adult : S.adults}`,
+    ...(c > 0 ? [`${c} ${c === 1 ? S.child : S.children}${ages}`] : []),
   ].join(' + ');
 }
 
@@ -67,56 +68,75 @@ function nights(b: Booking): number | null {
   return n > 0 ? n : null;
 }
 
-export function buildVoucherModel(b: Booking): VoucherModel {
+/** Localised long date. English/unsupported → fmtDate (unchanged, so the
+ *  default voucher is byte-for-byte what it was); a supported locale gets an
+ *  Intl-formatted date in its own language. */
+function fmtDateL(iso: string, locale: string, dateLocale: string): string {
+  if (!isSupportedLocale(locale)) return fmtDate(iso);
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return fmtDate(iso);
+  try {
+    return new Intl.DateTimeFormat(dateLocale, { day: 'numeric', month: 'long', year: 'numeric' }).format(d);
+  } catch {
+    return fmtDate(iso);
+  }
+}
+
+export function buildVoucherModel(b: Booking, locale: string = 'en'): VoucherModel {
+  const S = stringsFor(locale);
+  const df = (iso: string) => fmtDateL(iso, locale, S.dateLocale);
+
   const stay: Array<[string, string]> = [];
-  if (b.checkIn) stay.push(['Check-in', `${fmtDate(b.checkIn)}${b.checkInTime ? `, from ${b.checkInTime}` : ''}`]);
-  if (b.checkOut) stay.push(['Check-out', `${fmtDate(b.checkOut)}${b.checkOutTime ? `, until ${b.checkOutTime}` : ''}`]);
+  if (b.checkIn) stay.push([S.checkIn, `${df(b.checkIn)}${b.checkInTime ? `, ${S.from} ${b.checkInTime}` : ''}`]);
+  if (b.checkOut) stay.push([S.checkOut, `${df(b.checkOut)}${b.checkOutTime ? `, ${S.until} ${b.checkOutTime}` : ''}`]);
   const n = nights(b);
-  if (n) stay.push(['Nights', String(n)]);
-  if (b.roomName) stay.push(['Room', b.roomName]);
-  if (b.boardName) stay.push(['Meals', b.boardName]);
+  if (n) stay.push([S.nights, String(n)]);
+  if (b.roomName) stay.push([S.room, b.roomName]);
+  if (b.boardName) stay.push([S.meals, b.boardName]);
 
   const guests: Array<[string, string]> = [];
   const heldUnder = (b.customerName || '').trim();
-  if (heldUnder && heldUnder.toLowerCase() !== 'guest') guests.push(['Room held under', heldUnder]);
-  const p = party(b);
-  if (p) guests.push(['Guests', p]);
+  if (heldUnder && heldUnder.toLowerCase() !== 'guest') guests.push([S.heldUnder, heldUnder]);
+  const p = party(b, S);
+  if (p) guests.push([S.guests, p]);
 
-  const payment: Array<[string, string]> = [['Total paid', fmtGbp(b.totalPence)]];
+  const payment: Array<[string, string]> = [[S.totalPaid, fmtGbp(b.totalPence)]];
   if (typeof b.localFeesPence === 'number' && b.localFeesPence > 0) {
-    payment.push(['Payable at the hotel', fmtGbp(b.localFeesPence)]);
+    payment.push([S.payableAtHotel, fmtGbp(b.localFeesPence)]);
   }
 
   const cancellation: Array<[string, string]> = [];
   if (b.cancellationDeadline) {
     const d = new Date(b.cancellationDeadline);
     if (!isNaN(d.getTime())) {
-      cancellation.push(['Free cancellation until', fmtDate(b.cancellationDeadline.slice(0, 10))]);
+      cancellation.push([S.freeCancelUntil, df(b.cancellationDeadline.slice(0, 10))]);
     }
   }
 
-  const notes = [
-    'Show this voucher and the name above at reception - it is the name the hotel holds the room under.',
-  ];
+  const notes = [S.noteShowVoucher];
   if (typeof b.localFeesPence === 'number' && b.localFeesPence > 0) {
-    notes.push(
-      `The property collects ${fmtGbp(b.localFeesPence)} on arrival (city tax and local fees) - not included in the total paid.`,
-    );
+    notes.push(S.noteLocalFees(fmtGbp(b.localFeesPence)));
   }
-  notes.push(
-    'Hotels may ask for photo ID and a card or cash deposit for incidentals. If you will arrive after 8pm, tell the hotel in advance so the room is not released.',
-  );
+  notes.push(S.noteIdDeposit);
+
+  const status = (b.status || 'confirmed').toLowerCase() === 'confirmed'
+    ? S.statusConfirmed
+    : (b.status || 'confirmed').toUpperCase();
 
   return {
-    title: 'Hotel voucher',
-    status: (b.status || 'confirmed').toUpperCase(),
-    refLine: `Booking ${b.id}${b.supplierRef ? `  ·  Hotel reference ${b.supplierRef}` : ''}`,
+    title: S.voucherTitle,
+    status,
+    // Localised label + code; the default (en/unsupported) keeps the original
+    // literal so the existing English voucher is unchanged.
+    refLine: isSupportedLocale(locale)
+      ? `${S.bookingRef}: ${b.id}${b.supplierRef ? `  ·  ${S.hotelReference}: ${b.supplierRef}` : ''}`
+      : `Booking ${b.id}${b.supplierRef ? `  ·  Hotel reference ${b.supplierRef}` : ''}`,
     hotel: { name: b.title || 'Your hotel', address: address(b) },
     sections: [
-      { title: 'Your stay', rows: stay },
-      { title: 'Guests', rows: guests },
-      { title: 'Payment', rows: payment },
-      ...(cancellation.length ? [{ title: 'Cancellation', rows: cancellation }] : []),
+      { title: S.sectionStay, rows: stay },
+      { title: S.sectionGuests, rows: guests },
+      { title: S.sectionPayment, rows: payment },
+      ...(cancellation.length ? [{ title: S.sectionCancellation, rows: cancellation }] : []),
     ].filter((s) => s.rows.length > 0),
     notes,
     // Our contact first; the 24/7 line below it is the one that answers
@@ -124,7 +144,7 @@ export function buildVoucherModel(b: Booking): VoucherModel {
     // must never hit a dead end.
     support: [
       'JetMeAway - contact@jetmeaway.co.uk',
-      '24/7 stay support line: +44 20 4630 0278',
+      `${S.supportLine}: +44 20 4630 0278`,
     ],
     footer: 'JETMEAWAY LTD (Company No: 17140522) · 66 Paul Street, London · jetmeaway.co.uk',
   };
@@ -143,8 +163,9 @@ function safe(s: string): string {
     .replace(/[^\x20-\x7E -ÿ·]/g, '');
 }
 
-export async function buildVoucherPdf(b: Booking, logoPng?: Uint8Array | null): Promise<Uint8Array> {
-  const m = buildVoucherModel(b);
+export async function buildVoucherPdf(b: Booking, logoPng?: Uint8Array | null, locale: string = 'en'): Promise<Uint8Array> {
+  const S = stringsFor(locale);
+  const m = buildVoucherModel(b, locale);
   const doc = await PDFDocument.create();
   doc.setTitle(`JetMeAway voucher ${b.id}`);
   const page = doc.addPage([595.28, 841.89]); // A4 portrait, points
@@ -216,7 +237,7 @@ export async function buildVoucherPdf(b: Booking, logoPng?: Uint8Array | null): 
   // ── Notes.
   rule();
   y -= 20;
-  text('GOOD TO KNOW', { size: 8.5, font: bold, color: FAINT });
+  text(S.goodToKnow, { size: 8.5, font: bold, color: FAINT });
   y -= 15;
   const maxWidth = W - 2 * M;
   for (const note of m.notes) {

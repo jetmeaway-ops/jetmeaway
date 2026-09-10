@@ -1,9 +1,11 @@
 import { kv } from '@vercel/kv';
 import { bookWithTransactionId, completeBooking } from '@/lib/liteapi';
 import { sendSms, hotelBookingMessage } from '@/lib/twilio';
-import { upsertBooking, type Booking } from '@/lib/bookings';
+import { upsertBooking, getBooking, type Booking } from '@/lib/bookings';
 import { scoutSalutation } from '@/lib/scout-greeting';
 import { joinAddress, formatDate, countryName } from '@/lib/notifications';
+import { buildVoucherPdf } from '@/lib/voucher';
+import { stringsFor, isSupportedLocale } from '@/lib/booking-i18n';
 import type { PendingBooking } from '@/app/api/hotels/start-booking/route';
 import type { PendingGuest } from '@/app/api/hotels/pending/[ref]/guest/route';
 import ConversionPixel from '@/components/ConversionPixel';
@@ -75,6 +77,7 @@ async function mirrorToAdminStore(
       // so the admin sees app-vs-website + country without opening Clarity.
       ...(record.channel ? { channel: record.channel } : {}),
       ...(record.country ? { country: record.country } : {}),
+      ...(record.locale ? { locale: record.locale } : {}),
       totalPence,
       netPence,
       marginPence,
@@ -222,6 +225,32 @@ function directionsUrl(b: {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
 }
 
+/** Build a JetMeAway-branded voucher PDF for this booking as a Resend
+ *  attachment ({filename, base64 content}), in the given language. Reads the
+ *  booking the admin store just persisted, so the voucher shows exactly what
+ *  the record holds. Returns null on any failure — a voucher we couldn't draw
+ *  must never block the confirmation email. Never LiteAPI-branded. */
+async function buildVoucherAttachment(
+  ref: string,
+  locale: string,
+): Promise<{ filename: string; content: string } | null> {
+  try {
+    const b = await getBooking(ref);
+    if (!b || b.type !== 'hotel') return null;
+    let logo: Uint8Array | null = null;
+    try {
+      const r = await fetch('https://jetmeaway.co.uk/jetmeaway-logo.png');
+      if (r.ok) logo = new Uint8Array(await r.arrayBuffer());
+    } catch { /* wordmark fallback inside buildVoucherPdf */ }
+    const pdf = await buildVoucherPdf(b, logo, locale);
+    const suffix = isSupportedLocale(locale) ? `-${locale}` : '';
+    return { filename: `jetmeaway-voucher-${ref}${suffix}.pdf`, content: Buffer.from(pdf).toString('base64') };
+  } catch (err) {
+    console.error('[/success] buildVoucherAttachment failed', err);
+    return null;
+  }
+}
+
 async function sendHotelConfirmationEmail(booking: StoredBooking) {
   const RESEND_KEY = process.env.RESEND_API_KEY;
   if (!RESEND_KEY || !booking.guest?.email) return;
@@ -328,6 +357,10 @@ async function sendHotelConfirmationEmail(booking: StoredBooking) {
 </body>
 </html>`;
 
+  // JetMeAway-branded PDF voucher, attached so the guest has it without
+  // signing in (guest bookings could not reach the account voucher before).
+  const voucher = await buildVoucherAttachment(booking.ref, 'en');
+
   try {
     const { Resend } = await import('resend');
     const resend = new Resend(RESEND_KEY);
@@ -336,10 +369,111 @@ async function sendHotelConfirmationEmail(booking: StoredBooking) {
       to: booking.guest.email,
       subject: `🏨 Hotel Booking Confirmed — ${booking.hotelName} | JetMeAway`,
       html,
+      ...(voucher ? { attachments: [voucher] } : {}),
     });
     console.log(`[/success] Confirmation email sent to ${booking.guest.email}`);
   } catch (err) {
     console.error('[/success] Failed to send confirmation email:', err);
+  }
+}
+
+/**
+ * Second confirmation email in the customer's OWN booking language, with a
+ * voucher PDF in that language attached (owner ask 2026-09-10). Sent only when
+ * the booking language is a supported Latin-script locale (booking-i18n.ts) —
+ * otherwise nothing is sent here and the English email above stands alone, so
+ * an unsupported language never means a broken or half-translated email.
+ * Self-contained + fully translated; the ornate English "Scout" guide is
+ * intentionally omitted (its place text is English-only).
+ */
+async function sendLocalizedConfirmationEmail(booking: StoredBooking) {
+  const RESEND_KEY = process.env.RESEND_API_KEY;
+  const locale = (booking.locale || '').toLowerCase();
+  if (!RESEND_KEY || !booking.guest?.email || !isSupportedLocale(locale)) return;
+
+  const S = stringsFor(locale);
+  const currency = (booking.currency || 'GBP') === 'GBP' ? '&pound;' : `${booking.currency} `;
+  const firstName = (booking.guest?.firstName || '').trim();
+  const heldUnder = `${booking.guest?.firstName || ''} ${booking.guest?.lastName || ''}`.trim();
+  const address = fullAddress(booking);
+  const directions = directionsUrl(booking);
+  const dfL = (iso: string | null | undefined) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    try { return new Intl.DateTimeFormat(S.dateLocale, { day: 'numeric', month: 'long', year: 'numeric' }).format(d); }
+    catch { return iso; }
+  };
+  const friendlyCheckIn = dfL(booking.checkIn);
+  const a = Math.max(0, booking.adults || 0);
+  const c = Math.max(0, booking.children || 0);
+  const ages = Array.isArray(booking.childAges) && booking.childAges.length ? ` (${booking.childAges.join(', ')})` : '';
+  const partyStr = (a || c)
+    ? [`${a} ${a === 1 ? S.adult : S.adults}`, ...(c > 0 ? [`${c} ${c === 1 ? S.child : S.children}${ages}`] : [])].join(' + ')
+    : '';
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  const html = `<!DOCTYPE html>
+<html lang="${locale}"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#F8FAFC;font-family:'Helvetica Neue',Arial,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:32px 20px;">
+    <div style="text-align:center;margin-bottom:24px;">
+      <img src="https://jetmeaway.co.uk/jetmeaway-logo.png" alt="JetMeAway" width="160" style="display:inline-block;height:auto;max-width:160px;border:0;" />
+    </div>
+    <div style="background:linear-gradient(135deg,#059669,#10B981);border-radius:16px;padding:24px;text-align:center;margin-bottom:20px;">
+      <h1 style="font-size:20px;font-weight:800;color:#fff;margin:0 0 4px;">${esc(S.emailConfirmedHeading)}</h1>
+      <p style="font-size:13px;color:rgba(255,255,255,0.9);margin:0;">${esc(S.emailConfirmedSub)}</p>
+    </div>
+    <div style="background:#fff;border:1px solid #E8ECF4;border-radius:16px;padding:24px;margin-bottom:16px;">
+      <h2 style="font-size:18px;font-weight:800;color:#0a1628;margin:0 0 10px;">${esc(S.emailGreeting(firstName))}</h2>
+      <p style="font-size:15px;line-height:1.55;color:#374151;margin:0;">${esc(S.emailIntro(booking.hotelName || '', friendlyCheckIn))}</p>
+    </div>
+    <div style="background:#fff;border:1px solid #E8ECF4;border-radius:16px;padding:20px;margin-bottom:16px;">
+      <p style="font-size:11px;font-weight:700;color:#8E95A9;text-transform:uppercase;letter-spacing:2px;margin:0 0 4px;">${esc(S.bookingRef)}</p>
+      <p style="font-size:22px;font-weight:800;color:#1A1D2B;margin:0;letter-spacing:1px;">${esc(booking.ref)}</p>
+      ${booking.liteapiConfirmationCode ? `<p style="font-size:12px;color:#5C6378;margin:4px 0 0;">${esc(S.hotelConfirmation)}: ${esc(booking.liteapiConfirmationCode)}</p>` : ''}
+    </div>
+    <div style="background:#fff;border:1px solid #E8ECF4;border-radius:16px;padding:20px;margin-bottom:16px;">
+      <p style="font-size:11px;font-weight:700;color:#8E95A9;text-transform:uppercase;letter-spacing:2px;margin:0 0 12px;">${esc(S.hotelDetails)}</p>
+      <p style="font-size:16px;font-weight:800;color:#1A1D2B;margin:0 0 4px;">${esc(booking.hotelName || '')}</p>
+      ${address ? `<p style="font-size:14px;line-height:1.5;color:#5C6378;margin:0 0 10px;">${esc(address)}</p>` : ''}
+      ${directions ? `<p style="margin:0 0 14px;"><a href="${directions}" style="display:inline-block;background:#F1F5FF;border:1px solid #D6E2FF;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:800;color:#0066FF;text-decoration:none;">📍 ${esc(S.getDirections)}</a></p>` : ''}
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">${esc(S.checkIn)}</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${esc(dfL(booking.checkIn))}${booking.checkInTime ? ` <span style="font-weight:400;color:#8E95A9;">${esc(S.from)} ${esc(booking.checkInTime)}</span>` : ''}</td></tr>
+        <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">${esc(S.checkOut)}</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${esc(dfL(booking.checkOut))}${booking.checkOutTime ? ` <span style="font-weight:400;color:#8E95A9;">${esc(S.until)} ${esc(booking.checkOutTime)}</span>` : ''}</td></tr>
+        ${booking.roomName ? `<tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">${esc(S.room)}</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${esc(booking.roomName)}</td></tr>` : ''}
+        ${booking.boardName ? `<tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">${esc(S.meals)}</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${esc(booking.boardName)}</td></tr>` : ''}
+        ${partyStr ? `<tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">${esc(S.guests)}</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${esc(partyStr)}</td></tr>` : ''}
+        ${heldUnder ? `<tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">${esc(S.heldUnder)}</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${esc(heldUnder)}</td></tr><tr><td colspan="2" style="padding:2px 0 0;font-size:12px;color:#8E95A9;">${esc(S.heldUnderHint)}</td></tr>` : ''}
+        <tr><td colspan="2" style="border-top:2px solid #E8ECF4;padding:12px 0 0;"></td></tr>
+        <tr><td style="font-size:16px;font-weight:800;color:#1A1D2B;">${esc(S.totalPaid)}</td><td style="font-size:20px;font-weight:800;color:#059669;text-align:right;">${currency}${booking.totalPrice.toFixed(2)}</td></tr>
+        ${booking.localFees && booking.localFees > 0 ? `<tr><td style="padding:6px 0;font-size:13px;color:#5C6378;">${esc(S.payableAtHotel)}</td><td style="padding:6px 0;font-size:13px;font-weight:700;color:#1A1D2B;text-align:right;">${currency}${booking.localFees.toFixed(2)}</td></tr><tr><td colspan="2" style="padding:2px 0 0;font-size:12px;color:#8E95A9;">${esc(S.payableHint)}</td></tr>` : ''}
+      </table>
+    </div>
+    <div style="background:#F1F5FF;border:1px solid #D6E2FF;border-radius:12px;padding:14px 18px;margin-bottom:16px;">
+      <p style="font-size:13px;color:#1A1D2B;margin:0;">📎 ${esc(S.voucherAttached)}</p>
+    </div>
+    <div style="text-align:center;padding:16px 0;border-top:1px solid #E8ECF4;">
+      <p style="font-size:12px;color:#8E95A9;margin:0 0 4px;">${esc(S.questionsContact)} <a href="mailto:contact@jetmeaway.co.uk" style="color:#0066FF;">contact@jetmeaway.co.uk</a></p>
+      <p style="font-size:11px;color:#B0B8CC;margin:0;">JETMEAWAY LTD (Company No: 17140522) &middot; 66 Paul Street, London</p>
+    </div>
+  </div>
+</body></html>`;
+
+  const voucher = await buildVoucherAttachment(booking.ref, locale);
+  try {
+    const { Resend } = await import('resend');
+    const resend = new Resend(RESEND_KEY);
+    await resend.emails.send({
+      from: 'JetMeAway <bookings@jetmeaway.co.uk>',
+      to: booking.guest.email,
+      subject: S.emailSubject(booking.hotelName || ''),
+      html,
+      ...(voucher ? { attachments: [voucher] } : {}),
+    });
+    console.log(`[/success] Localized (${locale}) confirmation email sent to ${booking.guest.email}`);
+  } catch (err) {
+    console.error(`[/success] Failed to send localized (${locale}) confirmation email:`, err);
   }
 }
 
@@ -798,6 +932,9 @@ export default async function SuccessPage({
 
   // Await emails — fire-and-forget gets killed in server components
   try { await sendHotelConfirmationEmail(b); } catch (e) { console.error('[/success] confirmation email error:', e); }
+  // Second email in the customer's booking language (+ localized voucher),
+  // only for a supported language — a no-op otherwise. Never blocks the above.
+  try { await sendLocalizedConfirmationEmail(b); } catch (e) { console.error('[/success] localized email error:', e); }
   try { await sendOwnerSuccessEmail(b); } catch (e) { console.error('[/success] owner email error:', e); }
 
   // SMS confirmation

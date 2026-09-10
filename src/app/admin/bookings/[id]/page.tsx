@@ -124,6 +124,7 @@ export default async function BookingDetail({
             <DetailRow label="Supplier ref" value={b.supplierRef || '—'} mono />
             <DetailRow label="Booked via" value={channelLabel(b.channel)} />
             <DetailRow label="Booked from" value={countryName(b.country) || b.country || '—'} />
+            <DetailRow label="Booked in" value={languageLabel(b.locale)} />
             <DetailRow label="Created" value={fmtDateTime(b.createdAt)} />
             <DetailRow label="Updated" value={fmtDateTime(b.updatedAt)} />
           </div>
@@ -171,6 +172,17 @@ function channelLabel(channel?: string): string {
   if (channel === 'android') return '📱 Android app';
   if (channel === 'web') return '🖥️ Website';
   return '—';
+}
+
+/** English name of the booking language for the admin. Older bookings have
+ *  none → em dash. A star marks languages that get the localized 2nd email. */
+function languageLabel(locale?: string): string {
+  const L: Record<string, string> = {
+    en: 'English', es: 'Spanish ★', fr: 'French ★', de: 'German ★', nl: 'Dutch ★',
+    it: 'Italian ★', pt: 'Portuguese ★', ar: 'Arabic', ur: 'Urdu', hi: 'Hindi',
+    zh: 'Chinese', ru: 'Russian', tr: 'Turkish', ja: 'Japanese', sw: 'Swahili',
+  };
+  return (locale && L[locale]) || (locale ? locale : '—');
 }
 
 function DetailRow({
