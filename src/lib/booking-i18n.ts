@@ -66,6 +66,8 @@ export interface BookingStrings {
   children: string;
   guest: string;
   guestsWord: string;
+  /** Age unit for child ages, e.g. "8 años". Empty for EN (keeps "(8)"). */
+  years: string;
   // Email-only
   emailSubject: (hotel: string) => string;
   emailConfirmedHeading: string;
@@ -108,7 +110,7 @@ const EN: BookingStrings = {
   noteLocalFees: (a) => `The property collects ${a} on arrival (city tax and local fees) - not included in the total paid.`,
   noteIdDeposit: 'Hotels may ask for photo ID and a card or cash deposit for incidentals. If you will arrive after 8pm, tell the hotel in advance so the room is not released.',
   supportLine: '24/7 stay support line',
-  adult: 'adult', adults: 'adults', child: 'child', children: 'children', guest: 'guest', guestsWord: 'guests',
+  adult: 'adult', adults: 'adults', child: 'child', children: 'children', guest: 'guest', guestsWord: 'guests', years: '',
   emailSubject: (h) => `🏨 Hotel Booking Confirmed — ${h} | JetMeAway`,
   emailConfirmedHeading: 'Hotel Booking Confirmed!',
   emailConfirmedSub: 'Your stay is secured',
@@ -150,7 +152,7 @@ const ES: BookingStrings = {
   noteLocalFees: (a) => `La propiedad cobra ${a} a la llegada (impuesto turístico y tasas locales) - no incluido en el total pagado.`,
   noteIdDeposit: 'Los hoteles pueden pedir un documento de identidad con foto y una tarjeta o depósito en efectivo para gastos imprevistos. Si vas a llegar después de las 20:00, avisa al hotel con antelación para que no libere la habitación.',
   supportLine: 'Línea de asistencia 24/7 durante la estancia',
-  adult: 'adulto', adults: 'adultos', child: 'niño', children: 'niños', guest: 'huésped', guestsWord: 'huéspedes',
+  adult: 'adulto', adults: 'adultos', child: 'niño', children: 'niños', guest: 'huésped', guestsWord: 'huéspedes', years: 'años',
   emailSubject: (h) => `🏨 Reserva de hotel confirmada — ${h} | JetMeAway`,
   emailConfirmedHeading: '¡Reserva de hotel confirmada!',
   emailConfirmedSub: 'Tu estancia está garantizada',
@@ -192,7 +194,7 @@ const FR: BookingStrings = {
   noteLocalFees: (a) => `L’établissement perçoit ${a} à l’arrivée (taxe de séjour et frais locaux) - non inclus dans le total payé.`,
   noteIdDeposit: 'Les hôtels peuvent demander une pièce d’identité avec photo et une carte ou une caution en espèces pour les extras. Si vous arrivez après 20h, prévenez l’hôtel à l’avance pour que la chambre ne soit pas libérée.',
   supportLine: 'Ligne d’assistance 24h/24 et 7j/7 pendant le séjour',
-  adult: 'adulte', adults: 'adultes', child: 'enfant', children: 'enfants', guest: 'voyageur', guestsWord: 'voyageurs',
+  adult: 'adulte', adults: 'adultes', child: 'enfant', children: 'enfants', guest: 'voyageur', guestsWord: 'voyageurs', years: 'ans',
   emailSubject: (h) => `🏨 Réservation d’hôtel confirmée — ${h} | JetMeAway`,
   emailConfirmedHeading: 'Réservation d’hôtel confirmée !',
   emailConfirmedSub: 'Votre séjour est garanti',
@@ -234,7 +236,7 @@ const DE: BookingStrings = {
   noteLocalFees: (a) => `Das Hotel erhebt bei der Ankunft ${a} (Kurtaxe und lokale Gebühren) - nicht im bezahlten Gesamtbetrag enthalten.`,
   noteIdDeposit: 'Hotels können einen Lichtbildausweis und eine Karte oder Barkaution für Nebenkosten verlangen. Wenn Sie nach 20 Uhr ankommen, informieren Sie das Hotel im Voraus, damit das Zimmer nicht freigegeben wird.',
   supportLine: '24/7-Betreuung während des Aufenthalts',
-  adult: 'Erwachsener', adults: 'Erwachsene', child: 'Kind', children: 'Kinder', guest: 'Gast', guestsWord: 'Gäste',
+  adult: 'Erwachsener', adults: 'Erwachsene', child: 'Kind', children: 'Kinder', guest: 'Gast', guestsWord: 'Gäste', years: 'Jahre',
   emailSubject: (h) => `🏨 Hotelbuchung bestätigt — ${h} | JetMeAway`,
   emailConfirmedHeading: 'Hotelbuchung bestätigt!',
   emailConfirmedSub: 'Ihr Aufenthalt ist gesichert',
@@ -276,7 +278,7 @@ const NL: BookingStrings = {
   noteLocalFees: (a) => `Het hotel int bij aankomst ${a} (toeristenbelasting en lokale kosten) - niet inbegrepen in het betaalde totaal.`,
   noteIdDeposit: 'Hotels kunnen om een identiteitsbewijs met foto en een kaart of contante borg voor extra kosten vragen. Als u na 20.00 uur aankomt, laat het hotel dit vooraf weten zodat de kamer niet wordt vrijgegeven.',
   supportLine: '24/7-hulplijn tijdens het verblijf',
-  adult: 'volwassene', adults: 'volwassenen', child: 'kind', children: 'kinderen', guest: 'gast', guestsWord: 'gasten',
+  adult: 'volwassene', adults: 'volwassenen', child: 'kind', children: 'kinderen', guest: 'gast', guestsWord: 'gasten', years: 'jaar',
   emailSubject: (h) => `🏨 Hotelboeking bevestigd — ${h} | JetMeAway`,
   emailConfirmedHeading: 'Hotelboeking bevestigd!',
   emailConfirmedSub: 'Uw verblijf is gegarandeerd',
@@ -318,7 +320,7 @@ const IT: BookingStrings = {
   noteLocalFees: (a) => `La struttura riscuote ${a} all’arrivo (tassa di soggiorno e costi locali) - non inclusi nel totale pagato.`,
   noteIdDeposit: 'Gli hotel possono richiedere un documento con foto e una carta o un deposito in contanti per eventuali extra. Se arrivi dopo le 20:00, avvisa l’hotel in anticipo affinché la camera non venga rilasciata.',
   supportLine: 'Assistenza 24/7 durante il soggiorno',
-  adult: 'adulto', adults: 'adulti', child: 'bambino', children: 'bambini', guest: 'ospite', guestsWord: 'ospiti',
+  adult: 'adulto', adults: 'adulti', child: 'bambino', children: 'bambini', guest: 'ospite', guestsWord: 'ospiti', years: 'anni',
   emailSubject: (h) => `🏨 Prenotazione hotel confermata — ${h} | JetMeAway`,
   emailConfirmedHeading: 'Prenotazione hotel confermata!',
   emailConfirmedSub: 'Il tuo soggiorno è garantito',
@@ -360,7 +362,7 @@ const PT: BookingStrings = {
   noteLocalFees: (a) => `O alojamento cobra ${a} à chegada (taxa turística e taxas locais) - não incluído no total pago.`,
   noteIdDeposit: 'Os hotéis podem pedir um documento de identificação com foto e um cartão ou depósito em dinheiro para extras. Se chegar depois das 20h, avise o hotel com antecedência para que o quarto não seja libertado.',
   supportLine: 'Linha de apoio 24/7 durante a estadia',
-  adult: 'adulto', adults: 'adultos', child: 'criança', children: 'crianças', guest: 'hóspede', guestsWord: 'hóspedes',
+  adult: 'adulto', adults: 'adultos', child: 'criança', children: 'crianças', guest: 'hóspede', guestsWord: 'hóspedes', years: 'anos',
   emailSubject: (h) => `🏨 Reserva de hotel confirmada — ${h} | JetMeAway`,
   emailConfirmedHeading: 'Reserva de hotel confirmada!',
   emailConfirmedSub: 'A sua estadia está garantida',
@@ -413,6 +415,83 @@ const BOARD_MAP: Record<string, Record<SupportedLocale, string>> = {
     nl: 'All-inclusive', it: 'Tutto incluso', pt: 'Tudo incluído',
   },
 };
+
+/**
+ * Translate a hotel room type into the booking language — the common,
+ * composable ones only. A room name is [qualifiers] + [bed]-Room + [features]
+ * ("Superior Double Room with Sea View"). We translate each recognised part
+ * and reassemble it in the target language's word order (noun-first for
+ * Romance: "Habitación Doble Superior con Vistas al Mar"; adjective-first for
+ * German/Dutch: "Superior Doppelzimmer mit Meerblick").
+ *
+ * CRITICAL: if ANY part of the string isn't recognised, the ORIGINAL English
+ * is returned untouched — a room name half-translated or with a wrong gender
+ * ending would look worse than plain English. So every translation shown is
+ * fully understood; the long tail (unusual names) stays English, on purpose.
+ */
+const ROOM_QUAL: Record<string, Record<SupportedLocale, string>> = {
+  // Invariant / gender-safe adjectives only. French uses the feminine form
+  // (the room noun is always feminine — Chambre / Suite — in our noun map).
+  superior: { es: 'Superior', fr: 'Supérieure', de: 'Superior', nl: 'Superior', it: 'Superior', pt: 'Superior' },
+  deluxe: { es: 'Deluxe', fr: 'Deluxe', de: 'Deluxe', nl: 'Deluxe', it: 'Deluxe', pt: 'Deluxe' },
+  standard: { es: 'Estándar', fr: 'Standard', de: 'Standard', nl: 'Standaard', it: 'Standard', pt: 'Standard' },
+  premium: { es: 'Premium', fr: 'Premium', de: 'Premium', nl: 'Premium', it: 'Premium', pt: 'Premium' },
+  junior: { es: 'Junior', fr: 'Junior', de: 'Junior', nl: 'Junior', it: 'Junior', pt: 'Junior' },
+};
+// Bed + base noun as one unit (German/Dutch compound; Romance keeps the noun
+// feminine so the French qualifier agrees). Empty string = "don't translate
+// in this language" → falls the whole room name back to English.
+const ROOM_NOUN: Record<string, Record<SupportedLocale, string>> = {
+  'double room': { es: 'Habitación Doble', fr: 'Chambre Double', de: 'Doppelzimmer', nl: 'Tweepersoonskamer', it: 'Camera Doppia', pt: 'Quarto Duplo' },
+  'twin room': { es: 'Habitación con Dos Camas', fr: 'Chambre Twin', de: 'Zweibettzimmer', nl: 'Twinkamer', it: 'Camera con Due Letti', pt: 'Quarto Twin' },
+  'single room': { es: 'Habitación Individual', fr: 'Chambre Simple', de: 'Einzelzimmer', nl: 'Eenpersoonskamer', it: 'Camera Singola', pt: 'Quarto Individual' },
+  'triple room': { es: 'Habitación Triple', fr: 'Chambre Triple', de: 'Dreibettzimmer', nl: 'Driepersoonskamer', it: 'Camera Tripla', pt: 'Quarto Triplo' },
+  'family room': { es: 'Habitación Familiar', fr: 'Chambre Familiale', de: 'Familienzimmer', nl: 'Familiekamer', it: 'Camera Familiare', pt: 'Quarto Familiar' },
+  'room': { es: 'Habitación', fr: 'Chambre', de: 'Zimmer', nl: 'Kamer', it: 'Camera', pt: 'Quarto' },
+  'junior suite': { es: 'Junior Suite', fr: 'Suite Junior', de: 'Junior-Suite', nl: 'Junior Suite', it: 'Junior Suite', pt: 'Junior Suite' },
+  'suite': { es: 'Suite', fr: 'Suite', de: 'Suite', nl: 'Suite', it: 'Suite', pt: 'Suite' },
+  'studio': { es: 'Estudio', fr: '', de: 'Studio', nl: 'Studio', it: 'Monolocale', pt: 'Estúdio' },
+  'apartment': { es: 'Apartamento', fr: '', de: 'Apartment', nl: 'Appartement', it: 'Appartamento', pt: 'Apartamento' },
+};
+const ROOM_FEAT: Record<string, Record<SupportedLocale, string>> = {
+  'sea view': { es: 'con Vistas al Mar', fr: 'Vue Mer', de: 'mit Meerblick', nl: 'met Zeezicht', it: 'Vista Mare', pt: 'com Vista Mar' },
+  'ocean view': { es: 'con Vistas al Mar', fr: 'Vue Mer', de: 'mit Meerblick', nl: 'met Zeezicht', it: 'Vista Mare', pt: 'com Vista Mar' },
+  'city view': { es: 'con Vistas a la Ciudad', fr: 'Vue Ville', de: 'mit Stadtblick', nl: 'met Stadszicht', it: 'Vista Città', pt: 'com Vista Cidade' },
+  'garden view': { es: 'con Vistas al Jardín', fr: 'Vue Jardin', de: 'mit Gartenblick', nl: 'met Tuinzicht', it: 'Vista Giardino', pt: 'com Vista Jardim' },
+  'pool view': { es: 'con Vistas a la Piscina', fr: 'Vue Piscine', de: 'mit Poolblick', nl: 'met Zwembadzicht', it: 'Vista Piscina', pt: 'com Vista Piscina' },
+  'mountain view': { es: 'con Vistas a la Montaña', fr: 'Vue Montagne', de: 'mit Bergblick', nl: 'met Bergzicht', it: 'Vista Montagna', pt: 'com Vista Montanha' },
+  'balcony': { es: 'con Balcón', fr: 'avec Balcon', de: 'mit Balkon', nl: 'met Balkon', it: 'con Balcone', pt: 'com Varanda' },
+};
+const ROMANCE = new Set<SupportedLocale>(['es', 'fr', 'it', 'pt']);
+
+export function translateRoom(room: string | null | undefined, locale: string): string {
+  const raw = (room || '').trim();
+  if (!raw || !isSupportedLocale(locale)) return raw;
+
+  let work = ` ${raw.toLowerCase()} `.replace(/[&/,]/g, ' ').replace(/\s+/g, ' ');
+  const eat = (phrase: string): boolean => {
+    const p = ` ${phrase} `;
+    if (work.includes(p)) { work = work.replace(p, ' ').replace(/\s+/g, ' '); return true; }
+    return false;
+  };
+
+  const quals: string[] = [];
+  for (const key of Object.keys(ROOM_QUAL)) if (eat(key)) quals.push(ROOM_QUAL[key][locale]);
+  const feats: string[] = [];
+  for (const key of Object.keys(ROOM_FEAT)) if (eat(`with ${key}`) || eat(key)) feats.push(ROOM_FEAT[key][locale]);
+
+  // Whatever remains must be exactly one recognised base noun (longest first).
+  const rest = work.trim();
+  let noun = '';
+  for (const key of Object.keys(ROOM_NOUN).sort((a, b) => b.length - a.length)) {
+    if (rest === key) { noun = ROOM_NOUN[key][locale]; break; }
+  }
+  // Unrecognised base, or a noun we don't translate in this language → English.
+  if (!noun) return raw;
+
+  const parts = ROMANCE.has(locale) ? [noun, ...quals, ...feats] : [...quals, noun, ...feats];
+  return parts.filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+}
 
 export function translateBoard(board: string | null | undefined, locale: string): string {
   const raw = (board || '').trim();
