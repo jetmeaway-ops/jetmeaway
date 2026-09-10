@@ -115,6 +115,10 @@ export type Booking = {
   // from the guest's nationality on the supplier record. Absent on older
   // records and when the edge couldn't resolve one (e.g. local dev).
   country?: string;
+  /** The language the site rendered in when they booked (e.g. "es"/"nl"),
+   *  from the resolved x-jma-locale header. Drives the localized confirmation
+   *  email + voucher. Absent on older records; 'en'/unsupported → English only. */
+  locale?: string;
 
   // ── £5-off-2nd-booking-via-app promo (added 2026-05-10) ───────────────
   // v1 ships LiteAPI-only with a manual cashback payout. The eligibility
