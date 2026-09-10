@@ -153,7 +153,7 @@ const ES: BookingStrings = {
   adult: 'adulto', adults: 'adultos', child: 'niño', children: 'niños', guest: 'huésped', guestsWord: 'huéspedes',
   emailSubject: (h) => `🏨 Reserva de hotel confirmada — ${h} | JetMeAway`,
   emailConfirmedHeading: '¡Reserva de hotel confirmada!',
-  emailConfirmedSub: 'Tu estancia está asegurada',
+  emailConfirmedSub: 'Tu estancia está garantizada',
   emailGreeting: (n) => n ? `¡Hola, ${n}!` : '¡Hola!',
   emailIntro: (h, d) => `Tu reserva en ${h} está confirmada${d ? ` para el ${d}` : ''}. Todo está listo para tu llegada.`,
   getDirections: 'Cómo llegar',
@@ -279,7 +279,7 @@ const NL: BookingStrings = {
   adult: 'volwassene', adults: 'volwassenen', child: 'kind', children: 'kinderen', guest: 'gast', guestsWord: 'gasten',
   emailSubject: (h) => `🏨 Hotelboeking bevestigd — ${h} | JetMeAway`,
   emailConfirmedHeading: 'Hotelboeking bevestigd!',
-  emailConfirmedSub: 'Uw verblijf is verzekerd',
+  emailConfirmedSub: 'Uw verblijf is gegarandeerd',
   emailGreeting: (n) => n ? `Hallo ${n}!` : 'Hallo!',
   emailIntro: (h, d) => `Uw boeking bij ${h} is bevestigd${d ? ` voor ${d}` : ''}. Alles is klaar voor uw aankomst.`,
   getDirections: 'Route',
@@ -321,7 +321,7 @@ const IT: BookingStrings = {
   adult: 'adulto', adults: 'adulti', child: 'bambino', children: 'bambini', guest: 'ospite', guestsWord: 'ospiti',
   emailSubject: (h) => `🏨 Prenotazione hotel confermata — ${h} | JetMeAway`,
   emailConfirmedHeading: 'Prenotazione hotel confermata!',
-  emailConfirmedSub: 'Il tuo soggiorno è assicurato',
+  emailConfirmedSub: 'Il tuo soggiorno è garantito',
   emailGreeting: (n) => n ? `Ciao ${n}!` : 'Ciao!',
   emailIntro: (h, d) => `La tua prenotazione presso ${h} è confermata${d ? ` per il ${d}` : ''}. Tutto è pronto per il tuo arrivo.`,
   getDirections: 'Indicazioni',
@@ -379,3 +379,56 @@ export function stringsFor(locale: string | null | undefined): BookingStrings {
 }
 
 export const EN_STRINGS = EN;
+
+/**
+ * Translate a supplier meal-plan ("board basis") into the booking language.
+ *
+ * LiteAPI returns the board in English ("Bed & Breakfast", "Half Board", …),
+ * so a Spanish email showed "Régimen: Bed & Breakfast" — a language mix a
+ * native notices. Board basis is a small, standard closed set, so it maps
+ * cleanly. Anything we don't recognise (or an unsupported locale) is returned
+ * unchanged — better an English phrase we know is correct than a wrong guess.
+ * Room NAMES are deliberately not translated: they are free-text product
+ * names ("Superior Double Room with Sea View") a hotel prints as-is.
+ */
+const BOARD_MAP: Record<string, Record<SupportedLocale, string>> = {
+  'room only': {
+    es: 'Solo alojamiento', fr: 'Sans repas', de: 'Nur Übernachtung',
+    nl: 'Alleen kamer', it: 'Solo pernottamento', pt: 'Só alojamento',
+  },
+  'bed & breakfast': {
+    es: 'Alojamiento y desayuno', fr: 'Petit-déjeuner inclus', de: 'Übernachtung mit Frühstück',
+    nl: 'Logies en ontbijt', it: 'Pernottamento e prima colazione', pt: 'Alojamento e pequeno-almoço',
+  },
+  'half board': {
+    es: 'Media pensión', fr: 'Demi-pension', de: 'Halbpension',
+    nl: 'Halfpension', it: 'Mezza pensione', pt: 'Meia pensão',
+  },
+  'full board': {
+    es: 'Pensión completa', fr: 'Pension complète', de: 'Vollpension',
+    nl: 'Volpension', it: 'Pensione completa', pt: 'Pensão completa',
+  },
+  'all inclusive': {
+    es: 'Todo incluido', fr: 'Tout compris', de: 'All-Inclusive',
+    nl: 'All-inclusive', it: 'Tutto incluso', pt: 'Tudo incluído',
+  },
+};
+
+export function translateBoard(board: string | null | undefined, locale: string): string {
+  const raw = (board || '').trim();
+  if (!raw || !isSupportedLocale(locale)) return raw;
+  // Normalise: lowercase, "and" → "&", drop filler ("included"/"basis"),
+  // collapse whitespace. Fold the breakfast synonyms onto one key.
+  let key = raw.toLowerCase()
+    .replace(/\band\b/g, '&')
+    .replace(/\b(included|basis|board basis)\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (key === 'breakfast' || key === 'bed & breakfast included' || key === 'b&b') key = 'bed & breakfast';
+  if (key === 'ro') key = 'room only';
+  if (key === 'hb') key = 'half board';
+  if (key === 'fb') key = 'full board';
+  if (key === 'ai') key = 'all inclusive';
+  const m = BOARD_MAP[key];
+  return m ? m[locale] : raw;
+}
