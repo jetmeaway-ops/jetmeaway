@@ -19,7 +19,7 @@
  */
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { fmtGbp, fmtDate, type Booking } from './bookings';
-import { stringsFor, isSupportedLocale, type BookingStrings } from './booking-i18n';
+import { stringsFor, isSupportedLocale, translateBoard, type BookingStrings } from './booking-i18n';
 
 const BLUE = rgb(0, 0.4, 1);
 const INK = rgb(0.04, 0.086, 0.157);
@@ -92,7 +92,7 @@ export function buildVoucherModel(b: Booking, locale: string = 'en'): VoucherMod
   const n = nights(b);
   if (n) stay.push([S.nights, String(n)]);
   if (b.roomName) stay.push([S.room, b.roomName]);
-  if (b.boardName) stay.push([S.meals, b.boardName]);
+  if (b.boardName) stay.push([S.meals, translateBoard(b.boardName, locale)]);
 
   const guests: Array<[string, string]> = [];
   const heldUnder = (b.customerName || '').trim();
