@@ -110,6 +110,14 @@ export interface PendingBooking {
   // the £5-off-2nd-booking-via-app eligibility check below.
   channel?: Channel;
 
+  // ── Booking origin country (added 2026-09-10) ─────────────────────────
+  // The visitor's country from Vercel's free `x-vercel-ip-country` header
+  // (ISO-3166 alpha-2, e.g. "GB", "ES"). Captured at start-booking so every
+  // confirmed booking records where the customer actually booked FROM —
+  // distinct from the guest's nationality on the LiteAPI record. No paid
+  // geo-lookup: the header is injected by Vercel's edge at no cost.
+  country?: string;
+
   // ── £5-off-2nd-booking-via-app promo (added 2026-05-10) ───────────────
   // Eligibility is evaluated once at start-booking using the user's
   // session email + channel + supplier + totalPrice. The result is
@@ -263,6 +271,13 @@ export async function POST(req: NextRequest) {
     // confirmation. See src/lib/channel.ts + src/lib/promo.ts + plan
     // doc ditch-the-5-cash-hazy-toast.md.
     record.channel = detectChannelFromUA(req.headers.get('user-agent'));
+    // Where the customer is booking FROM — Vercel's free geo header. Kept as a
+    // 2-letter ISO code (or omitted if the edge didn't resolve one, e.g. local
+    // dev). Never a paid lookup.
+    {
+      const cc = (req.headers.get('x-vercel-ip-country') || '').trim().toUpperCase();
+      if (/^[A-Z]{2}$/.test(cc)) record.country = cc;
+    }
     try {
       const sessionEmail = await readSessionEmail(req.headers.get('cookie'));
       const totalPence = Math.round(record.totalPrice * 100);
