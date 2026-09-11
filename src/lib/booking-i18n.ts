@@ -81,6 +81,7 @@ export interface BookingStrings {
   manageHeading: string;
   manageBody: string;
   manageButton: string;
+  getApp: string;
 }
 
 /** Convert a "03:00 PM" time to 24-hour "15:00" for locales that use it
@@ -141,6 +142,7 @@ const EN: BookingStrings = {
   manageHeading: 'Manage your booking',
   manageBody: 'Sign in with this email — no password needed — to view your booking, re-download your voucher any time, and manage your stay.',
   manageButton: 'View my booking',
+  getApp: 'Get the JetMeAway app',
 };
 
 const ES: BookingStrings = {
@@ -186,6 +188,7 @@ const ES: BookingStrings = {
   manageHeading: 'Gestiona tu reserva',
   manageBody: 'Inicia sesión con este correo — sin contraseña — para ver tu reserva, descargar tu bono cuando quieras y gestionar tu estancia.',
   manageButton: 'Ver mi reserva',
+  getApp: 'Descarga la app de JetMeAway',
 };
 
 const FR: BookingStrings = {
@@ -231,6 +234,7 @@ const FR: BookingStrings = {
   manageHeading: 'Gérez votre réservation',
   manageBody: 'Connectez-vous avec cet e-mail — sans mot de passe — pour voir votre réservation, retélécharger votre bon à tout moment et gérer votre séjour.',
   manageButton: 'Voir ma réservation',
+  getApp: 'Téléchargez l’app JetMeAway',
 };
 
 const DE: BookingStrings = {
@@ -276,6 +280,7 @@ const DE: BookingStrings = {
   manageHeading: 'Buchung verwalten',
   manageBody: 'Melden Sie sich mit dieser E-Mail an — ohne Passwort — um Ihre Buchung anzusehen, Ihren Gutschein jederzeit erneut herunterzuladen und Ihren Aufenthalt zu verwalten.',
   manageButton: 'Meine Buchung ansehen',
+  getApp: 'Laden Sie die JetMeAway-App',
 };
 
 const NL: BookingStrings = {
@@ -321,6 +326,7 @@ const NL: BookingStrings = {
   manageHeading: 'Beheer uw boeking',
   manageBody: 'Log in met dit e-mailadres — geen wachtwoord nodig — om uw boeking te bekijken, uw voucher altijd opnieuw te downloaden en uw verblijf te beheren.',
   manageButton: 'Mijn boeking bekijken',
+  getApp: 'Download de JetMeAway-app',
 };
 
 const IT: BookingStrings = {
@@ -366,6 +372,7 @@ const IT: BookingStrings = {
   manageHeading: 'Gestisci la tua prenotazione',
   manageBody: 'Accedi con questa email — senza password — per vedere la tua prenotazione, riscaricare il voucher quando vuoi e gestire il soggiorno.',
   manageButton: 'Vedi la mia prenotazione',
+  getApp: 'Scarica l’app JetMeAway',
 };
 
 const PT: BookingStrings = {
@@ -411,6 +418,7 @@ const PT: BookingStrings = {
   manageHeading: 'Faça a gestão da sua reserva',
   manageBody: 'Inicie sessão com este e-mail — sem palavra-passe — para ver a sua reserva, transferir o voucher quando quiser e gerir a sua estadia.',
   manageButton: 'Ver a minha reserva',
+  getApp: 'Descarregue a app JetMeAway',
 };
 
 const DICT: Record<SupportedLocale, BookingStrings> = { es: ES, fr: FR, de: DE, nl: NL, it: IT, pt: PT };

@@ -127,10 +127,12 @@ export async function buildApplePkpass(b: Booking, locale: string = 'en'): Promi
     organizationName: 'JetMeAway',
     serialNumber: b.id,
     description: S.voucherTitle,
-    logoText: 'JetMeAway',
-    foregroundColor: 'rgb(255, 255, 255)',
-    backgroundColor: 'rgb(10, 22, 40)',
-    labelColor: 'rgb(150, 170, 200)',
+    // White card so the full-colour JetMeAway logo reads (it has dark text +
+    // a coloured mark, unreadable on a dark ground). No logoText — the logo
+    // image already carries the wordmark, so a text label would double it.
+    foregroundColor: 'rgb(10, 22, 40)',
+    backgroundColor: 'rgb(255, 255, 255)',
+    labelColor: 'rgb(0, 102, 255)',
     ...(b.checkIn ? { relevantDate: `${b.checkIn}T12:00:00Z` } : {}),
     barcodes: [{ format: 'PKBarcodeFormatQR', message: barcodeMsg, messageEncoding: 'iso-8859-1', altText: barcodeMsg }],
     generic: {
