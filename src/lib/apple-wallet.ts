@@ -19,7 +19,7 @@
 import forge from 'node-forge';
 import { zipSync, strToU8 } from 'fflate';
 import { fmtDate, type Booking } from './bookings';
-import { stringsFor, isSupportedLocale, translateBoard, translateRoom } from './booking-i18n';
+import { stringsFor, isSupportedLocale, translateBoard, translateRoom, formatTime } from './booking-i18n';
 
 const PASS_TYPE_ID = 'pass.uk.co.jetmeaway.voucher';
 const TEAM_ID = '65YS3XW329';
@@ -116,8 +116,8 @@ export async function buildApplePkpass(b: Booking, locale: string = 'en'): Promi
   if (address) backFields.push({ key: 'address', label: S.hotelDetails, value: address });
   if (board) backFields.push({ key: 'board', label: S.meals, value: board });
   if (heldUnder && heldUnder.toLowerCase() !== 'guest') backFields.push({ key: 'held', label: S.heldUnder, value: heldUnder });
-  if (b.checkInTime) backFields.push({ key: 'checkintime', label: S.checkIn, value: b.checkInTime });
-  if (b.checkOutTime) backFields.push({ key: 'checkouttime', label: S.checkOut, value: b.checkOutTime });
+  if (b.checkInTime) backFields.push({ key: 'checkintime', label: S.checkIn, value: formatTime(b.checkInTime, locale) });
+  if (b.checkOutTime) backFields.push({ key: 'checkouttime', label: S.checkOut, value: formatTime(b.checkOutTime, locale) });
   backFields.push({ key: 'support', label: 'JetMeAway', value: 'contact@jetmeaway.co.uk\n+44 20 4630 0278 (24/7)' });
 
   const pass: Record<string, unknown> = {

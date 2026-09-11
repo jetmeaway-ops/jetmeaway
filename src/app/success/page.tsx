@@ -6,7 +6,7 @@ import { scoutSalutation } from '@/lib/scout-greeting';
 import { joinAddress, formatDate, countryName } from '@/lib/notifications';
 import { buildVoucherPdf } from '@/lib/voucher';
 import { buildApplePkpass } from '@/lib/apple-wallet';
-import { stringsFor, isSupportedLocale, translateBoard, translateRoom } from '@/lib/booking-i18n';
+import { stringsFor, isSupportedLocale, translateBoard, translateRoom, formatTime } from '@/lib/booking-i18n';
 import type { PendingBooking } from '@/app/api/hotels/start-booking/route';
 import type { PendingGuest } from '@/app/api/hotels/pending/[ref]/guest/route';
 import ConversionPixel from '@/components/ConversionPixel';
@@ -374,6 +374,12 @@ async function sendHotelConfirmationEmail(booking: StoredBooking) {
 
     ${scoutSection}
 
+    <div style="background:#fff;border:1px solid #E8ECF4;border-radius:16px;padding:20px;margin-bottom:16px;text-align:center;">
+      <p style="font-size:15px;font-weight:800;color:#0a1628;margin:0 0 6px;">Manage your booking</p>
+      <p style="font-size:13px;line-height:1.5;color:#5C6378;margin:0 0 14px;">Sign in with this email — no password needed — to view your booking, re-download your voucher any time, and manage your stay.</p>
+      <a href="https://jetmeaway.co.uk/account" style="display:inline-block;background:#0066FF;color:#fff;font-weight:800;font-size:14px;text-decoration:none;padding:11px 22px;border-radius:10px;">View my booking</a>
+    </div>
+
     <div style="text-align:center;padding:16px 0;border-top:1px solid #E8ECF4;">
       <p style="font-size:12px;color:#8E95A9;margin:0 0 4px;">Questions? Contact us at <a href="mailto:contact@jetmeaway.co.uk" style="color:#0066FF;">contact@jetmeaway.co.uk</a></p>
       <p style="font-size:11px;color:#B0B8CC;margin:0;">JETMEAWAY LTD (Company No: 17140522) &middot; 66 Paul Street, London</p>
@@ -466,8 +472,8 @@ async function sendLocalizedConfirmationEmail(booking: StoredBooking) {
       ${address ? `<p style="font-size:14px;line-height:1.5;color:#5C6378;margin:0 0 10px;">${esc(address)}</p>` : ''}
       ${directions ? `<p style="margin:0 0 14px;"><a href="${directions}" style="display:inline-block;background:#F1F5FF;border:1px solid #D6E2FF;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:800;color:#0066FF;text-decoration:none;">📍 ${esc(S.getDirections)}</a></p>` : ''}
       <table width="100%" cellpadding="0" cellspacing="0">
-        <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">${esc(S.checkIn)}</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${esc(dfL(booking.checkIn))}${booking.checkInTime ? ` <span style="font-weight:400;color:#8E95A9;">${esc(S.from)} ${esc(booking.checkInTime)}</span>` : ''}</td></tr>
-        <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">${esc(S.checkOut)}</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${esc(dfL(booking.checkOut))}${booking.checkOutTime ? ` <span style="font-weight:400;color:#8E95A9;">${esc(S.until)} ${esc(booking.checkOutTime)}</span>` : ''}</td></tr>
+        <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">${esc(S.checkIn)}</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${esc(dfL(booking.checkIn))}${booking.checkInTime ? ` <span style="font-weight:400;color:#8E95A9;">${esc(S.from)} ${esc(formatTime(booking.checkInTime, locale))}</span>` : ''}</td></tr>
+        <tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">${esc(S.checkOut)}</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${esc(dfL(booking.checkOut))}${booking.checkOutTime ? ` <span style="font-weight:400;color:#8E95A9;">${esc(S.until)} ${esc(formatTime(booking.checkOutTime, locale))}</span>` : ''}</td></tr>
         ${booking.roomName ? `<tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">${esc(S.room)}</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${esc(translateRoom(booking.roomName, locale))}</td></tr>` : ''}
         ${booking.boardName ? `<tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">${esc(S.meals)}</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${esc(translateBoard(booking.boardName, locale))}</td></tr>` : ''}
         ${partyStr ? `<tr><td style="padding:6px 0;font-size:14px;color:#5C6378;">${esc(S.guests)}</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1A1D2B;text-align:right;">${esc(partyStr)}</td></tr>` : ''}
@@ -479,6 +485,11 @@ async function sendLocalizedConfirmationEmail(booking: StoredBooking) {
     </div>
     <div style="background:#F1F5FF;border:1px solid #D6E2FF;border-radius:12px;padding:14px 18px;margin-bottom:16px;">
       <p style="font-size:13px;color:#1A1D2B;margin:0;">📎 ${esc(S.voucherAttached)}</p>
+    </div>
+    <div style="background:#fff;border:1px solid #E8ECF4;border-radius:16px;padding:20px;margin-bottom:16px;text-align:center;">
+      <p style="font-size:15px;font-weight:800;color:#0a1628;margin:0 0 6px;">${esc(S.manageHeading)}</p>
+      <p style="font-size:13px;line-height:1.5;color:#5C6378;margin:0 0 14px;">${esc(S.manageBody)}</p>
+      <a href="https://jetmeaway.co.uk/account" style="display:inline-block;background:#0066FF;color:#fff;font-weight:800;font-size:14px;text-decoration:none;padding:11px 22px;border-radius:10px;">${esc(S.manageButton)}</a>
     </div>
     <div style="text-align:center;padding:16px 0;border-top:1px solid #E8ECF4;">
       <p style="font-size:12px;color:#8E95A9;margin:0 0 4px;">${esc(S.questionsContact)} <a href="mailto:contact@jetmeaway.co.uk" style="color:#0066FF;">contact@jetmeaway.co.uk</a></p>

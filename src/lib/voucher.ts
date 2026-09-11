@@ -19,7 +19,7 @@
  */
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { fmtGbp, fmtDate, type Booking } from './bookings';
-import { stringsFor, isSupportedLocale, translateBoard, translateRoom, type BookingStrings } from './booking-i18n';
+import { stringsFor, isSupportedLocale, translateBoard, translateRoom, formatTime, type BookingStrings } from './booking-i18n';
 
 const BLUE = rgb(0, 0.4, 1);
 const INK = rgb(0.04, 0.086, 0.157);
@@ -87,8 +87,8 @@ export function buildVoucherModel(b: Booking, locale: string = 'en'): VoucherMod
   const df = (iso: string) => fmtDateL(iso, locale, S.dateLocale);
 
   const stay: Array<[string, string]> = [];
-  if (b.checkIn) stay.push([S.checkIn, `${df(b.checkIn)}${b.checkInTime ? `, ${S.from} ${b.checkInTime}` : ''}`]);
-  if (b.checkOut) stay.push([S.checkOut, `${df(b.checkOut)}${b.checkOutTime ? `, ${S.until} ${b.checkOutTime}` : ''}`]);
+  if (b.checkIn) stay.push([S.checkIn, `${df(b.checkIn)}${b.checkInTime ? `, ${S.from} ${formatTime(b.checkInTime, locale)}` : ''}`]);
+  if (b.checkOut) stay.push([S.checkOut, `${df(b.checkOut)}${b.checkOutTime ? `, ${S.until} ${formatTime(b.checkOutTime, locale)}` : ''}`]);
   const n = nights(b);
   if (n) stay.push([S.nights, String(n)]);
   if (b.roomName) stay.push([S.room, translateRoom(b.roomName, locale)]);
