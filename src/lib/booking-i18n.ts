@@ -77,6 +77,25 @@ export interface BookingStrings {
   getDirections: string;
   voucherAttached: string;
   questionsContact: string;
+  // "Manage your booking" sign-in nudge (added 2026-09-11)
+  manageHeading: string;
+  manageBody: string;
+  manageButton: string;
+}
+
+/** Convert a "03:00 PM" time to 24-hour "15:00" for locales that use it
+ *  (es/fr/de/nl/it/pt). English/unsupported keep the original. Unrecognised
+ *  formats pass through unchanged. */
+export function formatTime(t: string | null | undefined, locale: string): string {
+  const raw = (t || '').trim();
+  if (!raw || !isSupportedLocale(locale)) return raw;
+  const m = raw.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!m) return raw;
+  let h = parseInt(m[1], 10);
+  const ap = m[3].toUpperCase();
+  if (ap === 'PM' && h !== 12) h += 12;
+  if (ap === 'AM' && h === 12) h = 0;
+  return `${String(h).padStart(2, '0')}:${m[2]}`;
 }
 
 const EN: BookingStrings = {
@@ -119,6 +138,9 @@ const EN: BookingStrings = {
   getDirections: 'Get directions',
   voucherAttached: 'Your hotel voucher is attached to this email as a PDF — show it at reception.',
   questionsContact: 'Questions? Contact us at',
+  manageHeading: 'Manage your booking',
+  manageBody: 'Sign in with this email — no password needed — to view your booking, re-download your voucher any time, and manage your stay.',
+  manageButton: 'View my booking',
 };
 
 const ES: BookingStrings = {
@@ -161,6 +183,9 @@ const ES: BookingStrings = {
   getDirections: 'Cómo llegar',
   voucherAttached: 'Tu bono de hotel está adjunto a este correo en PDF — muéstralo en recepción.',
   questionsContact: '¿Preguntas? Escríbenos a',
+  manageHeading: 'Gestiona tu reserva',
+  manageBody: 'Inicia sesión con este correo — sin contraseña — para ver tu reserva, descargar tu bono cuando quieras y gestionar tu estancia.',
+  manageButton: 'Ver mi reserva',
 };
 
 const FR: BookingStrings = {
@@ -203,6 +228,9 @@ const FR: BookingStrings = {
   getDirections: 'Itinéraire',
   voucherAttached: 'Votre bon d’hôtel est joint à cet e-mail au format PDF — présentez-le à la réception.',
   questionsContact: 'Des questions ? Contactez-nous à',
+  manageHeading: 'Gérez votre réservation',
+  manageBody: 'Connectez-vous avec cet e-mail — sans mot de passe — pour voir votre réservation, retélécharger votre bon à tout moment et gérer votre séjour.',
+  manageButton: 'Voir ma réservation',
 };
 
 const DE: BookingStrings = {
@@ -245,6 +273,9 @@ const DE: BookingStrings = {
   getDirections: 'Route',
   voucherAttached: 'Ihr Hotelgutschein ist dieser E-Mail als PDF beigefügt — zeigen Sie ihn an der Rezeption.',
   questionsContact: 'Fragen? Kontaktieren Sie uns unter',
+  manageHeading: 'Buchung verwalten',
+  manageBody: 'Melden Sie sich mit dieser E-Mail an — ohne Passwort — um Ihre Buchung anzusehen, Ihren Gutschein jederzeit erneut herunterzuladen und Ihren Aufenthalt zu verwalten.',
+  manageButton: 'Meine Buchung ansehen',
 };
 
 const NL: BookingStrings = {
@@ -287,6 +318,9 @@ const NL: BookingStrings = {
   getDirections: 'Route',
   voucherAttached: 'Uw hotelvoucher is als PDF bij deze e-mail gevoegd — toon hem bij de receptie.',
   questionsContact: 'Vragen? Neem contact met ons op via',
+  manageHeading: 'Beheer uw boeking',
+  manageBody: 'Log in met dit e-mailadres — geen wachtwoord nodig — om uw boeking te bekijken, uw voucher altijd opnieuw te downloaden en uw verblijf te beheren.',
+  manageButton: 'Mijn boeking bekijken',
 };
 
 const IT: BookingStrings = {
@@ -329,6 +363,9 @@ const IT: BookingStrings = {
   getDirections: 'Indicazioni',
   voucherAttached: 'Il tuo voucher hotel è allegato a questa email in PDF — mostralo alla reception.',
   questionsContact: 'Domande? Scrivici a',
+  manageHeading: 'Gestisci la tua prenotazione',
+  manageBody: 'Accedi con questa email — senza password — per vedere la tua prenotazione, riscaricare il voucher quando vuoi e gestire il soggiorno.',
+  manageButton: 'Vedi la mia prenotazione',
 };
 
 const PT: BookingStrings = {
@@ -371,6 +408,9 @@ const PT: BookingStrings = {
   getDirections: 'Como chegar',
   voucherAttached: 'O seu voucher de hotel está anexado a este e-mail em PDF — mostre-o na receção.',
   questionsContact: 'Dúvidas? Contacte-nos em',
+  manageHeading: 'Faça a gestão da sua reserva',
+  manageBody: 'Inicie sessão com este e-mail — sem palavra-passe — para ver a sua reserva, transferir o voucher quando quiser e gerir a sua estadia.',
+  manageButton: 'Ver a minha reserva',
 };
 
 const DICT: Record<SupportedLocale, BookingStrings> = { es: ES, fr: FR, de: DE, nl: NL, it: IT, pt: PT };
