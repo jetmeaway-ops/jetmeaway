@@ -276,6 +276,20 @@ async function buildPkpassAttachment(
   }
 }
 
+const APP_STORE_URL = 'https://apps.apple.com/gb/app/jetmeaway/id6765715611';
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=uk.co.jetmeaway.app';
+
+/** Small "get the app" badges row for the email footer. Official App Store +
+ *  Google Play badges, hosted on our own domain (public/). `label` is caller-
+ *  localized and must already be safe text. */
+function appBadgesHtml(label: string): string {
+  return `<div style="text-align:center;padding:4px 0 12px;">
+    <p style="font-size:11px;color:#8E95A9;margin:0 0 10px;">${label}</p>
+    <a href="${APP_STORE_URL}" style="text-decoration:none;"><img src="https://jetmeaway.co.uk/badge-app-store.png" alt="Download on the App Store" height="40" style="height:40px;width:auto;border:0;margin:0 3px;vertical-align:middle;" /></a>
+    <a href="${PLAY_STORE_URL}" style="text-decoration:none;"><img src="https://jetmeaway.co.uk/badge-google-play.png" alt="Get it on Google Play" height="40" style="height:40px;width:auto;border:0;margin:0 3px;vertical-align:middle;" /></a>
+  </div>`;
+}
+
 async function sendHotelConfirmationEmail(booking: StoredBooking) {
   const RESEND_KEY = process.env.RESEND_API_KEY;
   if (!RESEND_KEY || !booking.guest?.email) return;
@@ -491,6 +505,8 @@ async function sendLocalizedConfirmationEmail(booking: StoredBooking) {
       <p style="font-size:13px;line-height:1.5;color:#5C6378;margin:0 0 14px;">${esc(S.manageBody)}</p>
       <a href="https://jetmeaway.co.uk/account" style="display:inline-block;background:#0066FF;color:#fff;font-weight:800;font-size:14px;text-decoration:none;padding:11px 22px;border-radius:10px;">${esc(S.manageButton)}</a>
     </div>
+    ${appBadgesHtml(esc(S.getApp))}
+
     <div style="text-align:center;padding:16px 0;border-top:1px solid #E8ECF4;">
       <p style="font-size:12px;color:#8E95A9;margin:0 0 4px;">${esc(S.questionsContact)} <a href="mailto:contact@jetmeaway.co.uk" style="color:#0066FF;">contact@jetmeaway.co.uk</a></p>
       <p style="font-size:11px;color:#B0B8CC;margin:0;">JETMEAWAY LTD (Company No: 17140522) &middot; 66 Paul Street, London</p>
