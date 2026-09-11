@@ -5,6 +5,7 @@ import { upsertBooking, getBooking, type Booking } from '@/lib/bookings';
 import { scoutSalutation } from '@/lib/scout-greeting';
 import { joinAddress, formatDate, countryName } from '@/lib/notifications';
 import { buildVoucherPdf } from '@/lib/voucher';
+import { buildApplePkpass } from '@/lib/apple-wallet';
 import { stringsFor, isSupportedLocale, translateBoard, translateRoom } from '@/lib/booking-i18n';
 import type { PendingBooking } from '@/app/api/hotels/start-booking/route';
 import type { PendingGuest } from '@/app/api/hotels/pending/[ref]/guest/route';
@@ -251,6 +252,30 @@ async function buildVoucherAttachment(
   }
 }
 
+/** Apple Wallet .pkpass attachment — iOS Mail shows "Add to Apple Wallet".
+ *  Returns null when signing isn't configured (env absent) or on any failure,
+ *  so the email always sends with at least the PDF. */
+async function buildPkpassAttachment(
+  ref: string,
+  locale: string,
+): Promise<{ filename: string; content: string; contentType: string } | null> {
+  try {
+    const b = await getBooking(ref);
+    if (!b || b.type !== 'hotel') return null;
+    const pk = await buildApplePkpass(b, locale);
+    if (!pk) return null;
+    const suffix = isSupportedLocale(locale) ? `-${locale}` : '';
+    return {
+      filename: `jetmeaway-voucher-${ref}${suffix}.pkpass`,
+      content: Buffer.from(pk).toString('base64'),
+      contentType: 'application/vnd.apple.pkpass',
+    };
+  } catch (err) {
+    console.error('[/success] buildPkpassAttachment failed', err);
+    return null;
+  }
+}
+
 async function sendHotelConfirmationEmail(booking: StoredBooking) {
   const RESEND_KEY = process.env.RESEND_API_KEY;
   if (!RESEND_KEY || !booking.guest?.email) return;
@@ -360,6 +385,8 @@ async function sendHotelConfirmationEmail(booking: StoredBooking) {
   // JetMeAway-branded PDF voucher, attached so the guest has it without
   // signing in (guest bookings could not reach the account voucher before).
   const voucher = await buildVoucherAttachment(booking.ref, 'en');
+  const pkpass = await buildPkpassAttachment(booking.ref, 'en');
+  const attachments = [voucher, pkpass].filter(Boolean) as Array<Record<string, string>>;
 
   try {
     const { Resend } = await import('resend');
@@ -369,7 +396,7 @@ async function sendHotelConfirmationEmail(booking: StoredBooking) {
       to: booking.guest.email,
       subject: `🏨 Hotel Booking Confirmed — ${booking.hotelName} | JetMeAway`,
       html,
-      ...(voucher ? { attachments: [voucher] } : {}),
+      ...(attachments.length ? { attachments } : {}),
     });
     console.log(`[/success] Confirmation email sent to ${booking.guest.email}`);
   } catch (err) {
@@ -461,6 +488,8 @@ async function sendLocalizedConfirmationEmail(booking: StoredBooking) {
 </body></html>`;
 
   const voucher = await buildVoucherAttachment(booking.ref, locale);
+  const pkpass = await buildPkpassAttachment(booking.ref, locale);
+  const attachments = [voucher, pkpass].filter(Boolean) as Array<Record<string, string>>;
   try {
     const { Resend } = await import('resend');
     const resend = new Resend(RESEND_KEY);
@@ -469,7 +498,7 @@ async function sendLocalizedConfirmationEmail(booking: StoredBooking) {
       to: booking.guest.email,
       subject: S.emailSubject(booking.hotelName || ''),
       html,
-      ...(voucher ? { attachments: [voucher] } : {}),
+      ...(attachments.length ? { attachments } : {}),
     });
     console.log(`[/success] Localized (${locale}) confirmation email sent to ${booking.guest.email}`);
   } catch (err) {
