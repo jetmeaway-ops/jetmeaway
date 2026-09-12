@@ -48,6 +48,7 @@ export default async function AdminLayout({
           </div>
           <nav className="flex items-center gap-3 sm:gap-4 text-sm font-medium overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide whitespace-nowrap">
             <a href="/admin" className="text-[#5C6378] hover:text-[#0066FF] shrink-0">Dashboard</a>
+            <a href="/admin/users" className="text-[#5C6378] hover:text-[#0066FF] shrink-0">Users</a>
             <div className="flex items-center gap-2 shrink-0">
               <a
                 href="/admin/bookings?type=flight"
