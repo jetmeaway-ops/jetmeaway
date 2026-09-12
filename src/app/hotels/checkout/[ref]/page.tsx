@@ -366,6 +366,27 @@ export default function HotelCheckoutPage() {
     }
     setPayingNow(true);
     setPaymentError(null);
+
+    // The LiteAPI Payment SDK redirects the whole page to returnUrl on SUCCESS
+    // (this component unmounts). On a card DECLINE it does NOT reject or fire a
+    // callback — it shows the error inside its own Stripe element and hands
+    // control straight back here. So there is NO success/failure signal to
+    // await. Previously, on a decline `payingNow` stayed true forever, leaving
+    // the Pay button stuck on "Processing…" and disabled — the customer could
+    // not enter another card or retry without reloading (which loses the offer).
+    // Fix: whenever control returns to us WITHOUT a success redirect, treat it
+    // as "did not go through" and re-enable so they can correct the card and
+    // retry in place. A hard backstop also covers submit() never resolving.
+    let done = false;
+    const reEnable = () => {
+      if (done) return;
+      done = true;
+      setPayingNow(false);
+      setPaymentError((prev) => prev || t('paymentFailedRetry'));
+    };
+    // Backstop: if submit() hangs (never resolves/rejects), don't strand them.
+    const backstop = setTimeout(reEnable, 15000);
+
     try {
       // LiteAPI Payment SDK exposes submit / confirmPayment
       if (typeof pi.submit === 'function') {
@@ -382,7 +403,15 @@ export default function HotelCheckoutPage() {
           if (form) form.requestSubmit();
         }
       }
+      // Reaching here means the SDK returned control without navigating to
+      // returnUrl → the charge did not succeed (declined / needs correction).
+      // Give a genuine success-redirect a brief grace to unload the page, then
+      // re-enable the Pay button so the customer can try a different card.
+      clearTimeout(backstop);
+      setTimeout(reEnable, 3000);
     } catch (e: unknown) {
+      clearTimeout(backstop);
+      done = true;
       setPaymentError(e instanceof Error ? e.message : t('paymentFailedRetry'));
       setPayingNow(false);
     }
